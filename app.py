@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, session, render_template
+from flask import Flask, request, redirect, session, render_template, jsonify
 import sqlite3
 import cloudinary
 import cloudinary.uploader
@@ -156,7 +156,8 @@ def create():
     if request.method == "POST":
         data = request.form
 
-        steps = data["steps"]  # уже HTML из редактора
+        steps = data["steps"]
+        expected = data["expected"]
 
         conn = get_conn()
         c = conn.cursor()
@@ -167,7 +168,7 @@ def create():
         """, (
             data["title"],
             steps,
-            data["expected"],
+            expected,
             data["status"],
             data["priority"],
             session["username"]
@@ -179,6 +180,21 @@ def create():
         return redirect("/")
 
     return render_template("create.html")
+
+
+# ---------- UPLOAD (для drag & drop) ----------
+@app.route("/upload", methods=["POST"])
+def upload():
+    if not is_logged_in():
+        return jsonify({"error": "unauthorized"}), 401
+
+    file = request.files.get("file")
+
+    if file:
+        result = cloudinary.uploader.upload(file)
+        return jsonify({"url": result["secure_url"]})
+
+    return jsonify({"error": "no file"}), 400
 
 
 # ---------- INIT ----------

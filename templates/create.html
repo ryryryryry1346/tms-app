@@ -40,9 +40,42 @@
 var quillSteps = new Quill('#editor_steps', { theme: 'snow' });
 var quillExpected = new Quill('#editor_expected', { theme: 'snow' });
 
+// загрузка файла в Cloudinary
+function uploadImage(file, quill) {
+    let formData = new FormData();
+    formData.append("file", file);
+
+    fetch("/upload", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        let range = quill.getSelection(true);
+        quill.insertEmbed(range.index, 'image', data.url);
+    });
+}
+
+// drag & drop
+function handleDrop(quill) {
+    quill.root.addEventListener("drop", function(e) {
+        e.preventDefault();
+
+        let files = e.dataTransfer.files;
+
+        for (let file of files) {
+            uploadImage(file, quill);
+        }
+    });
+}
+
+handleDrop(quillSteps);
+handleDrop(quillExpected);
+
+// submit
 document.querySelector('form').onsubmit = function() {
-  document.querySelector('#steps').value = quillSteps.root.innerHTML;
-  document.querySelector('#expected').value = quillExpected.root.innerHTML;
+    document.querySelector('#steps').value = quillSteps.root.innerHTML;
+    document.querySelector('#expected').value = quillExpected.root.innerHTML;
 };
 </script>
 
