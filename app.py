@@ -155,16 +155,8 @@ def create():
 
     if request.method == "POST":
         data = request.form
-        files = request.files.getlist("files")
 
-        steps = data["steps"]
-
-        # загрузка файлов в Cloudinary
-        for file in files:
-            if file and file.filename:
-                result = cloudinary.uploader.upload(file)
-                url = result["secure_url"]
-                steps += f"\n{url}"
+        steps = data["steps"]  # уже HTML из редактора
 
         conn = get_conn()
         c = conn.cursor()
@@ -189,5 +181,5 @@ def create():
     return render_template("create.html")
 
 
-# ---------- INIT (ВАЖНО ДЛЯ RENDER) ----------
+# ---------- INIT ----------
 init_db()

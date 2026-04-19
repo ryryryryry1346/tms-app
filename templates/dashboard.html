@@ -4,20 +4,12 @@
 
 <h3>Tests</h3>
 
-<form method="get">
-  <select name="status" onchange="this.form.submit()">
-    <option value="">All</option>
-    <option value="Passed">Passed</option>
-    <option value="Failed">Failed</option>
-    <option value="Blocked">Blocked</option>
-  </select>
-</form>
-
-<table border="1">
+<table class="table table-bordered bg-white">
 <tr>
   <th>ID</th>
   <th>Title</th>
   <th>Steps</th>
+  <th>Expected</th>
   <th>Status</th>
   <th>Priority</th>
   <th>Author</th>
@@ -28,22 +20,8 @@
   <td>{{t[0]}}</td>
   <td>{{t[1]}}</td>
 
-  <td>
-    {% for line in t[2].split('\n') %}
-      {% if "http" in line %}
-        {% if ".mp4" in line %}
-          <video width="200" controls>
-            <source src="{{line}}">
-          </video>
-        {% else %}
-          <img src="{{line}}" width="150">
-        {% endif %}
-      {% else %}
-        {{line}}
-      {% endif %}
-      <br>
-    {% endfor %}
-  </td>
+  <td>{{t[2] | safe}}</td>
+  <td>{{t[3] | safe}}</td>
 
   <td>{{t[4]}}</td>
   <td>{{t[5]}}</td>

@@ -4,20 +4,21 @@
 
 <h3>Create Test</h3>
 
-<form method="post" enctype="multipart/form-data">
+<form method="post">
 
 <input name="title" class="form-control mb-2" placeholder="Title">
 
-<textarea id="steps" name="steps" class="form-control mb-2" placeholder="Steps"></textarea>
+<!-- QUILL -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 
-<textarea name="expected" class="form-control mb-2" placeholder="Expected"></textarea>
+<label>Steps</label>
+<div id="editor_steps" style="height:200px;" class="mb-3"></div>
+<input type="hidden" name="steps" id="steps">
 
-<!-- DRAG & DROP -->
-<div id="dropzone" class="border p-3 mb-2 text-center">
-  Drag & Drop files here or click
-</div>
-
-<input type="file" id="fileInput" name="files" multiple hidden>
+<label>Expected</label>
+<div id="editor_expected" style="height:150px;" class="mb-3"></div>
+<input type="hidden" name="expected" id="expected">
 
 <select name="status" class="form-select mb-2">
   <option>Passed</option>
@@ -36,32 +37,12 @@
 </form>
 
 <script>
-const dropzone = document.getElementById("dropzone");
-const input = document.getElementById("fileInput");
-const steps = document.getElementById("steps");
+var quillSteps = new Quill('#editor_steps', { theme: 'snow' });
+var quillExpected = new Quill('#editor_expected', { theme: 'snow' });
 
-dropzone.onclick = () => input.click();
-
-dropzone.ondragover = e => {
-  e.preventDefault();
-  dropzone.style.background = "#eee";
-};
-
-dropzone.ondrop = e => {
-  e.preventDefault();
-  input.files = e.dataTransfer.files;
-
-  for (let file of input.files) {
-    steps.value += "\\nuploads/" + file.name;
-  }
-
-  dropzone.innerText = input.files.length + " file(s) added";
-};
-
-input.onchange = () => {
-  for (let file of input.files) {
-    steps.value += "\\nuploads/" + file.name;
-  }
+document.querySelector('form').onsubmit = function() {
+  document.querySelector('#steps').value = quillSteps.root.innerHTML;
+  document.querySelector('#expected').value = quillExpected.root.innerHTML;
 };
 </script>
 
