@@ -1,5 +1,5 @@
 from flask import Flask, request, redirect, session, render_template
-import sqlite3, os
+import sqlite3
 import cloudinary
 import cloudinary.uploader
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -9,7 +9,7 @@ app.secret_key = "secret123"
 
 DB = "tms.db"
 
-# Cloudinary
+# Cloudinary (берёт из CLOUDINARY_URL)
 cloudinary.config(secure=True)
 
 
@@ -49,6 +49,7 @@ def init_db():
 
     add("ALTER TABLE tests ADD COLUMN status TEXT DEFAULT 'Failed'")
     add("ALTER TABLE tests ADD COLUMN priority TEXT DEFAULT 'Medium'")
+    add("ALTER TABLE tests ADD COLUMN author TEXT")
 
     conn.commit()
     conn.close()
@@ -81,8 +82,8 @@ def register():
     return """
     <h3>Register</h3>
     <form method="post">
-        <input name="username" placeholder="Username"><br>
-        <input name="password" type="password" placeholder="Password"><br>
+        <input name="username"><br>
+        <input name="password" type="password"><br>
         <button>Register</button>
     </form>
     """
@@ -167,14 +168,15 @@ def create():
         c = conn.cursor()
 
         c.execute("""
-        INSERT INTO tests(title,steps,expected,status,priority)
-        VALUES (?,?,?,?,?)
+        INSERT INTO tests(title,steps,expected,status,priority,author)
+        VALUES (?,?,?,?,?,?)
         """, (
             data["title"],
             steps,
             data["expected"],
             data["status"],
-            data["priority"]
+            data["priority"],
+            session["username"]
         ))
 
         conn.commit()
