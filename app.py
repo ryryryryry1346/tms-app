@@ -9,7 +9,7 @@ app.secret_key = "secret123"
 
 DB = "tms.db"
 
-# Cloudinary (берёт из CLOUDINARY_URL)
+# Cloudinary (использует CLOUDINARY_URL из Render)
 cloudinary.config(secure=True)
 
 
@@ -63,6 +63,8 @@ def is_logged_in():
 # ---------- REGISTER ----------
 @app.route("/register", methods=["GET","POST"])
 def register():
+    error = None
+
     if request.method == "POST":
         username = request.form["username"]
         password = generate_password_hash(request.form["password"])
@@ -71,34 +73,37 @@ def register():
         c = conn.cursor()
 
         try:
-            c.execute("INSERT INTO users(username,password) VALUES (?,?)", (username, password))
+            c.execute(
+                "INSERT INTO users(username,password) VALUES (?,?)",
+                (username, password)
+            )
             conn.commit()
         except:
-            return "User already exists"
+            error = "User already exists"
 
         conn.close()
-        return redirect("/login")
 
-    return """
-    <h3>Register</h3>
-    <form method="post">
-        <input name="username"><br>
-        <input name="password" type="password"><br>
-        <button>Register</button>
-    </form>
-    """
+        if not error:
+            return redirect("/login")
+
+    return render_template("register.html", error=error)
 
 
 # ---------- LOGIN ----------
 @app.route("/login", methods=["GET","POST"])
 def login():
+    error = None
+
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
 
         conn = get_conn()
         c = conn.cursor()
-        user = c.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
+        user = c.execute(
+            "SELECT * FROM users WHERE username=?",
+            (username,)
+        ).fetchone()
         conn.close()
 
         if user and check_password_hash(user[2], password):
@@ -106,16 +111,9 @@ def login():
             session["username"] = user[1]
             return redirect("/")
 
-        return "Invalid credentials"
+        error = "Invalid username or password"
 
-    return """
-    <h3>Login</h3>
-    <form method="post">
-        <input name="username"><br>
-        <input name="password" type="password"><br>
-        <button>Login</button>
-    </form>
-    """
+    return render_template("login.html", error=error)
 
 
 # ---------- LOGOUT ----------
@@ -137,7 +135,10 @@ def index():
     c = conn.cursor()
 
     if status_filter:
-        tests = c.execute("SELECT * FROM tests WHERE status=?", (status_filter,)).fetchall()
+        tests = c.execute(
+            "SELECT * FROM tests WHERE status=?",
+            (status_filter,)
+        ).fetchall()
     else:
         tests = c.execute("SELECT * FROM tests").fetchall()
 
@@ -158,6 +159,7 @@ def create():
 
         steps = data["steps"]
 
+        # загрузка файлов в Cloudinary
         for file in files:
             if file and file.filename:
                 result = cloudinary.uploader.upload(file)
@@ -187,5 +189,5 @@ def create():
     return render_template("create.html")
 
 
-# ---------- INIT ----------
+# ---------- INIT (ВАЖНО ДЛЯ RENDER) ----------
 init_db()
