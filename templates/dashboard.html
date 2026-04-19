@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h3 class="mb-3">Tests</h3>
+
+<!-- ФИЛЬТР -->
+<form method="get" class="mb-3">
+  <select name="status" class="form-select w-25" onchange="this.form.submit()">
+    <option value="">All</option>
+    <option value="Passed">Passed</option>
+    <option value="Failed">Failed</option>
+    <option value="Blocked">Blocked</option>
+  </select>
+</form>
+
+<!-- ТАБЛИЦА -->
+<table class="table table-hover table-bordered bg-white">
+  <thead class="table-dark">
+    <tr>
+      <th style="width:60px;">ID</th>
+      <th>Title</th>
+      <th>Steps</th>
+      <th style="width:120px;">Status</th>
+      <th style="width:120px;">Priority</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {% for t in tests %}
+    <tr>
+      <td>{{t[0]}}</td>
+
+      <td>
+        <strong>{{t[1]}}</strong>
+      </td>
+
+      <!-- STEPS + MEDIA -->
+      <td>
+        {% for line in t[2].split('\n') %}
+
+          {% if "uploads/" in line %}
+
+            {% if line.endswith('.mp4') %}
+              <video width="250" controls class="mb-2">
+                <source src="/{{line}}">
+              </video>
+
+            {% else %}
+              <img src="/{{line}}" width="200" class="mb-2">
+            {% endif %}
+
+          {% else %}
+            <div>{{line}}</div>
+          {% endif %}
+
+        {% endfor %}
+      </td>
+
+      <!-- STATUS -->
+      <td>
+        {% if t[4] == "Passed" %}
+          <span class="badge bg-success">Passed</span>
+        {% elif t[4] == "Failed" %}
+          <span class="badge bg-danger">Failed</span>
+        {% else %}
+          <span class="badge bg-warning text-dark">Blocked</span>
+        {% endif %}
+      </td>
+
+      <!-- PRIORITY -->
+      <td>
+        {% if t[5] == "High" %}
+          <span class="badge bg-danger">High</span>
+        {% elif t[5] == "Medium" %}
+          <span class="badge bg-warning text-dark">Medium</span>
+        {% else %}
+          <span class="badge bg-secondary">Low</span>
+        {% endif %}
+      </td>
+
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

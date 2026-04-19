@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h3>Create Test</h3>
+
+<form method="post" enctype="multipart/form-data">
+
+<input name="title" class="form-control mb-2" placeholder="Title">
+
+<textarea id="steps" name="steps" class="form-control mb-2" placeholder="Steps"></textarea>
+
+<textarea name="expected" class="form-control mb-2" placeholder="Expected"></textarea>
+
+<!-- DRAG & DROP -->
+<div id="dropzone" class="border p-3 mb-2 text-center">
+  Drag & Drop files here or click
+</div>
+
+<input type="file" id="fileInput" name="files" multiple hidden>
+
+<select name="status" class="form-select mb-2">
+  <option>Passed</option>
+  <option>Failed</option>
+  <option>Blocked</option>
+</select>
+
+<select name="priority" class="form-select mb-2">
+  <option>Low</option>
+  <option>Medium</option>
+  <option>High</option>
+</select>
+
+<button class="btn btn-success">Save</button>
+
+</form>
+
+<script>
+const dropzone = document.getElementById("dropzone");
+const input = document.getElementById("fileInput");
+const steps = document.getElementById("steps");
+
+dropzone.onclick = () => input.click();
+
+dropzone.ondragover = e => {
+  e.preventDefault();
+  dropzone.style.background = "#eee";
+};
+
+dropzone.ondrop = e => {
+  e.preventDefault();
+  input.files = e.dataTransfer.files;
+
+  for (let file of input.files) {
+    steps.value += "\\nuploads/" + file.name;
+  }
+
+  dropzone.innerText = input.files.length + " file(s) added";
+};
+
+input.onchange = () => {
+  for (let file of input.files) {
+    steps.value += "\\nuploads/" + file.name;
+  }
+};
+</script>
+
+{% endblock %}
