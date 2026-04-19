@@ -9,7 +9,7 @@ app.secret_key = "secret123"
 
 DB = "tms.db"
 
-# Cloudinary (использует CLOUDINARY_URL из Render)
+# Cloudinary
 cloudinary.config(secure=True)
 
 
@@ -31,25 +31,32 @@ def init_db():
     )
     """)
 
+    # sections
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS sections(
+        id INTEGER PRIMARY KEY,
+        name TEXT
+    )
+    """)
+
     # tests
     c.execute("""
     CREATE TABLE IF NOT EXISTS tests(
         id INTEGER PRIMARY KEY,
         title TEXT,
         steps TEXT,
-        expected TEXT
+        expected TEXT,
+        status TEXT,
+        section_id INTEGER,
+        author TEXT
     )
     """)
 
-    def add(sql):
-        try:
-            c.execute(sql)
-        except:
-            pass
-
-    add("ALTER TABLE tests ADD COLUMN status TEXT DEFAULT 'Failed'")
-    add("ALTER TABLE tests ADD COLUMN priority TEXT DEFAULT 'Medium'")
-    add("ALTER TABLE tests ADD COLUMN author TEXT")
+    # default sections
+    if c.execute("SELECT COUNT(*) FROM sections").fetchone()[0] == 0:
+        c.execute("INSERT INTO sections (name) VALUES ('Auth')")
+        c.execute("INSERT INTO sections (name) VALUES ('Profile')")
+        c.execute("INSERT INTO sections (name) VALUES ('Payments')")
 
     conn.commit()
     conn.close()
@@ -73,10 +80,7 @@ def register():
         c = conn.cursor()
 
         try:
-            c.execute(
-                "INSERT INTO users(username,password) VALUES (?,?)",
-                (username, password)
-            )
+            c.execute("INSERT INTO users(username,password) VALUES (?,?)", (username, password))
             conn.commit()
         except:
             error = "User already exists"
@@ -100,10 +104,7 @@ def login():
 
         conn = get_conn()
         c = conn.cursor()
-        user = c.execute(
-            "SELECT * FROM users WHERE username=?",
-            (username,)
-        ).fetchone()
+        user = c.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
         conn.close()
 
         if user and check_password_hash(user[2], password):
@@ -111,7 +112,7 @@ def login():
             session["username"] = user[1]
             return redirect("/")
 
-        error = "Invalid username or password"
+        error = "Invalid credentials"
 
     return render_template("login.html", error=error)
 
@@ -129,22 +130,15 @@ def index():
     if not is_logged_in():
         return redirect("/login")
 
-    status_filter = request.args.get("status")
-
     conn = get_conn()
     c = conn.cursor()
 
-    if status_filter:
-        tests = c.execute(
-            "SELECT * FROM tests WHERE status=?",
-            (status_filter,)
-        ).fetchall()
-    else:
-        tests = c.execute("SELECT * FROM tests").fetchall()
+    sections = c.execute("SELECT * FROM sections").fetchall()
+    tests = c.execute("SELECT * FROM tests").fetchall()
 
     conn.close()
 
-    return render_template("dashboard.html", tests=tests)
+    return render_template("dashboard.html", sections=sections, tests=tests)
 
 
 # ---------- CREATE ----------
@@ -153,24 +147,21 @@ def create():
     if not is_logged_in():
         return redirect("/login")
 
+    conn = get_conn()
+    c = conn.cursor()
+
     if request.method == "POST":
         data = request.form
 
-        steps = data["steps"]
-        expected = data["expected"]
-
-        conn = get_conn()
-        c = conn.cursor()
-
         c.execute("""
-        INSERT INTO tests(title,steps,expected,status,priority,author)
+        INSERT INTO tests(title,steps,expected,status,section_id,author)
         VALUES (?,?,?,?,?,?)
         """, (
             data["title"],
-            steps,
-            expected,
+            data["steps"],
+            data["expected"],
             data["status"],
-            data["priority"],
+            data["section_id"],
             session["username"]
         ))
 
@@ -179,15 +170,15 @@ def create():
 
         return redirect("/")
 
-    return render_template("create.html")
+    sections = c.execute("SELECT * FROM sections").fetchall()
+    conn.close()
+
+    return render_template("create.html", sections=sections)
 
 
-# ---------- UPLOAD (для drag & drop) ----------
+# ---------- UPLOAD ----------
 @app.route("/upload", methods=["POST"])
 def upload():
-    if not is_logged_in():
-        return jsonify({"error": "unauthorized"}), 401
-
     file = request.files.get("file")
 
     if file:

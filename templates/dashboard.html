@@ -2,33 +2,40 @@
 
 {% block content %}
 
-<h3>Tests</h3>
+<h4>Tests</h4>
 
-<table class="table table-bordered bg-white">
-<tr>
-  <th>ID</th>
-  <th>Title</th>
-  <th>Steps</th>
-  <th>Expected</th>
-  <th>Status</th>
-  <th>Priority</th>
-  <th>Author</th>
-</tr>
+{% for section in sections %}
 
-{% for t in tests %}
-<tr>
-  <td>{{t[0]}}</td>
-  <td>{{t[1]}}</td>
+<div class="mb-4">
+  <h6 class="text-muted">{{section[1]}}</h6>
 
-  <td>{{t[2] | safe}}</td>
-  <td>{{t[3] | safe}}</td>
+  <div class="list-group">
 
-  <td>{{t[4]}}</td>
-  <td>{{t[5]}}</td>
-  <td>{{t[6]}}</td>
-</tr>
+    {% for t in tests if t[5] == section[0] %}
+    <div class="list-group-item">
+
+      <div class="d-flex justify-content-between">
+        <strong>{{t[1]}}</strong>
+
+        {% if t[4] == "Passed" %}
+          <span class="badge bg-success">✓</span>
+        {% elif t[4] == "Failed" %}
+          <span class="badge bg-danger">✗</span>
+        {% else %}
+          <span class="badge bg-secondary">•</span>
+        {% endif %}
+      </div>
+
+      <div class="mt-2 small">
+        {{t[2] | safe}}
+      </div>
+
+    </div>
+    {% endfor %}
+
+  </div>
+</div>
+
 {% endfor %}
-
-</table>
 
 {% endblock %}

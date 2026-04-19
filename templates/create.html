@@ -6,17 +6,20 @@
 
 <form method="post">
 
-<input name="title" class="form-control mb-2" placeholder="Title">
+<input name="title" class="form-control mb-2" placeholder="Test name">
 
-<!-- QUILL -->
+<select name="section_id" class="form-select mb-2">
+  {% for s in sections %}
+    <option value="{{s[0]}}">{{s[1]}}</option>
+  {% endfor %}
+</select>
+
 <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 
-<label>Steps</label>
 <div id="editor_steps" style="height:200px;" class="mb-3"></div>
 <input type="hidden" name="steps" id="steps">
 
-<label>Expected</label>
 <div id="editor_expected" style="height:150px;" class="mb-3"></div>
 <input type="hidden" name="expected" id="expected">
 
@@ -26,13 +29,7 @@
   <option>Blocked</option>
 </select>
 
-<select name="priority" class="form-select mb-2">
-  <option>Low</option>
-  <option>Medium</option>
-  <option>High</option>
-</select>
-
-<button class="btn btn-success">Save</button>
+<button class="btn btn-dark">Save</button>
 
 </form>
 
@@ -40,7 +37,6 @@
 var quillSteps = new Quill('#editor_steps', { theme: 'snow' });
 var quillExpected = new Quill('#editor_expected', { theme: 'snow' });
 
-// загрузка файла в Cloudinary
 function uploadImage(file, quill) {
     let formData = new FormData();
     formData.append("file", file);
@@ -56,14 +52,10 @@ function uploadImage(file, quill) {
     });
 }
 
-// drag & drop
 function handleDrop(quill) {
     quill.root.addEventListener("drop", function(e) {
         e.preventDefault();
-
-        let files = e.dataTransfer.files;
-
-        for (let file of files) {
+        for (let file of e.dataTransfer.files) {
             uploadImage(file, quill);
         }
     });
@@ -72,7 +64,6 @@ function handleDrop(quill) {
 handleDrop(quillSteps);
 handleDrop(quillExpected);
 
-// submit
 document.querySelector('form').onsubmit = function() {
     document.querySelector('#steps').value = quillSteps.root.innerHTML;
     document.querySelector('#expected').value = quillExpected.root.innerHTML;
