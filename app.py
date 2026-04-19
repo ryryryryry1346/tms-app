@@ -31,8 +31,10 @@ def init_db():
     """)
 
     def add(sql):
-        try: c.execute(sql)
-        except: pass
+        try:
+            c.execute(sql)
+        except:
+            pass
 
     add("ALTER TABLE tests ADD COLUMN status TEXT DEFAULT 'Failed'")
     add("ALTER TABLE tests ADD COLUMN priority TEXT DEFAULT 'Medium'")
@@ -97,7 +99,6 @@ def create():
                 filename = secure_filename(file.filename)
                 file.save(os.path.join(UPLOAD_FOLDER, filename))
 
-                # вставляем в текст
                 steps += f"\nuploads/{filename}"
 
         conn = get_conn()
@@ -128,6 +129,5 @@ def uploaded_file(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 
-# ---------- RUN ----------
-if __name__ == "__main__":
-    init_db()
+# ---------- ВАЖНО ДЛЯ RENDER ----------
+init_db()
