@@ -125,38 +125,26 @@ def index():
     return render_template("dashboard.html", sections=sections, tests=tests)
 
 
-# ---------- CREATE ----------
-@app.route("/create", methods=["GET","POST"])
-def create():
-    if not is_logged_in():
-        return redirect("/login")
+# ---------- UPDATE SECTION (drag drop) ----------
+@app.route("/move_test", methods=["POST"])
+def move_test():
+    data = request.json
 
     conn = get_conn()
     c = conn.cursor()
 
-    if request.method == "POST":
-        c.execute("""
-        INSERT INTO tests(title,steps,expected,status,section_id,author)
-        VALUES (?,?,?,?,?,?)
-        """, (
-            request.form["title"],
-            request.form["steps"],
-            request.form["expected"],
-            request.form["status"],
-            request.form["section_id"],
-            session["username"]
-        ))
+    c.execute("UPDATE tests SET section_id=? WHERE id=?", (
+        data["section_id"],
+        data["id"]
+    ))
 
-        conn.commit()
-        conn.close()
-        return redirect("/")
-
-    sections = c.execute("SELECT * FROM sections").fetchall()
+    conn.commit()
     conn.close()
-    return render_template("create.html", sections=sections)
+
+    return jsonify({"ok": True})
 
 
-# ---------- UPDATE (INLINE SAVE) ----------
+# ---------- UPDATE INLINE ----------
 @app.route("/update_test", methods=["POST"])
 def update_test():
     data = request.json

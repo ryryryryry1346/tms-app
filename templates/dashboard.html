@@ -4,73 +4,113 @@
 
 <h4>Tests</h4>
 
+<style>
+.thumb {
+  max-width: 120px;
+  cursor: pointer;
+}
+</style>
+
 {% for section in sections %}
 <div class="mb-4">
   <h6 class="text-muted">{{section[1]}}</h6>
 
+  <div class="section" data-section="{{section[0]}}">
+
   {% for t in tests if t[5] == section[0] %}
 
-  <div class="card mb-2 p-2">
+  <div class="card mb-2 p-2 draggable" draggable="true" data-id="{{t[0]}}">
 
-    <!-- HEADER -->
     <div onclick="toggle({{t[0]}})" style="cursor:pointer;">
       <strong id="title_{{t[0]}}">{{t[1]}}</strong>
-
-      {% if t[4] == "Passed" %}
-        <span class="badge bg-success">✓</span>
-      {% elif t[4] == "Failed" %}
-        <span class="badge bg-danger">✗</span>
-      {% else %}
-        <span class="badge bg-secondary">•</span>
-      {% endif %}
     </div>
 
-    <!-- BODY -->
-    <div id="body_{{t[0]}}" style="display:none;" class="mt-2">
+    <div id="body_{{t[0]}}" style="display:none;">
 
-      <div contenteditable="true" id="steps_{{t[0]}}" class="border p-2 mb-2">
+      <div contenteditable="true" id="steps_{{t[0]}}">
         {{t[2] | safe}}
       </div>
 
-      <div contenteditable="true" id="expected_{{t[0]}}" class="border p-2 mb-2">
-        {{t[3] | safe}}
+      <!-- MEDIA -->
+      <div class="mt-2">
+        <span class="badge bg-secondary" onclick="toggleMedia({{t[0]}})">Media</span>
+
+        <div id="media_{{t[0]}}" style="display:none;">
+          {% for part in t[2].split('<img') %}
+            {% if 'src=' in part %}
+              {% set src = part.split('src="')[1].split('"')[0] %}
+              <img src="{{src}}" class="thumb" loading="lazy">
+            {% endif %}
+          {% endfor %}
+        </div>
       </div>
 
-      <select id="status_{{t[0]}}" class="form-select mb-2">
+      <select id="status_{{t[0]}}">
         <option {% if t[4]=="Passed" %}selected{% endif %}>Passed</option>
         <option {% if t[4]=="Failed" %}selected{% endif %}>Failed</option>
         <option {% if t[4]=="Blocked" %}selected{% endif %}>Blocked</option>
       </select>
 
-      <button onclick="save({{t[0]}})" class="btn btn-sm btn-dark">Save</button>
+      <button onclick="save({{t[0]}})">Save</button>
 
     </div>
 
   </div>
 
   {% endfor %}
+
+  </div>
 </div>
 {% endfor %}
 
 <script>
-function toggle(id) {
-  let el = document.getElementById("body_" + id);
-  el.style.display = el.style.display === "none" ? "block" : "none";
+function toggle(id){
+  let el = document.getElementById("body_"+id);
+  el.style.display = el.style.display==="none"?"block":"none";
 }
 
-function save(id) {
-  fetch("/update_test", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      id: id,
-      title: document.getElementById("title_" + id).innerText,
-      steps: document.getElementById("steps_" + id).innerHTML,
-      expected: document.getElementById("expected_" + id).innerHTML,
-      status: document.getElementById("status_" + id).value
-    })
-  }).then(() => alert("Saved"));
+function toggleMedia(id){
+  let el = document.getElementById("media_"+id);
+  el.style.display = el.style.display==="none"?"block":"none";
 }
+
+function save(id){
+  fetch("/update_test",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      id:id,
+      title:document.getElementById("title_"+id).innerText,
+      steps:document.getElementById("steps_"+id).innerHTML,
+      expected:"",
+      status:document.getElementById("status_"+id).value
+    })
+  })
+}
+
+// DRAG & DROP
+let dragged = null;
+
+document.querySelectorAll(".draggable").forEach(el=>{
+  el.ondragstart = ()=> dragged = el;
+});
+
+document.querySelectorAll(".section").forEach(sec=>{
+  sec.ondragover = e=> e.preventDefault();
+
+  sec.ondrop = ()=>{
+    sec.appendChild(dragged);
+
+    fetch("/move_test",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        id:dragged.dataset.id,
+        section_id:sec.dataset.section
+      })
+    });
+  }
+});
 </script>
 
 {% endblock %}
