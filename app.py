@@ -1,15 +1,16 @@
-from flask import Flask, request, redirect, session, render_template, send_from_directory
+from flask import Flask, request, redirect, session, render_template
 import sqlite3, os
-from werkzeug.utils import secure_filename
+import cloudinary
+import cloudinary.uploader
 
 app = Flask(__name__)
 app.secret_key = "secret123"
 
 DB = "tms.db"
-UPLOAD_FOLDER = "uploads"
-ALLOWED_EXTENSIONS = {"png","jpg","jpeg","gif","mp4"}
 
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# --- Cloudinary ---
+# берёт настройки из CLOUDINARY_URL (ты уже добавил в Render)
+cloudinary.config(secure=True)
 
 
 # ---------- DB ----------
@@ -41,10 +42,6 @@ def init_db():
 
     conn.commit()
     conn.close()
-
-
-def allowed_file(filename):
-    return "." in filename and filename.rsplit(".",1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 # ---------- AUTH ----------
@@ -95,11 +92,13 @@ def create():
         steps = data["steps"]
 
         for file in files:
-            if file and file.filename and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                file.save(os.path.join(UPLOAD_FOLDER, filename))
+            if file and file.filename:
+                # загружаем в Cloudinary
+                result = cloudinary.uploader.upload(file)
+                url = result["secure_url"]
 
-                steps += f"\nuploads/{filename}"
+                # добавляем ссылку в steps
+                steps += f"\n{url}"
 
         conn = get_conn()
         c = conn.cursor()
@@ -123,11 +122,5 @@ def create():
     return render_template("create.html")
 
 
-# ---------- FILES ----------
-@app.route("/uploads/<filename>")
-def uploaded_file(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename)
-
-
-# ---------- ВАЖНО ДЛЯ RENDER ----------
+# ---------- INIT DB ДЛЯ RENDER ----------
 init_db()
