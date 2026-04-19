@@ -2,14 +2,14 @@ from flask import Flask, request, redirect, session, render_template
 import sqlite3, os
 import cloudinary
 import cloudinary.uploader
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = "secret123"
 
 DB = "tms.db"
 
-# --- Cloudinary ---
-# берёт настройки из CLOUDINARY_URL (ты уже добавил в Render)
+# Cloudinary
 cloudinary.config(secure=True)
 
 
@@ -22,6 +22,16 @@ def init_db():
     conn = get_conn()
     c = conn.cursor()
 
+    # users
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS users(
+        id INTEGER PRIMARY KEY,
+        username TEXT UNIQUE,
+        password TEXT
+    )
+    """)
+
+    # tests
     c.execute("""
     CREATE TABLE IF NOT EXISTS tests(
         id INTEGER PRIMARY KEY,
@@ -46,16 +56,72 @@ def init_db():
 
 # ---------- AUTH ----------
 def is_logged_in():
-    return "user" in session
+    return "user_id" in session
+
+
+# ---------- REGISTER ----------
+@app.route("/register", methods=["GET","POST"])
+def register():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = generate_password_hash(request.form["password"])
+
+        conn = get_conn()
+        c = conn.cursor()
+
+        try:
+            c.execute("INSERT INTO users(username,password) VALUES (?,?)", (username, password))
+            conn.commit()
+        except:
+            return "User already exists"
+
+        conn.close()
+        return redirect("/login")
+
+    return """
+    <h3>Register</h3>
+    <form method="post">
+        <input name="username" placeholder="Username"><br>
+        <input name="password" type="password" placeholder="Password"><br>
+        <button>Register</button>
+    </form>
+    """
 
 
 # ---------- LOGIN ----------
 @app.route("/login", methods=["GET","POST"])
 def login():
     if request.method == "POST":
-        session["user"] = request.form["username"]
-        return redirect("/")
-    return "<form method=post><input name=username><button>Login</button></form>"
+        username = request.form["username"]
+        password = request.form["password"]
+
+        conn = get_conn()
+        c = conn.cursor()
+        user = c.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
+        conn.close()
+
+        if user and check_password_hash(user[2], password):
+            session["user_id"] = user[0]
+            session["username"] = user[1]
+            return redirect("/")
+
+        return "Invalid credentials"
+
+    return """
+    <h3>Login</h3>
+    <form method="post">
+        <input name="username"><br>
+        <input name="password" type="password"><br>
+        <button>Login</button>
+    </form>
+    """
+
+
+# ---------- LOGOUT ----------
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
 
 
 # ---------- DASHBOARD ----------
@@ -93,11 +159,8 @@ def create():
 
         for file in files:
             if file and file.filename:
-                # загружаем в Cloudinary
                 result = cloudinary.uploader.upload(file)
                 url = result["secure_url"]
-
-                # добавляем ссылку в steps
                 steps += f"\n{url}"
 
         conn = get_conn()
@@ -122,5 +185,5 @@ def create():
     return render_template("create.html")
 
 
-# ---------- INIT DB ДЛЯ RENDER ----------
+# ---------- INIT ----------
 init_db()
