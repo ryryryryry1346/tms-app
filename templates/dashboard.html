@@ -5,37 +5,72 @@
 <h4>Tests</h4>
 
 {% for section in sections %}
-
 <div class="mb-4">
   <h6 class="text-muted">{{section[1]}}</h6>
 
-  <div class="list-group">
+  {% for t in tests if t[5] == section[0] %}
 
-    {% for t in tests if t[5] == section[0] %}
-    <div class="list-group-item">
+  <div class="card mb-2 p-2">
 
-      <div class="d-flex justify-content-between">
-        <strong>{{t[1]}}</strong>
+    <!-- HEADER -->
+    <div onclick="toggle({{t[0]}})" style="cursor:pointer;">
+      <strong id="title_{{t[0]}}">{{t[1]}}</strong>
 
-        {% if t[4] == "Passed" %}
-          <span class="badge bg-success">✓</span>
-        {% elif t[4] == "Failed" %}
-          <span class="badge bg-danger">✗</span>
-        {% else %}
-          <span class="badge bg-secondary">•</span>
-        {% endif %}
-      </div>
+      {% if t[4] == "Passed" %}
+        <span class="badge bg-success">✓</span>
+      {% elif t[4] == "Failed" %}
+        <span class="badge bg-danger">✗</span>
+      {% else %}
+        <span class="badge bg-secondary">•</span>
+      {% endif %}
+    </div>
 
-      <div class="mt-2 small">
+    <!-- BODY -->
+    <div id="body_{{t[0]}}" style="display:none;" class="mt-2">
+
+      <div contenteditable="true" id="steps_{{t[0]}}" class="border p-2 mb-2">
         {{t[2] | safe}}
       </div>
 
+      <div contenteditable="true" id="expected_{{t[0]}}" class="border p-2 mb-2">
+        {{t[3] | safe}}
+      </div>
+
+      <select id="status_{{t[0]}}" class="form-select mb-2">
+        <option {% if t[4]=="Passed" %}selected{% endif %}>Passed</option>
+        <option {% if t[4]=="Failed" %}selected{% endif %}>Failed</option>
+        <option {% if t[4]=="Blocked" %}selected{% endif %}>Blocked</option>
+      </select>
+
+      <button onclick="save({{t[0]}})" class="btn btn-sm btn-dark">Save</button>
+
     </div>
-    {% endfor %}
 
   </div>
-</div>
 
+  {% endfor %}
+</div>
 {% endfor %}
+
+<script>
+function toggle(id) {
+  let el = document.getElementById("body_" + id);
+  el.style.display = el.style.display === "none" ? "block" : "none";
+}
+
+function save(id) {
+  fetch("/update_test", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      id: id,
+      title: document.getElementById("title_" + id).innerText,
+      steps: document.getElementById("steps_" + id).innerHTML,
+      expected: document.getElementById("expected_" + id).innerHTML,
+      status: document.getElementById("status_" + id).value
+    })
+  }).then(() => alert("Saved"));
+}
+</script>
 
 {% endblock %}
