@@ -1,37 +1,80 @@
 {% extends "base.html" %}
 {% block content %}
 
-<input id="search" class="form-control mb-2" placeholder="Search">
+<h4>Projects</h4>
 
-{% for section in sections %}
-<h5>{{section[1]}}</h5>
+<form method="get" class="mb-3">
+<select name="project" class="form-select" onchange="this.form.submit()">
+  <option>Select project</option>
+  {% for p in projects %}
+  <option value="{{p[0]}}">{{p[1]}}</option>
+  {% endfor %}
+</select>
+</form>
 
-{% for t in tests if t[5] == section[0] %}
-<div class="card p-2 mb-2">
+{% for s in sections %}
+<h5 class="mt-4">{{s[1]}}</h5>
 
-<a href="/test/{{t[0]}}">
-<b>{{t[1]}}</b>
-</a>
+{% for t in tests if t[5]==s[0] %}
+
+<div class="card-test">
+
+<div class="d-flex justify-content-between">
 
 <div>
-{{t[2] | safe}}
+<b>{{t[1]}}</b>
+</div>
+
+<div>
+<span class="status {{'passed' if t[4]=='Passed' else 'failed'}}">
+{{t[4]}}
+</span>
+</div>
+
 </div>
 
 <div class="mt-2">
-<button onclick="setStatus({{t[0]}}, 'Passed')" class="btn btn-success btn-sm">✔</button>
-<button onclick="setStatus({{t[0]}}, 'Failed')" class="btn btn-danger btn-sm">✗</button>
+
+<button onclick="toggle({{t[0]}})" class="btn btn-sm btn-light">
+Steps
+</button>
+
+<button onclick="setStatus({{t[0]}}, 'Passed')" class="btn btn-sm btn-success">
+✔
+</button>
+
+<button onclick="setStatus({{t[0]}}, 'Failed')" class="btn btn-sm btn-danger">
+✗
+</button>
+
+</div>
+
+<div id="steps-{{t[0]}}" class="steps">
+
+<div class="mt-2">
+{{t[2] | safe}}
+</div>
+
+<hr>
+
+<div>
+<b>Expected:</b><br>
+{{t[3] | safe}}
 </div>
 
 </div>
+
+</div>
+
 {% endfor %}
 {% endfor %}
 
 <script>
-function setStatus(id, status){
-  fetch("/set_status", {
+function setStatus(id,status){
+  fetch("/set_status",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({id:id, status:status})
+    body:JSON.stringify({id:id,status:status})
   }).then(()=>location.reload());
 }
 </script>

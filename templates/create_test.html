@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
 
+<h4>Create Test</h4>
+
 <form method="post">
 
-<input name="title" placeholder="Title" class="form-control mb-2">
+<input name="title" class="form-control mb-2" placeholder="Title">
 
 <select name="section_id" class="form-select mb-2">
 {% for s in sections %}
