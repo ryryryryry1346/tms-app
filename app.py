@@ -46,15 +46,7 @@ def init_db():
     )
     """)
 
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS test_runs(
-        id SERIAL PRIMARY KEY,
-        test_id INTEGER,
-        status TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-
+    # дефолт секции
     c.execute("SELECT COUNT(*) FROM sections")
     if c.fetchone()[0] == 0:
         c.execute("INSERT INTO sections (name) VALUES (%s)", ("Auth",))
@@ -84,7 +76,6 @@ def login():
 
         if user and check_password_hash(user[2], request.form["password"]):
             session["user_id"] = user[0]
-            session["username"] = user[1]
             return redirect("/")
 
     return render_template("login.html")
@@ -128,7 +119,7 @@ def index():
     c.execute("SELECT * FROM sections")
     sections = c.fetchall()
 
-    c.execute("SELECT * FROM tests")
+    c.execute("SELECT * FROM tests ORDER BY id DESC")
     tests = c.fetchall()
 
     conn.close()
@@ -174,7 +165,7 @@ def create():
             request.form["expected"],
             request.form["status"],
             request.form["section_id"],
-            session["username"]
+            "user"
         ))
 
         conn.commit()
@@ -188,33 +179,16 @@ def create():
     return render_template("create.html", sections=sections)
 
 
-# ---------- RUN ----------
-@app.route("/run_test", methods=["POST"])
-def run_test():
+# ---------- STATUS ----------
+@app.route("/set_status", methods=["POST"])
+def set_status():
     data = request.json
 
     conn = get_conn()
     c = conn.cursor()
 
-    c.execute("INSERT INTO test_runs(test_id,status) VALUES (%s,%s)",
-              (data["test_id"], data["status"]))
-
-    conn.commit()
-    conn.close()
-
-    return jsonify({"ok": True})
-
-
-# ---------- MOVE ----------
-@app.route("/move_test", methods=["POST"])
-def move_test():
-    data = request.json
-
-    conn = get_conn()
-    c = conn.cursor()
-
-    c.execute("UPDATE tests SET section_id=%s WHERE id=%s",
-              (data["section_id"], data["id"]))
+    c.execute("UPDATE tests SET status=%s WHERE id=%s",
+              (data["status"], data["id"]))
 
     conn.commit()
     conn.close()

@@ -3,23 +3,11 @@
 
 <input id="search" class="form-control mb-2" placeholder="Search">
 
-<select id="statusFilter" class="form-select mb-3">
-  <option value="">All</option>
-  <option>Passed</option>
-  <option>Failed</option>
-</select>
-
 {% for section in sections %}
 <h5>{{section[1]}}</h5>
 
-<div class="section" data-section="{{section[0]}}">
-
 {% for t in tests if t[5] == section[0] %}
-<div class="card p-2 mb-2 draggable"
-     draggable="true"
-     data-id="{{t[0]}}"
-     data-title="{{t[1]|lower}}"
-     data-status="{{t[4]}}">
+<div class="card p-2 mb-2">
 
 <a href="/test/{{t[0]}}">
 <b>{{t[1]}}</b>
@@ -29,62 +17,23 @@
 {{t[2] | safe}}
 </div>
 
-<select id="status_{{t[0]}}">
-  <option {% if t[4]=="Passed" %}selected{% endif %}>Passed</option>
-  <option {% if t[4]=="Failed" %}selected{% endif %}>Failed</option>
-</select>
-
-<button onclick="run({{t[0]}},'Passed')">✔</button>
-<button onclick="run({{t[0]}},'Failed')">✗</button>
+<div class="mt-2">
+<button onclick="setStatus({{t[0]}}, 'Passed')" class="btn btn-success btn-sm">✔</button>
+<button onclick="setStatus({{t[0]}}, 'Failed')" class="btn btn-danger btn-sm">✗</button>
+</div>
 
 </div>
 {% endfor %}
-</div>
 {% endfor %}
 
 <script>
-function run(id,status){
-  fetch("/run_test",{
+function setStatus(id, status){
+  fetch("/set_status", {
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({test_id:id,status:status})
+    body:JSON.stringify({id:id, status:status})
   }).then(()=>location.reload());
 }
-
-function filter(){
-  let text = search.value.toLowerCase();
-  let status = statusFilter.value;
-
-  document.querySelectorAll(".draggable").forEach(el=>{
-    let ok = el.dataset.title.includes(text)
-      && (!status || el.dataset.status===status);
-
-    el.style.display = ok?"block":"none";
-  });
-}
-
-search.oninput = filter;
-statusFilter.onchange = filter;
-
-// DRAG
-let dragged;
-document.querySelectorAll(".draggable").forEach(el=>{
-  el.ondragstart=()=>dragged=el;
-});
-document.querySelectorAll(".section").forEach(sec=>{
-  sec.ondragover=e=>e.preventDefault();
-  sec.ondrop=()=>{
-    sec.appendChild(dragged);
-    fetch("/move_test",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        id:dragged.dataset.id,
-        section_id:sec.dataset.section
-      })
-    });
-  };
-});
 </script>
 
 {% endblock %}

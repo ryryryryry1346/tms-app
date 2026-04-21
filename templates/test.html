@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h3>{{t[1]}}</h3>
+
+<div>
+{{t[2] | safe}}
+</div>
+
+<hr>
+
+<h5>Expected:</h5>
+<div>
+{{t[3] | safe}}
+</div>
+
+<a href="/" class="btn btn-secondary mt-3">← Back</a>
+
+{% endblock %}
