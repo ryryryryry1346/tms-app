@@ -1,0 +1,23 @@
+<h3>Test Run</h3>
+
+{% for t in tests %}
+<div>
+  {{t[1]}}
+  <button onclick="run({{t[0]}}, 'Passed')">✔</button>
+  <button onclick="run({{t[0]}}, 'Failed')">✗</button>
+</div>
+{% endfor %}
+
+<script>
+function run(id,status){
+  fetch("/run_test",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      run_id: {{run_id}},
+      test_id:id,
+      status:status
+    })
+  });
+}
+</script>
