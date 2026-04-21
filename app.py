@@ -1,5 +1,6 @@
 from flask import Flask, request, redirect, session, render_template, jsonify
-import sqlite3
+import os
+import psycopg2
 import cloudinary
 import cloudinary.uploader
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -7,41 +8,40 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 app.secret_key = "secret123"
 
-DB = "tms.db"
-
+# Cloudinary
 cloudinary.config(secure=True)
 
 
 # ---------- DB ----------
 def get_conn():
-    return sqlite3.connect(DB)
+    return psycopg2.connect(os.getenv("DATABASE_URL"))
 
 
 def init_db():
     conn = get_conn()
     c = conn.cursor()
 
-    # users
+    # USERS
     c.execute("""
     CREATE TABLE IF NOT EXISTS users(
-        id INTEGER PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         username TEXT UNIQUE,
         password TEXT
     )
     """)
 
-    # sections
+    # SECTIONS
     c.execute("""
     CREATE TABLE IF NOT EXISTS sections(
-        id INTEGER PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         name TEXT
     )
     """)
 
-    # tests
+    # TESTS
     c.execute("""
     CREATE TABLE IF NOT EXISTS tests(
-        id INTEGER PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         title TEXT,
         steps TEXT,
         expected TEXT,
@@ -51,11 +51,22 @@ def init_db():
     )
     """)
 
-    # default sections
-    if c.execute("SELECT COUNT(*) FROM sections").fetchone()[0] == 0:
-        c.execute("INSERT INTO sections (name) VALUES ('Auth')")
-        c.execute("INSERT INTO sections (name) VALUES ('Profile')")
-        c.execute("INSERT INTO sections (name) VALUES ('Payments')")
+    # TEST RUNS
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS test_runs(
+        id SERIAL PRIMARY KEY,
+        test_id INTEGER,
+        status TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    # DEFAULT SECTIONS
+    c.execute("SELECT COUNT(*) FROM sections")
+    if c.fetchone()[0] == 0:
+        c.execute("INSERT INTO sections (name) VALUES (%s)", ("Auth",))
+        c.execute("INSERT INTO sections (name) VALUES (%s)", ("Profile",))
+        c.execute("INSERT INTO sections (name) VALUES (%s)", ("Payments",))
 
     conn.commit()
     conn.close()
@@ -71,14 +82,14 @@ def register():
     error = None
 
     if request.method == "POST":
-        username = request.form["username"]
-        password = generate_password_hash(request.form["password"])
-
         conn = get_conn()
         c = conn.cursor()
 
         try:
-            c.execute("INSERT INTO users(username,password) VALUES (?,?)", (username, password))
+            c.execute(
+                "INSERT INTO users(username,password) VALUES (%s,%s)",
+                (request.form["username"], generate_password_hash(request.form["password"]))
+            )
             conn.commit()
         except:
             error = "User already exists"
@@ -96,15 +107,18 @@ def login():
     error = None
 
     if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-
         conn = get_conn()
         c = conn.cursor()
-        user = c.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
+
+        c.execute(
+            "SELECT * FROM users WHERE username=%s",
+            (request.form["username"],)
+        )
+        user = c.fetchone()
+
         conn.close()
 
-        if user and check_password_hash(user[2], password):
+        if user and check_password_hash(user[2], request.form["password"]):
             session["user_id"] = user[0]
             session["username"] = user[1]
             return redirect("/")
@@ -129,15 +143,21 @@ def index():
     conn = get_conn()
     c = conn.cursor()
 
-    sections = c.execute("SELECT * FROM sections").fetchall()
-    tests = c.execute("SELECT * FROM tests").fetchall()
+    c.execute("SELECT * FROM sections")
+    sections = c.fetchall()
+
+    c.execute("SELECT * FROM tests")
+    tests = c.fetchall()
+
+    c.execute("SELECT * FROM test_runs ORDER BY created_at DESC")
+    runs = c.fetchall()
 
     conn.close()
 
-    return render_template("dashboard.html", sections=sections, tests=tests)
+    return render_template("dashboard.html", sections=sections, tests=tests, runs=runs)
 
 
-# ---------- CREATE TEST ----------
+# ---------- CREATE ----------
 @app.route("/create", methods=["GET", "POST"])
 def create():
     if not is_logged_in():
@@ -149,7 +169,7 @@ def create():
     if request.method == "POST":
         c.execute("""
         INSERT INTO tests(title,steps,expected,status,section_id,author)
-        VALUES (?,?,?,?,?,?)
+        VALUES (%s,%s,%s,%s,%s,%s)
         """, (
             request.form["title"],
             request.form["steps"],
@@ -164,13 +184,15 @@ def create():
 
         return redirect("/")
 
-    sections = c.execute("SELECT * FROM sections").fetchall()
+    c.execute("SELECT * FROM sections")
+    sections = c.fetchall()
+
     conn.close()
 
     return render_template("create.html", sections=sections)
 
 
-# ---------- UPDATE TEST ----------
+# ---------- UPDATE ----------
 @app.route("/update_test", methods=["POST"])
 def update_test():
     data = request.json
@@ -180,8 +202,8 @@ def update_test():
 
     c.execute("""
     UPDATE tests
-    SET title=?, steps=?, expected=?, status=?
-    WHERE id=?
+    SET title=%s, steps=%s, expected=%s, status=%s
+    WHERE id=%s
     """, (
         data["title"],
         data["steps"],
@@ -196,7 +218,7 @@ def update_test():
     return jsonify({"ok": True})
 
 
-# ---------- MOVE TEST (drag & drop) ----------
+# ---------- MOVE ----------
 @app.route("/move_test", methods=["POST"])
 def move_test():
     data = request.json
@@ -205,9 +227,31 @@ def move_test():
     c = conn.cursor()
 
     c.execute(
-        "UPDATE tests SET section_id=? WHERE id=?",
+        "UPDATE tests SET section_id=%s WHERE id=%s",
         (data["section_id"], data["id"])
     )
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({"ok": True})
+
+
+# ---------- RUN TEST ----------
+@app.route("/run_test", methods=["POST"])
+def run_test():
+    data = request.json
+
+    conn = get_conn()
+    c = conn.cursor()
+
+    c.execute("""
+    INSERT INTO test_runs(test_id,status)
+    VALUES (%s,%s)
+    """, (
+        data["test_id"],
+        data["status"]
+    ))
 
     conn.commit()
     conn.close()
