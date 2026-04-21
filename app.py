@@ -131,15 +131,28 @@ def index():
     c.execute("SELECT * FROM tests")
     tests = c.fetchall()
 
-    c.execute("SELECT * FROM test_runs")
-    runs = c.fetchall()
-
     conn.close()
 
     return render_template("dashboard.html",
                            sections=sections,
-                           tests=tests,
-                           runs=runs)
+                           tests=tests)
+
+
+# ---------- TEST PAGE ----------
+@app.route("/test/<int:id>")
+def test_page(id):
+    if not is_logged_in():
+        return redirect("/login")
+
+    conn = get_conn()
+    c = conn.cursor()
+
+    c.execute("SELECT * FROM tests WHERE id=%s", (id,))
+    test = c.fetchone()
+
+    conn.close()
+
+    return render_template("test.html", t=test)
 
 
 # ---------- CREATE ----------
@@ -175,25 +188,16 @@ def create():
     return render_template("create.html", sections=sections)
 
 
-# ---------- UPDATE ----------
-@app.route("/update_test", methods=["POST"])
-def update_test():
+# ---------- RUN ----------
+@app.route("/run_test", methods=["POST"])
+def run_test():
     data = request.json
 
     conn = get_conn()
     c = conn.cursor()
 
-    c.execute("""
-    UPDATE tests
-    SET title=%s, steps=%s, expected=%s, status=%s
-    WHERE id=%s
-    """, (
-        data["title"],
-        data["steps"],
-        data["expected"],
-        data["status"],
-        data["id"]
-    ))
+    c.execute("INSERT INTO test_runs(test_id,status) VALUES (%s,%s)",
+              (data["test_id"], data["status"]))
 
     conn.commit()
     conn.close()
@@ -211,23 +215,6 @@ def move_test():
 
     c.execute("UPDATE tests SET section_id=%s WHERE id=%s",
               (data["section_id"], data["id"]))
-
-    conn.commit()
-    conn.close()
-
-    return jsonify({"ok": True})
-
-
-# ---------- RUN ----------
-@app.route("/run_test", methods=["POST"])
-def run_test():
-    data = request.json
-
-    conn = get_conn()
-    c = conn.cursor()
-
-    c.execute("INSERT INTO test_runs(test_id,status) VALUES (%s,%s)",
-              (data["test_id"], data["status"]))
 
     conn.commit()
     conn.close()

@@ -14,15 +14,64 @@
 <select name="status" class="form-select mb-2">
 <option>Passed</option>
 <option>Failed</option>
-<option>Blocked</option>
 </select>
 
-<textarea name="steps" class="form-control mb-2"></textarea>
+<div id="steps" contenteditable="true"
+     class="form-control mb-2"
+     style="min-height:150px;"></div>
+
+<input type="hidden" name="steps" id="steps_input">
 
 <textarea name="expected" class="form-control mb-2"></textarea>
 
 <button class="btn btn-dark">Save</button>
 
 </form>
+
+<script>
+const steps = document.getElementById("steps");
+
+steps.addEventListener("paste", async (e) => {
+  let items = e.clipboardData.items;
+
+  for (let item of items) {
+    if (item.type.startsWith("image")) {
+      e.preventDefault();
+
+      let file = item.getAsFile();
+      let formData = new FormData();
+      formData.append("file", file);
+
+      let res = await fetch("/upload", {
+        method: "POST",
+        body: formData
+      });
+
+      let data = await res.json();
+      document.execCommand("insertImage", false, data.url);
+    }
+  }
+});
+
+steps.addEventListener("drop", async (e) => {
+  e.preventDefault();
+
+  let file = e.dataTransfer.files[0];
+  let formData = new FormData();
+  formData.append("file", file);
+
+  let res = await fetch("/upload", {
+    method: "POST",
+    body: formData
+  });
+
+  let data = await res.json();
+  document.execCommand("insertImage", false, data.url);
+});
+
+document.querySelector("form").onsubmit = () => {
+  document.getElementById("steps_input").value = steps.innerHTML;
+};
+</script>
 
 {% endblock %}

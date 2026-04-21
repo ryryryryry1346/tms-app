@@ -7,7 +7,6 @@
   <option value="">All</option>
   <option>Passed</option>
   <option>Failed</option>
-  <option>Blocked</option>
 </select>
 
 {% for section in sections %}
@@ -22,15 +21,12 @@
      data-title="{{t[1]|lower}}"
      data-status="{{t[4]}}">
 
+<a href="/test/{{t[0]}}">
 <b>{{t[1]}}</b>
+</a>
 
 <div>
-{% for part in t[2].split('<img') %}
-  {% if 'src=' in part %}
-    {% set src = part.split('src="')[1].split('"')[0] %}
-    <img src="{{src}}" class="thumb" onclick="openModal('{{src}}')" loading="lazy">
-  {% endif %}
-{% endfor %}
+{{t[2] | safe}}
 </div>
 
 <select id="status_{{t[0]}}">
@@ -46,27 +42,15 @@
 </div>
 {% endfor %}
 
-<!-- modal -->
-<div id="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:black;justify-content:center;align-items:center;">
-<img id="modalImg" style="max-width:90%;max-height:90%;">
-</div>
-
 <script>
-function openModal(src){
-  document.getElementById("modalImg").src = src;
-  document.getElementById("modal").style.display="flex";
-}
-document.getElementById("modal").onclick = ()=> {
-  document.getElementById("modal").style.display="none";
-}
-
 function run(id,status){
-  fetch("/run_test",{method:"POST",
+  fetch("/run_test",{
+    method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({test_id:id,status:status})})
+    body:JSON.stringify({test_id:id,status:status})
+  }).then(()=>location.reload());
 }
 
-// FILTER
 function filter(){
   let text = search.value.toLowerCase();
   let status = statusFilter.value;
@@ -91,12 +75,14 @@ document.querySelectorAll(".section").forEach(sec=>{
   sec.ondragover=e=>e.preventDefault();
   sec.ondrop=()=>{
     sec.appendChild(dragged);
-    fetch("/move_test",{method:"POST",
+    fetch("/move_test",{
+      method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
         id:dragged.dataset.id,
         section_id:sec.dataset.section
-      })});
+      })
+    });
   };
 });
 </script>
