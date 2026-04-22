@@ -27,7 +27,7 @@ export function getDb(): MySql2Database<typeof schema> {
   }
 
   pool = mysql.createPool(getDatabaseUrl())
-  database = drizzle({ client: pool, schema })
+  database = drizzle({ client: pool, schema, mode: 'default' })
 
   return database
 }
