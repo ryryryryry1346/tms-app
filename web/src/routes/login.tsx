@@ -32,10 +32,14 @@ function LoginPage() {
     setIsSubmitting(true)
 
     try {
+      const formData = new FormData(event.currentTarget)
+      const submittedUsername = String(formData.get('username') ?? '').trim()
+      const submittedPassword = String(formData.get('password') ?? '')
+
       const result = await loginUser({
         data: {
-          username,
-          password,
+          username: submittedUsername,
+          password: submittedPassword,
         },
       })
 
@@ -62,12 +66,14 @@ function LoginPage() {
 
         <form className="grid gap-3" onSubmit={handleSubmit}>
           <input
+            name="username"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
             className="rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
             placeholder="Username"
           />
           <input
+            name="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             type="password"
