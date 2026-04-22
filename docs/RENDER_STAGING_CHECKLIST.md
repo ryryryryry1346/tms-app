@@ -11,8 +11,8 @@ Use this checklist when creating the first Render staging service for the migrat
 ## 2. Runtime Settings
 - Runtime: `Node`
 - Node version: `22.12.0` or newer
-- Build command: `npm install && npm run build`
-- Start command: `./node_modules/.bin/srvx dist/server/server.js`
+- Build command: `npm install --include=dev && npm run build`
+- Start command: `./node_modules/.bin/srvx --prod --entry dist/server/server.js --static dist/client`
 - Health check path: `/login`
 - Auto deploy: keep `off` until the first staging validation passes
 
