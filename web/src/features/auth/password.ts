@@ -13,6 +13,8 @@ const DEFAULT_SCRYPT_N = 32768
 const DEFAULT_SCRYPT_R = 8
 const DEFAULT_SCRYPT_P = 1
 const DEFAULT_KEY_LENGTH = 32
+const DEFAULT_PBKDF2_DIGEST = 'sha256'
+const DEFAULT_PBKDF2_ITERATIONS = 600000
 
 function encodeHex(buffer: Buffer): string {
   return buffer.toString('hex')
@@ -37,18 +39,15 @@ async function deriveScryptHash(
 
 export async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(16).toString('hex')
-  const derivedKey = await deriveScryptHash(
+  const derivedKey = await pbkdf2(
     password,
     salt,
+    DEFAULT_PBKDF2_ITERATIONS,
     DEFAULT_KEY_LENGTH,
-    {
-      N: DEFAULT_SCRYPT_N,
-      r: DEFAULT_SCRYPT_R,
-      p: DEFAULT_SCRYPT_P,
-    },
+    DEFAULT_PBKDF2_DIGEST,
   )
 
-  return `scrypt:${DEFAULT_SCRYPT_N}:${DEFAULT_SCRYPT_R}:${DEFAULT_SCRYPT_P}$${salt}$${encodeHex(derivedKey)}`
+  return `pbkdf2:${DEFAULT_PBKDF2_DIGEST}:${DEFAULT_PBKDF2_ITERATIONS}$${salt}$${encodeHex(derivedKey)}`
 }
 
 async function verifyWerkzeugScryptHash(
