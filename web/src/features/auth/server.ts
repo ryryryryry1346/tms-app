@@ -21,45 +21,61 @@ export const getCurrentUser = createServerFn({ method: 'GET' }).handler(
 export const loginUser = createServerFn({ method: 'POST' })
   .inputValidator(credentialsInput)
   .handler(async ({ data }): Promise<{ ok: boolean }> => {
-    const {
-      createSessionForUser,
-      findUserWithPasswordByUsername,
-    } = await import('./helpers.server')
-    const user = await findUserWithPasswordByUsername(data.username)
+    try {
+      const {
+        createSessionForUser,
+        findUserWithPasswordByUsername,
+      } = await import('./helpers.server')
+      const user = await findUserWithPasswordByUsername(data.username)
 
-    if (!user) {
-      return { ok: false }
+      if (!user) {
+        return { ok: false }
+      }
+
+      const isValid = await verifyPassword(data.password, user.password)
+
+      if (!isValid) {
+        return { ok: false }
+      }
+
+      await createSessionForUser({
+        id: user.id,
+        username: user.username,
+      })
+
+      return { ok: true }
+    } catch (error) {
+      console.error('loginUser failed', {
+        username: data.username,
+        error,
+      })
+      throw error
     }
-
-    const isValid = await verifyPassword(data.password, user.password)
-
-    if (!isValid) {
-      return { ok: false }
-    }
-
-    await createSessionForUser({
-      id: user.id,
-      username: user.username,
-    })
-
-    return { ok: true }
   })
 
 export const registerUser = createServerFn({ method: 'POST' })
   .inputValidator(credentialsInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
-    const { findUserWithPasswordByUsername } = await import('./helpers.server')
-    const existingUser = await findUserWithPasswordByUsername(data.username)
+    try {
+      const { findUserWithPasswordByUsername } = await import('./helpers.server')
+      const existingUser = await findUserWithPasswordByUsername(data.username)
 
-    if (!existingUser) {
-      const db = getDb()
-      await db.insert(users).values({
+      if (!existingUser) {
+        const db = getDb()
+        await db.insert(users).values({
+          username: data.username,
+          password: await hashPassword(data.password),
+        })
+      }
+
+      return { ok: true }
+    } catch (error) {
+      console.error('registerUser failed', {
         username: data.username,
-        password: await hashPassword(data.password),
+        error,
       })
+      throw error
     }
-
-    return { ok: true }
   })
 
 export const logoutUser = createServerFn({ method: 'POST' }).handler(
