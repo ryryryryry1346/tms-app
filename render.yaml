@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: tms-app-web-staging
+    runtime: node
+    rootDir: web
+    plan: starter
+    autoDeploy: false
+    buildCommand: npm install && npm run build
+    startCommand: ./node_modules/.bin/srvx dist/server/server.js
+    healthCheckPath: /login
+    envVars:
+      - key: NODE_VERSION
+        value: 22.12.0
+      - key: NODE_ENV
+        value: production
+      - key: MYSQL_DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false

@@ -1,0 +1,252 @@
+import { and, asc, eq } from 'drizzle-orm'
+import { notFound } from '@tanstack/react-router'
+import { createServerFn } from '@tanstack/react-start'
+import { z } from 'zod'
+import { getDb, isDatabaseConfigured } from '../../db/client'
+import { projects, sections, tests } from '../../db/schema'
+
+const dashboardInput = z.object({
+  projectId: z.number().int().positive().optional(),
+})
+
+const updateTestStatusInput = z.object({
+  id: z.number().int().positive(),
+  status: z.enum(['Passed', 'Failed']),
+})
+
+const getTestDetailInput = z.object({
+  id: z.number().int().positive(),
+})
+
+const createTestInput = z.object({
+  title: z.string().trim().min(1),
+  sectionId: z.number().int().positive(),
+  status: z.enum(['Passed', 'Failed']),
+  steps: z.string(),
+  expected: z.string(),
+})
+
+export type DashboardTest = {
+  id: number
+  title: string
+  steps: string | null
+  expected: string | null
+  status: string | null
+  sectionId: number | null
+  projectId: number | null
+}
+
+export type DashboardSection = {
+  id: number
+  name: string
+  projectId: number | null
+}
+
+export type DashboardProject = {
+  id: number
+  name: string
+}
+
+export type DashboardState = {
+  databaseConfigured: boolean
+  projects: DashboardProject[]
+  selectedProjectId?: number
+  sections: DashboardSection[]
+  tests: DashboardTest[]
+}
+
+export type CreateTestFormState = {
+  databaseConfigured: boolean
+  sections: DashboardSection[]
+}
+
+export type TestDetail = {
+  id: number
+  title: string
+  steps: string | null
+  expected: string | null
+  status: string | null
+  sectionId: number | null
+  projectId: number | null
+}
+
+export const getDashboardState = createServerFn({ method: 'POST' })
+  .inputValidator(dashboardInput)
+  .handler(async ({ data }): Promise<DashboardState> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    if (!isDatabaseConfigured()) {
+      return {
+        databaseConfigured: false,
+        projects: [],
+        selectedProjectId: data.projectId,
+        sections: [],
+        tests: [],
+      }
+    }
+
+    const db = getDb()
+    const projectRows = await db
+      .select({
+        id: projects.id,
+        name: projects.name,
+      })
+      .from(projects)
+      .orderBy(asc(projects.id))
+
+    if (!data.projectId) {
+      return {
+        databaseConfigured: true,
+        projects: projectRows,
+        sections: [],
+        tests: [],
+      }
+    }
+
+    const sectionRows = await db
+      .select({
+        id: sections.id,
+        name: sections.name,
+        projectId: sections.projectId,
+      })
+      .from(sections)
+      .where(eq(sections.projectId, data.projectId))
+      .orderBy(asc(sections.id))
+
+    const testRows = await db
+      .select({
+        id: tests.id,
+        title: tests.title,
+        steps: tests.steps,
+        expected: tests.expected,
+        status: tests.status,
+        sectionId: tests.sectionId,
+        projectId: tests.projectId,
+      })
+      .from(tests)
+      .where(eq(tests.projectId, data.projectId))
+      .orderBy(asc(tests.id))
+
+    return {
+      databaseConfigured: true,
+      projects: projectRows,
+      selectedProjectId: data.projectId,
+      sections: sectionRows,
+      tests: testRows,
+    }
+  })
+
+export const updateTestStatus = createServerFn({ method: 'POST' })
+  .inputValidator(updateTestStatusInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    await db
+      .update(tests)
+      .set({
+        status: data.status,
+      })
+      .where(and(eq(tests.id, data.id)))
+
+    return { ok: true }
+  })
+
+export const getCreateTestFormState = createServerFn({ method: 'GET' }).handler(
+  async (): Promise<CreateTestFormState> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    if (!isDatabaseConfigured()) {
+      return {
+        databaseConfigured: false,
+        sections: [],
+      }
+    }
+
+    const db = getDb()
+    const rows = await db
+      .select({
+        id: sections.id,
+        name: sections.name,
+        projectId: sections.projectId,
+      })
+      .from(sections)
+      .orderBy(asc(sections.id))
+
+    return {
+      databaseConfigured: true,
+      sections: rows,
+    }
+  },
+)
+
+export const createTestCase = createServerFn({ method: 'POST' })
+  .inputValidator(createTestInput)
+  .handler(async ({ data }): Promise<{ id: number }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    const matchingSection = await db
+      .select({
+        id: sections.id,
+        projectId: sections.projectId,
+      })
+      .from(sections)
+      .where(eq(sections.id, data.sectionId))
+      .limit(1)
+
+    const section = matchingSection[0]
+
+    if (!section || !section.projectId) {
+      throw new Error(
+        'The selected section is missing or is not attached to a project.',
+      )
+    }
+
+    const result = await db.insert(tests).values({
+      title: data.title,
+      steps: data.steps,
+      expected: data.expected,
+      status: data.status,
+      sectionId: data.sectionId,
+      projectId: section.projectId,
+    })
+
+    return {
+      id: result[0].insertId,
+    }
+  })
+
+export const getTestDetail = createServerFn({ method: 'POST' })
+  .inputValidator(getTestDetailInput)
+  .handler(async ({ data }): Promise<TestDetail> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    const rows = await db
+      .select({
+        id: tests.id,
+        title: tests.title,
+        steps: tests.steps,
+        expected: tests.expected,
+        status: tests.status,
+        sectionId: tests.sectionId,
+        projectId: tests.projectId,
+      })
+      .from(tests)
+      .where(eq(tests.id, data.id))
+      .limit(1)
+
+    const test = rows[0]
+
+    if (!test) {
+      throw notFound()
+    }
+
+    return test
+  })
