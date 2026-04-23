@@ -1,4 +1,4 @@
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useState } from 'react'
 import { logoutUser, type SessionUser } from '../features/auth/server'
 import ThemeToggle from './ThemeToggle'
@@ -10,6 +10,10 @@ type HeaderProps = {
 export default function Header({ user }: HeaderProps) {
   const navigate = useNavigate()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
+  const isAuthPage = pathname === '/login' || pathname === '/register'
 
   async function handleLogout(): Promise<void> {
     setIsLoggingOut(true)
@@ -26,51 +30,56 @@ export default function Header({ user }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--line)] bg-[var(--header-bg)] px-4 backdrop-blur-lg">
-      <nav className="page-wrap flex flex-wrap items-center gap-x-3 gap-y-2 py-3 sm:py-4">
+      <nav className="page-wrap flex flex-wrap items-center gap-x-3 gap-y-2 py-3">
         <h2 className="m-0 flex-shrink-0 text-base font-semibold tracking-tight">
           <Link
-            to="/"
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-sm text-[var(--sea-ink)] no-underline shadow-[0_8px_24px_rgba(30,90,72,0.08)] sm:px-4 sm:py-2"
+            to={user ? '/' : '/login'}
+            className="inline-flex items-center gap-2.5 no-underline"
           >
-            <span className="h-2 w-2 rounded-full bg-[linear-gradient(90deg,#56c6be,#7ed3bf)]" />
-            TMS Migration
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand)] text-base font-extrabold text-white shadow-[0_14px_28px_rgba(34,145,233,0.2)]">
+              S
+            </span>
+            <span className="text-[1.55rem] font-extrabold tracking-tight text-[var(--brand-strong)]">
+              Systeme
+            </span>
           </Link>
         </h2>
 
-        <div className="ml-auto flex items-center gap-1.5 sm:ml-0 sm:gap-2">
+        <div className="ml-auto flex items-center gap-2">
+          {!isAuthPage ? <ThemeToggle /> : null}
           {user ? (
-            <div className="hidden rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1 text-sm text-[var(--sea-ink-soft)] sm:block">
+            <div className="hidden rounded-full border border-[var(--chip-line)] bg-white px-3 py-1 text-sm text-[var(--sea-ink-soft)] shadow-[0_10px_28px_rgba(20,45,89,0.06)] sm:block">
               {user.username}
             </div>
           ) : null}
-          <ThemeToggle />
         </div>
 
-        <div className="order-3 flex w-full flex-wrap items-center gap-x-4 gap-y-1 pb-1 text-sm font-semibold sm:order-2 sm:w-auto sm:flex-nowrap sm:pb-0">
+        <div className="order-3 flex w-full flex-wrap items-center gap-x-5 gap-y-2 text-sm font-semibold sm:order-2 sm:ml-auto sm:w-auto sm:flex-nowrap">
           {user ? (
-            <Link
-              to="/"
-              className="nav-link"
-              activeProps={{ className: 'nav-link is-active' }}
-            >
-              Dashboard
-            </Link>
-          ) : null}
-          <Link
-            to="/about"
-            className="nav-link"
-            activeProps={{ className: 'nav-link is-active' }}
-          >
-            Migration Notes
-          </Link>
-          {user ? (
-            <Link
-              to="/create-test"
-              className="nav-link"
-              activeProps={{ className: 'nav-link is-active' }}
-            >
-              Create Test
-            </Link>
+            <>
+              <Link
+                to="/"
+                className="nav-link"
+                activeProps={{ className: 'nav-link is-active' }}
+              >
+                Dashboard
+              </Link>
+              <Link
+                to="/create-test"
+                className="nav-link"
+                activeProps={{ className: 'nav-link is-active' }}
+              >
+                Create Test
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="nav-link cursor-pointer border-0 bg-transparent p-0 disabled:opacity-60"
+              >
+                {isLoggingOut ? 'Logging out...' : 'Logout'}
+              </button>
+            </>
           ) : (
             <>
               <Link
@@ -89,24 +98,6 @@ export default function Header({ user }: HeaderProps) {
               </Link>
             </>
           )}
-          {user ? (
-            <button
-              type="button"
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className="nav-link cursor-pointer border-0 bg-transparent p-0 disabled:opacity-60"
-            >
-              {isLoggingOut ? 'Logging out...' : 'Logout'}
-            </button>
-          ) : null}
-          <a
-            href="https://github.com/ryryryryry1346/tms-app"
-            className="nav-link"
-            target="_blank"
-            rel="noreferrer"
-          >
-            GitHub
-          </a>
         </div>
       </nav>
     </header>

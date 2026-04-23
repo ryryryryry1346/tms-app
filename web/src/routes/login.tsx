@@ -57,32 +57,67 @@ function LoginPage() {
   }
 
   return (
-    <main className="page-wrap px-4 py-12">
-      <section className="mx-auto max-w-md rounded-[2rem] border border-[var(--line)] bg-white/80 p-6 shadow-[0_18px_40px_rgba(23,58,64,0.08)] sm:p-8">
-        <p className="island-kicker mb-2">Login</p>
-        <h1 className="display-title mb-4 text-4xl font-bold text-[var(--sea-ink)]">
-          Sign in
-        </h1>
+    <main className="auth-page page-wrap px-4 py-8 sm:py-12">
+      <section className="auth-card rise-in mx-auto flex min-h-[41rem] w-full max-w-[37rem] flex-col rounded-[2rem] border border-[var(--auth-card-line)] bg-[var(--auth-card-bg)] p-8 shadow-[0_24px_70px_rgba(28,44,90,0.08)] sm:p-12">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--brand)] text-3xl font-extrabold text-white shadow-[0_20px_40px_rgba(34,145,233,0.24)]">
+            S
+          </div>
+          <h1 className="display-title mb-2 text-5xl font-extrabold tracking-tight text-[var(--brand-strong)]">
+            Login
+          </h1>
+          <p className="m-0 max-w-sm text-base leading-7 text-[var(--sea-ink-soft)]">
+            Sign in to continue working with your current TMS workspace.
+          </p>
+        </div>
 
-        <form className="grid gap-3" onSubmit={handleSubmit}>
+        <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
+          <label className="grid gap-2 text-left">
+            <span className="text-lg font-medium text-[var(--auth-label)]">
+              Email or username
+            </span>
+            <input
+              name="username"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              className="auth-input rounded-2xl border border-[var(--auth-input-line)] bg-[var(--auth-input-bg)] px-5 py-4 text-lg outline-none transition focus:border-[var(--brand)]"
+              placeholder="Enter your email or username"
+            />
+          </label>
+
+          <label className="grid gap-2 text-left">
+            <span className="text-lg font-medium text-[var(--auth-label)]">
+              Password
+            </span>
+            <input
+              name="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              type="password"
+              className="auth-input rounded-2xl border border-[var(--auth-input-line)] bg-[var(--auth-input-bg)] px-5 py-4 text-lg outline-none transition focus:border-[var(--brand)]"
+              placeholder="Enter your password"
+            />
+          </label>
+
+          <div className="flex items-center justify-between gap-4 text-sm text-[var(--sea-ink-soft)]">
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                className="h-5 w-5 rounded border border-[var(--auth-input-line)] accent-[var(--brand)]"
+              />
+              <span>Stay connected</span>
+            </label>
+            <span className="font-semibold text-[var(--brand)]">Register a new account</span>
+          </div>
+
           <input
-            name="username"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            className="rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
-            placeholder="Username"
-          />
-          <input
-            name="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            type="password"
-            className="rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
-            placeholder="Password"
+            type="hidden"
+            name="_auth_context"
+            value="login"
           />
 
           {errorMessage ? (
-            <div className="rounded-xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
               {errorMessage}
             </div>
           ) : null}
@@ -90,10 +125,18 @@ function LoginPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="rounded-xl border border-[rgba(50,143,151,0.3)] bg-[rgba(79,184,178,0.18)] px-4 py-3 text-sm font-semibold text-[var(--lagoon-deep)] disabled:cursor-not-allowed disabled:opacity-55"
+            className="mt-auto rounded-2xl bg-[var(--brand)] px-5 py-4 text-lg font-bold text-white shadow-[0_16px_34px_rgba(34,145,233,0.24)] disabled:cursor-not-allowed disabled:opacity-55"
           >
-            {isSubmitting ? 'Logging in...' : 'Login'}
+            {isSubmitting ? 'Logging in...' : 'Log in'}
           </button>
+
+          <p className="pt-1 text-center text-lg text-[var(--sea-ink-soft)]">
+            Don&apos;t have an account?{' '}
+            <a href="/register" className="font-semibold text-[var(--brand)] no-underline">
+              Create one now
+            </a>
+            .
+          </p>
         </form>
       </section>
     </main>
