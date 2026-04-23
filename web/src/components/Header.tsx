@@ -66,14 +66,14 @@ export default function Header({ user }: HeaderProps) {
                 className="nav-link"
                 activeProps={{ className: 'nav-link is-active' }}
               >
-                Dashboard
+                Workspace
               </Link>
               <Link
                 to="/create-test"
                 className="nav-link"
                 activeProps={{ className: 'nav-link is-active' }}
               >
-                Create Test
+                Create Test Case
               </Link>
               <button
                 type="button"

@@ -31,6 +31,9 @@ function RunDetailPage() {
     Record<number, boolean>
   >({})
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const passedCount = data.tests.filter((test) => test.status === 'Passed').length
+  const failedCount = data.tests.filter((test) => test.status === 'Failed').length
+  const notRunCount = data.tests.filter((test) => test.status === null).length
 
   async function handleRunTest(
     testId: number,
@@ -68,18 +71,39 @@ function RunDetailPage() {
   return (
     <main className="page-wrap px-4 py-12">
       <section className="island-shell rounded-[2rem] p-6 sm:p-8">
-        <p className="island-kicker mb-2">Test Run</p>
+        <p className="island-kicker mb-2">Workspace / Project / Test Runs</p>
         <h1 className="display-title mb-3 text-4xl font-bold text-[var(--sea-ink)] sm:text-5xl">
           {data.run.name}
         </h1>
-        <div className="mb-6 rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1 text-sm text-[var(--sea-ink-soft)] inline-block">
-          Run ID: {data.run.id}
+        <div className="mb-6 flex flex-wrap gap-3 text-sm">
+          <span className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1 text-[var(--sea-ink-soft)]">
+            Run ID: {data.run.id}
+          </span>
+          {data.run.projectName ? (
+            <span className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1 text-[var(--sea-ink-soft)]">
+              Project: {data.run.projectName}
+            </span>
+          ) : null}
+        </div>
+
+        <div className="mb-6 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-[var(--line)] bg-white/60 p-4">
+            <div className="text-sm text-[var(--sea-ink-soft)]">Passed</div>
+            <div className="mt-1 text-2xl font-bold text-emerald-700">{passedCount}</div>
+          </div>
+          <div className="rounded-2xl border border-[var(--line)] bg-white/60 p-4">
+            <div className="text-sm text-[var(--sea-ink-soft)]">Failed</div>
+            <div className="mt-1 text-2xl font-bold text-rose-700">{failedCount}</div>
+          </div>
+          <div className="rounded-2xl border border-[var(--line)] bg-white/60 p-4">
+            <div className="text-sm text-[var(--sea-ink-soft)]">Not run</div>
+            <div className="mt-1 text-2xl font-bold text-slate-700">{notRunCount}</div>
+          </div>
         </div>
 
         {data.tests.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[var(--line)] bg-white/50 p-5 text-sm text-[var(--sea-ink-soft)]">
-            This run currently resolves to zero tests. The legacy Flask route
-            would also render an empty list in that case.
+            This test run currently has no linked test cases.
           </div>
         ) : (
           <div className="grid gap-3">
@@ -148,20 +172,23 @@ function RunDetailPage() {
           </div>
         ) : null}
 
-        <div className="mt-6 rounded-2xl border border-[var(--line)] bg-white/50 p-4 text-sm text-[var(--sea-ink-soft)]">
-          This now preserves the confirmed Flask <code>/run_test</code> payload:
-          save a per-run result using <code>run_id</code>, <code>test_id</code>,
-          and a simple <code>Passed/Failed</code> status, without adding extra
-          execution workflow.
-        </div>
-
         <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex rounded-xl border border-[var(--line)] bg-white/75 px-4 py-2 text-sm font-semibold no-underline text-[var(--sea-ink)] hover:text-[var(--lagoon-deep)]"
-          >
-            Back to dashboard
-          </Link>
+          {data.run.projectId ? (
+            <Link
+              to="/project/$projectId"
+              params={{ projectId: data.run.projectId.toString() }}
+              className="inline-flex rounded-xl border border-[var(--line)] bg-white/75 px-4 py-2 text-sm font-semibold no-underline text-[var(--sea-ink)] hover:text-[var(--lagoon-deep)]"
+            >
+              Back to project
+            </Link>
+          ) : (
+            <Link
+              to="/"
+              className="inline-flex rounded-xl border border-[var(--line)] bg-white/75 px-4 py-2 text-sm font-semibold no-underline text-[var(--sea-ink)] hover:text-[var(--lagoon-deep)]"
+            >
+              Back to workspace
+            </Link>
+          )}
         </div>
       </section>
     </main>

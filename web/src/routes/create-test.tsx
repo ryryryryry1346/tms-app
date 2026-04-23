@@ -36,6 +36,9 @@ function CreateTestPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const selectedSection =
+    formState.sections.find((section) => section.id.toString() === sectionId) ??
+    null
 
   async function uploadImage(file: File): Promise<void> {
     const editor = stepsEditorRef.current
@@ -134,14 +137,14 @@ function CreateTestPage() {
   return (
     <main className="page-wrap px-4 py-12">
       <section className="island-shell rounded-[2rem] p-6 sm:p-8">
-        <p className="island-kicker mb-2">Create Test</p>
+        <p className="island-kicker mb-2">Project / Suite / Case</p>
         <h1 className="display-title mb-3 text-4xl font-bold text-[var(--sea-ink)] sm:text-5xl">
-          Restore the verified create test upload flow
+          Create Test Case
         </h1>
         <p className="max-w-3xl text-base leading-8 text-[var(--sea-ink-soft)]">
-          This page now restores the confirmed Flask behavior for image paste
-          and drag-drop upload: backend upload returns a public URL and the
-          editor inserts that image into <code>steps</code> HTML.
+          Add a new case into a specific project and test suite. Steps and
+          expected result stay inside the case definition, while execution results
+          continue to live in test runs.
         </p>
       </section>
 
@@ -151,7 +154,7 @@ function CreateTestPage() {
           onSubmit={handleSubmit}
         >
           <label className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
-            Title
+            Test case title
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
@@ -161,7 +164,7 @@ function CreateTestPage() {
           </label>
 
           <label className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
-            Section
+            Test suite
             <select
               value={sectionId}
               onChange={(event) => setSectionId(event.target.value)}
@@ -169,14 +172,29 @@ function CreateTestPage() {
             >
               {formState.sections.map((section) => (
                 <option key={section.id} value={section.id}>
-                  {section.name}
+                  {section.projectName
+                    ? `${section.projectName} / ${section.name}`
+                    : section.name}
                 </option>
               ))}
             </select>
           </label>
 
+          <div className="grid gap-3 rounded-2xl border border-[var(--line)] bg-white/55 p-4 text-sm text-[var(--sea-ink-soft)]">
+            <div>
+              <strong className="block text-[var(--sea-ink)]">Project</strong>
+              <div className="mt-1">
+                {selectedSection?.projectName ?? 'No project linked'}
+              </div>
+            </div>
+            <div>
+              <strong className="block text-[var(--sea-ink)]">Suite</strong>
+              <div className="mt-1">{selectedSection?.name ?? 'No suite selected'}</div>
+            </div>
+          </div>
+
           <label className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
-            Status
+            Initial case status
             <select
               value={status}
               onChange={(event) =>
@@ -204,7 +222,7 @@ function CreateTestPage() {
           </label>
 
           <label className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
-            Expected
+            Expected result
             <textarea
               value={expected}
               onChange={(event) => setExpected(event.target.value)}
@@ -230,10 +248,10 @@ function CreateTestPage() {
           >
             {isUploading
               ? 'Uploading image...'
-              : isSubmitting
-                ? 'Saving...'
-                : 'Save test'}
-          </button>
+                : isSubmitting
+                  ? 'Saving...'
+                  : 'Save test case'}
+            </button>
         </form>
 
         <aside className="grid gap-6">
@@ -242,18 +260,17 @@ function CreateTestPage() {
             <div className="grid gap-3 text-sm text-[var(--sea-ink-soft)]">
               <div className="rounded-2xl border border-[var(--line)] bg-white/50 p-4">
                 <strong className="block text-[var(--sea-ink)]">
-                  Replaced now
+                  Project placement
                 </strong>
-                Flask image upload contract: <code>POST /upload</code> equivalent
-                behavior with a returned public URL inserted into test steps.
+                A test case belongs to a suite, and the suite belongs to a
+                project. The form now shows that relationship explicitly.
               </div>
               <div className="rounded-2xl border border-[var(--line)] bg-white/50 p-4">
                 <strong className="block text-[var(--sea-ink)]">
-                  Explicit assumption
+                  Image flow
                 </strong>
-                The migrated editor restores only the confirmed image flow used
-                by paste and drag-drop. It does not expand to unverified generic
-                file or video behavior.
+                Paste and drag-drop image upload still insert a public image URL
+                into the case steps editor.
               </div>
             </div>
           </section>
@@ -266,8 +283,8 @@ function CreateTestPage() {
             </section>
           ) : formState.sections.length === 0 ? (
             <section className="island-shell rounded-[1.5rem] p-6 text-sm text-[var(--sea-ink-soft)]">
-              There are no sections in MySQL yet, so create test is blocked
-              until a later migration slice adds section management.
+              There are no suites in MySQL yet, so test case creation is blocked
+              until suite management is added.
             </section>
           ) : null}
         </aside>

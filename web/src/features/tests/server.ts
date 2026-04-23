@@ -40,6 +40,7 @@ export type DashboardSection = {
   id: number
   name: string
   projectId: number | null
+  projectName?: string | null
 }
 
 export type DashboardProject = {
@@ -68,6 +69,8 @@ export type TestDetail = {
   status: string | null
   sectionId: number | null
   projectId: number | null
+  sectionName: string | null
+  projectName: string | null
 }
 
 export const getDashboardState = createServerFn({ method: 'POST' })
@@ -176,9 +179,24 @@ export const getCreateTestFormState = createServerFn({ method: 'GET' }).handler(
       .from(sections)
       .orderBy(asc(sections.id))
 
+    const projectRows = await db
+      .select({
+        id: projects.id,
+        name: projects.name,
+      })
+      .from(projects)
+
+    const projectNameById = new Map(projectRows.map((project) => [project.id, project.name]))
+
     return {
       databaseConfigured: true,
-      sections: rows,
+      sections: rows.map((section) => ({
+        ...section,
+        projectName:
+          section.projectId !== null
+            ? (projectNameById.get(section.projectId) ?? null)
+            : null,
+      })),
     }
   },
 )
@@ -248,5 +266,38 @@ export const getTestDetail = createServerFn({ method: 'POST' })
       throw notFound()
     }
 
-    return test
+    const sectionRows =
+      test.sectionId === null
+        ? []
+        : await db
+            .select({
+              id: sections.id,
+              name: sections.name,
+              projectId: sections.projectId,
+            })
+            .from(sections)
+            .where(eq(sections.id, test.sectionId))
+            .limit(1)
+
+    const section = sectionRows[0] ?? null
+
+    const projectRows =
+      test.projectId === null
+        ? []
+        : await db
+            .select({
+              id: projects.id,
+              name: projects.name,
+            })
+            .from(projects)
+            .where(eq(projects.id, test.projectId))
+            .limit(1)
+
+    const project = projectRows[0] ?? null
+
+    return {
+      ...test,
+      sectionName: section?.name ?? null,
+      projectName: project?.name ?? null,
+    }
   })

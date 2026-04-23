@@ -3,7 +3,7 @@ import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { getDb, isDatabaseConfigured } from '../../db/client'
-import { testRunItems, testRuns, tests } from '../../db/schema'
+import { projects, testRunItems, testRuns, tests } from '../../db/schema'
 
 const runsForProjectInput = z.object({
   projectId: z.number().int().positive().optional(),
@@ -31,7 +31,9 @@ export type ProjectRun = {
 }
 
 export type RunDetail = {
-  run: ProjectRun
+  run: ProjectRun & {
+    projectName: string | null
+  }
   tests: Array<{
     id: number
     title: string
@@ -105,6 +107,20 @@ export const getRunDetail = createServerFn({ method: 'POST' })
       throw notFound()
     }
 
+    const projectRows =
+      run.projectId === null
+        ? []
+        : await db
+            .select({
+              id: projects.id,
+              name: projects.name,
+            })
+            .from(projects)
+            .where(eq(projects.id, run.projectId))
+            .limit(1)
+
+    const project = projectRows[0] ?? null
+
     const runTests =
       run.projectId === null
         ? []
@@ -137,7 +153,10 @@ export const getRunDetail = createServerFn({ method: 'POST' })
     }
 
     return {
-      run,
+      run: {
+        ...run,
+        projectName: project?.name ?? null,
+      },
       tests: runTests.map((test) => ({
         ...test,
         status: statusByTestId.get(test.id) ?? null,
