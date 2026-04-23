@@ -58,17 +58,11 @@ function LoginPage() {
 
   return (
     <main className="auth-page page-wrap px-4 py-8 sm:py-12">
-      <section className="auth-card rise-in mx-auto flex min-h-[41rem] w-full max-w-[37rem] flex-col rounded-[2rem] border border-[var(--auth-card-line)] bg-[var(--auth-card-bg)] p-8 shadow-[0_24px_70px_rgba(28,44,90,0.08)] sm:p-12">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--brand)] text-3xl font-extrabold text-white shadow-[0_20px_40px_rgba(34,145,233,0.24)]">
-            S
-          </div>
-          <h1 className="display-title mb-2 text-5xl font-extrabold tracking-tight text-[var(--brand-strong)]">
+      <section className="auth-card rise-in mx-auto flex min-h-[35rem] w-full max-w-[35rem] flex-col rounded-[2rem] border border-[var(--auth-card-line)] bg-[var(--auth-card-bg)] p-8 shadow-[0_24px_70px_rgba(28,44,90,0.08)] sm:p-10">
+        <div className="mb-8 text-center">
+          <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--brand-strong)]">
             Login
           </h1>
-          <p className="m-0 max-w-sm text-base leading-7 text-[var(--sea-ink-soft)]">
-            Sign in to continue working with your current TMS workspace.
-          </p>
         </div>
 
         <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
@@ -99,17 +93,6 @@ function LoginPage() {
             />
           </label>
 
-          <div className="flex items-center justify-between gap-4 text-sm text-[var(--sea-ink-soft)]">
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="checkbox"
-                className="h-5 w-5 rounded border border-[var(--auth-input-line)] accent-[var(--brand)]"
-              />
-              <span>Stay connected</span>
-            </label>
-            <span className="font-semibold text-[var(--brand)]">Register a new account</span>
-          </div>
-
           <input
             type="hidden"
             name="_auth_context"
@@ -130,7 +113,7 @@ function LoginPage() {
             {isSubmitting ? 'Logging in...' : 'Log in'}
           </button>
 
-          <p className="pt-1 text-center text-lg text-[var(--sea-ink-soft)]">
+          <p className="pt-2 text-center text-lg text-[var(--sea-ink-soft)]">
             Don&apos;t have an account?{' '}
             <a href="/register" className="font-semibold text-[var(--brand)] no-underline">
               Create one now
