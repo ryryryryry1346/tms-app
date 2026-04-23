@@ -74,9 +74,34 @@ export const createRun = createServerFn({ method: 'POST' })
     await requireSessionUser()
 
     const db = getDb()
-    const result = await db.insert(testRuns).values({
-      projectId: data.projectId,
-      name: data.name,
+    const result = await db.transaction(async (tx) => {
+      const insertedRun = await tx.insert(testRuns).values({
+        projectId: data.projectId,
+        name: data.name,
+      })
+
+      const runId = insertedRun[0].insertId
+      const projectTests = await tx
+        .select({
+          id: tests.id,
+          title: tests.title,
+        })
+        .from(tests)
+        .where(eq(tests.projectId, data.projectId))
+        .orderBy(asc(tests.id))
+
+      if (projectTests.length > 0) {
+        await tx.insert(testRunItems).values(
+          projectTests.map((test) => ({
+            runId,
+            testId: test.id,
+            testTitle: test.title,
+            status: null,
+          })),
+        )
+      }
+
+      return insertedRun
     })
 
     return {
@@ -121,46 +146,43 @@ export const getRunDetail = createServerFn({ method: 'POST' })
 
     const project = projectRows[0] ?? null
 
-    const runTests =
-      run.projectId === null
-        ? []
-        : await db
-            .select({
-              id: tests.id,
-              title: tests.title,
-            })
-            .from(tests)
-            .where(eq(tests.projectId, run.projectId))
-            .orderBy(asc(tests.id))
-
     const runItemRows = await db
       .select({
+        id: testRunItems.id,
         testId: testRunItems.testId,
+        testTitle: testRunItems.testTitle,
         status: testRunItems.status,
       })
       .from(testRunItems)
       .where(eq(testRunItems.runId, run.id))
 
-    const statusByTestId = new Map<number, 'Passed' | 'Failed'>()
-
-    for (const row of runItemRows) {
-      if (
-        typeof row.testId === 'number' &&
-        (row.status === 'Passed' || row.status === 'Failed')
-      ) {
-        statusByTestId.set(row.testId, row.status)
-      }
-    }
+    const runTests =
+      runItemRows.length > 0
+        ? runItemRows.map((row) => ({
+            id: row.testId ?? row.id,
+            title: row.testTitle ?? `Test ${row.testId ?? row.id}`,
+            status:
+              row.status === 'Passed' || row.status === 'Failed'
+                ? row.status
+                : null,
+          }))
+        : run.projectId === null
+          ? []
+          : await db
+              .select({
+                id: tests.id,
+                title: tests.title,
+              })
+              .from(tests)
+              .where(eq(tests.projectId, run.projectId))
+              .orderBy(asc(tests.id))
 
     return {
       run: {
         ...run,
         projectName: project?.name ?? null,
       },
-      tests: runTests.map((test) => ({
-        ...test,
-        status: statusByTestId.get(test.id) ?? null,
-      })),
+      tests: runTests,
     }
   })
 
@@ -223,9 +245,18 @@ export const executeRunTest = createServerFn({ method: 'POST' })
         })
         .where(eq(testRunItems.id, existingRow.id))
     } else {
+      const testTitleRows = await db
+        .select({
+          title: tests.title,
+        })
+        .from(tests)
+        .where(eq(tests.id, data.testId))
+        .limit(1)
+
       await db.insert(testRunItems).values({
         runId: data.runId,
         testId: data.testId,
+        testTitle: testTitleRows[0]?.title ?? null,
         status: data.status,
       })
     }

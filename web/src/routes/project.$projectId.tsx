@@ -5,6 +5,7 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { useState } from 'react'
+import { createSuite } from '../features/projects/server'
 import { createRun, getRunsForProject } from '../features/runs/server'
 import { getDashboardState, updateTestStatus } from '../features/tests/server'
 
@@ -49,6 +50,9 @@ function ProjectPage() {
   const loaderData = Route.useLoaderData()
   const { project, dashboard, runs } = loaderData
   const router = useRouter()
+  const [suiteName, setSuiteName] = useState('')
+  const [suiteErrorMessage, setSuiteErrorMessage] = useState<string | null>(null)
+  const [isSubmittingSuite, setIsSubmittingSuite] = useState(false)
   const [runName, setRunName] = useState('')
   const [runErrorMessage, setRunErrorMessage] = useState<string | null>(null)
   const [isSubmittingRun, setIsSubmittingRun] = useState(false)
@@ -61,6 +65,32 @@ function ProjectPage() {
   const passedCases = dashboard.tests.filter(
     (test) => test.status === 'Passed',
   ).length
+
+  async function handleCreateSuite(
+    event: React.FormEvent<HTMLFormElement>,
+  ): Promise<void> {
+    event.preventDefault()
+    setSuiteErrorMessage(null)
+    setIsSubmittingSuite(true)
+
+    try {
+      await createSuite({
+        data: {
+          projectId: project.id,
+          name: suiteName,
+        },
+      })
+
+      setSuiteName('')
+      await router.invalidate()
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to create suite.'
+      setSuiteErrorMessage(message)
+    } finally {
+      setIsSubmittingSuite(false)
+    }
+  }
 
   async function handleCreateRun(
     event: React.FormEvent<HTMLFormElement>,
@@ -292,6 +322,42 @@ function ProjectPage() {
         </article>
 
         <aside className="grid gap-5">
+          <section className="island-shell rounded-[1.5rem] p-6">
+            <p className="island-kicker mb-2">Suites</p>
+            <h2 className="m-0 text-xl font-semibold text-[var(--sea-ink)]">
+              Create suite
+            </h2>
+            <p className="mb-5 mt-2 text-sm leading-6 text-[var(--sea-ink-soft)]">
+              Add a test suite before creating test cases inside it.
+            </p>
+
+            <form className="grid gap-3" onSubmit={handleCreateSuite}>
+              <label className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
+                Suite name
+                <input
+                  value={suiteName}
+                  onChange={(event) => setSuiteName(event.target.value)}
+                  className="rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
+                  placeholder="Checkout smoke"
+                />
+              </label>
+
+              {suiteErrorMessage ? (
+                <div className="rounded-xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                  {suiteErrorMessage}
+                </div>
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={isSubmittingSuite || !dashboard.databaseConfigured}
+                className="rounded-xl border border-[rgba(50,143,151,0.3)] bg-[rgba(79,184,178,0.18)] px-4 py-3 text-sm font-semibold text-[var(--lagoon-deep)] disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {isSubmittingSuite ? 'Creating...' : 'Create suite'}
+              </button>
+            </form>
+          </section>
+
           <section className="island-shell rounded-[1.5rem] p-6">
             <p className="island-kicker mb-2">Runs</p>
             <h2 className="m-0 text-xl font-semibold text-[var(--sea-ink)]">

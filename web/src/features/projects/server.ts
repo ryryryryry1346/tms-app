@@ -2,10 +2,15 @@ import { asc } from 'drizzle-orm'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { getDb, isDatabaseConfigured } from '../../db/client'
-import { projects } from '../../db/schema'
+import { projects, sections } from '../../db/schema'
 
 const createProjectInput = z.object({
-  name: z.string(),
+  name: z.string().trim().min(1),
+})
+
+const createSuiteInput = z.object({
+  projectId: z.number().int().positive(),
+  name: z.string().trim().min(1),
 })
 
 export type ProjectsDashboardState = {
@@ -52,6 +57,23 @@ export const createProject = createServerFn({ method: 'POST' })
 
     const db = getDb()
     const result = await db.insert(projects).values({
+      name: data.name,
+    })
+
+    return {
+      id: result[0].insertId,
+    }
+  })
+
+export const createSuite = createServerFn({ method: 'POST' })
+  .inputValidator(createSuiteInput)
+  .handler(async ({ data }): Promise<{ id: number }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    const result = await db.insert(sections).values({
+      projectId: data.projectId,
       name: data.name,
     })
 

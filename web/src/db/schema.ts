@@ -3,6 +3,7 @@ import {
   int,
   mysqlTable,
   text,
+  uniqueIndex,
   varchar,
 } from 'drizzle-orm/mysql-core'
 
@@ -64,11 +65,16 @@ export const testRunItems = mysqlTable(
     id: int('id').autoincrement().primaryKey(),
     runId: int('run_id'),
     testId: int('test_id'),
+    testTitle: text('test_title'),
     status: varchar('status', { length: 64 }),
   },
   (table) => ({
     runIdIndex: index('test_run_items_run_id_idx').on(table.runId),
     testIdIndex: index('test_run_items_test_id_idx').on(table.testId),
+    runTestUnique: uniqueIndex('test_run_items_run_test_unique').on(
+      table.runId,
+      table.testId,
+    ),
   }),
 )
 
