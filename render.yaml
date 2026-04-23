@@ -6,7 +6,7 @@ services:
     plan: starter
     autoDeploy: false
     buildCommand: npm install --include=dev && npm run build
-    startCommand: ./node_modules/.bin/srvx --prod --entry dist/server/server.js --static dist/client
+    startCommand: ./node_modules/.bin/srvx --prod --dir . --entry dist/server/server.js --static dist/client
     healthCheckPath: /login
     envVars:
       - key: NODE_VERSION
