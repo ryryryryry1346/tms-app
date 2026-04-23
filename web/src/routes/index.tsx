@@ -46,47 +46,39 @@ function WorkspacePage() {
   }
 
   return (
-    <main className="page-wrap px-4 pb-10 pt-14">
-      <section className="island-shell rise-in relative overflow-hidden rounded-[2rem] px-6 py-10 sm:px-10 sm:py-12">
-        <div className="pointer-events-none absolute -left-20 -top-24 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(79,184,178,0.32),transparent_66%)]" />
-        <div className="pointer-events-none absolute -bottom-20 -right-20 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(47,106,74,0.18),transparent_66%)]" />
-        <p className="island-kicker mb-3">Workspace</p>
-        <h1 className="display-title mb-5 max-w-3xl text-4xl leading-[1.02] font-bold tracking-tight text-[var(--sea-ink)] sm:text-6xl">
-          Projects are the top level of your test management workspace.
-        </h1>
-        <p className="mb-8 max-w-2xl text-base text-[var(--sea-ink-soft)] sm:text-lg">
-          Open a project to work with test suites, test cases, steps, and test
-          runs. This page stays focused on workspace-level navigation and project
-          creation.
-        </p>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-[var(--line)] bg-white/60 p-4">
-            <div className="text-sm text-[var(--sea-ink-soft)]">Projects</div>
-            <div className="mt-1 text-3xl font-bold text-[var(--sea-ink)]">
-              {dashboard.projects.length}
-            </div>
+    <main className="page-wrap px-4 pb-8 pt-8">
+      <section className="mb-5 flex flex-wrap items-end justify-between gap-4">
+        <div className="max-w-2xl">
+          <p className="island-kicker mb-2">Workspace</p>
+          <h1 className="m-0 text-3xl font-bold tracking-tight text-[var(--sea-ink)] sm:text-4xl">
+            Projects
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-[var(--sea-ink-soft)]">
+            Open a project to work with suites, cases, steps, and execution runs.
+          </p>
+        </div>
+        <div className="compact-metrics">
+          <div className="metric-pill">
+            <span className="metric-label">Projects</span>
+            <strong>{dashboard.projects.length}</strong>
           </div>
-          <div className="rounded-2xl border border-[var(--line)] bg-white/60 p-4">
-            <div className="text-sm text-[var(--sea-ink-soft)]">Structure</div>
-            <div className="mt-1 text-lg font-semibold text-[var(--sea-ink)]">
-              Project → Suite → Case
-            </div>
+          <div className="metric-pill">
+            <span className="metric-label">Structure</span>
+            <strong>Project → Suite → Case</strong>
           </div>
-          <div className="rounded-2xl border border-[var(--line)] bg-white/60 p-4">
-            <div className="text-sm text-[var(--sea-ink-soft)]">Execution</div>
-            <div className="mt-1 text-lg font-semibold text-[var(--sea-ink)]">
-              Test runs and results
-            </div>
+          <div className="metric-pill">
+            <span className="metric-label">Execution</span>
+            <strong>Runs & results</strong>
           </div>
         </div>
       </section>
 
-      <section className="mt-8 grid gap-6 lg:grid-cols-[1.35fr_0.9fr]">
+      <section className="grid gap-5 lg:grid-cols-[1.35fr_0.9fr]">
         <article className="island-shell rounded-[1.5rem] p-6">
           <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="island-kicker mb-2">Projects</p>
-              <h2 className="m-0 text-2xl font-semibold text-[var(--sea-ink)]">
+              <h2 className="m-0 text-xl font-semibold text-[var(--sea-ink)]">
                 Workspace projects
               </h2>
             </div>
@@ -132,15 +124,14 @@ function WorkspacePage() {
           )}
         </article>
 
-        <aside className="grid gap-6">
+        <aside className="grid gap-5">
           <section className="island-shell rounded-[1.5rem] p-6">
             <p className="island-kicker mb-2">Create Project</p>
-            <h2 className="m-0 text-2xl font-semibold text-[var(--sea-ink)]">
+            <h2 className="m-0 text-xl font-semibold text-[var(--sea-ink)]">
               Add project
             </h2>
-            <p className="mb-5 mt-3 text-sm leading-6 text-[var(--sea-ink-soft)]">
-              Each project becomes its own testing area with suites, cases, and
-              execution runs.
+            <p className="mb-5 mt-2 text-sm leading-6 text-[var(--sea-ink-soft)]">
+              Each project becomes its own testing area.
             </p>
 
             <form className="grid gap-3" onSubmit={handleProjectSubmit}>
@@ -172,7 +163,7 @@ function WorkspacePage() {
 
           <section className="island-shell rounded-[1.5rem] p-6">
             <p className="island-kicker mb-2">Model</p>
-            <div className="grid gap-3 text-sm text-[var(--sea-ink-soft)]">
+            <div className="grid gap-3 text-sm leading-6 text-[var(--sea-ink-soft)]">
               <div className="rounded-2xl border border-[var(--line)] bg-white/50 p-4">
                 <strong className="block text-[var(--sea-ink)]">
                   Hierarchy

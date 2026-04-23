@@ -135,20 +135,20 @@ function CreateTestPage() {
   }
 
   return (
-    <main className="page-wrap px-4 py-12">
-      <section className="island-shell rounded-[2rem] p-6 sm:p-8">
-        <p className="island-kicker mb-2">Project / Suite / Case</p>
-        <h1 className="display-title mb-3 text-4xl font-bold text-[var(--sea-ink)] sm:text-5xl">
-          Create Test Case
-        </h1>
-        <p className="max-w-3xl text-base leading-8 text-[var(--sea-ink-soft)]">
-          Add a new case into a specific project and test suite. Steps and
-          expected result stay inside the case definition, while execution results
-          continue to live in test runs.
-        </p>
+    <main className="page-wrap px-4 py-8">
+      <section className="mb-5 flex flex-wrap items-end justify-between gap-4">
+        <div className="max-w-2xl">
+          <p className="island-kicker mb-2">Project / Suite / Case</p>
+          <h1 className="m-0 text-3xl font-bold tracking-tight text-[var(--sea-ink)] sm:text-4xl">
+            Create Test Case
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-[var(--sea-ink-soft)]">
+            Add a case to a specific project and suite.
+          </p>
+        </div>
       </section>
 
-      <section className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.8fr]">
+      <section className="grid gap-5 lg:grid-cols-[1.1fr_0.8fr]">
         <form
           className="island-shell grid gap-4 rounded-[1.5rem] p-6"
           onSubmit={handleSubmit}
@@ -189,7 +189,9 @@ function CreateTestPage() {
             </div>
             <div>
               <strong className="block text-[var(--sea-ink)]">Suite</strong>
-              <div className="mt-1">{selectedSection?.name ?? 'No suite selected'}</div>
+              <div className="mt-1">
+                {selectedSection?.name ?? 'No suite selected'}
+              </div>
             </div>
           </div>
 
@@ -217,7 +219,7 @@ function CreateTestPage() {
               onPaste={handlePaste}
               onDrop={handleDrop}
               onDragOver={(event) => event.preventDefault()}
-              className="min-h-40 rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus-within:border-[var(--lagoon-deep)]"
+              className="min-h-28 rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus-within:border-[var(--lagoon-deep)]"
             />
           </label>
 
@@ -226,7 +228,7 @@ function CreateTestPage() {
             <textarea
               value={expected}
               onChange={(event) => setExpected(event.target.value)}
-              className="min-h-32 rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
+              className="min-h-24 rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
             />
           </label>
 
@@ -248,29 +250,27 @@ function CreateTestPage() {
           >
             {isUploading
               ? 'Uploading image...'
-                : isSubmitting
-                  ? 'Saving...'
-                  : 'Save test case'}
-            </button>
+              : isSubmitting
+                ? 'Saving...'
+                : 'Save test case'}
+          </button>
         </form>
 
-        <aside className="grid gap-6">
+        <aside className="grid gap-5">
           <section className="island-shell rounded-[1.5rem] p-6">
             <p className="island-kicker mb-2">Scope</p>
-            <div className="grid gap-3 text-sm text-[var(--sea-ink-soft)]">
+            <div className="grid gap-3 text-sm leading-6 text-[var(--sea-ink-soft)]">
               <div className="rounded-2xl border border-[var(--line)] bg-white/50 p-4">
                 <strong className="block text-[var(--sea-ink)]">
                   Project placement
                 </strong>
-                A test case belongs to a suite, and the suite belongs to a
-                project. The form now shows that relationship explicitly.
+                A case belongs to a suite, and the suite belongs to a project.
               </div>
               <div className="rounded-2xl border border-[var(--line)] bg-white/50 p-4">
                 <strong className="block text-[var(--sea-ink)]">
                   Image flow
                 </strong>
-                Paste and drag-drop image upload still insert a public image URL
-                into the case steps editor.
+                Paste and drag-drop still insert public image URLs into steps.
               </div>
             </div>
           </section>

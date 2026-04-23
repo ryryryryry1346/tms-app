@@ -58,8 +58,9 @@ function ProjectPage() {
 
   const totalCases = dashboard.tests.length
   const totalSuites = dashboard.sections.length
-  const passedCases = dashboard.tests.filter((test) => test.status === 'Passed').length
-  const failedCases = dashboard.tests.filter((test) => test.status === 'Failed').length
+  const passedCases = dashboard.tests.filter(
+    (test) => test.status === 'Passed',
+  ).length
 
   async function handleCreateRun(
     event: React.FormEvent<HTMLFormElement>,
@@ -115,50 +116,43 @@ function ProjectPage() {
   }
 
   return (
-    <main className="page-wrap px-4 pb-10 pt-14">
-      <section className="island-shell rise-in rounded-[2rem] px-6 py-10 sm:px-10 sm:py-12">
-        <p className="island-kicker mb-3">Workspace / Project</p>
-        <h1 className="display-title mb-5 max-w-3xl text-4xl leading-[1.02] font-bold tracking-tight text-[var(--sea-ink)] sm:text-6xl">
-          {project.name}
-        </h1>
-        <p className="mb-8 max-w-2xl text-base text-[var(--sea-ink-soft)] sm:text-lg">
-          Suites group the scope, cases hold the steps, and test runs capture
-          execution results for this project.
-        </p>
-        <div className="grid gap-3 sm:grid-cols-4">
-          <div className="rounded-2xl border border-[var(--line)] bg-white/60 p-4">
-            <div className="text-sm text-[var(--sea-ink-soft)]">Suites</div>
-            <div className="mt-1 text-3xl font-bold text-[var(--sea-ink)]">
-              {totalSuites}
-            </div>
+    <main className="page-wrap px-4 pb-8 pt-8">
+      <section className="mb-5 flex flex-wrap items-end justify-between gap-4">
+        <div className="max-w-2xl">
+          <p className="island-kicker mb-2">Workspace / Project</p>
+          <h1 className="m-0 text-3xl font-bold tracking-tight text-[var(--sea-ink)] sm:text-4xl">
+            {project.name}
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-[var(--sea-ink-soft)]">
+            Work with suites, cases, and execution runs for this project.
+          </p>
+        </div>
+        <div className="compact-metrics">
+          <div className="metric-pill">
+            <span className="metric-label">Suites</span>
+            <strong>{totalSuites}</strong>
           </div>
-          <div className="rounded-2xl border border-[var(--line)] bg-white/60 p-4">
-            <div className="text-sm text-[var(--sea-ink-soft)]">Cases</div>
-            <div className="mt-1 text-3xl font-bold text-[var(--sea-ink)]">
-              {totalCases}
-            </div>
+          <div className="metric-pill">
+            <span className="metric-label">Cases</span>
+            <strong>{totalCases}</strong>
           </div>
-          <div className="rounded-2xl border border-[var(--line)] bg-white/60 p-4">
-            <div className="text-sm text-[var(--sea-ink-soft)]">Passed</div>
-            <div className="mt-1 text-3xl font-bold text-emerald-700">
-              {passedCases}
-            </div>
+          <div className="metric-pill">
+            <span className="metric-label">Passed</span>
+            <strong>{passedCases}</strong>
           </div>
-          <div className="rounded-2xl border border-[var(--line)] bg-white/60 p-4">
-            <div className="text-sm text-[var(--sea-ink-soft)]">Runs</div>
-            <div className="mt-1 text-3xl font-bold text-[var(--sea-ink)]">
-              {runs.length}
-            </div>
+          <div className="metric-pill">
+            <span className="metric-label">Runs</span>
+            <strong>{runs.length}</strong>
           </div>
         </div>
       </section>
 
-      <section className="mt-8 grid gap-6 lg:grid-cols-[1.35fr_0.9fr]">
+      <section className="grid gap-5 lg:grid-cols-[1.35fr_0.9fr]">
         <article className="island-shell rounded-[1.5rem] p-6">
           <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="island-kicker mb-2">Project workspace</p>
-              <h2 className="m-0 text-2xl font-semibold text-[var(--sea-ink)]">
+              <h2 className="m-0 text-xl font-semibold text-[var(--sea-ink)]">
                 Suites and cases
               </h2>
             </div>
@@ -297,15 +291,14 @@ function ProjectPage() {
           )}
         </article>
 
-        <aside className="grid gap-6">
+        <aside className="grid gap-5">
           <section className="island-shell rounded-[1.5rem] p-6">
             <p className="island-kicker mb-2">Runs</p>
-            <h2 className="m-0 text-2xl font-semibold text-[var(--sea-ink)]">
+            <h2 className="m-0 text-xl font-semibold text-[var(--sea-ink)]">
               Test runs
             </h2>
-            <p className="mb-5 mt-3 text-sm leading-6 text-[var(--sea-ink-soft)]">
-              Create execution runs for this project and record pass/fail results
-              per test case.
+            <p className="mb-5 mt-2 text-sm leading-6 text-[var(--sea-ink-soft)]">
+              Create runs and record pass/fail results per case.
             </p>
 
             <form className="grid gap-3" onSubmit={handleCreateRun}>
