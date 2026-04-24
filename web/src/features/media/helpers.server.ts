@@ -18,11 +18,16 @@ function ensureCloudinaryConfigured(): void {
   })
 }
 
-export async function uploadImageToCloudinary(file: File): Promise<string> {
+export async function uploadMediaToCloudinary(file: File): Promise<string> {
   ensureCloudinaryConfigured()
 
-  if (!file.type.startsWith('image/')) {
-    throw new Error('Only image uploads are supported in the migrated create test flow.')
+  const isImage = file.type.startsWith('image/')
+  const isVideo = file.type.startsWith('video/')
+
+  if (!isImage && !isVideo) {
+    throw new Error(
+      'Only image, GIF, and video uploads are supported in the test case editor.',
+    )
   }
 
   const fileBuffer = Buffer.from(await file.arrayBuffer())
@@ -30,7 +35,7 @@ export async function uploadImageToCloudinary(file: File): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
-        resource_type: 'image',
+        resource_type: 'auto',
       },
       (error, result) => {
         if (error) {

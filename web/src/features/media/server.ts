@@ -1,9 +1,9 @@
 import { createServerFn } from '@tanstack/react-start'
 
-export const uploadTestImage = createServerFn({ method: 'POST' }).handler(
+export const uploadTestMedia = createServerFn({ method: 'POST' }).handler(
   async ({ data }): Promise<{ url: string }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    const { uploadImageToCloudinary } = await import('./helpers.server')
+    const { uploadMediaToCloudinary } = await import('./helpers.server')
 
     await requireSessionUser()
 
@@ -17,7 +17,7 @@ export const uploadTestImage = createServerFn({ method: 'POST' }).handler(
       throw new Error('Upload request is missing the file field.')
     }
 
-    const url = await uploadImageToCloudinary(file)
+    const url = await uploadMediaToCloudinary(file)
 
     return { url }
   },

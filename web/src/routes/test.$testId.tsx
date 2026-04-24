@@ -62,7 +62,24 @@ function TestDetailPage() {
               Steps
             </h2>
             <div
-              className="prose prose-sm mt-3 max-w-none text-[var(--sea-ink-soft)]"
+              className="rich-output prose prose-sm mt-3 max-w-none text-[var(--sea-ink-soft)]"
+              onClick={(event) => {
+                const target = event.target
+
+                if (!(target instanceof HTMLElement)) {
+                  return
+                }
+
+                const mediaElement = target.closest<HTMLElement>('[data-media-url]')
+                const url = mediaElement?.dataset.mediaUrl
+
+                if (!url) {
+                  return
+                }
+
+                event.preventDefault()
+                window.open(url, '_blank', 'noopener,noreferrer')
+              }}
               dangerouslySetInnerHTML={{
                 __html: test.steps ?? '',
               }}
@@ -74,7 +91,24 @@ function TestDetailPage() {
               Expected result
             </h2>
             <div
-              className="prose prose-sm mt-3 max-w-none text-[var(--sea-ink-soft)]"
+              className="rich-output prose prose-sm mt-3 max-w-none text-[var(--sea-ink-soft)]"
+              onClick={(event) => {
+                const target = event.target
+
+                if (!(target instanceof HTMLElement)) {
+                  return
+                }
+
+                const mediaElement = target.closest<HTMLElement>('[data-media-url]')
+                const url = mediaElement?.dataset.mediaUrl
+
+                if (!url) {
+                  return
+                }
+
+                event.preventDefault()
+                window.open(url, '_blank', 'noopener,noreferrer')
+              }}
               dangerouslySetInnerHTML={{
                 __html: test.expected ?? '',
               }}
