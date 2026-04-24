@@ -45,13 +45,6 @@ export default function Header({ user }: HeaderProps) {
               >
                 Workspace
               </Link>
-              <Link
-                to="/create-test"
-                className="nav-link"
-                activeProps={{ className: 'nav-link is-active' }}
-              >
-                Create Test Case
-              </Link>
               <button
                 type="button"
                 onClick={handleLogout}

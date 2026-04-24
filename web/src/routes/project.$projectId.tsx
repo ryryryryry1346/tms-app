@@ -186,12 +186,20 @@ function ProjectPage() {
                 Suites and cases
               </h2>
             </div>
-            <Link
-              to="/"
-              className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1 text-sm no-underline text-[var(--sea-ink-soft)]"
-            >
-              Back to workspace
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                to="/create-test"
+                className="rounded-full border border-[rgba(50,143,151,0.28)] bg-[rgba(79,184,178,0.14)] px-3 py-1 text-sm font-semibold no-underline text-[var(--lagoon-deep)]"
+              >
+                Create test case
+              </Link>
+              <Link
+                to="/"
+                className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1 text-sm no-underline text-[var(--sea-ink-soft)]"
+              >
+                Back to workspace
+              </Link>
+            </div>
           </div>
 
           {dashboard.sections.length === 0 ? (
