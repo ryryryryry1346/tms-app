@@ -17,8 +17,19 @@ export const uploadTestMedia = createServerFn({ method: 'POST' }).handler(
       throw new Error('Upload request is missing the file field.')
     }
 
-    const url = await uploadMediaToCloudinary(file)
+    try {
+      const url = await uploadMediaToCloudinary(file)
 
-    return { url }
+      return { url }
+    } catch (error) {
+      console.error('uploadTestMedia failed', {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        error,
+      })
+
+      throw error
+    }
   },
 )

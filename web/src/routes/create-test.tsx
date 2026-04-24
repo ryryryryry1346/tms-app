@@ -87,6 +87,26 @@ function openMediaFromTarget(target: EventTarget | null): boolean {
   return true
 }
 
+function getErrorMessage(
+  error: unknown,
+  fallback: string,
+): string {
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof error.message === 'string'
+  ) {
+    return error.message
+  }
+
+  return fallback
+}
+
 function CreateTestPage() {
   const formState = Route.useLoaderData()
   const navigate = useNavigate()
@@ -176,8 +196,7 @@ function CreateTestPage() {
       insertHtmlAtCursor(editor, buildMediaMarkup(result.url, file))
       syncEditor(editorKey)
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to upload media.'
+      const message = getErrorMessage(error, 'Failed to upload media.')
       setErrorMessage(message)
     } finally {
       setIsUploading(false)
@@ -262,8 +281,7 @@ function CreateTestPage() {
         },
       })
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to create test.'
+      const message = getErrorMessage(error, 'Failed to create test.')
       setErrorMessage(message)
     } finally {
       setIsSubmitting(false)

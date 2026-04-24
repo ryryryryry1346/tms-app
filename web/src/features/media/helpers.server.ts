@@ -2,18 +2,32 @@ import { Buffer } from 'node:buffer'
 import { v2 as cloudinary } from 'cloudinary'
 
 function ensureCloudinaryConfigured(): void {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME
+  const apiKey = process.env.CLOUDINARY_API_KEY
+  const apiSecret = process.env.CLOUDINARY_API_SECRET
+  const cloudinaryUrl = process.env.CLOUDINARY_URL
+
   if (
-    !process.env.CLOUDINARY_URL &&
-    (!process.env.CLOUDINARY_CLOUD_NAME ||
-      !process.env.CLOUDINARY_API_KEY ||
-      !process.env.CLOUDINARY_API_SECRET)
+    !cloudinaryUrl &&
+    (!cloudName || !apiKey || !apiSecret)
   ) {
     throw new Error(
       'Cloudinary is not configured. Set CLOUDINARY_URL or the explicit CLOUDINARY_* variables.',
     )
   }
 
+  if (cloudinaryUrl) {
+    cloudinary.config({
+      cloudinary_url: cloudinaryUrl,
+      secure: true,
+    })
+    return
+  }
+
   cloudinary.config({
+    cloud_name: cloudName,
+    api_key: apiKey,
+    api_secret: apiSecret,
     secure: true,
   })
 }
