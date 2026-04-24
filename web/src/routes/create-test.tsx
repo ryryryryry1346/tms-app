@@ -142,13 +142,10 @@ function CreateTestPage() {
           <h1 className="m-0 text-3xl font-bold tracking-tight text-[var(--sea-ink)] sm:text-4xl">
             Create Test Case
           </h1>
-          <p className="mt-2 text-sm leading-6 text-[var(--sea-ink-soft)]">
-            Add a case to a specific project and suite.
-          </p>
         </div>
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-[1.1fr_0.8fr]">
+      <section className="mx-auto max-w-4xl">
         <form
           className="island-shell grid gap-4 rounded-[1.5rem] p-6"
           onSubmit={handleSubmit}
@@ -255,40 +252,20 @@ function CreateTestPage() {
                 : 'Save test case'}
           </button>
         </form>
-
-        <aside className="grid gap-5">
-          <section className="island-shell rounded-[1.5rem] p-6">
-            <p className="island-kicker mb-2">Scope</p>
-            <div className="grid gap-3 text-sm leading-6 text-[var(--sea-ink-soft)]">
-              <div className="rounded-2xl border border-[var(--line)] bg-white/50 p-4">
-                <strong className="block text-[var(--sea-ink)]">
-                  Project placement
-                </strong>
-                A case belongs to a suite, and the suite belongs to a project.
-              </div>
-              <div className="rounded-2xl border border-[var(--line)] bg-white/50 p-4">
-                <strong className="block text-[var(--sea-ink)]">
-                  Image flow
-                </strong>
-                Paste and drag-drop still insert public image URLs into steps.
-              </div>
-            </div>
-          </section>
-
-          {!formState.databaseConfigured ? (
-            <section className="island-shell rounded-[1.5rem] border border-amber-300/60 bg-amber-100/70 p-6 text-sm text-amber-950">
-              <strong>Database is not configured yet.</strong> Set
-              <code> MYSQL_DATABASE_URL </code>
-              and run the Drizzle migration first.
-            </section>
-          ) : formState.sections.length === 0 ? (
-            <section className="island-shell rounded-[1.5rem] p-6 text-sm text-[var(--sea-ink-soft)]">
-              There are no suites in MySQL yet, so test case creation is blocked
-              until suite management is added.
-            </section>
-          ) : null}
-        </aside>
       </section>
+
+      {!formState.databaseConfigured ? (
+        <section className="mx-auto mt-5 max-w-4xl island-shell rounded-[1.5rem] border border-amber-300/60 bg-amber-100/70 p-6 text-sm text-amber-950">
+          <strong>Database is not configured yet.</strong> Set
+          <code> MYSQL_DATABASE_URL </code>
+          and run the Drizzle migration first.
+        </section>
+      ) : formState.sections.length === 0 ? (
+        <section className="mx-auto mt-5 max-w-4xl island-shell rounded-[1.5rem] p-6 text-sm text-[var(--sea-ink-soft)]">
+          There are no suites in MySQL yet, so test case creation is blocked
+          until suite management is added.
+        </section>
+      ) : null}
     </main>
   )
 }

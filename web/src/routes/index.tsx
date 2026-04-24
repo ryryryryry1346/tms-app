@@ -47,30 +47,11 @@ function WorkspacePage() {
 
   return (
     <main className="page-wrap px-4 pb-8 pt-8">
-      <section className="mb-5 flex flex-wrap items-end justify-between gap-4">
-        <div className="max-w-2xl">
-          <p className="island-kicker mb-2">Workspace</p>
-          <h1 className="m-0 text-3xl font-bold tracking-tight text-[var(--sea-ink)] sm:text-4xl">
-            Projects
-          </h1>
-          <p className="mt-2 text-sm leading-6 text-[var(--sea-ink-soft)]">
-            Open a project to work with suites, cases, steps, and execution runs.
-          </p>
-        </div>
-        <div className="compact-metrics">
-          <div className="metric-pill">
-            <span className="metric-label">Projects</span>
-            <strong>{dashboard.projects.length}</strong>
-          </div>
-          <div className="metric-pill">
-            <span className="metric-label">Structure</span>
-            <strong>Project → Suite → Case</strong>
-          </div>
-          <div className="metric-pill">
-            <span className="metric-label">Execution</span>
-            <strong>Runs & results</strong>
-          </div>
-        </div>
+      <section className="mb-5">
+        <p className="island-kicker mb-2">Workspace</p>
+        <h1 className="m-0 text-3xl font-bold tracking-tight text-[var(--sea-ink)] sm:text-4xl">
+          Projects
+        </h1>
       </section>
 
       <section className="grid gap-5 lg:grid-cols-[1.35fr_0.9fr]">
@@ -130,11 +111,8 @@ function WorkspacePage() {
             <h2 className="m-0 text-xl font-semibold text-[var(--sea-ink)]">
               Add project
             </h2>
-            <p className="mb-5 mt-2 text-sm leading-6 text-[var(--sea-ink-soft)]">
-              Each project becomes its own testing area.
-            </p>
 
-            <form className="grid gap-3" onSubmit={handleProjectSubmit}>
+            <form className="mt-5 grid gap-3" onSubmit={handleProjectSubmit}>
               <label className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
                 Project name
                 <input
@@ -159,25 +137,6 @@ function WorkspacePage() {
                 {isSubmittingProject ? 'Creating...' : 'Create project'}
               </button>
             </form>
-          </section>
-
-          <section className="island-shell rounded-[1.5rem] p-6">
-            <p className="island-kicker mb-2">Model</p>
-            <div className="grid gap-3 text-sm leading-6 text-[var(--sea-ink-soft)]">
-              <div className="rounded-2xl border border-[var(--line)] bg-white/50 p-4">
-                <strong className="block text-[var(--sea-ink)]">
-                  Hierarchy
-                </strong>
-                Workspace → Project → Test Suite → Test Case → Steps
-              </div>
-              <div className="rounded-2xl border border-[var(--line)] bg-white/50 p-4">
-                <strong className="block text-[var(--sea-ink)]">
-                  Execution
-                </strong>
-                Test runs are separate from case definitions and store execution
-                results.
-              </div>
-            </div>
           </section>
         </aside>
       </section>
