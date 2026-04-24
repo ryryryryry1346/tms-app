@@ -163,6 +163,12 @@ function CreateTestPage() {
     }
   }
 
+  function handleToolbarMouseDown(
+    event: React.MouseEvent<HTMLButtonElement>,
+  ): void {
+    event.preventDefault()
+  }
+
   function handleFontSizeChange(size: FontSize): void {
     setFontSize(size)
 
@@ -374,6 +380,7 @@ function CreateTestPage() {
             <button
               type="button"
               className="editor-tool-button"
+              onMouseDown={handleToolbarMouseDown}
               onClick={() => runEditorCommand('bold')}
             >
               Bold
@@ -381,6 +388,7 @@ function CreateTestPage() {
             <button
               type="button"
               className="editor-tool-button"
+              onMouseDown={handleToolbarMouseDown}
               onClick={() => runEditorCommand('italic')}
             >
               Italic
@@ -388,6 +396,7 @@ function CreateTestPage() {
             <button
               type="button"
               className="editor-tool-button"
+              onMouseDown={handleToolbarMouseDown}
               onClick={() => runEditorCommand('underline')}
             >
               Underline
@@ -395,6 +404,7 @@ function CreateTestPage() {
             <button
               type="button"
               className="editor-tool-button"
+              onMouseDown={handleToolbarMouseDown}
               onClick={() => runEditorCommand('insertUnorderedList')}
             >
               Bullet list
@@ -402,6 +412,7 @@ function CreateTestPage() {
             <button
               type="button"
               className="editor-tool-button"
+              onMouseDown={handleToolbarMouseDown}
               onClick={() => runEditorCommand('insertOrderedList')}
             >
               Numbered list
@@ -420,6 +431,7 @@ function CreateTestPage() {
             <button
               type="button"
               className="editor-tool-button"
+              onMouseDown={handleToolbarMouseDown}
               onClick={handleInsertMediaClick}
             >
               Add media

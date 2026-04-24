@@ -1,10 +1,20 @@
 import { Buffer } from 'node:buffer'
 import { v2 as cloudinary } from 'cloudinary'
 
+function sanitizeCloudinaryValue(value: string | undefined): string | undefined {
+  if (!value) {
+    return value
+  }
+
+  const decodedValue = decodeURIComponent(value.trim())
+
+  return decodedValue.replace(/^<+/, '').replace(/>+$/, '')
+}
+
 function ensureCloudinaryConfigured(): void {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME
-  const apiKey = process.env.CLOUDINARY_API_KEY
-  const apiSecret = process.env.CLOUDINARY_API_SECRET
+  const cloudName = sanitizeCloudinaryValue(process.env.CLOUDINARY_CLOUD_NAME)
+  const apiKey = sanitizeCloudinaryValue(process.env.CLOUDINARY_API_KEY)
+  const apiSecret = sanitizeCloudinaryValue(process.env.CLOUDINARY_API_SECRET)
   const cloudinaryUrl = process.env.CLOUDINARY_URL
 
   if (
@@ -17,8 +27,21 @@ function ensureCloudinaryConfigured(): void {
   }
 
   if (cloudinaryUrl) {
+    const parsedUrl = new URL(cloudinaryUrl)
+    const parsedCloudName = sanitizeCloudinaryValue(parsedUrl.hostname)
+    const parsedApiKey = sanitizeCloudinaryValue(parsedUrl.username)
+    const parsedApiSecret = sanitizeCloudinaryValue(parsedUrl.password)
+
+    if (!parsedCloudName || !parsedApiKey || !parsedApiSecret) {
+      throw new Error(
+        'Cloudinary URL is invalid. Check cloud name, api key, and api secret.',
+      )
+    }
+
     cloudinary.config({
-      cloudinary_url: cloudinaryUrl,
+      cloud_name: parsedCloudName,
+      api_key: parsedApiKey,
+      api_secret: parsedApiSecret,
       secure: true,
     })
     return
