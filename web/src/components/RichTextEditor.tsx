@@ -32,6 +32,44 @@ type SelectionRange = {
   to: number
 }
 
+function escapeAttribute(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+}
+
+function buildMediaHtml(url: string, file: File): string {
+  const safeUrl = escapeAttribute(url)
+
+  if (file.type.startsWith('video/')) {
+    return `
+      <video
+        class="editor-media"
+        src="${safeUrl}"
+        data-media-url="${safeUrl}"
+        playsinline
+        muted
+        preload="metadata"
+        controls
+      ></video>
+      <p></p>
+    `
+  }
+
+  return `
+    <img
+      class="editor-media"
+      src="${safeUrl}"
+      alt=""
+      data-media-url="${safeUrl}"
+    />
+    <p></p>
+  `
+}
+
 const fontSizeMap: Record<FontSize, string> = {
   small: '14px',
   normal: '16px',
@@ -181,30 +219,11 @@ export function RichTextEditor({
       chain.setTextSelection(selection)
     }
 
-    if (file.type.startsWith('video/')) {
-      chain
-        .insertContent({
-          type: 'mediaVideo',
-          attrs: {
-            src: url,
-            class: 'editor-media',
-            'data-media-url': url,
-          },
-        })
-        .insertContent({ type: 'paragraph' })
-        .run()
-      return
-    }
+    const inserted = chain.insertContent(buildMediaHtml(url, file)).run()
 
-    chain
-      .setImage({
-        src: url,
-        alt: '',
-        class: 'editor-media',
-        'data-media-url': url,
-      })
-      .insertContent({ type: 'paragraph' })
-      .run()
+    if (!inserted) {
+      throw new Error('Failed to insert uploaded media into the editor.')
+    }
   }
 
   async function handleFiles(files: FileList | null): Promise<void> {
@@ -220,7 +239,8 @@ export function RichTextEditor({
 
     try {
       await insertMedia(file)
-    } catch {
+    } catch (error) {
+      console.error('RichTextEditor insertMedia failed', error)
       return
     }
   }
@@ -238,7 +258,8 @@ export function RichTextEditor({
         if (file) {
           try {
             await insertMedia(file)
-          } catch {
+          } catch (error) {
+            console.error('RichTextEditor paste insertMedia failed', error)
             return
           }
         }
