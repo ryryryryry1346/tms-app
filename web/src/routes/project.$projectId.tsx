@@ -4,7 +4,7 @@ import {
   notFound,
   useRouter,
 } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   createSuite,
   deleteSuite,
@@ -50,13 +50,21 @@ export const Route = createFileRoute('/project/$projectId')({
   component: ProjectPage,
 })
 
+type ComposerKind = 'suite' | 'run' | null
+
 function ProjectPage() {
   const loaderData = Route.useLoaderData()
   const { project, dashboard, runs } = loaderData
   const router = useRouter()
+
   const [suiteName, setSuiteName] = useState('')
   const [suiteErrorMessage, setSuiteErrorMessage] = useState<string | null>(null)
   const [isSubmittingSuite, setIsSubmittingSuite] = useState(false)
+
+  const [runName, setRunName] = useState('')
+  const [runErrorMessage, setRunErrorMessage] = useState<string | null>(null)
+  const [isSubmittingRun, setIsSubmittingRun] = useState(false)
+
   const [editingSuiteId, setEditingSuiteId] = useState<number | null>(null)
   const [editingSuiteName, setEditingSuiteName] = useState('')
   const [suiteActionErrorMessage, setSuiteActionErrorMessage] = useState<
@@ -74,18 +82,50 @@ function ProjectPage() {
   const [collapsedSuiteById, setCollapsedSuiteById] = useState<
     Record<number, boolean>
   >({})
-  const [runName, setRunName] = useState('')
-  const [runErrorMessage, setRunErrorMessage] = useState<string | null>(null)
-  const [isSubmittingRun, setIsSubmittingRun] = useState(false)
+  const [activeComposer, setActiveComposer] = useState<ComposerKind>(null)
+  const [searchValue, setSearchValue] = useState('')
 
   const totalCases = dashboard.tests.length
   const totalSuites = dashboard.sections.length
-  const readyCases = dashboard.tests.filter(
-    (test) => test.status === 'Ready',
-  ).length
-  const [activeComposer, setActiveComposer] = useState<'suite' | 'run' | null>(
-    null,
-  )
+  const readyCases = dashboard.tests.filter((test) => test.status === 'Ready').length
+
+  const normalizedSearch = searchValue.trim().toLowerCase()
+
+  const filteredSections = useMemo(() => {
+    return dashboard.sections
+      .map((section) => {
+        const sectionTests = dashboard.tests.filter(
+          (test) => test.sectionId === section.id,
+        )
+        const matchingTests =
+          normalizedSearch.length === 0
+            ? sectionTests
+            : sectionTests.filter((test) => {
+                const title = test.title.toLowerCase()
+                const id = String(test.id)
+                return title.includes(normalizedSearch) || id.includes(normalizedSearch)
+              })
+
+        if (
+          normalizedSearch.length > 0 &&
+          !section.name.toLowerCase().includes(normalizedSearch) &&
+          matchingTests.length === 0
+        ) {
+          return null
+        }
+
+        return {
+          section,
+          sectionTests,
+          visibleTests:
+            normalizedSearch.length > 0 &&
+            section.name.toLowerCase().includes(normalizedSearch)
+              ? sectionTests
+              : matchingTests,
+        }
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null)
+  }, [dashboard.sections, dashboard.tests, normalizedSearch])
 
   async function handleCreateSuite(
     event: React.FormEvent<HTMLFormElement>,
@@ -106,9 +146,9 @@ function ProjectPage() {
       setActiveComposer(null)
       await router.invalidate()
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to create suite.'
-      setSuiteErrorMessage(message)
+      setSuiteErrorMessage(
+        error instanceof Error ? error.message : 'Failed to create suite.',
+      )
     } finally {
       setIsSubmittingSuite(false)
     }
@@ -133,9 +173,9 @@ function ProjectPage() {
       setActiveComposer(null)
       await router.invalidate()
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to create run.'
-      setRunErrorMessage(message)
+      setRunErrorMessage(
+        error instanceof Error ? error.message : 'Failed to create run.',
+      )
     } finally {
       setIsSubmittingRun(false)
     }
@@ -181,9 +221,9 @@ function ProjectPage() {
       setSuiteActionSuiteId(null)
       await router.invalidate()
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to rename suite.'
-      setSuiteActionErrorMessage(message)
+      setSuiteActionErrorMessage(
+        error instanceof Error ? error.message : 'Failed to rename suite.',
+      )
     } finally {
       setPendingSuiteActionById((current) => {
         const nextState = { ...current }
@@ -217,9 +257,9 @@ function ProjectPage() {
       setSuiteActionSuiteId(null)
       await router.invalidate()
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to delete suite.'
-      setSuiteActionErrorMessage(message)
+      setSuiteActionErrorMessage(
+        error instanceof Error ? error.message : 'Failed to delete suite.',
+      )
     } finally {
       setPendingSuiteActionById((current) => {
         const nextState = { ...current }
@@ -230,65 +270,62 @@ function ProjectPage() {
   }
 
   return (
-    <main className="min-h-[calc(100vh-65px)] bg-[var(--bg-base)]">
-      <div className="mx-auto grid min-h-[calc(100vh-65px)] max-w-[1480px] lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside className="border-b border-[var(--line)] bg-white/72 px-4 py-6 backdrop-blur-xl lg:min-h-full lg:border-b-0 lg:border-r">
-          <div className="rounded-2xl border border-[var(--line)] bg-white/78 px-4 py-4 shadow-[0_18px_36px_rgba(23,58,64,0.06)]">
-            <div className="text-lg font-semibold text-[var(--sea-ink)]">
-              Project
-            </div>
-            <div className="mt-1 text-sm text-[var(--sea-ink-soft)]">
-              {project.name}
+    <main className="min-h-[calc(100vh-65px)] bg-[#f7f9fe]">
+      <div className="mx-auto grid min-h-[calc(100vh-65px)] max-w-[1600px] lg:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="border-b border-[#e6ecf8] bg-white lg:border-b-0 lg:border-r">
+          <div className="border-b border-[#eef2fb] px-7 py-7">
+            <div className="text-[2rem] font-semibold tracking-tight text-[#19305d]">
+              TestFlow
             </div>
           </div>
 
-          <div className="mt-8">
-            <div className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--sea-ink-soft)]">
+          <div className="px-4 py-8">
+            <div className="mb-4 px-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#7183ab]">
               Workspace
             </div>
             <nav className="grid gap-2">
               <Link
                 to="/"
-                className="rounded-2xl bg-[rgba(42,164,255,0.12)] px-4 py-3 text-sm font-semibold no-underline text-[var(--brand-strong)]"
+                className="rounded-2xl bg-[#ecf2ff] px-4 py-3 text-sm font-semibold no-underline text-[#2f6fe4]"
               >
                 Projects
               </Link>
               <a
+                href="#project-runs"
+                className="rounded-2xl px-4 py-3 text-sm font-medium no-underline text-[#506487] hover:bg-[#f5f8ff] hover:text-[#19305d]"
+              >
+                Runs
+              </a>
+              <a
                 href="#project-suites"
-                className="rounded-2xl px-4 py-3 text-sm font-medium no-underline text-[var(--sea-ink-soft)] hover:bg-white/80 hover:text-[var(--brand-strong)]"
+                className="rounded-2xl px-4 py-3 text-sm font-medium no-underline text-[#506487] hover:bg-[#f5f8ff] hover:text-[#19305d]"
               >
                 Test cases
               </a>
               <a
                 href="#project-suites"
-                className="rounded-2xl px-4 py-3 text-sm font-medium no-underline text-[var(--sea-ink-soft)] hover:bg-white/80 hover:text-[var(--brand-strong)]"
+                className="rounded-2xl px-4 py-3 text-sm font-medium no-underline text-[#506487] hover:bg-[#f5f8ff] hover:text-[#19305d]"
               >
                 Suites
-              </a>
-              <a
-                href="#project-runs"
-                className="rounded-2xl px-4 py-3 text-sm font-medium no-underline text-[var(--sea-ink-soft)] hover:bg-white/80 hover:text-[var(--brand-strong)]"
-              >
-                Runs
               </a>
             </nav>
           </div>
         </aside>
 
-        <div className="px-4 py-8 lg:px-10">
-          <section className="mb-6 flex flex-wrap items-start justify-between gap-4">
-            <div className="max-w-2xl">
-              <div className="mb-3 flex items-center gap-3 text-sm text-[var(--sea-ink-soft)]">
-                <Link to="/" className="no-underline text-[var(--sea-ink-soft)]">
+        <div className="px-6 py-8 lg:px-10">
+          <section className="mb-8 flex flex-wrap items-start justify-between gap-4">
+            <div className="max-w-3xl">
+              <div className="mb-3 flex items-center gap-3 text-sm text-[#6d7d9e]">
+                <Link to="/" className="no-underline text-[#6d7d9e]">
                   Workspace
                 </Link>
                 <span>/</span>
                 <span>Project</span>
               </div>
-              <h1 className="m-0 text-4xl font-bold tracking-tight text-[var(--sea-ink)]">
+              <h1 className="m-0 text-5xl font-bold tracking-tight text-[#1b2f5b]">
                 {project.name}
               </h1>
-              <p className="mt-3 text-base leading-7 text-[var(--sea-ink-soft)]">
+              <p className="mt-3 text-lg text-[#63759a]">
                 Work with suites, cases, and execution runs for this project.
               </p>
             </div>
@@ -297,56 +334,53 @@ function ProjectPage() {
               <button
                 type="button"
                 onClick={() =>
-                  setActiveComposer((current) =>
-                    current === 'suite' ? null : 'suite',
-                  )
+                  setActiveComposer((current) => (current === 'suite' ? null : 'suite'))
                 }
-                className="rounded-xl border border-[#9dbaf7] bg-white px-5 py-3 text-sm font-semibold text-[#3369d6]"
+                className="rounded-2xl border border-[#9dbaf7] bg-white px-7 py-3 text-base font-semibold text-[#2f6fe4]"
               >
                 + Suite
               </button>
               <Link
                 to="/create-test"
-                className="rounded-xl border border-[#9dbaf7] bg-white px-5 py-3 text-sm font-semibold no-underline text-[#3369d6]"
+                search={{ projectId: project.id }}
+                className="rounded-2xl border border-[#9dbaf7] bg-white px-7 py-3 text-base font-semibold no-underline text-[#2f6fe4]"
               >
                 + Test case
               </Link>
               <button
                 type="button"
                 onClick={() =>
-                  setActiveComposer((current) =>
-                    current === 'run' ? null : 'run',
-                  )
+                  setActiveComposer((current) => (current === 'run' ? null : 'run'))
                 }
-                className="rounded-xl border border-[#2f6fe4] bg-[#2f6fe4] px-5 py-3 text-sm font-semibold text-white"
+                className="rounded-2xl border border-[#2f6fe4] bg-[#2f6fe4] px-7 py-3 text-base font-semibold text-white"
               >
                 + Run
               </button>
             </div>
           </section>
 
-          <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {[
-              { label: 'Suites', value: totalSuites, tone: 'text-[#3369d6]' },
-              { label: 'Cases', value: totalCases, tone: 'text-[#5570c7]' },
+              { label: 'Suites', value: totalSuites, tone: 'text-[#2f6fe4]' },
+              { label: 'Cases', value: totalCases, tone: 'text-[#2f6fe4]' },
               { label: 'Ready', value: readyCases, tone: 'text-[#2ea66b]' },
-              { label: 'Runs', value: runs.length, tone: 'text-[#d04b4b]' },
+              { label: 'Runs', value: runs.length, tone: 'text-[#d05656]' },
             ].map((item) => (
               <div
                 key={item.label}
-                className="rounded-3xl border border-[var(--line)] bg-white px-6 py-5 shadow-[0_12px_30px_rgba(23,58,64,0.05)]"
+                className="rounded-3xl border border-[#e6ecf8] bg-white px-7 py-6 shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
               >
                 <div className="flex items-center gap-4">
                   <div
-                    className={`flex h-14 w-14 items-center justify-center rounded-full bg-[rgba(47,111,228,0.08)] text-xl font-bold ${item.tone}`}
+                    className={`flex h-14 w-14 items-center justify-center rounded-full bg-[#f4f7ff] text-xl font-bold ${item.tone}`}
                   >
-                    •
+                    0
                   </div>
                   <div>
-                    <div className="text-sm font-semibold uppercase tracking-[0.08em] text-[var(--sea-ink-soft)]">
+                    <div className="text-sm font-semibold uppercase tracking-[0.08em] text-[#7686a7]">
                       {item.label}
                     </div>
-                    <div className="mt-1 text-4xl font-semibold text-[var(--sea-ink)]">
+                    <div className="mt-1 text-4xl font-semibold text-[#1b2f5b]">
                       {item.value}
                     </div>
                   </div>
@@ -356,32 +390,30 @@ function ProjectPage() {
           </section>
 
           {activeComposer ? (
-            <section className="mb-6 rounded-3xl border border-[var(--line)] bg-white px-6 py-5 shadow-[0_16px_34px_rgba(23,58,64,0.05)]">
+            <section className="mb-8 rounded-3xl border border-[#e6ecf8] bg-white px-6 py-5 shadow-[0_10px_30px_rgba(31,57,102,0.05)]">
               {activeComposer === 'suite' ? (
                 <form
                   className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]"
                   onSubmit={handleCreateSuite}
                 >
-                  <div className="md:col-span-2">
-                    <div className="text-lg font-semibold text-[var(--sea-ink)]">
-                      Create suite
-                    </div>
+                  <div className="md:col-span-2 text-xl font-semibold text-[#1b2f5b]">
+                    Create suite
                   </div>
                   <input
                     value={suiteName}
                     onChange={(event) => setSuiteName(event.target.value)}
-                    className="rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
+                    className="rounded-2xl border border-[#d9e2f2] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
                     placeholder="Checkout smoke"
                   />
                   <button
                     type="submit"
                     disabled={isSubmittingSuite || !dashboard.databaseConfigured}
-                    className="rounded-xl border border-[rgba(50,143,151,0.3)] bg-[rgba(79,184,178,0.18)] px-4 py-3 text-sm font-semibold text-[var(--lagoon-deep)] disabled:cursor-not-allowed disabled:opacity-55"
+                    className="rounded-2xl border border-[#9fd2ca] bg-[#dff5f1] px-4 py-3 text-sm font-semibold text-[#1b8b84] disabled:cursor-not-allowed disabled:opacity-55"
                   >
                     {isSubmittingSuite ? 'Creating...' : 'Create suite'}
                   </button>
                   {suiteErrorMessage ? (
-                    <div className="md:col-span-2 rounded-xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                    <div className="md:col-span-2 rounded-2xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
                       {suiteErrorMessage}
                     </div>
                   ) : null}
@@ -391,26 +423,24 @@ function ProjectPage() {
                   className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]"
                   onSubmit={handleCreateRun}
                 >
-                  <div className="md:col-span-2">
-                    <div className="text-lg font-semibold text-[var(--sea-ink)]">
-                      Create run
-                    </div>
+                  <div className="md:col-span-2 text-xl font-semibold text-[#1b2f5b]">
+                    Create run
                   </div>
                   <input
                     value={runName}
                     onChange={(event) => setRunName(event.target.value)}
-                    className="rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
-                    placeholder="Regression 2026-04-22"
+                    className="rounded-2xl border border-[#d9e2f2] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
+                    placeholder="Regression 2026-04-25"
                   />
                   <button
                     type="submit"
                     disabled={isSubmittingRun || !dashboard.databaseConfigured}
-                    className="rounded-xl border border-[#2f6fe4] bg-[#2f6fe4] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
+                    className="rounded-2xl border border-[#2f6fe4] bg-[#2f6fe4] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
                   >
                     {isSubmittingRun ? 'Creating...' : 'Create run'}
                   </button>
                   {runErrorMessage ? (
-                    <div className="md:col-span-2 rounded-xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                    <div className="md:col-span-2 rounded-2xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
                       {runErrorMessage}
                     </div>
                   ) : null}
@@ -421,27 +451,42 @@ function ProjectPage() {
 
           <section
             id="project-suites"
-            className="rounded-3xl border border-[var(--line)] bg-white px-6 py-6 shadow-[0_16px_34px_rgba(23,58,64,0.05)]"
+            className="rounded-3xl border border-[#e6ecf8] bg-white px-6 py-6 shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
           >
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-              <h2 className="m-0 text-2xl font-semibold text-[var(--sea-ink)]">
+              <h2 className="m-0 text-2xl font-semibold text-[#1b2f5b]">
                 Test suites and cases
               </h2>
-              <div className="rounded-2xl border border-[var(--line)] bg-[rgba(245,247,255,0.9)] px-4 py-3 text-sm text-[var(--sea-ink-soft)]">
-                {totalCases} case{totalCases === 1 ? '' : 's'}
+              <div className="flex items-center gap-3">
+                <label className="flex min-w-[290px] items-center gap-3 rounded-2xl border border-[#dbe4f4] bg-white px-4 py-3 text-sm text-[#6d7d9e]">
+                  <span>Q</span>
+                  <input
+                    value={searchValue}
+                    onChange={(event) => setSearchValue(event.target.value)}
+                    placeholder="Search cases..."
+                    className="w-full border-0 bg-transparent p-0 text-base outline-none"
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="rounded-2xl border border-[#dbe4f4] bg-white px-4 py-3 text-sm font-semibold text-[#60718f]"
+                >
+                  Filter
+                </button>
               </div>
             </div>
 
             {dashboard.sections.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[var(--line)] bg-[rgba(245,247,255,0.55)] p-6 text-sm text-[var(--sea-ink-soft)]">
+              <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-6 text-sm text-[#63759a]">
                 This project does not have test suites yet.
+              </div>
+            ) : filteredSections.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-6 text-sm text-[#63759a]">
+                No suites or test cases match your search.
               </div>
             ) : (
               <div className="grid gap-6">
-                {dashboard.sections.map((section) => {
-                  const sectionTests = dashboard.tests.filter(
-                    (test) => test.sectionId === section.id,
-                  )
+                {filteredSections.map(({ section, sectionTests, visibleTests }) => {
                   const isEditingSuite = editingSuiteId === section.id
                   const isDeleteConfirming = deleteConfirmSuiteId === section.id
                   const isCollapsed = Boolean(collapsedSuiteById[section.id])
@@ -451,27 +496,27 @@ function ProjectPage() {
                   const readyCount = sectionTests.filter(
                     (test) => test.status === 'Ready',
                   ).length
-                  const draftCount = sectionTests.filter(
-                    (test) => test.status !== 'Ready',
-                  ).length
+                  const draftCount = sectionTests.length - readyCount
 
                   return (
                     <section
                       key={section.id}
-                      className="overflow-hidden rounded-3xl border border-[var(--line)]"
+                      className="overflow-hidden rounded-3xl border border-[#dfe6f4]"
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--line)] bg-[rgba(250,251,255,0.92)] px-5 py-5">
-                        <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e9eef8] bg-[#fbfcff] px-5 py-5">
+                        <div className="flex min-w-0 items-center gap-4">
                           <button
                             type="button"
                             onClick={() => toggleSuiteCollapsed(section.id)}
-                            className="rounded-lg border border-[var(--line)] bg-white px-2 py-1 text-sm font-semibold text-[var(--sea-ink-soft)]"
+                            className="rounded-lg px-2 py-1 text-sm font-semibold text-[#506487]"
                             aria-label={isCollapsed ? 'Expand suite' : 'Collapse suite'}
                           >
-                            {isCollapsed ? '▸' : '▾'}
+                            {isCollapsed ? '>' : 'v'}
                           </button>
-                          <div className="h-6 w-6 rounded-lg border border-[var(--line)] bg-white" />
-                          <div>
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#dbe4f4] bg-white text-[#506487]">
+                            []
+                          </div>
+                          <div className="min-w-0">
                             {isEditingSuite ? (
                               <form
                                 className="flex flex-wrap items-center gap-2"
@@ -484,7 +529,7 @@ function ProjectPage() {
                                   onChange={(event) =>
                                     setEditingSuiteName(event.target.value)
                                   }
-                                  className="min-w-[220px] rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-base font-semibold text-[var(--sea-ink)] outline-none transition focus:border-[var(--lagoon-deep)]"
+                                  className="min-w-[220px] rounded-xl border border-[#d9e2f2] bg-white px-3 py-2 text-base font-semibold text-[#1b2f5b] outline-none transition focus:border-[#2f6fe4]"
                                 />
                                 <button
                                   type="submit"
@@ -500,37 +545,35 @@ function ProjectPage() {
                                     setEditingSuiteName('')
                                     setSuiteActionErrorMessage(null)
                                   }}
-                                  className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold text-[var(--sea-ink-soft)]"
+                                  className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]"
                                 >
                                   Cancel
                                 </button>
                               </form>
                             ) : (
-                              <div className="text-xl font-semibold text-[var(--sea-ink)]">
-                                {section.name}
+                              <div className="flex flex-wrap items-center gap-4">
+                                <div className="text-2xl font-semibold text-[#1b2f5b]">
+                                  {section.name}
+                                </div>
+                                <div className="text-sm text-[#7f8da9]">
+                                  {sectionTests.length} case
+                                  {sectionTests.length === 1 ? '' : 's'}
+                                </div>
                               </div>
                             )}
-                            <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.08em]">
-                              <span className="rounded-full bg-[rgba(36,79,166,0.08)] px-3 py-1 text-[var(--sea-ink-soft)]">
-                                {sectionTests.length} case
-                                {sectionTests.length === 1 ? '' : 's'}
-                              </span>
-                              <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800">
-                                Ready {readyCount}
-                              </span>
-                              <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-700">
-                                Draft {draftCount}
-                              </span>
-                            </div>
                           </div>
                         </div>
+
                         <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-[#eef6ff] px-3 py-1 text-xs font-semibold text-[#60718f]">
+                            Ready {readyCount}
+                          </span>
+                          <span className="rounded-full bg-[#f3f5f9] px-3 py-1 text-xs font-semibold text-[#60718f]">
+                            Draft {draftCount}
+                          </span>
                           <Link
                             to="/create-test"
-                            search={{
-                              suiteId: section.id,
-                              projectId: project.id,
-                            }}
+                            search={{ suiteId: section.id, projectId: project.id }}
                             className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#3369d6]"
                           >
                             Create test case
@@ -540,7 +583,7 @@ function ProjectPage() {
                               type="button"
                               disabled={isPendingSuiteAction}
                               onClick={() => startRenameSuite(section.id, section.name)}
-                              className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold text-[var(--sea-ink-soft)] disabled:cursor-not-allowed disabled:opacity-55"
+                              className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]"
                             >
                               Rename
                             </button>
@@ -555,17 +598,15 @@ function ProjectPage() {
                                 current === section.id ? null : section.id,
                               )
                             }}
-                            className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-55"
+                            className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700"
                           >
-                            {isPendingSuiteAction && isDeleteConfirming
-                              ? 'Working...'
-                              : 'Delete'}
+                            Delete
                           </button>
                         </div>
                       </div>
 
                       {isDeleteConfirming ? (
-                        <div className="border-b border-[var(--line)] bg-amber-50 px-5 py-4">
+                        <div className="border-b border-[#e9eef8] bg-amber-50 px-5 py-4">
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <div className="text-sm text-amber-950">
                               Delete this suite? This only works when the suite has no
@@ -576,14 +617,14 @@ function ProjectPage() {
                                 type="button"
                                 disabled={isPendingSuiteAction}
                                 onClick={() => handleDeleteSuite(section.id)}
-                                className="rounded-xl border border-rose-200 bg-rose-100 px-3 py-2 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-55"
+                                className="rounded-xl border border-rose-200 bg-rose-100 px-3 py-2 text-sm font-semibold text-rose-700"
                               >
                                 Confirm delete
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setDeleteConfirmSuiteId(null)}
-                                className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold text-[var(--sea-ink-soft)]"
+                                className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]"
                               >
                                 Cancel
                               </button>
@@ -593,21 +634,18 @@ function ProjectPage() {
                       ) : null}
 
                       {suiteActionErrorMessage && suiteActionSuiteId === section.id ? (
-                        <div className="border-b border-[var(--line)] bg-rose-50 px-5 py-3 text-sm text-rose-900">
+                        <div className="border-b border-[#e9eef8] bg-rose-50 px-5 py-3 text-sm text-rose-900">
                           {suiteActionErrorMessage}
                         </div>
                       ) : null}
 
-                      {isCollapsed ? null : sectionTests.length === 0 ? (
-                        <div className="bg-white px-5 py-5 text-sm text-[var(--sea-ink-soft)]">
+                      {isCollapsed ? null : visibleTests.length === 0 ? (
+                        <div className="bg-white px-5 py-5 text-sm text-[#63759a]">
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <span>No test cases in this suite yet.</span>
                             <Link
                               to="/create-test"
-                              search={{
-                                suiteId: section.id,
-                                projectId: project.id,
-                              }}
+                              search={{ suiteId: section.id, projectId: project.id }}
                               className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#3369d6]"
                             >
                               Create test case
@@ -615,20 +653,20 @@ function ProjectPage() {
                           </div>
                         </div>
                       ) : (
-                        sectionTests.map((test) => {
+                        visibleTests.map((test) => {
                           const isReady = test.status === 'Ready'
 
                           return (
                             <article
                               key={test.id}
-                              className="grid grid-cols-[4px_minmax(0,1fr)] border-t border-[var(--line)] bg-white"
+                              className="grid grid-cols-[4px_minmax(0,1fr)] border-t border-[#e9eef8] bg-white"
                             >
                               <div
-                                className={isReady ? 'bg-emerald-400' : 'bg-slate-300'}
+                                className={isReady ? 'bg-emerald-400' : 'bg-rose-400'}
                               />
                               <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-5">
                                 <div className="min-w-0 flex-1">
-                                  <div className="flex flex-wrap items-center gap-4">
+                                  <div className="flex flex-wrap items-center gap-5">
                                     <Link
                                       to="/test/$testId"
                                       params={{ testId: test.id.toString() }}
@@ -639,7 +677,7 @@ function ProjectPage() {
                                     <Link
                                       to="/test/$testId"
                                       params={{ testId: test.id.toString() }}
-                                      className="block min-w-0 truncate text-xl font-semibold no-underline text-[var(--sea-ink)] hover:text-[var(--lagoon-deep)]"
+                                      className="block min-w-0 truncate text-xl font-semibold no-underline text-[#1b2f5b] hover:text-[#2f6fe4]"
                                     >
                                       {test.title}
                                     </Link>
@@ -656,6 +694,13 @@ function ProjectPage() {
                                   >
                                     {test.status ?? 'Draft'}
                                   </span>
+                                  <Link
+                                    to="/test/$testId"
+                                    params={{ testId: test.id.toString() }}
+                                    className="text-sm font-semibold no-underline text-[#60718f] hover:text-[#2f6fe4]"
+                                  >
+                                    Open
+                                  </Link>
                                 </div>
                               </div>
                             </article>
@@ -671,19 +716,17 @@ function ProjectPage() {
 
           <section
             id="project-runs"
-            className="mt-6 rounded-3xl border border-[var(--line)] bg-white px-6 py-6 shadow-[0_16px_34px_rgba(23,58,64,0.05)]"
+            className="mt-6 rounded-3xl border border-[#e6ecf8] bg-white px-6 py-6 shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
           >
             <div className="mb-4 flex items-center justify-between gap-4">
-              <h2 className="m-0 text-2xl font-semibold text-[var(--sea-ink)]">
-                Runs
-              </h2>
-              <div className="text-sm text-[var(--sea-ink-soft)]">
+              <h2 className="m-0 text-2xl font-semibold text-[#1b2f5b]">Runs</h2>
+              <div className="text-sm text-[#63759a]">
                 {runs.length} run{runs.length === 1 ? '' : 's'}
               </div>
             </div>
 
             {runs.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[var(--line)] bg-[rgba(245,247,255,0.55)] p-5 text-sm text-[var(--sea-ink-soft)]">
+              <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-5 text-sm text-[#63759a]">
                 No runs exist yet for this project.
               </div>
             ) : (
@@ -693,12 +736,10 @@ function ProjectPage() {
                     key={run.id}
                     to="/run/$runId"
                     params={{ runId: run.id.toString() }}
-                    className="rounded-2xl border border-[var(--line)] bg-[rgba(250,251,255,0.92)] px-5 py-4 no-underline text-[var(--sea-ink)] hover:text-[var(--lagoon-deep)]"
+                    className="rounded-2xl border border-[#dbe4f4] bg-[#fbfcff] px-5 py-4 no-underline text-[#1b2f5b] hover:text-[#2f6fe4]"
                   >
                     <div className="text-base font-semibold">{run.name}</div>
-                    <div className="mt-1 text-sm text-[var(--sea-ink-soft)]">
-                      Run ID: {run.id}
-                    </div>
+                    <div className="mt-1 text-sm text-[#63759a]">Run ID: {run.id}</div>
                   </Link>
                 ))}
               </div>
