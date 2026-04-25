@@ -114,7 +114,14 @@ function TestDetailPage() {
           </section>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            to="/edit-test/$testId"
+            params={{ testId: test.id.toString() }}
+            className="inline-flex rounded-xl border border-[rgba(50,143,151,0.3)] bg-[rgba(79,184,178,0.18)] px-4 py-2 text-sm font-semibold no-underline text-[var(--lagoon-deep)]"
+          >
+            Edit test case
+          </Link>
           {test.projectId ? (
             <Link
               to="/project/$projectId"

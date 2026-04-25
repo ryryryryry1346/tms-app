@@ -26,6 +26,15 @@ const createTestInput = z.object({
   expected: z.string(),
 })
 
+const updateTestInput = z.object({
+  id: z.number().int().positive(),
+  title: z.string().trim().min(1),
+  sectionId: z.number().int().positive(),
+  status: z.enum(['Draft', 'Ready']),
+  steps: z.string(),
+  expected: z.string(),
+})
+
 export type DashboardTest = {
   id: number
   title: string
@@ -59,6 +68,20 @@ export type DashboardState = {
 export type CreateTestFormState = {
   databaseConfigured: boolean
   sections: DashboardSection[]
+}
+
+export type EditTestFormState = {
+  databaseConfigured: boolean
+  sections: DashboardSection[]
+  test: {
+    id: number
+    title: string
+    steps: string
+    expected: string
+    status: 'Draft' | 'Ready'
+    sectionId: number
+    projectId: number | null
+  }
 }
 
 export type TestDetail = {
@@ -236,6 +259,117 @@ export const createTestCase = createServerFn({ method: 'POST' })
 
     return {
       id: result[0].insertId,
+    }
+  })
+
+export const getEditTestFormState = createServerFn({ method: 'POST' })
+  .inputValidator(getTestDetailInput)
+  .handler(async ({ data }): Promise<EditTestFormState> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    if (!isDatabaseConfigured()) {
+      throw new Error('Database is not configured.')
+    }
+
+    const db = getDb()
+    const testRows = await db
+      .select({
+        id: tests.id,
+        title: tests.title,
+        steps: tests.steps,
+        expected: tests.expected,
+        status: tests.status,
+        sectionId: tests.sectionId,
+        projectId: tests.projectId,
+      })
+      .from(tests)
+      .where(eq(tests.id, data.id))
+      .limit(1)
+
+    const test = testRows[0]
+
+    if (!test || test.sectionId === null) {
+      throw notFound()
+    }
+
+    const sectionsRows = await db
+      .select({
+        id: sections.id,
+        name: sections.name,
+        projectId: sections.projectId,
+      })
+      .from(sections)
+      .orderBy(asc(sections.id))
+
+    const projectRows = await db
+      .select({
+        id: projects.id,
+        name: projects.name,
+      })
+      .from(projects)
+
+    const projectNameById = new Map(projectRows.map((project) => [project.id, project.name]))
+
+    return {
+      databaseConfigured: true,
+      sections: sectionsRows.map((section) => ({
+        ...section,
+        projectName:
+          section.projectId !== null
+            ? (projectNameById.get(section.projectId) ?? null)
+            : null,
+      })),
+      test: {
+        id: test.id,
+        title: test.title,
+        steps: test.steps ?? '',
+        expected: test.expected ?? '',
+        status: test.status === 'Ready' ? 'Ready' : 'Draft',
+        sectionId: test.sectionId,
+        projectId: test.projectId,
+      },
+    }
+  })
+
+export const updateTestCase = createServerFn({ method: 'POST' })
+  .inputValidator(updateTestInput)
+  .handler(async ({ data }): Promise<{ id: number }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    const matchingSection = await db
+      .select({
+        id: sections.id,
+        projectId: sections.projectId,
+      })
+      .from(sections)
+      .where(eq(sections.id, data.sectionId))
+      .limit(1)
+
+    const section = matchingSection[0]
+
+    if (!section || !section.projectId) {
+      throw new Error(
+        'The selected section is missing or is not attached to a project.',
+      )
+    }
+
+    await db
+      .update(tests)
+      .set({
+        title: data.title,
+        steps: data.steps,
+        expected: data.expected,
+        status: data.status,
+        sectionId: data.sectionId,
+        projectId: section.projectId,
+      })
+      .where(eq(tests.id, data.id))
+
+    return {
+      id: data.id,
     }
   })
 
