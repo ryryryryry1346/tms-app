@@ -5,7 +5,11 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { useState } from 'react'
-import { createSuite } from '../features/projects/server'
+import {
+  createSuite,
+  deleteSuite,
+  updateSuite,
+} from '../features/projects/server'
 import { createRun, getRunsForProject } from '../features/runs/server'
 import { getDashboardState } from '../features/tests/server'
 
@@ -53,6 +57,14 @@ function ProjectPage() {
   const [suiteName, setSuiteName] = useState('')
   const [suiteErrorMessage, setSuiteErrorMessage] = useState<string | null>(null)
   const [isSubmittingSuite, setIsSubmittingSuite] = useState(false)
+  const [editingSuiteId, setEditingSuiteId] = useState<number | null>(null)
+  const [editingSuiteName, setEditingSuiteName] = useState('')
+  const [suiteActionErrorMessage, setSuiteActionErrorMessage] = useState<
+    string | null
+  >(null)
+  const [pendingSuiteActionById, setPendingSuiteActionById] = useState<
+    Record<number, boolean>
+  >({})
   const [runName, setRunName] = useState('')
   const [runErrorMessage, setRunErrorMessage] = useState<string | null>(null)
   const [isSubmittingRun, setIsSubmittingRun] = useState(false)
@@ -120,6 +132,88 @@ function ProjectPage() {
     }
   }
 
+  function startRenameSuite(suiteId: number, currentName: string): void {
+    setSuiteActionErrorMessage(null)
+    setEditingSuiteId(suiteId)
+    setEditingSuiteName(currentName)
+  }
+
+  async function handleRenameSuite(
+    event: React.FormEvent<HTMLFormElement>,
+    suiteId: number,
+  ): Promise<void> {
+    event.preventDefault()
+    setSuiteActionErrorMessage(null)
+    setPendingSuiteActionById((current) => ({
+      ...current,
+      [suiteId]: true,
+    }))
+
+    try {
+      await updateSuite({
+        data: {
+          suiteId,
+          name: editingSuiteName,
+        },
+      })
+
+      setEditingSuiteId(null)
+      setEditingSuiteName('')
+      await router.invalidate()
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to rename suite.'
+      setSuiteActionErrorMessage(message)
+    } finally {
+      setPendingSuiteActionById((current) => {
+        const nextState = { ...current }
+        delete nextState[suiteId]
+        return nextState
+      })
+    }
+  }
+
+  async function handleDeleteSuite(suiteId: number): Promise<void> {
+    const confirmed = window.confirm(
+      'Delete this suite? This only works when the suite has no test cases.',
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    setSuiteActionErrorMessage(null)
+    setPendingSuiteActionById((current) => ({
+      ...current,
+      [suiteId]: true,
+    }))
+
+    try {
+      await deleteSuite({
+        data: {
+          suiteId,
+        },
+      })
+
+      if (editingSuiteId === suiteId) {
+        setEditingSuiteId(null)
+        setEditingSuiteName('')
+      }
+
+      await router.invalidate()
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to delete suite.'
+      setSuiteActionErrorMessage(message)
+    } finally {
+      setPendingSuiteActionById((current) => {
+        const nextState = { ...current }
+        delete nextState[suiteId]
+        return nextState
+      })
+    }
+  }
+
   return (
     <main className="min-h-[calc(100vh-65px)] bg-[var(--bg-base)]">
       <div className="mx-auto grid min-h-[calc(100vh-65px)] max-w-[1480px] lg:grid-cols-[240px_minmax(0,1fr)]">
@@ -164,7 +258,6 @@ function ProjectPage() {
               </a>
             </nav>
           </div>
-
         </aside>
 
         <div className="px-4 py-8 lg:px-10">
@@ -250,7 +343,10 @@ function ProjectPage() {
           {activeComposer ? (
             <section className="mb-6 rounded-3xl border border-[var(--line)] bg-white px-6 py-5 shadow-[0_16px_34px_rgba(23,58,64,0.05)]">
               {activeComposer === 'suite' ? (
-                <form className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]" onSubmit={handleCreateSuite}>
+                <form
+                  className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]"
+                  onSubmit={handleCreateSuite}
+                >
                   <div className="md:col-span-2">
                     <div className="text-lg font-semibold text-[var(--sea-ink)]">
                       Create suite
@@ -276,7 +372,10 @@ function ProjectPage() {
                   ) : null}
                 </form>
               ) : (
-                <form className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]" onSubmit={handleCreateRun}>
+                <form
+                  className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]"
+                  onSubmit={handleCreateRun}
+                >
                   <div className="md:col-span-2">
                     <div className="text-lg font-semibold text-[var(--sea-ink)]">
                       Create run
@@ -328,6 +427,10 @@ function ProjectPage() {
                   const sectionTests = dashboard.tests.filter(
                     (test) => test.sectionId === section.id,
                   )
+                  const isEditingSuite = editingSuiteId === section.id
+                  const isPendingSuiteAction = Boolean(
+                    pendingSuiteActionById[section.id],
+                  )
 
                   return (
                     <section
@@ -336,25 +439,80 @@ function ProjectPage() {
                     >
                       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--line)] bg-[rgba(250,251,255,0.92)] px-5 py-5">
                         <div className="flex items-center gap-3">
-                          <span className="text-lg text-[var(--sea-ink-soft)]">⌄</span>
+                          <span className="text-lg text-[var(--sea-ink-soft)]">▾</span>
                           <div className="h-6 w-6 rounded-lg border border-[var(--line)] bg-white" />
                           <div>
-                            <div className="text-xl font-semibold text-[var(--sea-ink)]">
-                              {section.name}
-                            </div>
+                            {isEditingSuite ? (
+                              <form
+                                className="flex flex-wrap items-center gap-2"
+                                onSubmit={(event) =>
+                                  handleRenameSuite(event, section.id)
+                                }
+                              >
+                                <input
+                                  value={editingSuiteName}
+                                  onChange={(event) =>
+                                    setEditingSuiteName(event.target.value)
+                                  }
+                                  className="min-w-[220px] rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-base font-semibold text-[var(--sea-ink)] outline-none transition focus:border-[var(--lagoon-deep)]"
+                                />
+                                <button
+                                  type="submit"
+                                  disabled={isPendingSuiteAction}
+                                  className="rounded-xl border border-[#2f6fe4] bg-[#2f6fe4] px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
+                                >
+                                  {isPendingSuiteAction ? 'Saving...' : 'Save'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingSuiteId(null)
+                                    setEditingSuiteName('')
+                                    setSuiteActionErrorMessage(null)
+                                  }}
+                                  className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold text-[var(--sea-ink-soft)]"
+                                >
+                                  Cancel
+                                </button>
+                              </form>
+                            ) : (
+                              <div className="text-xl font-semibold text-[var(--sea-ink)]">
+                                {section.name}
+                              </div>
+                            )}
                             <div className="mt-1 text-sm text-[var(--sea-ink-soft)]">
                               {sectionTests.length} case
                               {sectionTests.length === 1 ? '' : 's'}
                             </div>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          className="rounded-xl px-3 py-2 text-xl leading-none text-[var(--sea-ink-soft)]"
-                        >
-                          …
-                        </button>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {!isEditingSuite ? (
+                            <button
+                              type="button"
+                              disabled={isPendingSuiteAction}
+                              onClick={() => startRenameSuite(section.id, section.name)}
+                              className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold text-[var(--sea-ink-soft)] disabled:cursor-not-allowed disabled:opacity-55"
+                            >
+                              Rename
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            disabled={isPendingSuiteAction}
+                            onClick={() => handleDeleteSuite(section.id)}
+                            className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-55"
+                          >
+                            {isPendingSuiteAction ? 'Working...' : 'Delete'}
+                          </button>
+                        </div>
                       </div>
+
+                      {suiteActionErrorMessage && isEditingSuite ? (
+                        <div className="border-b border-[var(--line)] bg-rose-50 px-5 py-3 text-sm text-rose-900">
+                          {suiteActionErrorMessage}
+                        </div>
+                      ) : null}
 
                       {sectionTests.length === 0 ? (
                         <div className="bg-white px-5 py-5 text-sm text-[var(--sea-ink-soft)]">
@@ -402,12 +560,6 @@ function ProjectPage() {
                                   >
                                     {test.status ?? 'Draft'}
                                   </span>
-                                  <button
-                                    type="button"
-                                    className="rounded-xl px-2 py-1 text-xl leading-none text-[var(--sea-ink-soft)]"
-                                  >
-                                    …
-                                  </button>
                                 </div>
                               </div>
                             </article>
