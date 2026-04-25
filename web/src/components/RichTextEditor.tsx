@@ -6,6 +6,15 @@ import Image from '@tiptap/extension-image'
 import { FontSize as TipTapFontSize, TextStyle } from '@tiptap/extension-text-style'
 import { mergeAttributes, Node } from '@tiptap/core'
 import { useEffect, useRef } from 'react'
+import {
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Type,
+  Underline as UnderlineIcon,
+  Upload,
+} from 'lucide-react'
 
 type FontSize = 'small' | 'normal' | 'large'
 
@@ -251,68 +260,98 @@ export function RichTextEditor({
   return (
     <label className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
       {label}
-      <div className="editor-toolbar" role="toolbar" aria-label={`${label} formatting`}>
-        <button
-          type="button"
-          className="editor-tool-button"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => editor?.chain().focus().toggleBold().run()}
-        >
-          Bold
-        </button>
-        <button
-          type="button"
-          className="editor-tool-button"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => editor?.chain().focus().toggleItalic().run()}
-        >
-          Italic
-        </button>
-        <button
-          type="button"
-          className="editor-tool-button"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => editor?.chain().focus().toggleUnderline().run()}
-        >
-          Underline
-        </button>
-        <button
-          type="button"
-          className="editor-tool-button"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => editor?.chain().focus().toggleBulletList().run()}
-        >
-          Bullet list
-        </button>
-        <button
-          type="button"
-          className="editor-tool-button"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-        >
-          Numbered list
-        </button>
-        <select
-          value={currentFontSize}
-          onChange={(event) => {
-            const size = event.target.value as FontSize
-            editor?.chain().focus().setFontSize(fontSizeMap[size]).run()
-          }}
-          className="editor-tool-select"
-        >
-          <option value="small">Small text</option>
-          <option value="normal">Normal text</option>
-          <option value="large">Large text</option>
-        </select>
-        <button
-          type="button"
-          className="editor-tool-button"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          Add media
-        </button>
-        <div className="editor-tool-note">
+      <div className="editor-shell">
+        <div className="editor-toolbar" role="toolbar" aria-label={`${label} formatting`}>
+          <div className="editor-tool-group">
+            <button
+              type="button"
+              className={`editor-tool-icon-button ${editor?.isActive('bold') ? 'is-active' : ''}`}
+              aria-label="Bold"
+              aria-pressed={editor?.isActive('bold') ?? false}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => editor?.chain().focus().toggleBold().run()}
+            >
+              <Bold size={16} strokeWidth={2.2} />
+            </button>
+            <button
+              type="button"
+              className={`editor-tool-icon-button ${editor?.isActive('italic') ? 'is-active' : ''}`}
+              aria-label="Italic"
+              aria-pressed={editor?.isActive('italic') ?? false}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => editor?.chain().focus().toggleItalic().run()}
+            >
+              <Italic size={16} strokeWidth={2.2} />
+            </button>
+            <button
+              type="button"
+              className={`editor-tool-icon-button ${editor?.isActive('underline') ? 'is-active' : ''}`}
+              aria-label="Underline"
+              aria-pressed={editor?.isActive('underline') ?? false}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => editor?.chain().focus().toggleUnderline().run()}
+            >
+              <UnderlineIcon size={16} strokeWidth={2.2} />
+            </button>
+          </div>
+
+          <div className="editor-tool-group">
+            <button
+              type="button"
+              className={`editor-tool-icon-button ${editor?.isActive('bulletList') ? 'is-active' : ''}`}
+              aria-label="Bullet list"
+              aria-pressed={editor?.isActive('bulletList') ?? false}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => editor?.chain().focus().toggleBulletList().run()}
+            >
+              <List size={16} strokeWidth={2.2} />
+            </button>
+            <button
+              type="button"
+              className={`editor-tool-icon-button ${editor?.isActive('orderedList') ? 'is-active' : ''}`}
+              aria-label="Numbered list"
+              aria-pressed={editor?.isActive('orderedList') ?? false}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+            >
+              <ListOrdered size={16} strokeWidth={2.2} />
+            </button>
+          </div>
+
+          <div className="editor-tool-group">
+            <label className="editor-select-label">
+              <Type size={15} strokeWidth={2.1} />
+              <select
+                value={currentFontSize}
+                onChange={(event) => {
+                  const size = event.target.value as FontSize
+                  editor?.chain().focus().setFontSize(fontSizeMap[size]).run()
+                }}
+                className="editor-tool-select"
+              >
+                <option value="small">Small</option>
+                <option value="normal">Normal</option>
+                <option value="large">Large</option>
+              </select>
+            </label>
+          </div>
+
+          <button
+            type="button"
+            className="editor-media-button"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload size={15} strokeWidth={2.2} />
+            Add media
+          </button>
+
+          <div className="editor-tool-note">
+            Click media to open the original file.
+          </div>
+        </div>
+
+        <div className="editor-status-row">
           {isUploading
             ? 'Uploading media...'
             : 'Images, GIFs, and videos become inline previews.'}
