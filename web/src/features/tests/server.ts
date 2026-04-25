@@ -11,7 +11,7 @@ const dashboardInput = z.object({
 
 const updateTestStatusInput = z.object({
   id: z.number().int().positive(),
-  status: z.enum(['Draft', 'Ready']),
+  status: z.enum(['Draft', 'Ready', 'Archived']),
 })
 
 const getTestDetailInput = z.object({
@@ -30,7 +30,7 @@ const updateTestInput = z.object({
   id: z.number().int().positive(),
   title: z.string().trim().min(1),
   sectionId: z.number().int().positive(),
-  status: z.enum(['Draft', 'Ready']),
+  status: z.enum(['Draft', 'Ready', 'Archived']),
   steps: z.string(),
   expected: z.string(),
 })
@@ -78,7 +78,7 @@ export type EditTestFormState = {
     title: string
     steps: string
     expected: string
-    status: 'Draft' | 'Ready'
+    status: 'Draft' | 'Ready' | 'Archived'
     sectionId: number
     projectId: number | null
   }
@@ -176,6 +176,23 @@ export const updateTestStatus = createServerFn({ method: 'POST' })
         status: data.status,
       })
       .where(and(eq(tests.id, data.id)))
+
+    return { ok: true }
+  })
+
+export const archiveTestCase = createServerFn({ method: 'POST' })
+  .inputValidator(getTestDetailInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    await db
+      .update(tests)
+      .set({
+        status: 'Archived',
+      })
+      .where(eq(tests.id, data.id))
 
     return { ok: true }
   })
@@ -325,7 +342,12 @@ export const getEditTestFormState = createServerFn({ method: 'POST' })
         title: test.title,
         steps: test.steps ?? '',
         expected: test.expected ?? '',
-        status: test.status === 'Ready' ? 'Ready' : 'Draft',
+        status:
+          test.status === 'Ready'
+            ? 'Ready'
+            : test.status === 'Archived'
+              ? 'Archived'
+              : 'Draft',
         sectionId: test.sectionId,
         projectId: test.projectId,
       },

@@ -85,16 +85,17 @@ function ProjectPage() {
   const [activeComposer, setActiveComposer] = useState<ComposerKind>(null)
   const [searchValue, setSearchValue] = useState('')
 
-  const totalCases = dashboard.tests.length
+  const activeTests = dashboard.tests.filter((test) => test.status !== 'Archived')
+  const totalCases = activeTests.length
   const totalSuites = dashboard.sections.length
-  const readyCases = dashboard.tests.filter((test) => test.status === 'Ready').length
+  const readyCases = activeTests.filter((test) => test.status === 'Ready').length
 
   const normalizedSearch = searchValue.trim().toLowerCase()
 
   const filteredSections = useMemo(() => {
     return dashboard.sections
       .map((section) => {
-        const sectionTests = dashboard.tests.filter(
+        const sectionTests = activeTests.filter(
           (test) => test.sectionId === section.id,
         )
         const matchingTests =

@@ -3,6 +3,8 @@ import {
   createFileRoute,
   notFound,
 } from '@tanstack/react-router'
+import { useState } from 'react'
+import { archiveTestCase } from '../features/tests/server'
 import { getTestDetail } from '../features/tests/server'
 
 export const Route = createFileRoute('/test/$testId')({
@@ -24,10 +26,35 @@ export const Route = createFileRoute('/test/$testId')({
 
 function TestDetailPage() {
   const test = Route.useLoaderData()
+  const [isArchiving, setIsArchiving] = useState(false)
+  const [archiveError, setArchiveError] = useState<string | null>(null)
   const statusTone =
     test.status === 'Ready'
       ? 'bg-emerald-100 text-emerald-900'
-      : 'bg-slate-100 text-slate-700'
+      : test.status === 'Archived'
+        ? 'bg-amber-100 text-amber-900'
+        : 'bg-slate-100 text-slate-700'
+
+  async function handleArchive(): Promise<void> {
+    setArchiveError(null)
+    setIsArchiving(true)
+
+    try {
+      await archiveTestCase({
+        data: {
+          id: test.id,
+        },
+      })
+
+      window.location.reload()
+    } catch (error) {
+      setArchiveError(
+        error instanceof Error ? error.message : 'Failed to archive test case.',
+      )
+    } finally {
+      setIsArchiving(false)
+    }
+  }
 
   return (
     <main className="page-wrap px-4 py-12">
@@ -122,6 +149,18 @@ function TestDetailPage() {
           >
             Edit test case
           </Link>
+          {test.status !== 'Archived' ? (
+            <button
+              type="button"
+              onClick={() => {
+                void handleArchive()
+              }}
+              disabled={isArchiving}
+              className="inline-flex rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900 disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {isArchiving ? 'Archiving...' : 'Archive'}
+            </button>
+          ) : null}
           {test.projectId ? (
             <Link
               to="/project/$projectId"
@@ -139,6 +178,12 @@ function TestDetailPage() {
             </Link>
           )}
         </div>
+
+        {archiveError ? (
+          <div className="mt-4 rounded-xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+            {archiveError}
+          </div>
+        ) : null}
       </section>
     </main>
   )

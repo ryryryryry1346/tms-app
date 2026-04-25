@@ -44,7 +44,9 @@ function EditTestPage() {
 
   const [title, setTitle] = useState(formState.test.title)
   const [sectionId, setSectionId] = useState(formState.test.sectionId.toString())
-  const [status, setStatus] = useState<'Draft' | 'Ready'>(formState.test.status)
+  const [status, setStatus] = useState<'Draft' | 'Ready' | 'Archived'>(
+    formState.test.status,
+  )
   const [steps, setSteps] = useState(formState.test.steps)
   const [expected, setExpected] = useState(formState.test.expected)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -172,12 +174,19 @@ function EditTestPage() {
             <select
               value={status}
               onChange={(event) =>
-                setStatus(event.target.value === 'Ready' ? 'Ready' : 'Draft')
+                setStatus(
+                  event.target.value === 'Ready'
+                    ? 'Ready'
+                    : event.target.value === 'Archived'
+                      ? 'Archived'
+                      : 'Draft',
+                )
               }
               className="rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
             >
               <option value="Draft">Draft</option>
               <option value="Ready">Ready</option>
+              <option value="Archived">Archived</option>
             </select>
           </label>
 
