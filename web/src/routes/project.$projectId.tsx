@@ -62,7 +62,16 @@ function ProjectPage() {
   const [suiteActionErrorMessage, setSuiteActionErrorMessage] = useState<
     string | null
   >(null)
+  const [suiteActionSuiteId, setSuiteActionSuiteId] = useState<number | null>(
+    null,
+  )
   const [pendingSuiteActionById, setPendingSuiteActionById] = useState<
+    Record<number, boolean>
+  >({})
+  const [deleteConfirmSuiteId, setDeleteConfirmSuiteId] = useState<number | null>(
+    null,
+  )
+  const [collapsedSuiteById, setCollapsedSuiteById] = useState<
     Record<number, boolean>
   >({})
   const [runName, setRunName] = useState('')
@@ -134,8 +143,17 @@ function ProjectPage() {
 
   function startRenameSuite(suiteId: number, currentName: string): void {
     setSuiteActionErrorMessage(null)
+    setSuiteActionSuiteId(suiteId)
+    setDeleteConfirmSuiteId((current) => (current === suiteId ? null : current))
     setEditingSuiteId(suiteId)
     setEditingSuiteName(currentName)
+  }
+
+  function toggleSuiteCollapsed(suiteId: number): void {
+    setCollapsedSuiteById((current) => ({
+      ...current,
+      [suiteId]: !current[suiteId],
+    }))
   }
 
   async function handleRenameSuite(
@@ -144,6 +162,7 @@ function ProjectPage() {
   ): Promise<void> {
     event.preventDefault()
     setSuiteActionErrorMessage(null)
+    setSuiteActionSuiteId(suiteId)
     setPendingSuiteActionById((current) => ({
       ...current,
       [suiteId]: true,
@@ -159,6 +178,7 @@ function ProjectPage() {
 
       setEditingSuiteId(null)
       setEditingSuiteName('')
+      setSuiteActionSuiteId(null)
       await router.invalidate()
     } catch (error) {
       const message =
@@ -174,15 +194,8 @@ function ProjectPage() {
   }
 
   async function handleDeleteSuite(suiteId: number): Promise<void> {
-    const confirmed = window.confirm(
-      'Delete this suite? This only works when the suite has no test cases.',
-    )
-
-    if (!confirmed) {
-      return
-    }
-
     setSuiteActionErrorMessage(null)
+    setSuiteActionSuiteId(suiteId)
     setPendingSuiteActionById((current) => ({
       ...current,
       [suiteId]: true,
@@ -200,6 +213,8 @@ function ProjectPage() {
         setEditingSuiteName('')
       }
 
+      setDeleteConfirmSuiteId(null)
+      setSuiteActionSuiteId(null)
       await router.invalidate()
     } catch (error) {
       const message =
@@ -428,9 +443,17 @@ function ProjectPage() {
                     (test) => test.sectionId === section.id,
                   )
                   const isEditingSuite = editingSuiteId === section.id
+                  const isDeleteConfirming = deleteConfirmSuiteId === section.id
+                  const isCollapsed = Boolean(collapsedSuiteById[section.id])
                   const isPendingSuiteAction = Boolean(
                     pendingSuiteActionById[section.id],
                   )
+                  const readyCount = sectionTests.filter(
+                    (test) => test.status === 'Ready',
+                  ).length
+                  const draftCount = sectionTests.filter(
+                    (test) => test.status !== 'Ready',
+                  ).length
 
                   return (
                     <section
@@ -439,7 +462,14 @@ function ProjectPage() {
                     >
                       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--line)] bg-[rgba(250,251,255,0.92)] px-5 py-5">
                         <div className="flex items-center gap-3">
-                          <span className="text-lg text-[var(--sea-ink-soft)]">▾</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleSuiteCollapsed(section.id)}
+                            className="rounded-lg border border-[var(--line)] bg-white px-2 py-1 text-sm font-semibold text-[var(--sea-ink-soft)]"
+                            aria-label={isCollapsed ? 'Expand suite' : 'Collapse suite'}
+                          >
+                            {isCollapsed ? '▸' : '▾'}
+                          </button>
                           <div className="h-6 w-6 rounded-lg border border-[var(--line)] bg-white" />
                           <div>
                             {isEditingSuite ? (
@@ -480,13 +510,31 @@ function ProjectPage() {
                                 {section.name}
                               </div>
                             )}
-                            <div className="mt-1 text-sm text-[var(--sea-ink-soft)]">
-                              {sectionTests.length} case
-                              {sectionTests.length === 1 ? '' : 's'}
+                            <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.08em]">
+                              <span className="rounded-full bg-[rgba(36,79,166,0.08)] px-3 py-1 text-[var(--sea-ink-soft)]">
+                                {sectionTests.length} case
+                                {sectionTests.length === 1 ? '' : 's'}
+                              </span>
+                              <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800">
+                                Ready {readyCount}
+                              </span>
+                              <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-700">
+                                Draft {draftCount}
+                              </span>
                             </div>
                           </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
+                          <Link
+                            to="/create-test"
+                            search={{
+                              suiteId: section.id,
+                              projectId: project.id,
+                            }}
+                            className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#3369d6]"
+                          >
+                            Create test case
+                          </Link>
                           {!isEditingSuite ? (
                             <button
                               type="button"
@@ -500,23 +548,71 @@ function ProjectPage() {
                           <button
                             type="button"
                             disabled={isPendingSuiteAction}
-                            onClick={() => handleDeleteSuite(section.id)}
+                            onClick={() => {
+                              setSuiteActionErrorMessage(null)
+                              setSuiteActionSuiteId(section.id)
+                              setDeleteConfirmSuiteId((current) =>
+                                current === section.id ? null : section.id,
+                              )
+                            }}
                             className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-55"
                           >
-                            {isPendingSuiteAction ? 'Working...' : 'Delete'}
+                            {isPendingSuiteAction && isDeleteConfirming
+                              ? 'Working...'
+                              : 'Delete'}
                           </button>
                         </div>
                       </div>
 
-                      {suiteActionErrorMessage && isEditingSuite ? (
+                      {isDeleteConfirming ? (
+                        <div className="border-b border-[var(--line)] bg-amber-50 px-5 py-4">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="text-sm text-amber-950">
+                              Delete this suite? This only works when the suite has no
+                              test cases.
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                disabled={isPendingSuiteAction}
+                                onClick={() => handleDeleteSuite(section.id)}
+                                className="rounded-xl border border-rose-200 bg-rose-100 px-3 py-2 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-55"
+                              >
+                                Confirm delete
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeleteConfirmSuiteId(null)}
+                                className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold text-[var(--sea-ink-soft)]"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {suiteActionErrorMessage && suiteActionSuiteId === section.id ? (
                         <div className="border-b border-[var(--line)] bg-rose-50 px-5 py-3 text-sm text-rose-900">
                           {suiteActionErrorMessage}
                         </div>
                       ) : null}
 
-                      {sectionTests.length === 0 ? (
+                      {isCollapsed ? null : sectionTests.length === 0 ? (
                         <div className="bg-white px-5 py-5 text-sm text-[var(--sea-ink-soft)]">
-                          No test cases in this suite yet.
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <span>No test cases in this suite yet.</span>
+                            <Link
+                              to="/create-test"
+                              search={{
+                                suiteId: section.id,
+                                projectId: project.id,
+                              }}
+                              className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#3369d6]"
+                            >
+                              Create test case
+                            </Link>
+                          </div>
                         </div>
                       ) : (
                         sectionTests.map((test) => {

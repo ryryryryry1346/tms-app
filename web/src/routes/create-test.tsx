@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
+import { z } from 'zod'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { uploadTestMedia } from '../features/media/server'
 import {
@@ -8,6 +9,10 @@ import {
 } from '../features/tests/server'
 
 export const Route = createFileRoute('/create-test')({
+  validateSearch: z.object({
+    suiteId: z.coerce.number().int().positive().optional(),
+    projectId: z.coerce.number().int().positive().optional(),
+  }),
   loader: async () => getCreateTestFormState(),
   component: CreateTestPage,
 })
@@ -34,12 +39,16 @@ function getErrorMessage(
 
 function CreateTestPage() {
   const formState = Route.useLoaderData()
+  const search = Route.useSearch()
   const navigate = useNavigate()
 
+  const initialSection =
+    formState.sections.find((section) => section.id === search.suiteId) ??
+    formState.sections[0] ??
+    null
+
   const [title, setTitle] = useState('')
-  const [sectionId, setSectionId] = useState(
-    formState.sections[0]?.id?.toString() ?? '',
-  )
+  const [sectionId, setSectionId] = useState(initialSection?.id?.toString() ?? '')
   const [status, setStatus] = useState<'Draft' | 'Ready'>('Draft')
   const [steps, setSteps] = useState('')
   const [expected, setExpected] = useState('')
