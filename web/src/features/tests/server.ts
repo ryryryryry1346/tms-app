@@ -11,7 +11,7 @@ const dashboardInput = z.object({
 
 const updateTestStatusInput = z.object({
   id: z.number().int().positive(),
-  status: z.enum(['Passed', 'Failed']),
+  status: z.enum(['Draft', 'Ready']),
 })
 
 const getTestDetailInput = z.object({
@@ -21,7 +21,7 @@ const getTestDetailInput = z.object({
 const createTestInput = z.object({
   title: z.string().trim().min(1),
   sectionId: z.number().int().positive(),
-  status: z.enum(['Passed', 'Failed']),
+  status: z.enum(['Draft', 'Ready']),
   steps: z.string(),
   expected: z.string(),
 })

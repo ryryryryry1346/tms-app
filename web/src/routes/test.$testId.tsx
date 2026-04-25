@@ -25,11 +25,9 @@ export const Route = createFileRoute('/test/$testId')({
 function TestDetailPage() {
   const test = Route.useLoaderData()
   const statusTone =
-    test.status === 'Passed'
+    test.status === 'Ready'
       ? 'bg-emerald-100 text-emerald-900'
-      : test.status === 'Failed'
-        ? 'bg-rose-100 text-rose-900'
-        : 'bg-slate-100 text-slate-700'
+      : 'bg-slate-100 text-slate-700'
 
   return (
     <main className="page-wrap px-4 py-12">
@@ -52,7 +50,7 @@ function TestDetailPage() {
           <span
             className={`rounded-full px-3 py-1 font-semibold uppercase tracking-[0.16em] ${statusTone}`}
           >
-            {test.status ?? 'Not run'}
+            {test.status ?? 'Draft'}
           </span>
         </div>
 

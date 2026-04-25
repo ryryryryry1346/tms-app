@@ -7,7 +7,7 @@ import {
 import { useState } from 'react'
 import { createSuite } from '../features/projects/server'
 import { createRun, getRunsForProject } from '../features/runs/server'
-import { getDashboardState, updateTestStatus } from '../features/tests/server'
+import { getDashboardState } from '../features/tests/server'
 
 export const Route = createFileRoute('/project/$projectId')({
   loader: async ({ params }) => {
@@ -56,14 +56,11 @@ function ProjectPage() {
   const [runName, setRunName] = useState('')
   const [runErrorMessage, setRunErrorMessage] = useState<string | null>(null)
   const [isSubmittingRun, setIsSubmittingRun] = useState(false)
-  const [pendingStatusByTestId, setPendingStatusByTestId] = useState<
-    Record<number, boolean>
-  >({})
 
   const totalCases = dashboard.tests.length
   const totalSuites = dashboard.sections.length
-  const passedCases = dashboard.tests.filter(
-    (test) => test.status === 'Passed',
+  const readyCases = dashboard.tests.filter(
+    (test) => test.status === 'Ready',
   ).length
   const [activeComposer, setActiveComposer] = useState<'suite' | 'run' | null>(
     null,
@@ -120,33 +117,6 @@ function ProjectPage() {
       setRunErrorMessage(message)
     } finally {
       setIsSubmittingRun(false)
-    }
-  }
-
-  async function handleStatusUpdate(
-    testId: number,
-    status: 'Passed' | 'Failed',
-  ): Promise<void> {
-    setPendingStatusByTestId((current) => ({
-      ...current,
-      [testId]: true,
-    }))
-
-    try {
-      await updateTestStatus({
-        data: {
-          id: testId,
-          status,
-        },
-      })
-
-      await router.invalidate()
-    } finally {
-      setPendingStatusByTestId((current) => {
-        const nextState = { ...current }
-        delete nextState[testId]
-        return nextState
-      })
     }
   }
 
@@ -251,7 +221,7 @@ function ProjectPage() {
             {[
               { label: 'Suites', value: totalSuites, tone: 'text-[#3369d6]' },
               { label: 'Cases', value: totalCases, tone: 'text-[#5570c7]' },
-              { label: 'Passed', value: passedCases, tone: 'text-[#2ea66b]' },
+              { label: 'Ready', value: readyCases, tone: 'text-[#2ea66b]' },
               { label: 'Runs', value: runs.length, tone: 'text-[#d04b4b]' },
             ].map((item) => (
               <div
@@ -392,8 +362,7 @@ function ProjectPage() {
                         </div>
                       ) : (
                         sectionTests.map((test) => {
-                          const isPending = Boolean(pendingStatusByTestId[test.id])
-                          const isPassed = test.status === 'Passed'
+                          const isReady = test.status === 'Ready'
 
                           return (
                             <article
@@ -401,7 +370,7 @@ function ProjectPage() {
                               className="grid grid-cols-[4px_minmax(0,1fr)] border-t border-[var(--line)] bg-white"
                             >
                               <div
-                                className={isPassed ? 'bg-emerald-400' : 'bg-rose-400'}
+                                className={isReady ? 'bg-emerald-400' : 'bg-slate-300'}
                               />
                               <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-5">
                                 <div className="min-w-0 flex-1">
@@ -426,30 +395,13 @@ function ProjectPage() {
                                 <div className="flex flex-wrap items-center gap-4">
                                   <span
                                     className={`rounded-xl px-3 py-2 text-sm font-semibold uppercase tracking-[0.08em] ${
-                                      isPassed
+                                      isReady
                                         ? 'bg-emerald-100 text-emerald-800'
-                                        : 'bg-rose-100 text-rose-800'
+                                        : 'bg-slate-100 text-slate-700'
                                     }`}
                                   >
-                                    {test.status ?? 'Failed'}
+                                    {test.status ?? 'Draft'}
                                   </span>
-                                  <button
-                                    type="button"
-                                    disabled={isPending}
-                                    onClick={() =>
-                                      handleStatusUpdate(
-                                        test.id,
-                                        isPassed ? 'Failed' : 'Passed',
-                                      )
-                                    }
-                                    className="text-sm font-medium text-[var(--sea-ink-soft)] disabled:cursor-not-allowed disabled:opacity-55"
-                                  >
-                                    {isPending
-                                      ? 'Saving...'
-                                      : isPassed
-                                        ? 'Mark failed'
-                                        : 'Mark passed'}
-                                  </button>
                                   <button
                                     type="button"
                                     className="rounded-xl px-2 py-1 text-xl leading-none text-[var(--sea-ink-soft)]"

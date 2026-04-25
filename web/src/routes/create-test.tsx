@@ -40,7 +40,7 @@ function CreateTestPage() {
   const [sectionId, setSectionId] = useState(
     formState.sections[0]?.id?.toString() ?? '',
   )
-  const [status, setStatus] = useState<'Passed' | 'Failed'>('Passed')
+  const [status, setStatus] = useState<'Draft' | 'Ready'>('Draft')
   const [steps, setSteps] = useState('')
   const [expected, setExpected] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -169,12 +169,12 @@ function CreateTestPage() {
             <select
               value={status}
               onChange={(event) =>
-                setStatus(event.target.value === 'Failed' ? 'Failed' : 'Passed')
+                setStatus(event.target.value === 'Ready' ? 'Ready' : 'Draft')
               }
               className="rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
             >
-              <option value="Passed">Passed</option>
-              <option value="Failed">Failed</option>
+              <option value="Draft">Draft</option>
+              <option value="Ready">Ready</option>
             </select>
           </label>
 
