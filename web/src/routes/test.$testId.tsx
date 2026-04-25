@@ -4,7 +4,7 @@ import {
   notFound,
 } from '@tanstack/react-router'
 import { useState } from 'react'
-import { archiveTestCase } from '../features/tests/server'
+import { archiveTestCase, restoreTestCase } from '../features/tests/server'
 import { getTestDetail } from '../features/tests/server'
 
 export const Route = createFileRoute('/test/$testId')({
@@ -50,6 +50,27 @@ function TestDetailPage() {
     } catch (error) {
       setArchiveError(
         error instanceof Error ? error.message : 'Failed to archive test case.',
+      )
+    } finally {
+      setIsArchiving(false)
+    }
+  }
+
+  async function handleRestore(): Promise<void> {
+    setArchiveError(null)
+    setIsArchiving(true)
+
+    try {
+      await restoreTestCase({
+        data: {
+          id: test.id,
+        },
+      })
+
+      window.location.reload()
+    } catch (error) {
+      setArchiveError(
+        error instanceof Error ? error.message : 'Failed to restore test case.',
       )
     } finally {
       setIsArchiving(false)
@@ -160,7 +181,18 @@ function TestDetailPage() {
             >
               {isArchiving ? 'Archiving...' : 'Archive'}
             </button>
-          ) : null}
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                void handleRestore()
+              }}
+              disabled={isArchiving}
+              className="inline-flex rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-900 disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {isArchiving ? 'Restoring...' : 'Restore'}
+            </button>
+          )}
           {test.projectId ? (
             <Link
               to="/project/$projectId"

@@ -84,9 +84,13 @@ function ProjectPage() {
   >({})
   const [activeComposer, setActiveComposer] = useState<ComposerKind>(null)
   const [searchValue, setSearchValue] = useState('')
+  const [showArchived, setShowArchived] = useState(false)
 
+  const visibleLifecycleTests = dashboard.tests.filter((test) =>
+    showArchived ? test.status === 'Archived' : test.status !== 'Archived',
+  )
   const activeTests = dashboard.tests.filter((test) => test.status !== 'Archived')
-  const totalCases = activeTests.length
+  const totalCases = showArchived ? visibleLifecycleTests.length : activeTests.length
   const totalSuites = dashboard.sections.length
   const readyCases = activeTests.filter((test) => test.status === 'Ready').length
 
@@ -95,7 +99,7 @@ function ProjectPage() {
   const filteredSections = useMemo(() => {
     return dashboard.sections
       .map((section) => {
-        const sectionTests = activeTests.filter(
+        const sectionTests = visibleLifecycleTests.filter(
           (test) => test.sectionId === section.id,
         )
         const matchingTests =
@@ -474,6 +478,17 @@ function ProjectPage() {
                 >
                   Filter
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setShowArchived((current) => !current)}
+                  className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                    showArchived
+                      ? 'border-amber-300 bg-amber-50 text-amber-900'
+                      : 'border-[#dbe4f4] bg-white text-[#60718f]'
+                  }`}
+                >
+                  {showArchived ? 'Hide archived' : 'Show archived'}
+                </button>
               </div>
             </div>
 
@@ -483,7 +498,9 @@ function ProjectPage() {
               </div>
             ) : filteredSections.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-6 text-sm text-[#63759a]">
-                No suites or test cases match your search.
+                {showArchived
+                  ? 'No archived test cases match your search.'
+                  : 'No suites or test cases match your search.'}
               </div>
             ) : (
               <div className="grid gap-6">

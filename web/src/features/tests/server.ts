@@ -41,6 +41,7 @@ export type DashboardTest = {
   steps: string | null
   expected: string | null
   status: string | null
+  archivedFromStatus: string | null
   sectionId: number | null
   projectId: number | null
 }
@@ -90,6 +91,7 @@ export type TestDetail = {
   steps: string | null
   expected: string | null
   status: string | null
+  archivedFromStatus: string | null
   sectionId: number | null
   projectId: number | null
   sectionName: string | null
@@ -147,6 +149,7 @@ export const getDashboardState = createServerFn({ method: 'POST' })
         steps: tests.steps,
         expected: tests.expected,
         status: tests.status,
+        archivedFromStatus: tests.archivedFromStatus,
         sectionId: tests.sectionId,
         projectId: tests.projectId,
       })
@@ -187,10 +190,69 @@ export const archiveTestCase = createServerFn({ method: 'POST' })
     await requireSessionUser()
 
     const db = getDb()
+    const rows = await db
+      .select({
+        id: tests.id,
+        status: tests.status,
+        archivedFromStatus: tests.archivedFromStatus,
+      })
+      .from(tests)
+      .where(eq(tests.id, data.id))
+      .limit(1)
+
+    const test = rows[0]
+
+    if (!test) {
+      throw notFound()
+    }
+
     await db
       .update(tests)
       .set({
         status: 'Archived',
+        archivedFromStatus:
+          test.status === 'Ready' || test.status === 'Draft'
+            ? test.status
+            : test.archivedFromStatus ?? 'Draft',
+      })
+      .where(eq(tests.id, data.id))
+
+    return { ok: true }
+  })
+
+export const restoreTestCase = createServerFn({ method: 'POST' })
+  .inputValidator(getTestDetailInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    const rows = await db
+      .select({
+        id: tests.id,
+        status: tests.status,
+        archivedFromStatus: tests.archivedFromStatus,
+      })
+      .from(tests)
+      .where(eq(tests.id, data.id))
+      .limit(1)
+
+    const test = rows[0]
+
+    if (!test) {
+      throw notFound()
+    }
+
+    await db
+      .update(tests)
+      .set({
+        status:
+          test.archivedFromStatus === 'Ready'
+            ? 'Ready'
+            : test.archivedFromStatus === 'Draft'
+              ? 'Draft'
+              : 'Draft',
+        archivedFromStatus: null,
       })
       .where(eq(tests.id, data.id))
 
@@ -297,6 +359,7 @@ export const getEditTestFormState = createServerFn({ method: 'POST' })
         steps: tests.steps,
         expected: tests.expected,
         status: tests.status,
+        archivedFromStatus: tests.archivedFromStatus,
         sectionId: tests.sectionId,
         projectId: tests.projectId,
       })
@@ -409,6 +472,7 @@ export const getTestDetail = createServerFn({ method: 'POST' })
         steps: tests.steps,
         expected: tests.expected,
         status: tests.status,
+        archivedFromStatus: tests.archivedFromStatus,
         sectionId: tests.sectionId,
         projectId: tests.projectId,
       })
