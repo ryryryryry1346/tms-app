@@ -27,6 +27,11 @@ type RichTextEditorProps = {
   isUploading?: boolean
 }
 
+type SelectionRange = {
+  from: number
+  to: number
+}
+
 const fontSizeMap: Record<FontSize, string> = {
   small: '14px',
   normal: '16px',
@@ -114,6 +119,7 @@ export function RichTextEditor({
   isUploading = false,
 }: RichTextEditorProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const selectionRef = useRef<SelectionRange | null>(null)
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -137,6 +143,12 @@ export function RichTextEditor({
     },
     onUpdate: ({ editor: nextEditor }) => {
       onChange(nextEditor.getHTML())
+    },
+    onSelectionUpdate: ({ editor: nextEditor }) => {
+      selectionRef.current = {
+        from: nextEditor.state.selection.from,
+        to: nextEditor.state.selection.to,
+      }
     },
   })
 
@@ -162,11 +174,15 @@ export function RichTextEditor({
     }
 
     const url = await onUploadMedia(file)
+    const selection = selectionRef.current
+    const chain = editor.chain().focus()
+
+    if (selection) {
+      chain.setTextSelection(selection)
+    }
 
     if (file.type.startsWith('video/')) {
-      editor
-        .chain()
-        .focus()
+      chain
         .insertContent({
           type: 'mediaVideo',
           attrs: {
@@ -180,9 +196,7 @@ export function RichTextEditor({
       return
     }
 
-    editor
-      .chain()
-      .focus()
+    chain
       .setImage({
         src: url,
         alt: '',
@@ -258,8 +272,8 @@ export function RichTextEditor({
   }
 
   return (
-    <label className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
-      {label}
+    <div className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
+      <div>{label}</div>
       <div className="editor-shell">
         <div className="editor-toolbar" role="toolbar" aria-label={`${label} formatting`}>
           <div className="editor-tool-group">
@@ -339,7 +353,15 @@ export function RichTextEditor({
           <button
             type="button"
             className="editor-media-button"
-            onMouseDown={(event) => event.preventDefault()}
+            onMouseDown={(event) => {
+              event.preventDefault()
+              if (editor) {
+                selectionRef.current = {
+                  from: editor.state.selection.from,
+                  to: editor.state.selection.to,
+                }
+              }
+            }}
             onClick={() => fileInputRef.current?.click()}
           >
             <Upload size={15} strokeWidth={2.2} />
@@ -374,6 +396,12 @@ export function RichTextEditor({
         onDrop={(event) => void handleDrop(event)}
         onDragOver={(event) => event.preventDefault()}
         onClick={(event) => {
+          if (editor) {
+            selectionRef.current = {
+              from: editor.state.selection.from,
+              to: editor.state.selection.to,
+            }
+          }
           if (openMediaFromTarget(event.target)) {
             event.preventDefault()
           }
@@ -381,6 +409,6 @@ export function RichTextEditor({
       >
         <EditorContent editor={editor} />
       </div>
-    </label>
+    </div>
   )
 }
