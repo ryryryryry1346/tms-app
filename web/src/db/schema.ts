@@ -67,6 +67,7 @@ export const testRunItems = mysqlTable(
     testId: int('test_id'),
     testTitle: text('test_title'),
     status: varchar('status', { length: 64 }),
+    comment: text('comment'),
   },
   (table) => ({
     runIdIndex: index('test_run_items_run_id_idx').on(table.runId),

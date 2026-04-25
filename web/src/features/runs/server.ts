@@ -21,8 +21,17 @@ const getRunDetailInput = z.object({
 const executeRunTestInput = z.object({
   runId: z.number().int().positive(),
   testId: z.number().int().positive(),
-  status: z.enum(['Passed', 'Failed']),
+  status: z.enum(['Passed', 'Failed', 'Blocked']).nullable().optional(),
+  comment: z.string().max(10_000).nullable().optional(),
 })
+
+const runItemCommentInput = z.object({
+  runId: z.number().int().positive(),
+  testId: z.number().int().positive(),
+  comment: z.string().max(10_000),
+})
+
+type RunItemStatus = 'Passed' | 'Failed' | 'Blocked' | null
 
 export type ProjectRun = {
   id: number
@@ -37,7 +46,8 @@ export type RunDetail = {
   tests: Array<{
     id: number
     title: string
-    status: 'Passed' | 'Failed' | null
+    status: RunItemStatus
+    comment: string | null
   }>
 }
 
@@ -162,9 +172,12 @@ export const getRunDetail = createServerFn({ method: 'POST' })
             id: row.testId ?? row.id,
             title: row.testTitle ?? `Test ${row.testId ?? row.id}`,
             status:
-              row.status === 'Passed' || row.status === 'Failed'
+              row.status === 'Passed' ||
+              row.status === 'Failed' ||
+              row.status === 'Blocked'
                 ? row.status
                 : null,
+            comment: row.comment ?? null,
           }))
         : run.projectId === null
           ? []
@@ -177,12 +190,21 @@ export const getRunDetail = createServerFn({ method: 'POST' })
               .where(eq(tests.projectId, run.projectId))
               .orderBy(asc(tests.id))
 
+    const fallbackRunTests =
+      runItemRows.length > 0
+        ? runTests
+        : runTests.map((test) => ({
+            ...test,
+            status: null,
+            comment: null,
+          }))
+
     return {
       run: {
         ...run,
         projectName: project?.name ?? null,
       },
-      tests: runTests,
+      tests: fallbackRunTests,
     }
   })
 
@@ -238,11 +260,22 @@ export const executeRunTest = createServerFn({ method: 'POST' })
     const existingRow = existingRows.find((row) => row.testId === data.testId)
 
     if (existingRow) {
+      const updatePayload: {
+        status?: 'Passed' | 'Failed' | 'Blocked' | null
+        comment?: string | null
+      } = {}
+
+      if (data.status !== undefined) {
+        updatePayload.status = data.status ?? null
+      }
+
+      if (data.comment !== undefined) {
+        updatePayload.comment = data.comment ?? null
+      }
+
       await db
         .update(testRunItems)
-        .set({
-          status: data.status,
-        })
+        .set(updatePayload)
         .where(eq(testRunItems.id, existingRow.id))
     } else {
       const testTitleRows = await db
@@ -257,7 +290,86 @@ export const executeRunTest = createServerFn({ method: 'POST' })
         runId: data.runId,
         testId: data.testId,
         testTitle: testTitleRows[0]?.title ?? null,
-        status: data.status,
+        status: data.status ?? null,
+        comment: data.comment ?? null,
+      })
+    }
+
+    return { ok: true }
+  })
+
+export const saveRunItemComment = createServerFn({ method: 'POST' })
+  .inputValidator(runItemCommentInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    const runRows = await db
+      .select({
+        id: testRuns.id,
+        projectId: testRuns.projectId,
+      })
+      .from(testRuns)
+      .where(eq(testRuns.id, data.runId))
+      .limit(1)
+
+    const run = runRows[0]
+
+    if (!run) {
+      throw notFound()
+    }
+
+    const testRows = await db
+      .select({
+        id: tests.id,
+        projectId: tests.projectId,
+        title: tests.title,
+      })
+      .from(tests)
+      .where(eq(tests.id, data.testId))
+      .limit(1)
+
+    const test = testRows[0]
+
+    if (!test) {
+      throw notFound()
+    }
+
+    if (run.projectId !== test.projectId) {
+      throw new Error('Test does not belong to this run project.')
+    }
+
+    const existingRows = await db
+      .select({
+        id: testRunItems.id,
+        testId: testRunItems.testId,
+        status: testRunItems.status,
+      })
+      .from(testRunItems)
+      .where(eq(testRunItems.runId, data.runId))
+
+    const existingRow = existingRows.find((row) => row.testId === data.testId)
+
+    if (existingRow) {
+      await db
+        .update(testRunItems)
+        .set({
+          comment: data.comment,
+        })
+        .where(eq(testRunItems.id, existingRow.id))
+    } else {
+      await db.insert(testRunItems).values({
+        runId: data.runId,
+        testId: data.testId,
+        testTitle: test.title,
+        status:
+          existingRow?.status === 'Passed' ||
+          existingRow?.status === 'Failed' ||
+          existingRow?.status === 'Blocked'
+            ? existingRow.status
+            : null,
+        comment: data.comment,
       })
     }
 
