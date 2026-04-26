@@ -12,7 +12,11 @@ import {
   updateSuite,
 } from '../features/projects/server'
 import { createRun, getRunsForProject } from '../features/runs/server'
-import { bulkUpdateTestStatus, getDashboardState } from '../features/tests/server'
+import {
+  bulkRestoreTestCases,
+  bulkUpdateTestStatus,
+  getDashboardState,
+} from '../features/tests/server'
 
 export const Route = createFileRoute('/project/$projectSlug')({
   loader: async ({ params }) => {
@@ -253,6 +257,34 @@ function ProjectPage() {
         error instanceof Error
           ? error.message
           : 'Failed to update selected test cases.',
+      )
+    } finally {
+      setIsApplyingBulkAction(false)
+    }
+  }
+
+  async function handleBulkRestore(): Promise<void> {
+    if (selectedTestIds.length === 0) {
+      return
+    }
+
+    setBulkActionErrorMessage(null)
+    setIsApplyingBulkAction(true)
+
+    try {
+      await bulkRestoreTestCases({
+        data: {
+          ids: selectedTestIds,
+        },
+      })
+
+      setSelectedTestIds([])
+      await router.invalidate()
+    } catch (error) {
+      setBulkActionErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Failed to restore selected test cases.',
       )
     } finally {
       setIsApplyingBulkAction(false)
@@ -645,30 +677,43 @@ function ProjectPage() {
                     {selectedTestIds.length} selected
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleBulkStatusChange('Ready')}
-                      disabled={isApplyingBulkAction}
-                      className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-55"
-                    >
-                      Mark Ready
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleBulkStatusChange('Draft')}
-                      disabled={isApplyingBulkAction}
-                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-55"
-                    >
-                      Mark Draft
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleBulkStatusChange('Archived')}
-                      disabled={isApplyingBulkAction}
-                      className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 disabled:cursor-not-allowed disabled:opacity-55"
-                    >
-                      Archive
-                    </button>
+                    {caseFilter === 'Archived' ? (
+                      <button
+                        type="button"
+                        onClick={handleBulkRestore}
+                        disabled={isApplyingBulkAction}
+                        className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-55"
+                      >
+                        Restore
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleBulkStatusChange('Ready')}
+                          disabled={isApplyingBulkAction}
+                          className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-55"
+                        >
+                          Mark Ready
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleBulkStatusChange('Draft')}
+                          disabled={isApplyingBulkAction}
+                          className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-55"
+                        >
+                          Mark Draft
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleBulkStatusChange('Archived')}
+                          disabled={isApplyingBulkAction}
+                          className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 disabled:cursor-not-allowed disabled:opacity-55"
+                        >
+                          Archive
+                        </button>
+                      </>
+                    )}
                     <button
                       type="button"
                       onClick={() => setSelectedTestIds([])}

@@ -21,6 +21,10 @@ const bulkUpdateTestStatusInput = z.object({
   status: z.enum(['Draft', 'Ready', 'Archived']),
 })
 
+const bulkRestoreTestCasesInput = z.object({
+  ids: z.array(z.number().int().positive()).min(1),
+})
+
 const getTestDetailInput = z.object({
   id: z.number().int().positive(),
 })
@@ -242,6 +246,48 @@ export const bulkUpdateTestStatus = createServerFn({ method: 'POST' })
           .update(tests)
           .set({
             status: data.status,
+            archivedFromStatus: null,
+          })
+          .where(eq(tests.id, test.id))
+      }
+    })
+
+    return { ok: true }
+  })
+
+export const bulkRestoreTestCases = createServerFn({ method: 'POST' })
+  .inputValidator(bulkRestoreTestCasesInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    const rows = await db
+      .select({
+        id: tests.id,
+        status: tests.status,
+        archivedFromStatus: tests.archivedFromStatus,
+      })
+      .from(tests)
+      .where(inArray(tests.id, data.ids))
+
+    const archivedRows = rows.filter((test) => test.status === 'Archived')
+
+    if (archivedRows.length === 0) {
+      throw new Error('No archived test cases were selected.')
+    }
+
+    await db.transaction(async (tx) => {
+      for (const test of archivedRows) {
+        await tx
+          .update(tests)
+          .set({
+            status:
+              test.archivedFromStatus === 'Ready'
+                ? 'Ready'
+                : test.archivedFromStatus === 'Draft'
+                  ? 'Draft'
+                  : 'Draft',
             archivedFromStatus: null,
           })
           .where(eq(tests.id, test.id))
