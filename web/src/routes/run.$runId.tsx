@@ -4,7 +4,7 @@ import {
   notFound,
   useRouter,
 } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   executeRunTest,
   getRunDetail,
@@ -28,6 +28,8 @@ export const Route = createFileRoute('/run/$runId')({
   component: RunDetailPage,
 })
 
+type RunFilter = 'All' | 'Not run' | 'Failed' | 'Blocked' | 'Passed'
+
 function RunDetailPage() {
   const data = Route.useLoaderData()
   const router = useRouter()
@@ -39,10 +41,22 @@ function RunDetailPage() {
   >({})
   const [commentByTestId, setCommentByTestId] = useState<Record<number, string>>({})
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [runFilter, setRunFilter] = useState<RunFilter>('All')
   const passedCount = data.tests.filter((test) => test.status === 'Passed').length
   const failedCount = data.tests.filter((test) => test.status === 'Failed').length
   const blockedCount = data.tests.filter((test) => test.status === 'Blocked').length
   const notRunCount = data.tests.filter((test) => test.status === null).length
+  const filteredTests = useMemo(() => {
+    if (runFilter === 'All') {
+      return data.tests
+    }
+
+    if (runFilter === 'Not run') {
+      return data.tests.filter((test) => test.status === null)
+    }
+
+    return data.tests.filter((test) => test.status === runFilter)
+  }, [data.tests, runFilter])
 
   useEffect(() => {
     setCommentByTestId(
@@ -153,13 +167,44 @@ function RunDetailPage() {
           </div>
         </div>
 
+        <div className="mb-6 flex flex-wrap gap-2">
+          {(['All', 'Not run', 'Failed', 'Blocked', 'Passed'] as const).map(
+            (filter) => (
+              <button
+                key={filter}
+                type="button"
+                onClick={() => setRunFilter(filter)}
+                className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
+                  runFilter === filter
+                    ? filter === 'Passed'
+                      ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
+                      : filter === 'Failed'
+                        ? 'border-rose-300 bg-rose-50 text-rose-900'
+                        : filter === 'Blocked'
+                          ? 'border-amber-300 bg-amber-50 text-amber-900'
+                          : 'border-slate-300 bg-slate-100 text-slate-900'
+                    : 'border-[var(--line)] bg-white/75 text-[var(--sea-ink-soft)]'
+                }`}
+              >
+                {filter}
+              </button>
+            ),
+          )}
+        </div>
+
         {data.tests.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[var(--line)] bg-white/50 p-5 text-sm text-[var(--sea-ink-soft)]">
             This test run currently has no linked test cases.
           </div>
+        ) : filteredTests.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-[var(--line)] bg-white/50 p-5 text-sm text-[var(--sea-ink-soft)]">
+            {runFilter === 'All'
+              ? 'No test cases found in this run.'
+              : `No test cases match the "${runFilter}" filter.`}
+          </div>
         ) : (
           <div className="grid gap-3">
-            {data.tests.map((test) => (
+            {filteredTests.map((test) => (
               <div
                 key={test.id}
                 className="rounded-2xl border border-[var(--line)] bg-white/65 px-4 py-4"
