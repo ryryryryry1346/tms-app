@@ -1,6 +1,11 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
-import { createProject, deleteProject } from '../features/projects/server'
+import {
+  archiveProject,
+  createProject,
+  deleteProject,
+  restoreProject,
+} from '../features/projects/server'
 import { getDashboardState } from '../features/tests/server'
 
 export const Route = createFileRoute('/')({
@@ -17,10 +22,15 @@ function WorkspacePage() {
   const [name, setName] = useState('')
   const [isSubmittingProject, setIsSubmittingProject] = useState(false)
   const [deletingProjectId, setDeletingProjectId] = useState<number | null>(null)
+  const [archivingProjectId, setArchivingProjectId] = useState<number | null>(null)
+  const [restoringProjectId, setRestoringProjectId] = useState<number | null>(null)
   const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<number | null>(
     null,
   )
   const [deleteConfirmName, setDeleteConfirmName] = useState('')
+  const [projectFilter, setProjectFilter] = useState<'Active' | 'Archived'>(
+    'Active',
+  )
   const [projectErrorMessage, setProjectErrorMessage] = useState<string | null>(
     null,
   )
@@ -75,6 +85,53 @@ function WorkspacePage() {
     }
   }
 
+  async function handleProjectArchive(projectId: number): Promise<void> {
+    setProjectErrorMessage(null)
+    setArchivingProjectId(projectId)
+
+    try {
+      await archiveProject({
+        data: {
+          projectId,
+        },
+      })
+
+      await router.invalidate()
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to archive project.'
+      setProjectErrorMessage(message)
+    } finally {
+      setArchivingProjectId(null)
+    }
+  }
+
+  async function handleProjectRestore(projectId: number): Promise<void> {
+    setProjectErrorMessage(null)
+    setRestoringProjectId(projectId)
+
+    try {
+      await restoreProject({
+        data: {
+          projectId,
+        },
+      })
+
+      await router.invalidate()
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to restore project.'
+      setProjectErrorMessage(message)
+    } finally {
+      setRestoringProjectId(null)
+    }
+  }
+
+  const visibleProjects = dashboard.projects.filter((project) => {
+    const normalizedStatus = project.status === 'Archived' ? 'Archived' : 'Active'
+    return normalizedStatus === projectFilter
+  })
+
   return (
     <main className="page-wrap px-4 pb-8 pt-8">
       <section className="mb-5">
@@ -93,9 +150,27 @@ function WorkspacePage() {
                 Workspace projects
               </h2>
             </div>
-            <div className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1 text-sm text-[var(--sea-ink-soft)]">
-              {dashboard.projects.length} project
-              {dashboard.projects.length === 1 ? '' : 's'}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1 text-sm text-[var(--sea-ink-soft)]">
+                {visibleProjects.length} project
+                {visibleProjects.length === 1 ? '' : 's'}
+              </div>
+              <div className="flex rounded-full border border-[var(--line)] bg-white/75 p-1">
+                {(['Active', 'Archived'] as const).map((filterValue) => (
+                  <button
+                    key={filterValue}
+                    type="button"
+                    onClick={() => setProjectFilter(filterValue)}
+                    className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                      projectFilter === filterValue
+                        ? 'bg-[var(--chip-bg-strong)] text-[var(--lagoon-deep)]'
+                        : 'text-[var(--sea-ink-soft)]'
+                    }`}
+                  >
+                    {filterValue}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -131,14 +206,15 @@ function WorkspacePage() {
               and run the Drizzle migration before using the workspace against
               MySQL.
             </div>
-          ) : dashboard.projects.length === 0 ? (
+          ) : visibleProjects.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-[var(--line)] bg-white/40 p-6 text-sm text-[var(--sea-ink-soft)]">
-              No projects yet. Create the first one to start structuring suites,
-              cases, and runs.
+              {projectFilter === 'Archived'
+                ? 'No archived projects yet.'
+                : 'No active projects yet. Create the first one to start structuring suites, cases, and runs.'}
             </div>
           ) : (
             <div className="grid gap-4">
-              {dashboard.projects.map((project) => (
+              {visibleProjects.map((project) => (
                 <div
                   key={project.id}
                   className="rounded-2xl border border-[var(--line)] bg-white/70 p-5 shadow-[0_12px_28px_rgba(23,58,64,0.06)]"
@@ -147,23 +223,59 @@ function WorkspacePage() {
                     <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--sea-ink-soft)]">
                       Project
                     </div>
+                    {project.status === 'Archived' ? (
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleProjectRestore(project.id)}
+                          disabled={restoringProjectId === project.id}
+                          className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-55"
+                        >
+                          {restoringProjectId === project.id
+                            ? 'Restoring...'
+                            : 'Restore'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeleteConfirmProjectId((current) =>
+                              current === project.id ? null : project.id,
+                            )
+                            setDeleteConfirmName('')
+                          }}
+                          disabled={deletingProjectId === project.id}
+                          className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-55"
+                        >
+                          {deletingProjectId === project.id ? 'Deleting...' : 'Delete permanently'}
+                        </button>
+                      </div>
+                    ) : (
                       <button
                         type="button"
-                        onClick={() => {
-                          setDeleteConfirmProjectId((current) =>
-                            current === project.id ? null : project.id,
-                          )
-                          setDeleteConfirmName('')
-                        }}
-                        disabled={deletingProjectId === project.id}
-                        className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-55"
+                        onClick={() => handleProjectArchive(project.id)}
+                        disabled={archivingProjectId === project.id}
+                        className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 transition hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-55"
                       >
-                      {deletingProjectId === project.id ? 'Deleting...' : 'Delete'}
-                    </button>
+                        {archivingProjectId === project.id
+                          ? 'Archiving...'
+                          : 'Archive'}
+                      </button>
+                    )}
                   </div>
                   <h3 className="mt-2 text-xl font-semibold text-[var(--sea-ink)]">
                     {project.name}
                   </h3>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        project.status === 'Archived'
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-emerald-100 text-emerald-800'
+                      }`}
+                    >
+                      {project.status === 'Archived' ? 'Archived' : 'Active'}
+                    </span>
+                  </div>
                   <Link
                     to="/project/$projectSlug"
                     params={{

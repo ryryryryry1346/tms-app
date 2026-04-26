@@ -11,6 +11,7 @@ export const projects = mysqlTable('projects', {
   id: int('id').autoincrement().primaryKey(),
   name: text('name').notNull(),
   slug: varchar('slug', { length: 255 }),
+  status: varchar('status', { length: 64 }),
 })
 
 export const users = mysqlTable('users', {

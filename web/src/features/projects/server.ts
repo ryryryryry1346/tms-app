@@ -33,12 +33,17 @@ const deleteProjectInput = z.object({
   projectId: z.number().int().positive(),
 })
 
+const updateProjectStatusInput = z.object({
+  projectId: z.number().int().positive(),
+})
+
 export type ProjectsDashboardState = {
   databaseConfigured: boolean
   projects: Array<{
     id: number
     name: string
     slug: string | null
+    status: string | null
   }>
 }
 
@@ -62,6 +67,7 @@ export const listProjects = createServerFn({ method: 'GET' }).handler(
         id: projects.id,
         name: projects.name,
         slug: projects.slug,
+        status: projects.status,
       })
       .from(projects)
       .orderBy(asc(projects.id))
@@ -84,6 +90,7 @@ export const createProject = createServerFn({ method: 'POST' })
     const result = await db.insert(projects).values({
       name: data.name,
       slug,
+      status: 'Active',
     })
 
     return {
@@ -155,6 +162,44 @@ export const deleteSuite = createServerFn({ method: 'POST' })
     }
   })
 
+export const archiveProject = createServerFn({ method: 'POST' })
+  .inputValidator(updateProjectStatusInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    await db
+      .update(projects)
+      .set({
+        status: 'Archived',
+      })
+      .where(eq(projects.id, data.projectId))
+
+    return {
+      ok: true,
+    }
+  })
+
+export const restoreProject = createServerFn({ method: 'POST' })
+  .inputValidator(updateProjectStatusInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    await db
+      .update(projects)
+      .set({
+        status: 'Active',
+      })
+      .where(eq(projects.id, data.projectId))
+
+    return {
+      ok: true,
+    }
+  })
+
 export const deleteProject = createServerFn({ method: 'POST' })
   .inputValidator(deleteProjectInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
@@ -162,6 +207,25 @@ export const deleteProject = createServerFn({ method: 'POST' })
     await requireSessionUser()
 
     const db = getDb()
+
+    const projectRow = await db
+      .select({
+        id: projects.id,
+        status: projects.status,
+      })
+      .from(projects)
+      .where(eq(projects.id, data.projectId))
+      .limit(1)
+
+    if (projectRow.length === 0) {
+      throw new Error('Project not found.')
+    }
+
+    if (projectRow[0].status !== 'Archived') {
+      throw new Error(
+        'Project must be archived before it can be deleted permanently.',
+      )
+    }
 
     const runRows = await db
       .select({
