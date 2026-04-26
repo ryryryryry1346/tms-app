@@ -4,6 +4,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { getDb, isDatabaseConfigured } from '../../db/client'
 import { projects, testRunItems, testRuns, tests } from '../../db/schema'
+import { ensureProjectSlugs } from '../projects/slug'
 
 const runsForProjectInput = z.object({
   projectId: z.number().int().positive().optional(),
@@ -37,6 +38,7 @@ export type ProjectRun = {
   id: number
   projectId: number | null
   name: string
+  projectSlug?: string | null
 }
 
 export type RunDetail = {
@@ -62,13 +64,16 @@ export const getRunsForProject = createServerFn({ method: 'POST' })
     }
 
     const db = getDb()
+    await ensureProjectSlugs()
     const rows = await db
       .select({
         id: testRuns.id,
         projectId: testRuns.projectId,
         name: testRuns.name,
+        projectSlug: projects.slug,
       })
       .from(testRuns)
+      .leftJoin(projects, eq(projects.id, testRuns.projectId))
       .where(eq(testRuns.projectId, data.projectId))
       .orderBy(asc(testRuns.id))
 
@@ -126,6 +131,7 @@ export const getRunDetail = createServerFn({ method: 'POST' })
     await requireSessionUser()
 
     const db = getDb()
+    await ensureProjectSlugs()
     const runRows = await db
       .select({
         id: testRuns.id,
@@ -149,6 +155,7 @@ export const getRunDetail = createServerFn({ method: 'POST' })
             .select({
               id: projects.id,
               name: projects.name,
+              slug: projects.slug,
             })
             .from(projects)
             .where(eq(projects.id, run.projectId))
@@ -162,6 +169,7 @@ export const getRunDetail = createServerFn({ method: 'POST' })
         testId: testRunItems.testId,
         testTitle: testRunItems.testTitle,
         status: testRunItems.status,
+        comment: testRunItems.comment,
       })
       .from(testRunItems)
       .where(eq(testRunItems.runId, run.id))
@@ -203,6 +211,7 @@ export const getRunDetail = createServerFn({ method: 'POST' })
       run: {
         ...run,
         projectName: project?.name ?? null,
+        projectSlug: project?.slug ?? null,
       },
       tests: fallbackRunTests,
     }

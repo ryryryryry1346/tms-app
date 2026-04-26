@@ -4,9 +4,11 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { getDb, isDatabaseConfigured } from '../../db/client'
 import { projects, sections, tests, testRunItems } from '../../db/schema'
+import { ensureProjectSlugs } from '../projects/slug'
 
 const dashboardInput = z.object({
   projectId: z.number().int().positive().optional(),
+  projectSlug: z.string().trim().min(1).optional(),
 })
 
 const updateTestStatusInput = z.object({
@@ -51,11 +53,13 @@ export type DashboardSection = {
   name: string
   projectId: number | null
   projectName?: string | null
+  projectSlug?: string | null
 }
 
 export type DashboardProject = {
   id: number
   name: string
+  slug: string | null
 }
 
 export type DashboardState = {
@@ -96,6 +100,7 @@ export type TestDetail = {
   projectId: number | null
   sectionName: string | null
   projectName: string | null
+  projectSlug: string | null
 }
 
 export const getDashboardState = createServerFn({ method: 'POST' })
@@ -115,15 +120,21 @@ export const getDashboardState = createServerFn({ method: 'POST' })
     }
 
     const db = getDb()
+    await ensureProjectSlugs()
     const projectRows = await db
       .select({
         id: projects.id,
         name: projects.name,
+        slug: projects.slug,
       })
       .from(projects)
       .orderBy(asc(projects.id))
 
-    if (!data.projectId) {
+    const selectedProjectId =
+      data.projectId ??
+      projectRows.find((project) => project.slug === data.projectSlug)?.id
+
+    if (!selectedProjectId) {
       return {
         databaseConfigured: true,
         projects: projectRows,
@@ -139,7 +150,7 @@ export const getDashboardState = createServerFn({ method: 'POST' })
         projectId: sections.projectId,
       })
       .from(sections)
-      .where(eq(sections.projectId, data.projectId))
+      .where(eq(sections.projectId, selectedProjectId))
       .orderBy(asc(sections.id))
 
     const testRows = await db
@@ -154,13 +165,13 @@ export const getDashboardState = createServerFn({ method: 'POST' })
         projectId: tests.projectId,
       })
       .from(tests)
-      .where(eq(tests.projectId, data.projectId))
+      .where(eq(tests.projectId, selectedProjectId))
       .orderBy(asc(tests.id))
 
     return {
       databaseConfigured: true,
       projects: projectRows,
-      selectedProjectId: data.projectId,
+      selectedProjectId,
       sections: sectionRows,
       tests: testRows,
     }
@@ -317,6 +328,7 @@ export const getCreateTestFormState = createServerFn({ method: 'GET' }).handler(
     }
 
     const db = getDb()
+    await ensureProjectSlugs()
     const rows = await db
       .select({
         id: sections.id,
@@ -330,10 +342,11 @@ export const getCreateTestFormState = createServerFn({ method: 'GET' }).handler(
       .select({
         id: projects.id,
         name: projects.name,
+        slug: projects.slug,
       })
       .from(projects)
 
-    const projectNameById = new Map(projectRows.map((project) => [project.id, project.name]))
+    const projectById = new Map(projectRows.map((project) => [project.id, project]))
 
     return {
       databaseConfigured: true,
@@ -341,7 +354,11 @@ export const getCreateTestFormState = createServerFn({ method: 'GET' }).handler(
         ...section,
         projectName:
           section.projectId !== null
-            ? (projectNameById.get(section.projectId) ?? null)
+            ? (projectById.get(section.projectId)?.name ?? null)
+            : null,
+        projectSlug:
+          section.projectId !== null
+            ? (projectById.get(section.projectId)?.slug ?? null)
             : null,
       })),
     }
@@ -397,6 +414,7 @@ export const getEditTestFormState = createServerFn({ method: 'POST' })
     }
 
     const db = getDb()
+    await ensureProjectSlugs()
     const testRows = await db
       .select({
         id: tests.id,
@@ -431,10 +449,11 @@ export const getEditTestFormState = createServerFn({ method: 'POST' })
       .select({
         id: projects.id,
         name: projects.name,
+        slug: projects.slug,
       })
       .from(projects)
 
-    const projectNameById = new Map(projectRows.map((project) => [project.id, project.name]))
+    const projectById = new Map(projectRows.map((project) => [project.id, project]))
 
     return {
       databaseConfigured: true,
@@ -442,7 +461,11 @@ export const getEditTestFormState = createServerFn({ method: 'POST' })
         ...section,
         projectName:
           section.projectId !== null
-            ? (projectNameById.get(section.projectId) ?? null)
+            ? (projectById.get(section.projectId)?.name ?? null)
+            : null,
+        projectSlug:
+          section.projectId !== null
+            ? (projectById.get(section.projectId)?.slug ?? null)
             : null,
       })),
       test: {
@@ -510,6 +533,7 @@ export const getTestDetail = createServerFn({ method: 'POST' })
     await requireSessionUser()
 
     const db = getDb()
+    await ensureProjectSlugs()
     const rows = await db
       .select({
         id: tests.id,
@@ -553,6 +577,7 @@ export const getTestDetail = createServerFn({ method: 'POST' })
             .select({
               id: projects.id,
               name: projects.name,
+              slug: projects.slug,
             })
             .from(projects)
             .where(eq(projects.id, test.projectId))
@@ -564,5 +589,6 @@ export const getTestDetail = createServerFn({ method: 'POST' })
       ...test,
       sectionName: section?.name ?? null,
       projectName: project?.name ?? null,
+      projectSlug: project?.slug ?? null,
     }
   })

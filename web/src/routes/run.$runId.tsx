@@ -308,10 +308,10 @@ function RunDetailPage() {
         ) : null}
 
         <div className="mt-6">
-          {data.run.projectId ? (
+          {data.run.projectSlug ? (
             <Link
-              to="/project/$projectId"
-              params={{ projectId: data.run.projectId.toString() }}
+              to="/project/$projectSlug"
+              params={{ projectSlug: data.run.projectSlug }}
               className="inline-flex rounded-xl border border-[var(--line)] bg-white/75 px-4 py-2 text-sm font-semibold no-underline text-[var(--sea-ink)] hover:text-[var(--lagoon-deep)]"
             >
               Back to project

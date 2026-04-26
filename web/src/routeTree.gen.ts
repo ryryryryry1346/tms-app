@@ -16,6 +16,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TestTestIdRouteImport } from './routes/test.$testId'
 import { Route as RunRunIdRouteImport } from './routes/run.$runId'
+import { Route as ProjectProjectSlugRouteImport } from './routes/project.$projectSlug'
 import { Route as ProjectProjectIdRouteImport } from './routes/project.$projectId'
 import { Route as EditTestTestIdRouteImport } from './routes/edit-test.$testId'
 
@@ -54,6 +55,11 @@ const RunRunIdRoute = RunRunIdRouteImport.update({
   path: '/run/$runId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectProjectSlugRoute = ProjectProjectSlugRouteImport.update({
+  id: '/project/$projectSlug',
+  path: '/project/$projectSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectProjectIdRoute = ProjectProjectIdRouteImport.update({
   id: '/project/$projectId',
   path: '/project/$projectId',
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/edit-test/$testId': typeof EditTestTestIdRoute
   '/project/$projectId': typeof ProjectProjectIdRoute
+  '/project/$projectSlug': typeof ProjectProjectSlugRoute
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
 }
@@ -84,6 +91,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/edit-test/$testId': typeof EditTestTestIdRoute
   '/project/$projectId': typeof ProjectProjectIdRoute
+  '/project/$projectSlug': typeof ProjectProjectSlugRoute
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
 }
@@ -96,6 +104,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/edit-test/$testId': typeof EditTestTestIdRoute
   '/project/$projectId': typeof ProjectProjectIdRoute
+  '/project/$projectSlug': typeof ProjectProjectSlugRoute
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
 }
@@ -109,6 +118,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/edit-test/$testId'
     | '/project/$projectId'
+    | '/project/$projectSlug'
     | '/run/$runId'
     | '/test/$testId'
   fileRoutesByTo: FileRoutesByTo
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/edit-test/$testId'
     | '/project/$projectId'
+    | '/project/$projectSlug'
     | '/run/$runId'
     | '/test/$testId'
   id:
@@ -131,6 +142,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/edit-test/$testId'
     | '/project/$projectId'
+    | '/project/$projectSlug'
     | '/run/$runId'
     | '/test/$testId'
   fileRoutesById: FileRoutesById
@@ -143,6 +155,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   EditTestTestIdRoute: typeof EditTestTestIdRoute
   ProjectProjectIdRoute: typeof ProjectProjectIdRoute
+  ProjectProjectSlugRoute: typeof ProjectProjectSlugRoute
   RunRunIdRoute: typeof RunRunIdRoute
   TestTestIdRoute: typeof TestTestIdRoute
 }
@@ -198,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RunRunIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/project/$projectSlug': {
+      id: '/project/$projectSlug'
+      path: '/project/$projectSlug'
+      fullPath: '/project/$projectSlug'
+      preLoaderRoute: typeof ProjectProjectSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/project/$projectId': {
       id: '/project/$projectId'
       path: '/project/$projectId'
@@ -223,6 +243,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   EditTestTestIdRoute: EditTestTestIdRoute,
   ProjectProjectIdRoute: ProjectProjectIdRoute,
+  ProjectProjectSlugRoute: ProjectProjectSlugRoute,
   RunRunIdRoute: RunRunIdRoute,
   TestTestIdRoute: TestTestIdRoute,
 }

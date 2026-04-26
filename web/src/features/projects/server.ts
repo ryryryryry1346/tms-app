@@ -9,6 +9,7 @@ import {
   testRuns,
   tests,
 } from '../../db/schema'
+import { ensureProjectSlugs, ensureUniqueProjectSlug } from './slug'
 
 const createProjectInput = z.object({
   name: z.string().trim().min(1),
@@ -37,6 +38,7 @@ export type ProjectsDashboardState = {
   projects: Array<{
     id: number
     name: string
+    slug: string | null
   }>
 }
 
@@ -52,11 +54,14 @@ export const listProjects = createServerFn({ method: 'GET' }).handler(
       }
     }
 
+    await ensureProjectSlugs()
+
     const db = getDb()
     const rows = await db
       .select({
         id: projects.id,
         name: projects.name,
+        slug: projects.slug,
       })
       .from(projects)
       .orderBy(asc(projects.id))
@@ -75,8 +80,10 @@ export const createProject = createServerFn({ method: 'POST' })
     await requireSessionUser()
 
     const db = getDb()
+    const slug = await ensureUniqueProjectSlug(data.name)
     const result = await db.insert(projects).values({
       name: data.name,
+      slug,
     })
 
     return {

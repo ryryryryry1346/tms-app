@@ -152,8 +152,13 @@ function WorkspacePage() {
                     {project.name}
                   </h3>
                   <Link
-                    to="/project/$projectId"
-                    params={{ projectId: project.id.toString() }}
+                    to="/project/$projectSlug"
+                    params={{
+                      projectSlug:
+                        project.slug && project.slug.trim().length > 0
+                          ? project.slug
+                          : project.id.toString(),
+                    }}
                     className="mt-3 inline-flex text-sm font-semibold text-[var(--lagoon-deep)] no-underline"
                   >
                     Open project workspace

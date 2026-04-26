@@ -10,6 +10,7 @@ import {
 export const projects = mysqlTable('projects', {
   id: int('id').autoincrement().primaryKey(),
   name: text('name').notNull(),
+  slug: varchar('slug', { length: 255 }),
 })
 
 export const users = mysqlTable('users', {
