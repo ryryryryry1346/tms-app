@@ -1,4 +1,4 @@
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
@@ -13,6 +13,11 @@ const dashboardInput = z.object({
 
 const updateTestStatusInput = z.object({
   id: z.number().int().positive(),
+  status: z.enum(['Draft', 'Ready', 'Archived']),
+})
+
+const bulkUpdateTestStatusInput = z.object({
+  ids: z.array(z.number().int().positive()).min(1),
   status: z.enum(['Draft', 'Ready', 'Archived']),
 })
 
@@ -192,6 +197,56 @@ export const updateTestStatus = createServerFn({ method: 'POST' })
         status: data.status,
       })
       .where(and(eq(tests.id, data.id)))
+
+    return { ok: true }
+  })
+
+export const bulkUpdateTestStatus = createServerFn({ method: 'POST' })
+  .inputValidator(bulkUpdateTestStatusInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    const rows = await db
+      .select({
+        id: tests.id,
+        status: tests.status,
+        archivedFromStatus: tests.archivedFromStatus,
+      })
+      .from(tests)
+      .where(inArray(tests.id, data.ids))
+
+    if (rows.length === 0) {
+      throw new Error('No test cases were selected.')
+    }
+
+    await db.transaction(async (tx) => {
+      for (const test of rows) {
+        if (data.status === 'Archived') {
+          await tx
+            .update(tests)
+            .set({
+              status: 'Archived',
+              archivedFromStatus:
+                test.status === 'Ready' || test.status === 'Draft'
+                  ? test.status
+                  : test.archivedFromStatus ?? 'Draft',
+            })
+            .where(eq(tests.id, test.id))
+
+          continue
+        }
+
+        await tx
+          .update(tests)
+          .set({
+            status: data.status,
+            archivedFromStatus: null,
+          })
+          .where(eq(tests.id, test.id))
+      }
+    })
 
     return { ok: true }
   })

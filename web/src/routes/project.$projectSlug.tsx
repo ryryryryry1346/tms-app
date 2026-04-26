@@ -12,7 +12,7 @@ import {
   updateSuite,
 } from '../features/projects/server'
 import { createRun, getRunsForProject } from '../features/runs/server'
-import { getDashboardState } from '../features/tests/server'
+import { bulkUpdateTestStatus, getDashboardState } from '../features/tests/server'
 
 export const Route = createFileRoute('/project/$projectSlug')({
   loader: async ({ params }) => {
@@ -118,6 +118,11 @@ function ProjectPage() {
   const [searchValue, setSearchValue] = useState('')
   const [caseFilter, setCaseFilter] = useState<CaseFilter>('All')
   const [suiteFilterId, setSuiteFilterId] = useState<string>(ALL_SUITES_FILTER)
+  const [selectedTestIds, setSelectedTestIds] = useState<number[]>([])
+  const [isApplyingBulkAction, setIsApplyingBulkAction] = useState(false)
+  const [bulkActionErrorMessage, setBulkActionErrorMessage] = useState<string | null>(
+    null,
+  )
 
   const activeTests = dashboard.tests.filter((test) => test.status !== 'Archived')
   const filteredLifecycleTests = dashboard.tests.filter((test) => {
@@ -191,6 +196,68 @@ function ProjectPage() {
     normalizedSearch,
     suiteFilterId,
   ])
+
+  const selectedTestIdSet = useMemo(
+    () => new Set(selectedTestIds),
+    [selectedTestIds],
+  )
+
+  function toggleTestSelection(testId: number): void {
+    setBulkActionErrorMessage(null)
+    setSelectedTestIds((current) =>
+      current.includes(testId)
+        ? current.filter((id) => id !== testId)
+        : [...current, testId],
+    )
+  }
+
+  function toggleSuiteSelection(testIds: number[]): void {
+    if (testIds.length === 0) {
+      return
+    }
+
+    setBulkActionErrorMessage(null)
+    setSelectedTestIds((current) => {
+      const allSelected = testIds.every((id) => current.includes(id))
+
+      if (allSelected) {
+        return current.filter((id) => !testIds.includes(id))
+      }
+
+      return Array.from(new Set([...current, ...testIds]))
+    })
+  }
+
+  async function handleBulkStatusChange(
+    status: 'Draft' | 'Ready' | 'Archived',
+  ): Promise<void> {
+    if (selectedTestIds.length === 0) {
+      return
+    }
+
+    setBulkActionErrorMessage(null)
+    setIsApplyingBulkAction(true)
+
+    try {
+      await bulkUpdateTestStatus({
+        data: {
+          ids: selectedTestIds,
+          status,
+        },
+      })
+
+      setSelectedTestIds([])
+      await router.invalidate()
+    } catch (error) {
+      setBulkActionErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Failed to update selected test cases.',
+      )
+    } finally {
+      setIsApplyingBulkAction(false)
+    }
+  }
 
   async function handleCreateSuite(
     event: React.FormEvent<HTMLFormElement>,
@@ -571,6 +638,56 @@ function ProjectPage() {
               </div>
             </div>
 
+            {selectedTestIds.length > 0 ? (
+              <div className="mb-6 rounded-2xl border border-[#dbe4f4] bg-[#f8fbff] px-4 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-[#1b2f5b]">
+                    {selectedTestIds.length} selected
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleBulkStatusChange('Ready')}
+                      disabled={isApplyingBulkAction}
+                      className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      Mark Ready
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleBulkStatusChange('Draft')}
+                      disabled={isApplyingBulkAction}
+                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      Mark Draft
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleBulkStatusChange('Archived')}
+                      disabled={isApplyingBulkAction}
+                      className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      Archive
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTestIds([])}
+                      disabled={isApplyingBulkAction}
+                      className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      Clear selection
+                    </button>
+                  </div>
+                </div>
+
+                {bulkActionErrorMessage ? (
+                  <div className="mt-3 rounded-xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                    {bulkActionErrorMessage}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
             {dashboard.sections.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-6 text-sm text-[#63759a]">
                 This project does not have test suites yet.
@@ -596,6 +713,10 @@ function ProjectPage() {
                     (test) => test.status === 'Ready',
                   ).length
                   const draftCount = sectionTests.length - readyCount
+                  const visibleTestIds = visibleTests.map((test) => test.id)
+                  const allVisibleSelected =
+                    visibleTestIds.length > 0 &&
+                    visibleTestIds.every((id) => selectedTestIdSet.has(id))
 
                   return (
                     <section
@@ -670,6 +791,16 @@ function ProjectPage() {
                           <span className="rounded-full bg-[#f3f5f9] px-3 py-1 text-xs font-semibold text-[#60718f]">
                             Draft {draftCount}
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => toggleSuiteSelection(visibleTestIds)}
+                            disabled={
+                              visibleTestIds.length === 0 || isApplyingBulkAction
+                            }
+                            className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
+                          >
+                            {allVisibleSelected ? 'Clear suite' : 'Select suite'}
+                          </button>
                           <Link
                             to="/create-test"
                             search={{ suiteId: section.id, projectId: project.id }}
@@ -764,7 +895,13 @@ function ProjectPage() {
                                 className={isReady ? 'bg-emerald-400' : 'bg-rose-400'}
                               />
                               <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-5">
-                                <div className="min-w-0 flex-1">
+                                <div className="flex min-w-0 flex-1 items-center gap-4">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedTestIdSet.has(test.id)}
+                                    onChange={() => toggleTestSelection(test.id)}
+                                    className="h-4 w-4 rounded border-[#c7d5ee] text-[#2f6fe4] focus:ring-[#2f6fe4]"
+                                  />
                                   <div className="flex flex-wrap items-center gap-5">
                                     <Link
                                       to="/test/$testId"
