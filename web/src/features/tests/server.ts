@@ -25,6 +25,10 @@ const bulkRestoreTestCasesInput = z.object({
   ids: z.array(z.number().int().positive()).min(1),
 })
 
+const bulkDeleteArchivedTestCasesInput = z.object({
+  ids: z.array(z.number().int().positive()).min(1),
+})
+
 const getTestDetailInput = z.object({
   id: z.number().int().positive(),
 })
@@ -293,6 +297,46 @@ export const bulkRestoreTestCases = createServerFn({ method: 'POST' })
           .where(eq(tests.id, test.id))
       }
     })
+
+    return { ok: true }
+  })
+
+export const bulkDeleteArchivedTestCases = createServerFn({ method: 'POST' })
+  .inputValidator(bulkDeleteArchivedTestCasesInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    const rows = await db
+      .select({
+        id: tests.id,
+        status: tests.status,
+      })
+      .from(tests)
+      .where(inArray(tests.id, data.ids))
+
+    const archivedRows = rows.filter((test) => test.status === 'Archived')
+
+    if (archivedRows.length === 0) {
+      throw new Error('No archived test cases were selected.')
+    }
+
+    const archivedIds = archivedRows.map((test) => test.id)
+    const usedInRuns = await db
+      .select({
+        testId: testRunItems.testId,
+      })
+      .from(testRunItems)
+      .where(inArray(testRunItems.testId, archivedIds))
+
+    if (usedInRuns.length > 0) {
+      throw new Error(
+        'Some selected test cases are used in test runs and cannot be deleted permanently.',
+      )
+    }
+
+    await db.delete(tests).where(inArray(tests.id, archivedIds))
 
     return { ok: true }
   })

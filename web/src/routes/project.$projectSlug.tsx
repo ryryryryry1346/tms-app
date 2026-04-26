@@ -13,6 +13,7 @@ import {
 } from '../features/projects/server'
 import { createRun, getRunsForProject } from '../features/runs/server'
 import {
+  bulkDeleteArchivedTestCases,
   bulkRestoreTestCases,
   bulkUpdateTestStatus,
   getDashboardState,
@@ -285,6 +286,34 @@ function ProjectPage() {
         error instanceof Error
           ? error.message
           : 'Failed to restore selected test cases.',
+      )
+    } finally {
+      setIsApplyingBulkAction(false)
+    }
+  }
+
+  async function handleBulkDeleteArchived(): Promise<void> {
+    if (selectedTestIds.length === 0) {
+      return
+    }
+
+    setBulkActionErrorMessage(null)
+    setIsApplyingBulkAction(true)
+
+    try {
+      await bulkDeleteArchivedTestCases({
+        data: {
+          ids: selectedTestIds,
+        },
+      })
+
+      setSelectedTestIds([])
+      await router.invalidate()
+    } catch (error) {
+      setBulkActionErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Failed to delete selected test cases permanently.',
       )
     } finally {
       setIsApplyingBulkAction(false)
@@ -678,14 +707,24 @@ function ProjectPage() {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {caseFilter === 'Archived' ? (
-                      <button
-                        type="button"
-                        onClick={handleBulkRestore}
-                        disabled={isApplyingBulkAction}
-                        className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-55"
-                      >
-                        Restore
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleBulkRestore}
+                          disabled={isApplyingBulkAction}
+                          className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-55"
+                        >
+                          Restore
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleBulkDeleteArchived}
+                          disabled={isApplyingBulkAction}
+                          className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-55"
+                        >
+                          Delete permanently
+                        </button>
+                      </>
                     ) : (
                       <>
                         <button
