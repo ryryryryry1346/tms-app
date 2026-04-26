@@ -51,6 +51,7 @@ export const Route = createFileRoute('/project/$projectId')({
 })
 
 type ComposerKind = 'suite' | 'run' | null
+type CaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
 
 function ProjectPage() {
   const loaderData = Route.useLoaderData()
@@ -84,13 +85,22 @@ function ProjectPage() {
   >({})
   const [activeComposer, setActiveComposer] = useState<ComposerKind>(null)
   const [searchValue, setSearchValue] = useState('')
-  const [showArchived, setShowArchived] = useState(false)
+  const [caseFilter, setCaseFilter] = useState<CaseFilter>('All')
 
-  const visibleLifecycleTests = dashboard.tests.filter((test) =>
-    showArchived ? test.status === 'Archived' : test.status !== 'Archived',
-  )
   const activeTests = dashboard.tests.filter((test) => test.status !== 'Archived')
-  const totalCases = showArchived ? visibleLifecycleTests.length : activeTests.length
+  const filteredLifecycleTests = dashboard.tests.filter((test) => {
+    if (caseFilter === 'All') {
+      return test.status !== 'Archived'
+    }
+
+    if (caseFilter === 'Archived') {
+      return test.status === 'Archived'
+    }
+
+    return test.status === caseFilter
+  })
+  const totalCases =
+    caseFilter === 'All' ? activeTests.length : filteredLifecycleTests.length
   const totalSuites = dashboard.sections.length
   const readyCases = activeTests.filter((test) => test.status === 'Ready').length
 
@@ -99,7 +109,7 @@ function ProjectPage() {
   const filteredSections = useMemo(() => {
     return dashboard.sections
       .map((section) => {
-        const sectionTests = visibleLifecycleTests.filter(
+        const sectionTests = filteredLifecycleTests.filter(
           (test) => test.sectionId === section.id,
         )
         const matchingTests =
@@ -130,7 +140,7 @@ function ProjectPage() {
         }
       })
       .filter((item): item is NonNullable<typeof item> => item !== null)
-  }, [dashboard.sections, dashboard.tests, normalizedSearch])
+  }, [dashboard.sections, filteredLifecycleTests, normalizedSearch])
 
   async function handleCreateSuite(
     event: React.FormEvent<HTMLFormElement>,
@@ -472,23 +482,24 @@ function ProjectPage() {
                     className="w-full border-0 bg-transparent p-0 text-base outline-none"
                   />
                 </label>
-                <button
-                  type="button"
-                  className="rounded-2xl border border-[#dbe4f4] bg-white px-4 py-3 text-sm font-semibold text-[#60718f]"
-                >
-                  Filter
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowArchived((current) => !current)}
-                  className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
-                    showArchived
-                      ? 'border-amber-300 bg-amber-50 text-amber-900'
-                      : 'border-[#dbe4f4] bg-white text-[#60718f]'
-                  }`}
-                >
-                  {showArchived ? 'Hide archived' : 'Show archived'}
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  {(['All', 'Ready', 'Draft', 'Archived'] as const).map((filter) => (
+                    <button
+                      key={filter}
+                      type="button"
+                      onClick={() => setCaseFilter(filter)}
+                      className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                        caseFilter === filter
+                          ? filter === 'Archived'
+                            ? 'border-amber-300 bg-amber-50 text-amber-900'
+                            : 'border-[#b7cdfa] bg-[#ecf2ff] text-[#2f6fe4]'
+                          : 'border-[#dbe4f4] bg-white text-[#60718f]'
+                      }`}
+                    >
+                      {filter}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -498,9 +509,11 @@ function ProjectPage() {
               </div>
             ) : filteredSections.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-6 text-sm text-[#63759a]">
-                {showArchived
+                {caseFilter === 'All'
+                  ? 'No test cases match your search.'
+                  : caseFilter === 'Archived'
                   ? 'No archived test cases match your search.'
-                  : 'No suites or test cases match your search.'}
+                  : `No ${caseFilter.toLowerCase()} test cases match your search.`}
               </div>
             ) : (
               <div className="grid gap-6">
