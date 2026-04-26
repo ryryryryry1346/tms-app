@@ -17,7 +17,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as TestTestIdRouteImport } from './routes/test.$testId'
 import { Route as RunRunIdRouteImport } from './routes/run.$runId'
 import { Route as ProjectProjectSlugRouteImport } from './routes/project.$projectSlug'
-import { Route as ProjectProjectIdRouteImport } from './routes/project.$projectId'
 import { Route as EditTestTestIdRouteImport } from './routes/edit-test.$testId'
 
 const RegisterRoute = RegisterRouteImport.update({
@@ -60,11 +59,6 @@ const ProjectProjectSlugRoute = ProjectProjectSlugRouteImport.update({
   path: '/project/$projectSlug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProjectProjectIdRoute = ProjectProjectIdRouteImport.update({
-  id: '/project/$projectId',
-  path: '/project/$projectId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const EditTestTestIdRoute = EditTestTestIdRouteImport.update({
   id: '/edit-test/$testId',
   path: '/edit-test/$testId',
@@ -78,7 +72,6 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/edit-test/$testId': typeof EditTestTestIdRoute
-  '/project/$projectId': typeof ProjectProjectIdRoute
   '/project/$projectSlug': typeof ProjectProjectSlugRoute
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
@@ -90,7 +83,6 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/edit-test/$testId': typeof EditTestTestIdRoute
-  '/project/$projectId': typeof ProjectProjectIdRoute
   '/project/$projectSlug': typeof ProjectProjectSlugRoute
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
@@ -103,7 +95,6 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/edit-test/$testId': typeof EditTestTestIdRoute
-  '/project/$projectId': typeof ProjectProjectIdRoute
   '/project/$projectSlug': typeof ProjectProjectSlugRoute
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
@@ -117,7 +108,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/edit-test/$testId'
-    | '/project/$projectId'
     | '/project/$projectSlug'
     | '/run/$runId'
     | '/test/$testId'
@@ -129,7 +119,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/edit-test/$testId'
-    | '/project/$projectId'
     | '/project/$projectSlug'
     | '/run/$runId'
     | '/test/$testId'
@@ -141,7 +130,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/edit-test/$testId'
-    | '/project/$projectId'
     | '/project/$projectSlug'
     | '/run/$runId'
     | '/test/$testId'
@@ -154,7 +142,6 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
   EditTestTestIdRoute: typeof EditTestTestIdRoute
-  ProjectProjectIdRoute: typeof ProjectProjectIdRoute
   ProjectProjectSlugRoute: typeof ProjectProjectSlugRoute
   RunRunIdRoute: typeof RunRunIdRoute
   TestTestIdRoute: typeof TestTestIdRoute
@@ -218,13 +205,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectProjectSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/project/$projectId': {
-      id: '/project/$projectId'
-      path: '/project/$projectId'
-      fullPath: '/project/$projectId'
-      preLoaderRoute: typeof ProjectProjectIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/edit-test/$testId': {
       id: '/edit-test/$testId'
       path: '/edit-test/$testId'
@@ -242,7 +222,6 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
   EditTestTestIdRoute: EditTestTestIdRoute,
-  ProjectProjectIdRoute: ProjectProjectIdRoute,
   ProjectProjectSlugRoute: ProjectProjectSlugRoute,
   RunRunIdRoute: RunRunIdRoute,
   TestTestIdRoute: TestTestIdRoute,

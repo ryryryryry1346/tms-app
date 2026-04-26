@@ -2,6 +2,7 @@ import {
   Link,
   createFileRoute,
   notFound,
+  redirect,
   useRouter,
 } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
@@ -21,13 +22,39 @@ export const Route = createFileRoute('/project/$projectSlug')({
       throw notFound()
     }
 
-    const [dashboard] = await Promise.all([
-      getDashboardState({
+    const numericProjectId = Number(projectSlug)
+
+    if (Number.isInteger(numericProjectId) && numericProjectId > 0) {
+      const legacyDashboard = await getDashboardState({
         data: {
-          projectSlug,
+          projectId: numericProjectId,
         },
-      }),
-    ])
+      })
+
+      const legacyProject =
+        legacyDashboard.projects.find((item) => item.id === numericProjectId) ??
+        null
+
+      if (!legacyProject?.slug) {
+        throw notFound()
+      }
+
+      if (legacyProject.slug !== projectSlug) {
+        throw redirect({
+          to: '/project/$projectSlug',
+          params: {
+            projectSlug: legacyProject.slug,
+          },
+          replace: true,
+        })
+      }
+    }
+
+    const dashboard = await getDashboardState({
+      data: {
+        projectSlug,
+      },
+    })
 
     const project =
       dashboard.projects.find((item) => item.slug === projectSlug) ?? null
