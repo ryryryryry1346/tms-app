@@ -60,6 +60,7 @@ export type DashboardProject = {
   id: number
   name: string
   slug: string | null
+  status: string | null
 }
 
 export type DashboardState = {
@@ -126,6 +127,7 @@ export const getDashboardState = createServerFn({ method: 'POST' })
         id: projects.id,
         name: projects.name,
         slug: projects.slug,
+        status: projects.status,
       })
       .from(projects)
       .orderBy(asc(projects.id))
