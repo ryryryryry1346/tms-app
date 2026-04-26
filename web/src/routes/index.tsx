@@ -17,6 +17,10 @@ function WorkspacePage() {
   const [name, setName] = useState('')
   const [isSubmittingProject, setIsSubmittingProject] = useState(false)
   const [deletingProjectId, setDeletingProjectId] = useState<number | null>(null)
+  const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<number | null>(
+    null,
+  )
+  const [deleteConfirmName, setDeleteConfirmName] = useState('')
   const [projectErrorMessage, setProjectErrorMessage] = useState<string | null>(
     null,
   )
@@ -63,6 +67,10 @@ function WorkspacePage() {
         error instanceof Error ? error.message : 'Failed to delete project.'
       setProjectErrorMessage(message)
     } finally {
+      setDeleteConfirmProjectId((current) =>
+        current === projectId ? null : current,
+      )
+      setDeleteConfirmName('')
       setDeletingProjectId(null)
     }
   }
@@ -139,12 +147,17 @@ function WorkspacePage() {
                     <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--sea-ink-soft)]">
                       Project
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleProjectDelete(project.id)}
-                      disabled={deletingProjectId === project.id}
-                      className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-55"
-                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeleteConfirmProjectId((current) =>
+                            current === project.id ? null : project.id,
+                          )
+                          setDeleteConfirmName('')
+                        }}
+                        disabled={deletingProjectId === project.id}
+                        className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-55"
+                      >
                       {deletingProjectId === project.id ? 'Deleting...' : 'Delete'}
                     </button>
                   </div>
@@ -163,6 +176,55 @@ function WorkspacePage() {
                   >
                     Open project workspace
                   </Link>
+                  {deleteConfirmProjectId === project.id ? (
+                    <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-950">
+                      <div className="space-y-3">
+                        <p className="m-0">
+                          Delete project <strong>{project.name}</strong> permanently?
+                          This also removes its suites, test cases, and runs.
+                        </p>
+                        <label className="block">
+                          <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-rose-800">
+                            Type the project name to confirm
+                          </span>
+                          <input
+                            value={deleteConfirmName}
+                            onChange={(event) =>
+                              setDeleteConfirmName(event.target.value)
+                            }
+                            placeholder={project.name}
+                            className="w-full rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm text-[var(--sea-ink)] outline-none transition focus:border-rose-400"
+                          />
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleProjectDelete(project.id)}
+                            disabled={
+                              deletingProjectId === project.id ||
+                              deleteConfirmName.trim() !== project.name
+                            }
+                            className="rounded-xl border border-rose-300 bg-rose-100 px-4 py-2 font-semibold text-rose-900 disabled:cursor-not-allowed disabled:opacity-55"
+                          >
+                            {deletingProjectId === project.id
+                              ? 'Deleting...'
+                              : 'Confirm delete'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeleteConfirmProjectId(null)
+                              setDeleteConfirmName('')
+                            }}
+                            disabled={deletingProjectId === project.id}
+                            className="rounded-xl border border-[var(--line)] bg-white px-4 py-2 font-semibold text-[var(--sea-ink)] disabled:cursor-not-allowed disabled:opacity-55"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>
