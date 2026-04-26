@@ -4,7 +4,7 @@ import {
   notFound,
   useRouter,
 } from '@tanstack/react-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   executeRunTest,
   getRunDetail,
@@ -33,6 +33,7 @@ type RunFilter = 'All' | 'Not run' | 'Failed' | 'Blocked' | 'Passed'
 function RunDetailPage() {
   const data = Route.useLoaderData()
   const router = useRouter()
+  const testRowRefs = useRef<Record<number, HTMLDivElement | null>>({})
   const [pendingStatusByTestId, setPendingStatusByTestId] = useState<
     Record<number, boolean>
   >({})
@@ -57,6 +58,10 @@ function RunDetailPage() {
 
     return data.tests.filter((test) => test.status === runFilter)
   }, [data.tests, runFilter])
+  const nextNotRunTestId = useMemo(() => {
+    const nextTest = data.tests.find((test) => test.status === null)
+    return nextTest?.id ?? null
+  }, [data.tests])
 
   useEffect(() => {
     setCommentByTestId(
@@ -87,6 +92,19 @@ function RunDetailPage() {
       })
 
       await router.invalidate()
+
+      const nextTest = data.tests.find(
+        (test) => test.id !== testId && test.status === null,
+      )
+
+      if (nextTest?.id) {
+        window.setTimeout(() => {
+          testRowRefs.current[nextTest.id]?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          })
+        }, 120)
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to save run result.'
@@ -148,48 +166,67 @@ function RunDetailPage() {
           ) : null}
         </div>
 
-        <div className="mb-6 grid gap-3 sm:grid-cols-4">
-          <div className="rounded-2xl border border-[var(--line)] bg-white/60 p-4">
-            <div className="text-sm text-[var(--sea-ink-soft)]">Passed</div>
-            <div className="mt-1 text-2xl font-bold text-emerald-700">{passedCount}</div>
+        <div className="sticky top-4 z-10 mb-6 rounded-3xl border border-[var(--line)] bg-[rgba(255,255,255,0.92)] p-4 shadow-[0_10px_25px_rgba(31,57,102,0.08)] backdrop-blur">
+          <div className="grid gap-3 sm:grid-cols-4">
+            <div className="rounded-2xl border border-[var(--line)] bg-white/70 p-4">
+              <div className="text-sm text-[var(--sea-ink-soft)]">Passed</div>
+              <div className="mt-1 text-2xl font-bold text-emerald-700">{passedCount}</div>
+            </div>
+            <div className="rounded-2xl border border-[var(--line)] bg-white/70 p-4">
+              <div className="text-sm text-[var(--sea-ink-soft)]">Failed</div>
+              <div className="mt-1 text-2xl font-bold text-rose-700">{failedCount}</div>
+            </div>
+            <div className="rounded-2xl border border-[var(--line)] bg-white/70 p-4">
+              <div className="text-sm text-[var(--sea-ink-soft)]">Blocked</div>
+              <div className="mt-1 text-2xl font-bold text-amber-700">{blockedCount}</div>
+            </div>
+            <div className="rounded-2xl border border-[var(--line)] bg-white/70 p-4">
+              <div className="text-sm text-[var(--sea-ink-soft)]">Not run</div>
+              <div className="mt-1 text-2xl font-bold text-slate-700">{notRunCount}</div>
+            </div>
           </div>
-          <div className="rounded-2xl border border-[var(--line)] bg-white/60 p-4">
-            <div className="text-sm text-[var(--sea-ink-soft)]">Failed</div>
-            <div className="mt-1 text-2xl font-bold text-rose-700">{failedCount}</div>
-          </div>
-          <div className="rounded-2xl border border-[var(--line)] bg-white/60 p-4">
-            <div className="text-sm text-[var(--sea-ink-soft)]">Blocked</div>
-            <div className="mt-1 text-2xl font-bold text-amber-700">{blockedCount}</div>
-          </div>
-          <div className="rounded-2xl border border-[var(--line)] bg-white/60 p-4">
-            <div className="text-sm text-[var(--sea-ink-soft)]">Not run</div>
-            <div className="mt-1 text-2xl font-bold text-slate-700">{notRunCount}</div>
-          </div>
-        </div>
 
-        <div className="mb-6 flex flex-wrap gap-2">
-          {(['All', 'Not run', 'Failed', 'Blocked', 'Passed'] as const).map(
-            (filter) => (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
+              {(['All', 'Not run', 'Failed', 'Blocked', 'Passed'] as const).map(
+                (filter) => (
+                  <button
+                    key={filter}
+                    type="button"
+                    onClick={() => setRunFilter(filter)}
+                    className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
+                      runFilter === filter
+                        ? filter === 'Passed'
+                          ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
+                          : filter === 'Failed'
+                            ? 'border-rose-300 bg-rose-50 text-rose-900'
+                            : filter === 'Blocked'
+                              ? 'border-amber-300 bg-amber-50 text-amber-900'
+                              : 'border-slate-300 bg-slate-100 text-slate-900'
+                        : 'border-[var(--line)] bg-white/75 text-[var(--sea-ink-soft)]'
+                    }`}
+                  >
+                    {filter}
+                  </button>
+                ),
+              )}
+            </div>
+
+            {nextNotRunTestId ? (
               <button
-                key={filter}
                 type="button"
-                onClick={() => setRunFilter(filter)}
-                className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
-                  runFilter === filter
-                    ? filter === 'Passed'
-                      ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
-                      : filter === 'Failed'
-                        ? 'border-rose-300 bg-rose-50 text-rose-900'
-                        : filter === 'Blocked'
-                          ? 'border-amber-300 bg-amber-50 text-amber-900'
-                          : 'border-slate-300 bg-slate-100 text-slate-900'
-                    : 'border-[var(--line)] bg-white/75 text-[var(--sea-ink-soft)]'
-                }`}
+                onClick={() =>
+                  testRowRefs.current[nextNotRunTestId]?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                  })
+                }
+                className="rounded-xl border border-[#9dbaf7] bg-white px-4 py-2 text-sm font-semibold text-[#2f6fe4]"
               >
-                {filter}
+                Jump to next not run
               </button>
-            ),
-          )}
+            ) : null}
+          </div>
         </div>
 
         {data.tests.length === 0 ? (
@@ -207,6 +244,9 @@ function RunDetailPage() {
             {filteredTests.map((test) => (
               <div
                 key={test.id}
+                ref={(node) => {
+                  testRowRefs.current[test.id] = node
+                }}
                 className="rounded-2xl border border-[var(--line)] bg-white/65 px-4 py-4"
               >
                 <div className="flex items-start justify-between gap-4">
