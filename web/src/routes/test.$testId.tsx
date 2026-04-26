@@ -4,7 +4,11 @@ import {
   notFound,
 } from '@tanstack/react-router'
 import { useState } from 'react'
-import { archiveTestCase, restoreTestCase } from '../features/tests/server'
+import {
+  archiveTestCase,
+  deleteArchivedTestCase,
+  restoreTestCase,
+} from '../features/tests/server'
 import { getTestDetail } from '../features/tests/server'
 
 export const Route = createFileRoute('/test/$testId')({
@@ -27,6 +31,8 @@ export const Route = createFileRoute('/test/$testId')({
 function TestDetailPage() {
   const test = Route.useLoaderData()
   const [isArchiving, setIsArchiving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [archiveError, setArchiveError] = useState<string | null>(null)
   const statusTone =
     test.status === 'Ready'
@@ -74,6 +80,31 @@ function TestDetailPage() {
       )
     } finally {
       setIsArchiving(false)
+    }
+  }
+
+  async function handleDeletePermanently(): Promise<void> {
+    setArchiveError(null)
+    setIsDeleting(true)
+
+    try {
+      await deleteArchivedTestCase({
+        data: {
+          id: test.id,
+        },
+      })
+
+      window.location.href = test.projectId
+        ? `/project/${test.projectId}`
+        : '/'
+    } catch (error) {
+      setArchiveError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to delete archived test case.',
+      )
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -182,16 +213,28 @@ function TestDetailPage() {
               {isArchiving ? 'Archiving...' : 'Archive'}
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={() => {
-                void handleRestore()
-              }}
-              disabled={isArchiving}
-              className="inline-flex rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-900 disabled:cursor-not-allowed disabled:opacity-55"
-            >
-              {isArchiving ? 'Restoring...' : 'Restore'}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleRestore()
+                }}
+                disabled={isArchiving || isDeleting}
+                className="inline-flex rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-900 disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {isArchiving ? 'Restoring...' : 'Restore'}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setShowDeleteConfirm((current) => !current)
+                }
+                disabled={isArchiving || isDeleting}
+                className="inline-flex rounded-xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-900 disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                Delete permanently
+              </button>
+            </>
           )}
           {test.projectId ? (
             <Link
@@ -214,6 +257,36 @@ function TestDetailPage() {
         {archiveError ? (
           <div className="mt-4 rounded-xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
             {archiveError}
+          </div>
+        ) : null}
+
+        {test.status === 'Archived' && showDeleteConfirm ? (
+          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-950">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span>
+                Delete this archived test case permanently? This cannot be undone.
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleDeletePermanently()
+                  }}
+                  disabled={isDeleting}
+                  className="rounded-xl border border-rose-300 bg-rose-100 px-4 py-2 font-semibold text-rose-900 disabled:cursor-not-allowed disabled:opacity-55"
+                >
+                  {isDeleting ? 'Deleting...' : 'Confirm delete'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                  className="rounded-xl border border-[var(--line)] bg-white px-4 py-2 font-semibold text-[var(--sea-ink)] disabled:cursor-not-allowed disabled:opacity-55"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         ) : null}
       </section>

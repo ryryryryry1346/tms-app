@@ -3,7 +3,7 @@ import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { getDb, isDatabaseConfigured } from '../../db/client'
-import { projects, sections, tests } from '../../db/schema'
+import { projects, sections, tests, testRunItems } from '../../db/schema'
 
 const dashboardInput = z.object({
   projectId: z.number().int().positive().optional(),
@@ -255,6 +255,51 @@ export const restoreTestCase = createServerFn({ method: 'POST' })
         archivedFromStatus: null,
       })
       .where(eq(tests.id, data.id))
+
+    return { ok: true }
+  })
+
+export const deleteArchivedTestCase = createServerFn({ method: 'POST' })
+  .inputValidator(getTestDetailInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    const rows = await db
+      .select({
+        id: tests.id,
+        status: tests.status,
+      })
+      .from(tests)
+      .where(eq(tests.id, data.id))
+      .limit(1)
+
+    const test = rows[0]
+
+    if (!test) {
+      throw notFound()
+    }
+
+    if (test.status !== 'Archived') {
+      throw new Error('Only archived test cases can be deleted permanently.')
+    }
+
+    const runItemRows = await db
+      .select({
+        id: testRunItems.id,
+      })
+      .from(testRunItems)
+      .where(eq(testRunItems.testId, data.id))
+      .limit(1)
+
+    if (runItemRows[0]) {
+      throw new Error(
+        'This test case is used in test runs and cannot be deleted permanently.',
+      )
+    }
+
+    await db.delete(tests).where(eq(tests.id, data.id))
 
     return { ok: true }
   })
