@@ -52,6 +52,7 @@ export const Route = createFileRoute('/project/$projectId')({
 
 type ComposerKind = 'suite' | 'run' | null
 type CaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
+const ALL_SUITES_FILTER = 'all'
 
 function ProjectPage() {
   const loaderData = Route.useLoaderData()
@@ -86,6 +87,7 @@ function ProjectPage() {
   const [activeComposer, setActiveComposer] = useState<ComposerKind>(null)
   const [searchValue, setSearchValue] = useState('')
   const [caseFilter, setCaseFilter] = useState<CaseFilter>('All')
+  const [suiteFilterId, setSuiteFilterId] = useState<string>(ALL_SUITES_FILTER)
 
   const activeTests = dashboard.tests.filter((test) => test.status !== 'Archived')
   const filteredLifecycleTests = dashboard.tests.filter((test) => {
@@ -109,6 +111,13 @@ function ProjectPage() {
   const filteredSections = useMemo(() => {
     return dashboard.sections
       .map((section) => {
+        if (
+          suiteFilterId !== ALL_SUITES_FILTER &&
+          String(section.id) !== suiteFilterId
+        ) {
+          return null
+        }
+
         const sectionTests = filteredLifecycleTests.filter(
           (test) => test.sectionId === section.id,
         )
@@ -118,7 +127,13 @@ function ProjectPage() {
             : sectionTests.filter((test) => {
                 const title = test.title.toLowerCase()
                 const id = String(test.id)
-                return title.includes(normalizedSearch) || id.includes(normalizedSearch)
+                const suiteName = section.name.toLowerCase()
+
+                return (
+                  title.includes(normalizedSearch) ||
+                  id.includes(normalizedSearch) ||
+                  suiteName.includes(normalizedSearch)
+                )
               })
 
         if (
@@ -140,7 +155,12 @@ function ProjectPage() {
         }
       })
       .filter((item): item is NonNullable<typeof item> => item !== null)
-  }, [dashboard.sections, filteredLifecycleTests, normalizedSearch])
+  }, [
+    dashboard.sections,
+    filteredLifecycleTests,
+    normalizedSearch,
+    suiteFilterId,
+  ])
 
   async function handleCreateSuite(
     event: React.FormEvent<HTMLFormElement>,
@@ -286,48 +306,7 @@ function ProjectPage() {
 
   return (
     <main className="min-h-[calc(100vh-65px)] bg-[#f7f9fe]">
-      <div className="mx-auto grid min-h-[calc(100vh-65px)] max-w-[1600px] lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside className="border-b border-[#e6ecf8] bg-white lg:border-b-0 lg:border-r">
-          <div className="border-b border-[#eef2fb] px-7 py-7">
-            <div className="text-[2rem] font-semibold tracking-tight text-[#19305d]">
-              TestFlow
-            </div>
-          </div>
-
-          <div className="px-4 py-8">
-            <div className="mb-4 px-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#7183ab]">
-              Workspace
-            </div>
-            <nav className="grid gap-2">
-              <Link
-                to="/"
-                className="rounded-2xl bg-[#ecf2ff] px-4 py-3 text-sm font-semibold no-underline text-[#2f6fe4]"
-              >
-                Projects
-              </Link>
-              <a
-                href="#project-runs"
-                className="rounded-2xl px-4 py-3 text-sm font-medium no-underline text-[#506487] hover:bg-[#f5f8ff] hover:text-[#19305d]"
-              >
-                Runs
-              </a>
-              <a
-                href="#project-suites"
-                className="rounded-2xl px-4 py-3 text-sm font-medium no-underline text-[#506487] hover:bg-[#f5f8ff] hover:text-[#19305d]"
-              >
-                Test cases
-              </a>
-              <a
-                href="#project-suites"
-                className="rounded-2xl px-4 py-3 text-sm font-medium no-underline text-[#506487] hover:bg-[#f5f8ff] hover:text-[#19305d]"
-              >
-                Suites
-              </a>
-            </nav>
-          </div>
-        </aside>
-
-        <div className="px-6 py-8 lg:px-10">
+      <div className="mx-auto max-w-[1600px] px-6 py-8 lg:px-10">
           <section className="mb-8 flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-3xl">
               <div className="mb-3 flex items-center gap-3 text-sm text-[#6d7d9e]">
@@ -402,6 +381,50 @@ function ProjectPage() {
                 </div>
               </div>
             ))}
+          </section>
+
+          <section className="mb-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <div />
+            <section
+              id="project-runs"
+              className="rounded-3xl border border-[#e6ecf8] bg-white px-5 py-5 shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
+            >
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="m-0 text-xl font-semibold text-[#1b2f5b]">
+                  Recent runs
+                </h2>
+                <span className="text-sm text-[#63759a]">
+                  {runs.length} run{runs.length === 1 ? '' : 's'}
+                </span>
+              </div>
+
+              {runs.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-4 text-sm text-[#63759a]">
+                  No runs yet.
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {runs.slice(0, 3).map((run) => (
+                    <Link
+                      key={run.id}
+                      to="/run/$runId"
+                      params={{ runId: run.id.toString() }}
+                      className="rounded-2xl border border-[#dbe4f4] bg-[#fbfcff] px-4 py-3 no-underline text-[#1b2f5b] hover:text-[#2f6fe4]"
+                    >
+                      <div className="text-sm font-semibold">{run.name}</div>
+                      <div className="mt-1 text-xs text-[#63759a]">
+                        Run ID: {run.id}
+                      </div>
+                    </Link>
+                  ))}
+                  {runs.length > 3 ? (
+                    <div className="text-xs text-[#63759a]">
+                      Showing 3 of {runs.length} runs.
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </section>
           </section>
 
           {activeComposer ? (
@@ -482,6 +505,21 @@ function ProjectPage() {
                     className="w-full border-0 bg-transparent p-0 text-base outline-none"
                   />
                 </label>
+                <label className="flex items-center gap-3 rounded-2xl border border-[#dbe4f4] bg-white px-4 py-3 text-sm text-[#6d7d9e]">
+                  <span>Suite</span>
+                  <select
+                    value={suiteFilterId}
+                    onChange={(event) => setSuiteFilterId(event.target.value)}
+                    className="min-w-[180px] border-0 bg-transparent p-0 text-base text-[#1b2f5b] outline-none"
+                  >
+                    <option value={ALL_SUITES_FILTER}>All suites</option>
+                    {dashboard.sections.map((section) => (
+                      <option key={section.id} value={section.id.toString()}>
+                        {section.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <div className="flex flex-wrap gap-2">
                   {(['All', 'Ready', 'Draft', 'Archived'] as const).map((filter) => (
                     <button
@@ -510,10 +548,10 @@ function ProjectPage() {
             ) : filteredSections.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-6 text-sm text-[#63759a]">
                 {caseFilter === 'All'
-                  ? 'No test cases match your search.'
+                  ? 'No test cases match the current search and suite filters.'
                   : caseFilter === 'Archived'
-                  ? 'No archived test cases match your search.'
-                  : `No ${caseFilter.toLowerCase()} test cases match your search.`}
+                    ? 'No archived test cases match the current search and suite filters.'
+                    : `No ${caseFilter.toLowerCase()} test cases match the current search and suite filters.`}
               </div>
             ) : (
               <div className="grid gap-6">
@@ -745,38 +783,7 @@ function ProjectPage() {
             )}
           </section>
 
-          <section
-            id="project-runs"
-            className="mt-6 rounded-3xl border border-[#e6ecf8] bg-white px-6 py-6 shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
-          >
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <h2 className="m-0 text-2xl font-semibold text-[#1b2f5b]">Runs</h2>
-              <div className="text-sm text-[#63759a]">
-                {runs.length} run{runs.length === 1 ? '' : 's'}
-              </div>
-            </div>
-
-            {runs.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-5 text-sm text-[#63759a]">
-                No runs exist yet for this project.
-              </div>
-            ) : (
-              <div className="grid gap-3">
-                {runs.map((run) => (
-                  <Link
-                    key={run.id}
-                    to="/run/$runId"
-                    params={{ runId: run.id.toString() }}
-                    className="rounded-2xl border border-[#dbe4f4] bg-[#fbfcff] px-5 py-4 no-underline text-[#1b2f5b] hover:text-[#2f6fe4]"
-                  >
-                    <div className="text-base font-semibold">{run.name}</div>
-                    <div className="mt-1 text-sm text-[#63759a]">Run ID: {run.id}</div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
+        
       </div>
     </main>
   )
