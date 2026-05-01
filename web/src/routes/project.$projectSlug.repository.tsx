@@ -234,6 +234,7 @@ function ProjectRepositoryPage() {
   const [moveTargetSuiteId, setMoveTargetSuiteId] = useState('')
   const [isApplyingBulkAction, setIsApplyingBulkAction] = useState(false)
   const [isBulkArchiveConfirming, setIsBulkArchiveConfirming] = useState(false)
+  const [isBulkDeleteConfirming, setIsBulkDeleteConfirming] = useState(false)
   const [bulkActionErrorMessage, setBulkActionErrorMessage] = useState<string | null>(
     null,
   )
@@ -361,10 +362,18 @@ function ProjectRepositoryPage() {
   const selectedArchivableTests = selectedTests.filter(
     (test) => test.status !== 'Archived',
   )
+  const selectedArchivedTests = selectedTests.filter(
+    (test) => test.status === 'Archived',
+  )
+
+  function clearBulkConfirmations(): void {
+    setIsBulkArchiveConfirming(false)
+    setIsBulkDeleteConfirming(false)
+  }
 
   function toggleTestSelection(testId: number): void {
     setBulkActionErrorMessage(null)
-    setIsBulkArchiveConfirming(false)
+    clearBulkConfirmations()
     setSelectedTestIds((current) =>
       current.includes(testId)
         ? current.filter((id) => id !== testId)
@@ -378,7 +387,7 @@ function ProjectRepositoryPage() {
     }
 
     setBulkActionErrorMessage(null)
-    setIsBulkArchiveConfirming(false)
+    clearBulkConfirmations()
     setSelectedTestIds((current) => {
       const allSelected = testIds.every((id) => current.includes(id))
 
@@ -399,6 +408,7 @@ function ProjectRepositoryPage() {
 
     setBulkActionErrorMessage(null)
     setIsBulkArchiveConfirming(false)
+    setIsBulkDeleteConfirming(false)
     setIsApplyingBulkAction(true)
 
     try {
@@ -414,6 +424,7 @@ function ProjectRepositoryPage() {
 
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
+      setIsBulkDeleteConfirming(false)
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
@@ -432,6 +443,7 @@ function ProjectRepositoryPage() {
     }
 
     setBulkActionErrorMessage(null)
+    setIsBulkDeleteConfirming(false)
     setIsBulkArchiveConfirming(true)
   }
 
@@ -442,6 +454,7 @@ function ProjectRepositoryPage() {
 
     setBulkActionErrorMessage(null)
     setIsBulkArchiveConfirming(false)
+    setIsBulkDeleteConfirming(false)
     setIsApplyingBulkAction(true)
 
     try {
@@ -453,6 +466,7 @@ function ProjectRepositoryPage() {
 
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
+      setIsBulkDeleteConfirming(false)
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
@@ -466,23 +480,25 @@ function ProjectRepositoryPage() {
   }
 
   async function handleBulkDeleteArchived(): Promise<void> {
-    if (selectedTestIds.length === 0) {
+    if (selectedArchivedTests.length === 0) {
       return
     }
 
     setBulkActionErrorMessage(null)
     setIsBulkArchiveConfirming(false)
+    setIsBulkDeleteConfirming(false)
     setIsApplyingBulkAction(true)
 
     try {
       await bulkDeleteArchivedTestCases({
         data: {
-          ids: selectedTestIds,
+          ids: selectedArchivedTests.map((test) => test.id),
         },
       })
 
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
+      setIsBulkDeleteConfirming(false)
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
@@ -495,6 +511,16 @@ function ProjectRepositoryPage() {
     }
   }
 
+  function handleBulkDeleteArchivedRequest(): void {
+    if (selectedArchivedTests.length === 0) {
+      return
+    }
+
+    setBulkActionErrorMessage(null)
+    setIsBulkArchiveConfirming(false)
+    setIsBulkDeleteConfirming(true)
+  }
+
   async function handleMoveTestCases(
     testIds: number[],
     targetSuiteId: number,
@@ -505,6 +531,7 @@ function ProjectRepositoryPage() {
 
     setBulkActionErrorMessage(null)
     setIsBulkArchiveConfirming(false)
+    setIsBulkDeleteConfirming(false)
     setIsApplyingBulkAction(true)
 
     try {
@@ -517,6 +544,7 @@ function ProjectRepositoryPage() {
 
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
+      setIsBulkDeleteConfirming(false)
       setMoveTargetSuiteId('')
       setDraggedTestIds([])
       setDragOverSuiteId(null)
@@ -546,6 +574,7 @@ function ProjectRepositoryPage() {
 
     setBulkActionErrorMessage(null)
     setIsBulkArchiveConfirming(false)
+    setIsBulkDeleteConfirming(false)
     setIsApplyingBulkAction(true)
 
     try {
@@ -559,6 +588,7 @@ function ProjectRepositoryPage() {
 
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
+      setIsBulkDeleteConfirming(false)
       setMoveTargetSuiteId('')
       setDraggedTestIds([])
       setDragOverSuiteId(null)
@@ -1169,7 +1199,10 @@ function ProjectRepositoryPage() {
                   <span className="shrink-0 whitespace-nowrap font-semibold">Search</span>
                   <input
                     value={searchValue}
-                    onChange={(event) => setSearchValue(event.target.value)}
+                    onChange={(event) => {
+                      clearBulkConfirmations()
+                      setSearchValue(event.target.value)
+                    }}
                     placeholder="Search cases..."
                     className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none"
                   />
@@ -1178,7 +1211,10 @@ function ProjectRepositoryPage() {
                   <span className="font-semibold">Suite</span>
                   <select
                     value={suiteFilterId}
-                    onChange={(event) => setSuiteFilterId(event.target.value)}
+                    onChange={(event) => {
+                      clearBulkConfirmations()
+                      setSuiteFilterId(event.target.value)
+                    }}
                     className="min-w-[160px] border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none"
                   >
                     <option value={ALL_SUITES_FILTER}>All suites</option>
@@ -1193,9 +1229,10 @@ function ProjectRepositoryPage() {
                   <span className="font-semibold">Priority</span>
                   <select
                     value={priorityFilter}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      clearBulkConfirmations()
                       setPriorityFilter(event.target.value as PriorityFilter)
-                    }
+                    }}
                     className="min-w-[110px] border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none"
                   >
                     <option value="All">All</option>
@@ -1209,9 +1246,10 @@ function ProjectRepositoryPage() {
                   <span className="font-semibold">Type</span>
                   <select
                     value={caseTypeFilter}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      clearBulkConfirmations()
                       setCaseTypeFilter(event.target.value as CaseTypeFilter)
-                    }
+                    }}
                     className="min-w-[120px] border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none"
                   >
                     <option value="All">All</option>
@@ -1228,7 +1266,10 @@ function ProjectRepositoryPage() {
                     <button
                       key={filter}
                       type="button"
-                      onClick={() => setCaseFilter(filter)}
+                      onClick={() => {
+                        clearBulkConfirmations()
+                        setCaseFilter(filter)
+                      }}
                       className={`rounded-xl border px-3 py-2 text-sm font-semibold ${
                         caseFilter === filter
                           ? filter === 'Archived'
@@ -1331,8 +1372,11 @@ function ProjectRepositoryPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={handleBulkDeleteArchived}
-                          disabled={isApplyingBulkAction}
+                          onClick={handleBulkDeleteArchivedRequest}
+                          disabled={
+                            isApplyingBulkAction ||
+                            selectedArchivedTests.length === 0
+                          }
                           className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-55"
                         >
                           Delete permanently
@@ -1378,6 +1422,7 @@ function ProjectRepositoryPage() {
                       onClick={() => {
                         setSelectedTestIds([])
                         setIsBulkArchiveConfirming(false)
+                        setIsBulkDeleteConfirming(false)
                       }}
                       disabled={isApplyingBulkAction}
                       className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
@@ -1417,6 +1462,41 @@ function ProjectRepositoryPage() {
                         className="rounded-xl border border-amber-300 bg-amber-600 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
                       >
                         {isApplyingBulkAction ? 'Archiving...' : 'Confirm archive'}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {isBulkDeleteConfirming ? (
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+                    <div>
+                      <p className="m-0 text-sm font-semibold text-rose-950">
+                        Permanently delete {selectedArchivedTests.length} archived
+                        case{selectedArchivedTests.length === 1 ? '' : 's'}?
+                      </p>
+                      <p className="m-0 mt-1 text-sm text-rose-900">
+                        This action cannot be undone. Deleted test cases will be
+                        removed from the repository.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsBulkDeleteConfirming(false)}
+                        disabled={isApplyingBulkAction}
+                        className="rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm font-semibold text-rose-900 disabled:cursor-not-allowed disabled:opacity-55"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void handleBulkDeleteArchived()
+                        }}
+                        disabled={isApplyingBulkAction}
+                        className="rounded-xl border border-rose-300 bg-rose-600 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
+                      >
+                        {isApplyingBulkAction ? 'Deleting...' : 'Confirm delete'}
                       </button>
                     </div>
                   </div>
