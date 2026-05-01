@@ -89,6 +89,40 @@ type ComposerKind = 'suite' | null
 type CaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
 const ALL_SUITES_FILTER = 'all'
 
+function ChevronRightIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6 3.5 10.5 8 6 12.5" />
+    </svg>
+  )
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3.5 6 8 10.5 12.5 6" />
+    </svg>
+  )
+}
+
 function ProjectPage() {
   const loaderData = Route.useLoaderData()
   const { project, dashboard, runs } = loaderData
@@ -112,6 +146,7 @@ function ProjectPage() {
   const [deleteConfirmSuiteId, setDeleteConfirmSuiteId] = useState<number | null>(
     null,
   )
+  const [openSuiteMenuId, setOpenSuiteMenuId] = useState<number | null>(null)
   const [collapsedSuiteById, setCollapsedSuiteById] = useState<
     Record<number, boolean>
   >({})
@@ -354,6 +389,7 @@ function ProjectPage() {
     setDeleteConfirmSuiteId((current) => (current === suiteId ? null : current))
     setEditingSuiteId(suiteId)
     setEditingSuiteName(currentName)
+    setOpenSuiteMenuId(null)
   }
 
   function toggleSuiteCollapsed(suiteId: number): void {
@@ -507,6 +543,7 @@ function ProjectPage() {
       }
 
       setDeleteConfirmSuiteId(null)
+      setOpenSuiteMenuId(null)
       setSuiteActionSuiteId(null)
       await router.invalidate()
     } catch (error) {
@@ -524,20 +561,20 @@ function ProjectPage() {
 
   return (
     <main className="min-h-[calc(100vh-65px)] bg-[#f7f9fe]">
-      <div className="mx-auto max-w-[1600px] px-6 py-8 lg:px-10">
-          <section className="mb-8 flex flex-wrap items-start justify-between gap-4">
+      <div className="mx-auto max-w-[1600px] px-6 py-6 lg:px-10">
+          <section className="mb-6 flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-3xl">
-              <div className="mb-3 flex items-center gap-3 text-sm text-[#6d7d9e]">
+              <div className="mb-2 flex items-center gap-3 text-sm text-[#6d7d9e]">
                 <Link to="/" className="no-underline text-[#6d7d9e]">
                   Workspace
                 </Link>
                 <span>/</span>
                 <span>Project</span>
               </div>
-              <h1 className="m-0 text-5xl font-bold tracking-tight text-[#1b2f5b]">
+              <h1 className="m-0 text-4xl font-bold tracking-tight text-[#1b2f5b] md:text-5xl">
                 {project.name}
               </h1>
-              <p className="mt-3 text-lg text-[#63759a]">
+              <p className="mt-2 text-base text-[#63759a] md:text-lg">
                 Work with suites, cases, and execution runs for this project.
               </p>
             </div>
@@ -569,7 +606,7 @@ function ProjectPage() {
             </div>
           </section>
 
-          <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {[
               { label: 'Suites', value: totalSuites, tone: 'text-[#2f6fe4]' },
               { label: 'Cases', value: totalCases, tone: 'text-[#2f6fe4]' },
@@ -578,7 +615,7 @@ function ProjectPage() {
             ].map((item) => (
               <div
                 key={item.label}
-                className="rounded-3xl border border-[#e6ecf8] bg-white px-7 py-6 shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
+                className="rounded-3xl border border-[#e6ecf8] bg-white px-7 py-5 shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
               >
                 <div className="text-sm font-semibold uppercase tracking-[0.08em] text-[#7686a7]">
                   {item.label}
@@ -591,7 +628,7 @@ function ProjectPage() {
           </section>
 
           {activeComposer ? (
-            <section className="mb-8 rounded-3xl border border-[#e6ecf8] bg-white px-6 py-5 shadow-[0_10px_30px_rgba(31,57,102,0.05)]">
+            <section className="mb-6 rounded-3xl border border-[#e6ecf8] bg-white px-6 py-5 shadow-[0_10px_30px_rgba(31,57,102,0.05)]">
               <form
                 className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]"
                 onSubmit={handleCreateSuite}
@@ -621,11 +658,11 @@ function ProjectPage() {
             </section>
           ) : null}
 
-          <section
-            id="project-suites"
-            className="rounded-3xl border border-[#e6ecf8] bg-white px-6 py-6 shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
-          >
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <section
+              id="project-suites"
+              className="rounded-3xl border border-[#e6ecf8] bg-white px-6 py-5 shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
+            >
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
               <h2 className="m-0 text-2xl font-semibold text-[#1b2f5b]">
                 Test suites and cases
               </h2>
@@ -810,6 +847,7 @@ function ProjectPage() {
                   const isPendingSuiteAction = Boolean(
                     pendingSuiteActionById[section.id],
                   )
+                  const isMenuOpen = openSuiteMenuId === section.id
                   const readyCount = sectionTests.filter(
                     (test) => test.status === 'Ready',
                   ).length
@@ -824,7 +862,7 @@ function ProjectPage() {
                       key={section.id}
                       className="overflow-hidden rounded-3xl border border-[#dfe6f4]"
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e9eef8] bg-[#fbfcff] px-5 py-5">
+                      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e9eef8] bg-[#fbfcff] px-5 py-4">
                         <div className="flex min-w-0 items-center gap-4">
                           <input
                             type="checkbox"
@@ -838,7 +876,7 @@ function ProjectPage() {
                             className="rounded-lg px-2 py-1 text-sm font-semibold text-[#506487]"
                             aria-label={isCollapsed ? 'Expand suite' : 'Collapse suite'}
                           >
-                            {isCollapsed ? '>' : 'v'}
+                            {isCollapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
                           </button>
                           <div className="min-w-0">
                             {isEditingSuite ? (
@@ -876,7 +914,7 @@ function ProjectPage() {
                               </form>
                             ) : (
                               <div className="flex flex-wrap items-center gap-4">
-                                <div className="text-2xl font-semibold text-[#1b2f5b]">
+                                <div className="text-[1.75rem] font-semibold text-[#1b2f5b]">
                                   {section.name}
                                 </div>
                                 <div className="text-sm text-[#7f8da9]">
@@ -913,29 +951,49 @@ function ProjectPage() {
                             Create test case
                           </Link>
                           {!isEditingSuite ? (
-                            <button
-                              type="button"
-                              disabled={isPendingSuiteAction}
-                              onClick={() => startRenameSuite(section.id, section.name)}
-                              className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]"
-                            >
-                              Rename
-                            </button>
+                            <div className="relative">
+                              <button
+                                type="button"
+                                disabled={isPendingSuiteAction}
+                                onClick={() => {
+                                  setSuiteActionErrorMessage(null)
+                                  setDeleteConfirmSuiteId(null)
+                                  setOpenSuiteMenuId((current) =>
+                                    current === section.id ? null : section.id,
+                                  )
+                                }}
+                                className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]"
+                                aria-label="Open suite actions"
+                              >
+                                ...
+                              </button>
+                              {isMenuOpen ? (
+                                <div className="absolute right-0 top-full z-10 mt-2 min-w-[160px] rounded-2xl border border-[#dbe4f4] bg-white p-2 shadow-[0_12px_30px_rgba(31,57,102,0.12)]">
+                                  <button
+                                    type="button"
+                                    onClick={() => startRenameSuite(section.id, section.name)}
+                                    className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-[#60718f] hover:bg-[#f5f8ff]"
+                                  >
+                                    Rename
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSuiteActionErrorMessage(null)
+                                      setSuiteActionSuiteId(section.id)
+                                      setDeleteConfirmSuiteId((current) =>
+                                        current === section.id ? null : section.id,
+                                      )
+                                      setOpenSuiteMenuId(null)
+                                    }}
+                                    className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              ) : null}
+                            </div>
                           ) : null}
-                          <button
-                            type="button"
-                            disabled={isPendingSuiteAction}
-                            onClick={() => {
-                              setSuiteActionErrorMessage(null)
-                              setSuiteActionSuiteId(section.id)
-                              setDeleteConfirmSuiteId((current) =>
-                                current === section.id ? null : section.id,
-                              )
-                            }}
-                            className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700"
-                          >
-                            Delete
-                          </button>
                         </div>
                       </div>
 
@@ -974,7 +1032,7 @@ function ProjectPage() {
                       ) : null}
 
                       {isCollapsed ? null : visibleTests.length === 0 ? (
-                        <div className="bg-white px-5 py-5 text-sm text-[#63759a]">
+                        <div className="bg-white px-5 py-4 text-sm text-[#63759a]">
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <span>No test cases in this suite yet.</span>
                             <Link
@@ -998,7 +1056,7 @@ function ProjectPage() {
                               <div
                                 className={isReady ? 'bg-emerald-400' : 'bg-rose-400'}
                               />
-                              <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-5">
+                              <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
                                 <div className="flex min-w-0 flex-1 items-center gap-4">
                                   <input
                                     type="checkbox"
