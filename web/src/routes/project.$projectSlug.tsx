@@ -11,7 +11,7 @@ import {
   deleteSuite,
   updateSuite,
 } from '../features/projects/server'
-import { createRun, getRunsForProject } from '../features/runs/server'
+import { getRunsForProject } from '../features/runs/server'
 import {
   bulkDeleteArchivedTestCases,
   bulkRestoreTestCases,
@@ -85,7 +85,7 @@ export const Route = createFileRoute('/project/$projectSlug')({
   component: ProjectPage,
 })
 
-type ComposerKind = 'suite' | 'run' | null
+type ComposerKind = 'suite' | null
 type CaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
 const ALL_SUITES_FILTER = 'all'
 
@@ -97,10 +97,6 @@ function ProjectPage() {
   const [suiteName, setSuiteName] = useState('')
   const [suiteErrorMessage, setSuiteErrorMessage] = useState<string | null>(null)
   const [isSubmittingSuite, setIsSubmittingSuite] = useState(false)
-
-  const [runName, setRunName] = useState('')
-  const [runErrorMessage, setRunErrorMessage] = useState<string | null>(null)
-  const [isSubmittingRun, setIsSubmittingRun] = useState(false)
 
   const [editingSuiteId, setEditingSuiteId] = useState<number | null>(null)
   const [editingSuiteName, setEditingSuiteName] = useState('')
@@ -352,33 +348,6 @@ function ProjectPage() {
     }
   }
 
-  async function handleCreateRun(
-    event: React.FormEvent<HTMLFormElement>,
-  ): Promise<void> {
-    event.preventDefault()
-    setRunErrorMessage(null)
-    setIsSubmittingRun(true)
-
-    try {
-      await createRun({
-        data: {
-          projectId: project.id,
-          name: runName,
-        },
-      })
-
-      setRunName('')
-      setActiveComposer(null)
-      await router.invalidate()
-    } catch (error) {
-      setRunErrorMessage(
-        error instanceof Error ? error.message : 'Failed to create run.',
-      )
-    } finally {
-      setIsSubmittingRun(false)
-    }
-  }
-
   function startRenameSuite(suiteId: number, currentName: string): void {
     setSuiteActionErrorMessage(null)
     setSuiteActionSuiteId(suiteId)
@@ -571,18 +540,6 @@ function ProjectPage() {
               <p className="mt-3 text-lg text-[#63759a]">
                 Work with suites, cases, and execution runs for this project.
               </p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <span className="rounded-full border border-[#9dbaf7] bg-[#edf4ff] px-4 py-2 text-sm font-semibold text-[#2f6fe4]">
-                  Overview
-                </span>
-                <Link
-                  to="/project/$projectSlug/runs"
-                  params={{ projectSlug: project.slug ?? project.id.toString() }}
-                  className="rounded-full border border-[#dbe4f4] bg-white px-4 py-2 text-sm font-semibold no-underline text-[#60718f]"
-                >
-                  Runs
-                </Link>
-              </div>
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -602,15 +559,6 @@ function ProjectPage() {
               >
                 + Test case
               </Link>
-              <button
-                type="button"
-                onClick={() =>
-                  setActiveComposer((current) => (current === 'run' ? null : 'run'))
-                }
-                className="rounded-2xl border border-[#2f6fe4] bg-[#2f6fe4] px-7 py-3 text-base font-semibold text-white"
-              >
-                + Run
-              </button>
               <Link
                 to="/project/$projectSlug/runs"
                 params={{ projectSlug: project.slug ?? project.id.toString() }}
@@ -642,69 +590,34 @@ function ProjectPage() {
             ))}
           </section>
 
-          <section className="mb-8">
-            <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-white/60 px-4 py-3 text-sm text-[#63759a]">
-              Runs moved to a separate tab. Open <strong>Runs</strong> to review recent executions and manage run names.
-            </div>
-          </section>
-
           {activeComposer ? (
             <section className="mb-8 rounded-3xl border border-[#e6ecf8] bg-white px-6 py-5 shadow-[0_10px_30px_rgba(31,57,102,0.05)]">
-              {activeComposer === 'suite' ? (
-                <form
-                  className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]"
-                  onSubmit={handleCreateSuite}
+              <form
+                className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]"
+                onSubmit={handleCreateSuite}
+              >
+                <div className="md:col-span-2 text-xl font-semibold text-[#1b2f5b]">
+                  Create suite
+                </div>
+                <input
+                  value={suiteName}
+                  onChange={(event) => setSuiteName(event.target.value)}
+                  className="rounded-2xl border border-[#d9e2f2] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
+                  placeholder="Checkout smoke"
+                />
+                <button
+                  type="submit"
+                  disabled={isSubmittingSuite || !dashboard.databaseConfigured}
+                  className="rounded-2xl border border-[#9fd2ca] bg-[#dff5f1] px-4 py-3 text-sm font-semibold text-[#1b8b84] disabled:cursor-not-allowed disabled:opacity-55"
                 >
-                  <div className="md:col-span-2 text-xl font-semibold text-[#1b2f5b]">
-                    Create suite
+                  {isSubmittingSuite ? 'Creating...' : 'Create suite'}
+                </button>
+                {suiteErrorMessage ? (
+                  <div className="md:col-span-2 rounded-2xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                    {suiteErrorMessage}
                   </div>
-                  <input
-                    value={suiteName}
-                    onChange={(event) => setSuiteName(event.target.value)}
-                    className="rounded-2xl border border-[#d9e2f2] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
-                    placeholder="Checkout smoke"
-                  />
-                  <button
-                    type="submit"
-                    disabled={isSubmittingSuite || !dashboard.databaseConfigured}
-                    className="rounded-2xl border border-[#9fd2ca] bg-[#dff5f1] px-4 py-3 text-sm font-semibold text-[#1b8b84] disabled:cursor-not-allowed disabled:opacity-55"
-                  >
-                    {isSubmittingSuite ? 'Creating...' : 'Create suite'}
-                  </button>
-                  {suiteErrorMessage ? (
-                    <div className="md:col-span-2 rounded-2xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-                      {suiteErrorMessage}
-                    </div>
-                  ) : null}
-                </form>
-              ) : (
-                <form
-                  className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]"
-                  onSubmit={handleCreateRun}
-                >
-                  <div className="md:col-span-2 text-xl font-semibold text-[#1b2f5b]">
-                    Create run
-                  </div>
-                  <input
-                    value={runName}
-                    onChange={(event) => setRunName(event.target.value)}
-                    className="rounded-2xl border border-[#d9e2f2] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
-                    placeholder="Regression 2026-04-25"
-                  />
-                  <button
-                    type="submit"
-                    disabled={isSubmittingRun || !dashboard.databaseConfigured}
-                    className="rounded-2xl border border-[#2f6fe4] bg-[#2f6fe4] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
-                  >
-                    {isSubmittingRun ? 'Creating...' : 'Create run'}
-                  </button>
-                  {runErrorMessage ? (
-                    <div className="md:col-span-2 rounded-2xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-                      {runErrorMessage}
-                    </div>
-                  ) : null}
-                </form>
-              )}
+                ) : null}
+              </form>
             </section>
           ) : null}
 

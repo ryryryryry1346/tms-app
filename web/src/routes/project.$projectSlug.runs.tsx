@@ -82,6 +82,7 @@ export const Route = createFileRoute('/project/$projectSlug/runs')({
 function ProjectRunsPage() {
   const { project, dashboard, runs } = Route.useLoaderData()
   const router = useRouter()
+  const [showCreateRunForm, setShowCreateRunForm] = useState(false)
   const [runName, setRunName] = useState('')
   const [isCreatingRun, setIsCreatingRun] = useState(false)
   const [createRunErrorMessage, setCreateRunErrorMessage] = useState<string | null>(
@@ -115,6 +116,7 @@ function ProjectRunsPage() {
       })
 
       setRunName('')
+      setShowCreateRunForm(false)
       await router.invalidate()
     } catch (error) {
       setCreateRunErrorMessage(
@@ -185,27 +187,24 @@ function ProjectRunsPage() {
             <p className="mt-3 text-lg text-[#63759a]">
               Manage execution runs for this project.
             </p>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Link
-                to="/project/$projectSlug"
-                params={{ projectSlug: project.slug ?? project.id.toString() }}
-                className="rounded-full border border-[#dbe4f4] bg-white px-4 py-2 text-sm font-semibold no-underline text-[#60718f]"
-              >
-                Overview
-              </Link>
-              <span className="rounded-full border border-[#9dbaf7] bg-[#edf4ff] px-4 py-2 text-sm font-semibold text-[#2f6fe4]">
-                Runs
-              </span>
-            </div>
           </div>
 
-          <Link
-            to="/project/$projectSlug"
-            params={{ projectSlug: project.slug ?? project.id.toString() }}
-            className="rounded-2xl border border-[#dbe4f4] bg-white px-6 py-3 text-base font-semibold no-underline text-[#60718f]"
-          >
-            Back to project
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => setShowCreateRunForm((current) => !current)}
+              className="rounded-2xl border border-[#2f6fe4] bg-[#2f6fe4] px-6 py-3 text-base font-semibold text-white"
+            >
+              + Run
+            </button>
+            <Link
+              to="/project/$projectSlug"
+              params={{ projectSlug: project.slug ?? project.id.toString() }}
+              className="rounded-2xl border border-[#dbe4f4] bg-white px-6 py-3 text-base font-semibold no-underline text-[#60718f]"
+            >
+              Back to project
+            </Link>
+          </div>
         </section>
 
         <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -242,24 +241,39 @@ function ProjectRunsPage() {
             </div>
           </div>
 
-          <form
-            className="mb-6 flex flex-col gap-3 sm:flex-row"
-            onSubmit={handleCreateRun}
-          >
-            <input
-              value={runName}
-              onChange={(event) => setRunName(event.target.value)}
-              placeholder="New run name"
-              className="min-w-0 flex-1 rounded-2xl border border-[#dbe4f4] bg-white px-4 py-3 text-base text-[#1b2f5b] outline-none transition focus:border-[#2f6fe4]"
-            />
-            <button
-              type="submit"
-              disabled={isCreatingRun}
-              className="rounded-2xl border border-[#2f6fe4] bg-[#2f6fe4] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
+          {showCreateRunForm ? (
+            <form
+              className="mb-6 flex flex-col gap-3 sm:flex-row"
+              onSubmit={handleCreateRun}
             >
-              {isCreatingRun ? 'Creating...' : 'Create run'}
-            </button>
-          </form>
+              <input
+                value={runName}
+                onChange={(event) => setRunName(event.target.value)}
+                placeholder="New run name"
+                className="min-w-0 flex-1 rounded-2xl border border-[#dbe4f4] bg-white px-4 py-3 text-base text-[#1b2f5b] outline-none transition focus:border-[#2f6fe4]"
+              />
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={isCreatingRun}
+                  className="rounded-2xl border border-[#2f6fe4] bg-[#2f6fe4] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
+                >
+                  {isCreatingRun ? 'Creating...' : 'Create run'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateRunForm(false)
+                    setRunName('')
+                    setCreateRunErrorMessage(null)
+                  }}
+                  className="rounded-2xl border border-[#dbe4f4] bg-white px-5 py-3 text-sm font-semibold text-[#60718f]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : null}
 
           {createRunErrorMessage ? (
             <div className="mb-5 rounded-xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
