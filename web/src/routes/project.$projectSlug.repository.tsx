@@ -648,23 +648,18 @@ function ProjectRepositoryPage() {
             </div>
           </section>
 
-          <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <section className="mb-4 flex flex-wrap items-center gap-2 text-sm">
             {[
-              { label: 'Suites', value: totalSuites, tone: 'text-[#2f6fe4]' },
-              { label: 'Cases', value: activeTests.length, tone: 'text-[#2f6fe4]' },
-              { label: 'Ready', value: readyCases, tone: 'text-[#2ea66b]' },
-              { label: 'Archived', value: archivedCases, tone: 'text-[#d28a2e]' },
+              { label: 'Suites', value: totalSuites },
+              { label: 'Cases', value: activeTests.length },
+              { label: 'Ready', value: readyCases },
+              { label: 'Archived', value: archivedCases },
             ].map((item) => (
               <div
                 key={item.label}
-                className="rounded-3xl border border-[#e6ecf8] bg-white px-7 py-5 shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
+                className="rounded-full border border-[#dfe6f4] bg-white px-3 py-1.5 font-semibold text-[#60718f]"
               >
-                <div className="text-sm font-semibold uppercase tracking-[0.08em] text-[#7686a7]">
-                  {item.label}
-                </div>
-                <div className={`mt-3 text-4xl font-semibold ${item.tone}`}>
-                  {item.value}
-                </div>
+                <span className="text-[#1b2f5b]">{item.value}</span> {item.label}
               </div>
             ))}
           </section>
@@ -702,28 +697,34 @@ function ProjectRepositoryPage() {
 
             <section
               id="project-suites"
-              className="rounded-3xl border border-[#e6ecf8] bg-white px-6 py-5 shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
+              className="overflow-hidden rounded-3xl border border-[#e6ecf8] bg-white shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
             >
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-              <h2 className="m-0 text-2xl font-semibold text-[#1b2f5b]">
-                Test suites and cases
-              </h2>
-              <div className="flex items-center gap-3">
-                <label className="flex min-w-[290px] items-center gap-3 rounded-2xl border border-[#dbe4f4] bg-white px-4 py-3 text-sm text-[#6d7d9e]">
-                  <span>Q</span>
+            <div className="sticky top-[65px] z-20 border-b border-[#e6ecf8] bg-white/95 px-5 py-3 backdrop-blur">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="m-0 text-xl font-semibold text-[#1b2f5b]">
+                    Test suites and cases
+                  </h2>
+                  <div className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
+                    {filteredLifecycleTests.length} visible cases
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                <label className="flex min-w-[260px] items-center gap-2 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm text-[#6d7d9e]">
+                  <span className="font-semibold">Search</span>
                   <input
                     value={searchValue}
                     onChange={(event) => setSearchValue(event.target.value)}
                     placeholder="Search cases..."
-                    className="w-full border-0 bg-transparent p-0 text-base outline-none"
+                    className="w-full border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none"
                   />
                 </label>
-                <label className="flex items-center gap-3 rounded-2xl border border-[#dbe4f4] bg-white px-4 py-3 text-sm text-[#6d7d9e]">
-                  <span>Suite</span>
+                <label className="flex items-center gap-2 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm text-[#6d7d9e]">
+                  <span className="font-semibold">Suite</span>
                   <select
                     value={suiteFilterId}
                     onChange={(event) => setSuiteFilterId(event.target.value)}
-                    className="min-w-[180px] border-0 bg-transparent p-0 text-base text-[#1b2f5b] outline-none"
+                    className="min-w-[160px] border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none"
                   >
                     <option value={ALL_SUITES_FILTER}>All suites</option>
                     {dashboard.sections.map((section) => (
@@ -739,7 +740,7 @@ function ProjectRepositoryPage() {
                       key={filter}
                       type="button"
                       onClick={() => setCaseFilter(filter)}
-                      className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                      className={`rounded-xl border px-3 py-2 text-sm font-semibold ${
                         caseFilter === filter
                           ? filter === 'Archived'
                             ? 'border-amber-300 bg-amber-50 text-amber-900'
@@ -751,11 +752,12 @@ function ProjectRepositoryPage() {
                     </button>
                   ))}
                 </div>
+                </div>
               </div>
             </div>
 
             {selectedSuiteIds.length > 0 ? (
-              <div className="mb-4 rounded-2xl border border-[#dbe4f4] bg-[#f8fbff] px-4 py-4">
+              <div className="mx-5 mt-4 rounded-2xl border border-[#dbe4f4] bg-[#f8fbff] px-4 py-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-[#1b2f5b]">
                     {selectedSuiteIds.length} suite
@@ -796,7 +798,7 @@ function ProjectRepositoryPage() {
             ) : null}
 
             {selectedTestIds.length > 0 ? (
-              <div className="mb-6 rounded-2xl border border-[#dbe4f4] bg-[#f8fbff] px-4 py-4">
+              <div className="mx-5 mt-4 rounded-2xl border border-[#dbe4f4] bg-[#f8fbff] px-4 py-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-[#1b2f5b]">
                     {selectedTestIds.length} selected
@@ -869,11 +871,11 @@ function ProjectRepositoryPage() {
             ) : null}
 
             {dashboard.sections.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-6 text-sm text-[#63759a]">
+              <div className="m-5 rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-6 text-sm text-[#63759a]">
                 This project does not have test suites yet.
               </div>
             ) : filteredSections.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-6 text-sm text-[#63759a]">
+              <div className="m-5 rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-6 text-sm text-[#63759a]">
                 {caseFilter === 'All'
                   ? 'No test cases match the current search and suite filters.'
                   : caseFilter === 'Archived'
@@ -881,7 +883,7 @@ function ProjectRepositoryPage() {
                     : `No ${caseFilter.toLowerCase()} test cases match the current search and suite filters.`}
               </div>
             ) : (
-              <div className="grid gap-6">
+              <div className="grid gap-4 p-5">
                 {filteredSections.map(({ section, sectionTests, visibleTests }) => {
                   const isEditingSuite = editingSuiteId === section.id
                   const isDeleteConfirming = deleteConfirmSuiteId === section.id
@@ -990,7 +992,7 @@ function ProjectRepositoryPage() {
                             search={{ suiteId: section.id, projectId: project.id }}
                             className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#3369d6]"
                           >
-                            Create test case
+                            + Case
                           </Link>
                           {!isEditingSuite ? (
                             <div className="relative">
@@ -1082,70 +1084,71 @@ function ProjectRepositoryPage() {
                               search={{ suiteId: section.id, projectId: project.id }}
                               className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#3369d6]"
                             >
-                              Create test case
+                              + Case
                             </Link>
                           </div>
                         </div>
                       ) : (
-                        visibleTests.map((test) => {
-                          const isReady = test.status === 'Ready'
+                        <div className="bg-white">
+                          <div className="grid grid-cols-[44px_92px_minmax(220px,1fr)_130px_72px] items-center border-t border-[#e9eef8] bg-[#fbfcff] px-5 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
+                            <div />
+                            <div>ID</div>
+                            <div>Title</div>
+                            <div>Status</div>
+                            <div className="text-right">Action</div>
+                          </div>
+                          {visibleTests.map((test) => {
+                            const isReady = test.status === 'Ready'
 
-                          return (
-                            <article
-                              key={test.id}
-                              className="grid grid-cols-[4px_minmax(0,1fr)] border-t border-[#e9eef8] bg-white"
-                            >
-                              <div
-                                className={isReady ? 'bg-emerald-400' : 'bg-rose-400'}
-                              />
-                              <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
-                                <div className="flex min-w-0 flex-1 items-center gap-4">
+                            return (
+                              <article
+                                key={test.id}
+                                className="grid grid-cols-[44px_92px_minmax(220px,1fr)_130px_72px] items-center border-t border-[#eef2f8] px-5 py-2.5 transition hover:bg-[#f8fbff]"
+                              >
+                                <div>
                                   <input
                                     type="checkbox"
                                     checked={selectedTestIdSet.has(test.id)}
                                     onChange={() => toggleTestSelection(test.id)}
                                     className="h-4 w-4 rounded border-[#c7d5ee] text-[#2f6fe4] focus:ring-[#2f6fe4]"
                                   />
-                                  <div className="flex flex-wrap items-center gap-5">
-                                    <Link
-                                      to="/test/$testId"
-                                      params={{ testId: test.id.toString() }}
-                                      className="text-2xl font-semibold no-underline text-[#2f6fe4]"
-                                    >
-                                      #{test.id}
-                                    </Link>
-                                    <Link
-                                      to="/test/$testId"
-                                      params={{ testId: test.id.toString() }}
-                                      className="block min-w-0 truncate text-xl font-semibold no-underline text-[#1b2f5b] hover:text-[#2f6fe4]"
-                                    >
-                                      {test.title}
-                                    </Link>
-                                  </div>
                                 </div>
-
-                                <div className="flex flex-wrap items-center gap-4">
-                                  <span
-                                    className={`rounded-xl px-3 py-2 text-sm font-semibold uppercase tracking-[0.08em] ${
-                                      isReady
-                                        ? 'bg-emerald-100 text-emerald-800'
+                                <Link
+                                  to="/test/$testId"
+                                  params={{ testId: test.id.toString() }}
+                                  className="text-sm font-semibold no-underline text-[#2f6fe4]"
+                                >
+                                  #{test.id}
+                                </Link>
+                                <Link
+                                  to="/test/$testId"
+                                  params={{ testId: test.id.toString() }}
+                                  className="block min-w-0 truncate pr-4 text-sm font-semibold no-underline text-[#1b2f5b] hover:text-[#2f6fe4]"
+                                >
+                                  {test.title}
+                                </Link>
+                                <span
+                                  className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                    isReady
+                                      ? 'bg-emerald-50 text-emerald-700'
+                                      : test.status === 'Archived'
+                                        ? 'bg-amber-50 text-amber-800'
                                         : 'bg-slate-100 text-slate-700'
-                                    }`}
-                                  >
-                                    {test.status ?? 'Draft'}
-                                  </span>
-                                  <Link
-                                    to="/test/$testId"
-                                    params={{ testId: test.id.toString() }}
-                                    className="text-sm font-semibold no-underline text-[#60718f] hover:text-[#2f6fe4]"
-                                  >
-                                    Open
-                                  </Link>
-                                </div>
-                              </div>
-                            </article>
-                          )
-                        })
+                                  }`}
+                                >
+                                  {test.status ?? 'Draft'}
+                                </span>
+                                <Link
+                                  to="/test/$testId"
+                                  params={{ testId: test.id.toString() }}
+                                  className="text-right text-sm font-semibold no-underline text-[#60718f] hover:text-[#2f6fe4]"
+                                >
+                                  Open
+                                </Link>
+                              </article>
+                            )
+                          })}
+                        </div>
                       )}
                     </section>
                   )
