@@ -23,6 +23,7 @@ import {
   getDashboardState,
   moveAndReorderTestCases,
   restoreTestCase,
+  updateTestTitle,
 } from '../features/tests/server'
 
 export const Route = createFileRoute('/project/$projectSlug/repository')({
@@ -260,6 +261,10 @@ function ProjectRepositoryPage() {
   )
   const [openCaseMenuId, setOpenCaseMenuId] = useState<number | null>(null)
   const [pendingCaseActionId, setPendingCaseActionId] = useState<number | null>(null)
+  const [editingCaseTitleId, setEditingCaseTitleId] = useState<number | null>(
+    null,
+  )
+  const [editingCaseTitleValue, setEditingCaseTitleValue] = useState('')
   const [caseActionErrorMessage, setCaseActionErrorMessage] = useState<
     string | null
   >(null)
@@ -394,6 +399,18 @@ function ProjectRepositoryPage() {
   function resetBulkMetadataFields(): void {
     setBulkPriorityValue('')
     setBulkCaseTypeValue('')
+  }
+
+  function startCaseTitleEdit(testId: number, title: string): void {
+    setCaseActionErrorMessage(null)
+    setOpenCaseMenuId(null)
+    setEditingCaseTitleId(testId)
+    setEditingCaseTitleValue(title)
+  }
+
+  function cancelCaseTitleEdit(): void {
+    setEditingCaseTitleId(null)
+    setEditingCaseTitleValue('')
   }
 
   function toggleTestSelection(testId: number): void {
@@ -550,6 +567,42 @@ function ProjectRepositoryPage() {
         error instanceof Error
           ? error.message
           : 'Failed to update test case status.',
+      )
+    } finally {
+      setPendingCaseActionId(null)
+    }
+  }
+
+  async function saveCaseTitleEdit(testId: number, currentTitle: string): Promise<void> {
+    const nextTitle = editingCaseTitleValue.trim()
+
+    if (!nextTitle) {
+      setCaseActionErrorMessage('Test case title cannot be empty.')
+      return
+    }
+
+    if (nextTitle === currentTitle) {
+      cancelCaseTitleEdit()
+      return
+    }
+
+    setCaseActionErrorMessage(null)
+    setOpenCaseMenuId(null)
+    setPendingCaseActionId(testId)
+
+    try {
+      await updateTestTitle({
+        data: {
+          id: testId,
+          title: nextTitle,
+        },
+      })
+
+      cancelCaseTitleEdit()
+      await router.invalidate()
+    } catch (error) {
+      setCaseActionErrorMessage(
+        error instanceof Error ? error.message : 'Failed to update test case title.',
       )
     } finally {
       setPendingCaseActionId(null)
@@ -2040,13 +2093,45 @@ function ProjectRepositoryPage() {
                                 >
                                   #{test.id}
                                 </Link>
-                                <Link
-                                  to="/test/$testId"
-                                  params={{ testId: test.id.toString() }}
-                                  className="block min-w-0 truncate pr-4 text-sm font-semibold no-underline text-[#1b2f5b] hover:text-[#2f6fe4]"
-                                >
-                                  {test.title}
-                                </Link>
+                                {editingCaseTitleId === test.id ? (
+                                  <input
+                                    value={editingCaseTitleValue}
+                                    onChange={(event) =>
+                                      setEditingCaseTitleValue(event.target.value)
+                                    }
+                                    onBlur={() => {
+                                      void saveCaseTitleEdit(test.id, test.title)
+                                    }}
+                                    onKeyDown={(event) => {
+                                      if (event.key === 'Enter') {
+                                        event.preventDefault()
+                                        event.currentTarget.blur()
+                                      }
+
+                                      if (event.key === 'Escape') {
+                                        event.preventDefault()
+                                        cancelCaseTitleEdit()
+                                      }
+                                    }}
+                                    onPointerDown={(event) => event.stopPropagation()}
+                                    disabled={isPendingCaseAction}
+                                    autoFocus
+                                    className="min-w-0 rounded-lg border border-[#9dbaf7] bg-white px-2 py-1 text-sm font-semibold text-[#1b2f5b] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+                                    aria-label={`Edit title for ${test.title}`}
+                                  />
+                                ) : (
+                                  <Link
+                                    to="/test/$testId"
+                                    params={{ testId: test.id.toString() }}
+                                    onDoubleClick={(event) => {
+                                      event.preventDefault()
+                                      startCaseTitleEdit(test.id, test.title)
+                                    }}
+                                    className="block min-w-0 truncate pr-4 text-sm font-semibold no-underline text-[#1b2f5b] hover:text-[#2f6fe4]"
+                                  >
+                                    {test.title}
+                                  </Link>
+                                )}
                                 <select
                                   value={test.priority ?? 'Medium'}
                                   onChange={(event) => {
