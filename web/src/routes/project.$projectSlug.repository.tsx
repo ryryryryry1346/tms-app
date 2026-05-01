@@ -120,7 +120,7 @@ function ProjectSubnav({
   active,
 }: {
   projectSlug: string
-  active: 'overview' | 'repository' | 'runs'
+  active: 'overview' | 'repository' | 'runs' | 'reports'
 }) {
   const tabClass = (isActive: boolean): string =>
     `rounded-full px-4 py-2 text-sm font-semibold no-underline ${
@@ -151,6 +151,13 @@ function ProjectSubnav({
         className={tabClass(active === 'runs')}
       >
         Runs
+      </Link>
+      <Link
+        to="/project/$projectSlug/reports"
+        params={{ projectSlug }}
+        className={tabClass(active === 'reports')}
+      >
+        Reports
       </Link>
     </div>
   )
