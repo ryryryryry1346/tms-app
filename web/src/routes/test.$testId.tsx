@@ -28,6 +28,26 @@ export const Route = createFileRoute('/test/$testId')({
   component: TestDetailPage,
 })
 
+function formatDetailDate(value: string | null | undefined): string {
+  if (!value) {
+    return '-'
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return '-'
+  }
+
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
 function TestDetailPage() {
   const test = Route.useLoaderData()
   const [isArchiving, setIsArchiving] = useState(false)
@@ -136,6 +156,12 @@ function TestDetailPage() {
           </span>
           <span className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1 font-semibold text-[var(--sea-ink-soft)]">
             Type: {test.caseType ?? 'Functional'}
+          </span>
+          <span className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1 font-semibold text-[var(--sea-ink-soft)]">
+            Created: {formatDetailDate(test.createdAt)}
+          </span>
+          <span className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1 font-semibold text-[var(--sea-ink-soft)]">
+            Updated: {formatDetailDate(test.updatedAt ?? test.createdAt)}
           </span>
         </div>
 

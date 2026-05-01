@@ -96,6 +96,24 @@ type CaseTypeFilter =
   | 'API'
 const ALL_SUITES_FILTER = 'all'
 
+function formatRepositoryDate(value: string | null | undefined): string {
+  if (!value) {
+    return '-'
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return '-'
+  }
+
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date)
+}
+
 function ChevronRightIcon() {
   return (
     <svg
@@ -1579,12 +1597,14 @@ function ProjectRepositoryPage() {
                         </div>
                       ) : (
                         <div className="bg-white">
-                          <div className="grid grid-cols-[44px_82px_minmax(220px,1fr)_120px_120px_110px_96px] items-center border-t border-[#e9eef8] bg-[#fbfcff] px-5 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
+                          <div className="grid grid-cols-[44px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] items-center border-t border-[#e9eef8] bg-[#fbfcff] px-5 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
                             <div />
                             <div>ID</div>
                             <div>Title</div>
                             <div>Priority</div>
                             <div>Type</div>
+                            <div>Created</div>
+                            <div>Updated</div>
                             <div>Status</div>
                             <div className="text-right">Actions</div>
                           </div>
@@ -1646,7 +1666,7 @@ function ProjectRepositoryPage() {
                                     currentSuiteTestIds: sectionAllTestIds,
                                   })
                                 }}
-                                className={`grid cursor-grab grid-cols-[44px_82px_minmax(220px,1fr)_120px_120px_110px_96px] items-center border-t border-[#eef2f8] px-5 py-2.5 transition hover:bg-[#f8fbff] active:cursor-grabbing ${
+                                className={`grid cursor-grab grid-cols-[44px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] items-center border-t border-[#eef2f8] px-5 py-2.5 transition hover:bg-[#f8fbff] active:cursor-grabbing ${
                                   draggedTestIds.includes(test.id)
                                     ? 'bg-[#f8fbff] opacity-70'
                                     : dragOverTestDrop?.testId === test.id
@@ -1693,6 +1713,14 @@ function ProjectRepositoryPage() {
                                 </span>
                                 <span className="w-fit rounded-full bg-[#f3f5f9] px-2.5 py-1 text-xs font-semibold text-[#60718f]">
                                   {test.caseType ?? 'Functional'}
+                                </span>
+                                <span className="text-sm font-semibold text-[#60718f]">
+                                  {formatRepositoryDate(test.createdAt)}
+                                </span>
+                                <span className="text-sm font-semibold text-[#60718f]">
+                                  {formatRepositoryDate(
+                                    test.updatedAt ?? test.createdAt,
+                                  )}
                                 </span>
                                 <span
                                   className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${

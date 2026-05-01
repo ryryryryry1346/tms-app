@@ -46,6 +46,8 @@ export const tests = mysqlTable(
     sectionId: int('section_id'),
     projectId: int('project_id'),
     sortOrder: int('sort_order'),
+    createdAt: varchar('created_at', { length: 32 }),
+    updatedAt: varchar('updated_at', { length: 32 }),
   },
   (table) => ({
     sectionIdIndex: index('tests_section_id_idx').on(table.sectionId),

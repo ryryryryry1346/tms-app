@@ -81,6 +81,8 @@ export type DashboardTest = {
   sectionId: number | null
   projectId: number | null
   sortOrder: number | null
+  createdAt: string | null
+  updatedAt: string | null
 }
 
 export type DashboardSection = {
@@ -141,6 +143,8 @@ export type TestDetail = {
   sectionName: string | null
   projectName: string | null
   projectSlug: string | null
+  createdAt: string | null
+  updatedAt: string | null
 }
 
 export const getDashboardState = createServerFn({ method: 'POST' })
@@ -207,6 +211,8 @@ export const getDashboardState = createServerFn({ method: 'POST' })
         sectionId: tests.sectionId,
         projectId: tests.projectId,
         sortOrder: tests.sortOrder,
+        createdAt: tests.createdAt,
+        updatedAt: tests.updatedAt,
       })
       .from(tests)
       .where(eq(tests.projectId, selectedProjectId))
@@ -232,6 +238,7 @@ export const updateTestStatus = createServerFn({ method: 'POST' })
       .update(tests)
       .set({
         status: data.status,
+        updatedAt: new Date().toISOString(),
       })
       .where(and(eq(tests.id, data.id)))
 
@@ -259,12 +266,15 @@ export const bulkUpdateTestStatus = createServerFn({ method: 'POST' })
     }
 
     await db.transaction(async (tx) => {
+      const now = new Date().toISOString()
+
       for (const test of rows) {
         if (data.status === 'Archived') {
           await tx
             .update(tests)
             .set({
               status: 'Archived',
+              updatedAt: now,
               archivedFromStatus:
                 test.status === 'Ready' || test.status === 'Draft'
                   ? test.status
@@ -280,6 +290,7 @@ export const bulkUpdateTestStatus = createServerFn({ method: 'POST' })
           .set({
             status: data.status,
             archivedFromStatus: null,
+            updatedAt: now,
           })
           .where(eq(tests.id, test.id))
       }
@@ -317,6 +328,7 @@ export const bulkMoveTestCases = createServerFn({ method: 'POST' })
       .set({
         sectionId: section.id,
         projectId: section.projectId,
+        updatedAt: new Date().toISOString(),
       })
       .where(inArray(tests.id, data.ids))
 
@@ -348,11 +360,14 @@ export const moveAndReorderTestCases = createServerFn({ method: 'POST' })
     }
 
     await db.transaction(async (tx) => {
+      const now = new Date().toISOString()
+
       await tx
         .update(tests)
         .set({
           sectionId: section.id,
           projectId: section.projectId,
+          updatedAt: now,
         })
         .where(inArray(tests.id, data.ids))
 
@@ -361,6 +376,7 @@ export const moveAndReorderTestCases = createServerFn({ method: 'POST' })
           .update(tests)
           .set({
             sortOrder: (index + 1) * 10,
+            updatedAt: now,
           })
           .where(eq(tests.id, testId))
       }
@@ -392,6 +408,8 @@ export const bulkRestoreTestCases = createServerFn({ method: 'POST' })
     }
 
     await db.transaction(async (tx) => {
+      const now = new Date().toISOString()
+
       for (const test of archivedRows) {
         await tx
           .update(tests)
@@ -403,6 +421,7 @@ export const bulkRestoreTestCases = createServerFn({ method: 'POST' })
                   ? 'Draft'
                   : 'Draft',
             archivedFromStatus: null,
+            updatedAt: now,
           })
           .where(eq(tests.id, test.id))
       }
@@ -478,6 +497,7 @@ export const archiveTestCase = createServerFn({ method: 'POST' })
       .update(tests)
       .set({
         status: 'Archived',
+        updatedAt: new Date().toISOString(),
         archivedFromStatus:
           test.status === 'Ready' || test.status === 'Draft'
             ? test.status
@@ -521,6 +541,7 @@ export const restoreTestCase = createServerFn({ method: 'POST' })
               ? 'Draft'
               : 'Draft',
         archivedFromStatus: null,
+        updatedAt: new Date().toISOString(),
       })
       .where(eq(tests.id, data.id))
 
@@ -629,6 +650,7 @@ export const createTestCase = createServerFn({ method: 'POST' })
     await requireSessionUser()
 
     const db = getDb()
+    const now = new Date().toISOString()
     const matchingSection = await db
       .select({
         id: sections.id,
@@ -656,6 +678,8 @@ export const createTestCase = createServerFn({ method: 'POST' })
       sectionId: data.sectionId,
       projectId: section.projectId,
       sortOrder: 0,
+      createdAt: now,
+      updatedAt: now,
     })
 
     return {
@@ -682,6 +706,8 @@ export const duplicateTestCase = createServerFn({ method: 'POST' })
         sectionId: tests.sectionId,
         projectId: tests.projectId,
         sortOrder: tests.sortOrder,
+        createdAt: tests.createdAt,
+        updatedAt: tests.updatedAt,
       })
       .from(tests)
       .where(eq(tests.id, data.id))
@@ -715,6 +741,8 @@ export const duplicateTestCase = createServerFn({ method: 'POST' })
       sectionId: source.sectionId,
       projectId: source.projectId,
       sortOrder: source.sortOrder ?? source.id,
+      createdAt: now,
+      updatedAt: now,
     })
 
     const duplicatedId = result[0].insertId
@@ -764,6 +792,8 @@ export const getEditTestFormState = createServerFn({ method: 'POST' })
         archivedFromStatus: tests.archivedFromStatus,
         sectionId: tests.sectionId,
         projectId: tests.projectId,
+        createdAt: tests.createdAt,
+        updatedAt: tests.updatedAt,
       })
       .from(tests)
       .where(eq(tests.id, data.id))
@@ -879,6 +909,7 @@ export const updateTestCase = createServerFn({ method: 'POST' })
         caseType: data.caseType,
         sectionId: data.sectionId,
         projectId: section.projectId,
+        updatedAt: new Date().toISOString(),
       })
       .where(eq(tests.id, data.id))
 
@@ -907,6 +938,8 @@ export const getTestDetail = createServerFn({ method: 'POST' })
         archivedFromStatus: tests.archivedFromStatus,
         sectionId: tests.sectionId,
         projectId: tests.projectId,
+        createdAt: tests.createdAt,
+        updatedAt: tests.updatedAt,
       })
       .from(tests)
       .where(eq(tests.id, data.id))
