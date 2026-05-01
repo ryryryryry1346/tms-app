@@ -86,6 +86,7 @@ export const Route = createFileRoute('/project/$projectSlug/repository')({
 
 type ComposerKind = 'suite' | null
 type CaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
+type CaseStatusValue = Exclude<CaseFilter, 'All'>
 type PriorityFilter = 'All' | 'Low' | 'Medium' | 'High' | 'Critical'
 type PriorityValue = Exclude<PriorityFilter, 'All'>
 type CaseTypeFilter =
@@ -98,6 +99,7 @@ type CaseTypeFilter =
   | 'API'
 type CaseTypeValue = Exclude<CaseTypeFilter, 'All'>
 const ALL_SUITES_FILTER = 'all'
+const CASE_STATUS_OPTIONS: CaseStatusValue[] = ['Draft', 'Ready', 'Archived']
 const PRIORITY_OPTIONS: PriorityValue[] = ['Low', 'Medium', 'High', 'Critical']
 const CASE_TYPE_OPTIONS: CaseTypeValue[] = [
   'Functional',
@@ -520,6 +522,34 @@ function ProjectRepositoryPage() {
         error instanceof Error
           ? error.message
           : 'Failed to update test case metadata.',
+      )
+    } finally {
+      setPendingCaseActionId(null)
+    }
+  }
+
+  async function handleCaseStatusChange(
+    testId: number,
+    status: CaseStatusValue,
+  ): Promise<void> {
+    setCaseActionErrorMessage(null)
+    setOpenCaseMenuId(null)
+    setPendingCaseActionId(testId)
+
+    try {
+      await bulkUpdateTestStatus({
+        data: {
+          ids: [testId],
+          status,
+        },
+      })
+
+      await router.invalidate()
+    } catch (error) {
+      setCaseActionErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Failed to update test case status.',
       )
     } finally {
       setPendingCaseActionId(null)
@@ -2085,17 +2115,35 @@ function ProjectRepositoryPage() {
                                     test.updatedAt ?? test.createdAt,
                                   )}
                                 </span>
-                                <span
-                                  className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                <select
+                                  value={test.status ?? 'Draft'}
+                                  onChange={(event) => {
+                                    const status = event.target
+                                      .value as CaseStatusValue
+
+                                    if (status === (test.status ?? 'Draft')) {
+                                      return
+                                    }
+
+                                    void handleCaseStatusChange(test.id, status)
+                                  }}
+                                  onPointerDown={(event) => event.stopPropagation()}
+                                  disabled={isPendingCaseAction}
+                                  className={`w-fit rounded-full border-0 px-2.5 py-1 text-xs font-semibold outline-none disabled:cursor-not-allowed disabled:opacity-55 ${
                                     isReady
                                       ? 'bg-emerald-50 text-emerald-700'
                                       : test.status === 'Archived'
                                         ? 'bg-amber-50 text-amber-800'
                                         : 'bg-slate-100 text-slate-700'
                                   }`}
+                                  aria-label={`Change status for ${test.title}`}
                                 >
-                                  {test.status ?? 'Draft'}
-                                </span>
+                                  {CASE_STATUS_OPTIONS.map((status) => (
+                                    <option key={status} value={status}>
+                                      {status}
+                                    </option>
+                                  ))}
+                                </select>
                                 <div className="relative flex justify-end">
                                   <button
                                     type="button"
