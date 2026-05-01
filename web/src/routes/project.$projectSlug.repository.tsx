@@ -14,6 +14,7 @@ import {
 import {
   archiveTestCase,
   bulkDeleteArchivedTestCases,
+  bulkMoveTestCases,
   bulkRestoreTestCases,
   bulkUpdateTestStatus,
   deleteArchivedTestCase,
@@ -210,6 +211,7 @@ function ProjectRepositoryPage() {
   const [caseTypeFilter, setCaseTypeFilter] = useState<CaseTypeFilter>('All')
   const [suiteFilterId, setSuiteFilterId] = useState<string>(ALL_SUITES_FILTER)
   const [selectedTestIds, setSelectedTestIds] = useState<number[]>([])
+  const [moveTargetSuiteId, setMoveTargetSuiteId] = useState('')
   const [isApplyingBulkAction, setIsApplyingBulkAction] = useState(false)
   const [bulkActionErrorMessage, setBulkActionErrorMessage] = useState<string | null>(
     null,
@@ -219,6 +221,8 @@ function ProjectRepositoryPage() {
   const [caseActionErrorMessage, setCaseActionErrorMessage] = useState<
     string | null
   >(null)
+  const [draggedTestIds, setDraggedTestIds] = useState<number[]>([])
+  const [dragOverSuiteId, setDragOverSuiteId] = useState<number | null>(null)
 
   const activeTests = dashboard.tests.filter((test) => test.status !== 'Archived')
   const filteredLifecycleTests = dashboard.tests.filter((test) => {
@@ -437,6 +441,105 @@ function ProjectRepositoryPage() {
     } finally {
       setIsApplyingBulkAction(false)
     }
+  }
+
+  async function handleMoveTestCases(
+    testIds: number[],
+    targetSuiteId: number,
+  ): Promise<void> {
+    if (testIds.length === 0) {
+      return
+    }
+
+    setBulkActionErrorMessage(null)
+    setIsApplyingBulkAction(true)
+
+    try {
+      await bulkMoveTestCases({
+        data: {
+          ids: testIds,
+          sectionId: targetSuiteId,
+        },
+      })
+
+      setSelectedTestIds([])
+      setMoveTargetSuiteId('')
+      setDraggedTestIds([])
+      setDragOverSuiteId(null)
+      await router.invalidate()
+    } catch (error) {
+      setBulkActionErrorMessage(
+        error instanceof Error ? error.message : 'Failed to move test cases.',
+      )
+    } finally {
+      setIsApplyingBulkAction(false)
+    }
+  }
+
+  async function handleMoveSelectedCases(): Promise<void> {
+    const targetSuiteId = Number(moveTargetSuiteId)
+
+    if (!Number.isInteger(targetSuiteId) || targetSuiteId <= 0) {
+      setBulkActionErrorMessage('Choose a target suite first.')
+      return
+    }
+
+    await handleMoveTestCases(selectedTestIds, targetSuiteId)
+  }
+
+  function handleCaseDragStart(
+    event: React.DragEvent<HTMLElement>,
+    testId: number,
+  ): void {
+    const ids =
+      selectedTestIds.includes(testId) && selectedTestIds.length > 0
+        ? selectedTestIds
+        : [testId]
+
+    setBulkActionErrorMessage(null)
+    setDraggedTestIds(ids)
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('application/json', JSON.stringify(ids))
+    event.dataTransfer.setData('text/plain', ids.join(','))
+  }
+
+  function handleSuiteDragOver(
+    event: React.DragEvent<HTMLElement>,
+    suiteId: number,
+  ): void {
+    if (draggedTestIds.length === 0) {
+      return
+    }
+
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    setDragOverSuiteId(suiteId)
+  }
+
+  async function handleSuiteDrop(
+    event: React.DragEvent<HTMLElement>,
+    suiteId: number,
+  ): Promise<void> {
+    event.preventDefault()
+
+    let ids = draggedTestIds
+
+    if (ids.length === 0) {
+      try {
+        const rawPayload = event.dataTransfer.getData('application/json')
+        const parsedPayload = JSON.parse(rawPayload) as unknown
+
+        if (Array.isArray(parsedPayload)) {
+          ids = parsedPayload.filter(
+            (id): id is number => Number.isInteger(id) && id > 0,
+          )
+        }
+      } catch {
+        ids = []
+      }
+    }
+
+    await handleMoveTestCases(ids, suiteId)
   }
 
   async function handleCaseArchive(testId: number): Promise<void> {
@@ -949,6 +1052,32 @@ function ProjectRepositoryPage() {
                     {selectedTestIds.length} selected
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
+                    <label className="flex items-center gap-2 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]">
+                      Move to
+                      <select
+                        value={moveTargetSuiteId}
+                        onChange={(event) => setMoveTargetSuiteId(event.target.value)}
+                        disabled={isApplyingBulkAction}
+                        className="min-w-[160px] border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none disabled:cursor-not-allowed"
+                      >
+                        <option value="">Choose suite</option>
+                        {dashboard.sections.map((section) => (
+                          <option key={section.id} value={section.id}>
+                            {section.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleMoveSelectedCases()
+                      }}
+                      disabled={isApplyingBulkAction || !moveTargetSuiteId}
+                      className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#3369d6] disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      Move
+                    </button>
                     {caseFilter === 'Archived' ? (
                       <>
                         <button
@@ -1055,7 +1184,20 @@ function ProjectRepositoryPage() {
                   return (
                     <section
                       key={section.id}
-                      className="overflow-hidden rounded-3xl border border-[#dfe6f4]"
+                      onDragOver={(event) => handleSuiteDragOver(event, section.id)}
+                      onDragLeave={() =>
+                        setDragOverSuiteId((current) =>
+                          current === section.id ? null : current,
+                        )
+                      }
+                      onDrop={(event) => {
+                        void handleSuiteDrop(event, section.id)
+                      }}
+                      className={`overflow-hidden rounded-3xl border transition ${
+                        dragOverSuiteId === section.id
+                          ? 'border-[#2f6fe4] bg-[#f8fbff] shadow-[0_0_0_3px_rgba(47,111,228,0.12)]'
+                          : 'border-[#dfe6f4]'
+                      }`}
                     >
                       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e9eef8] bg-[#fbfcff] px-5 py-4">
                         <div className="flex min-w-0 items-center gap-4">
@@ -1128,6 +1270,11 @@ function ProjectRepositoryPage() {
                           <span className="rounded-full bg-[#f3f5f9] px-3 py-1 text-xs font-semibold text-[#60718f]">
                             Draft {draftCount}
                           </span>
+                          {dragOverSuiteId === section.id ? (
+                            <span className="rounded-full bg-[#ecf2ff] px-3 py-1 text-xs font-semibold text-[#2f6fe4]">
+                              Drop to move
+                            </span>
+                          ) : null}
                           <button
                             type="button"
                             onClick={() => toggleSuiteSelection(visibleTestIds)}
@@ -1259,7 +1406,19 @@ function ProjectRepositoryPage() {
                             return (
                               <article
                                 key={test.id}
-                                className="grid grid-cols-[44px_82px_minmax(220px,1fr)_120px_120px_110px_96px] items-center border-t border-[#eef2f8] px-5 py-2.5 transition hover:bg-[#f8fbff]"
+                                draggable
+                                onDragStart={(event) =>
+                                  handleCaseDragStart(event, test.id)
+                                }
+                                onDragEnd={() => {
+                                  setDraggedTestIds([])
+                                  setDragOverSuiteId(null)
+                                }}
+                                className={`grid cursor-grab grid-cols-[44px_82px_minmax(220px,1fr)_120px_120px_110px_96px] items-center border-t border-[#eef2f8] px-5 py-2.5 transition hover:bg-[#f8fbff] active:cursor-grabbing ${
+                                  draggedTestIds.includes(test.id)
+                                    ? 'bg-[#f8fbff] opacity-70'
+                                    : ''
+                                }`}
                               >
                                 <div>
                                   <input

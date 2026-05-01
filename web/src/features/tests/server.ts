@@ -21,6 +21,11 @@ const bulkUpdateTestStatusInput = z.object({
   status: z.enum(['Draft', 'Ready', 'Archived']),
 })
 
+const bulkMoveTestCasesInput = z.object({
+  ids: z.array(z.number().int().positive()).min(1),
+  sectionId: z.number().int().positive(),
+})
+
 const bulkRestoreTestCasesInput = z.object({
   ids: z.array(z.number().int().positive()).min(1),
 })
@@ -271,6 +276,41 @@ export const bulkUpdateTestStatus = createServerFn({ method: 'POST' })
           .where(eq(tests.id, test.id))
       }
     })
+
+    return { ok: true }
+  })
+
+export const bulkMoveTestCases = createServerFn({ method: 'POST' })
+  .inputValidator(bulkMoveTestCasesInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    const matchingSection = await db
+      .select({
+        id: sections.id,
+        projectId: sections.projectId,
+      })
+      .from(sections)
+      .where(eq(sections.id, data.sectionId))
+      .limit(1)
+
+    const section = matchingSection[0]
+
+    if (!section || !section.projectId) {
+      throw new Error(
+        'The target suite is missing or is not attached to a project.',
+      )
+    }
+
+    await db
+      .update(tests)
+      .set({
+        sectionId: section.id,
+        projectId: section.projectId,
+      })
+      .where(inArray(tests.id, data.ids))
 
     return { ok: true }
   })
