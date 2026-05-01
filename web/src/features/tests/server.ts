@@ -655,10 +655,88 @@ export const createTestCase = createServerFn({ method: 'POST' })
       caseType: data.caseType,
       sectionId: data.sectionId,
       projectId: section.projectId,
+      sortOrder: 0,
     })
 
     return {
       id: result[0].insertId,
+    }
+  })
+
+export const duplicateTestCase = createServerFn({ method: 'POST' })
+  .inputValidator(getTestDetailInput)
+  .handler(async ({ data }): Promise<{ id: number }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    const rows = await db
+      .select({
+        id: tests.id,
+        title: tests.title,
+        steps: tests.steps,
+        expected: tests.expected,
+        status: tests.status,
+        priority: tests.priority,
+        caseType: tests.caseType,
+        sectionId: tests.sectionId,
+        projectId: tests.projectId,
+        sortOrder: tests.sortOrder,
+      })
+      .from(tests)
+      .where(eq(tests.id, data.id))
+      .limit(1)
+
+    const source = rows[0]
+
+    if (!source || !source.sectionId || !source.projectId) {
+      throw new Error('The source test case is missing or incomplete.')
+    }
+
+    const suiteRows = await db
+      .select({
+        id: tests.id,
+      })
+      .from(tests)
+      .where(eq(tests.sectionId, source.sectionId))
+      .orderBy(asc(tests.sortOrder), asc(tests.id))
+
+    const sourceIndex = suiteRows.findIndex((test) => test.id === source.id)
+    const result = await db.insert(tests).values({
+      title: `Copy of ${source.title}`,
+      steps: source.steps,
+      expected: source.expected,
+      status:
+        source.status === 'Ready' || source.status === 'Draft'
+          ? source.status
+          : 'Draft',
+      priority: source.priority ?? 'Medium',
+      caseType: source.caseType ?? 'Functional',
+      sectionId: source.sectionId,
+      projectId: source.projectId,
+      sortOrder: source.sortOrder ?? source.id,
+    })
+
+    const duplicatedId = result[0].insertId
+    const orderedIds = [
+      ...suiteRows.slice(0, sourceIndex + 1).map((test) => test.id),
+      duplicatedId,
+      ...suiteRows.slice(sourceIndex + 1).map((test) => test.id),
+    ]
+
+    await db.transaction(async (tx) => {
+      for (const [index, testId] of orderedIds.entries()) {
+        await tx
+          .update(tests)
+          .set({
+            sortOrder: (index + 1) * 10,
+          })
+          .where(eq(tests.id, testId))
+      }
+    })
+
+    return {
+      id: duplicatedId,
     }
   })
 

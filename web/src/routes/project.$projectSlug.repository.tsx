@@ -18,6 +18,7 @@ import {
   bulkRestoreTestCases,
   bulkUpdateTestStatus,
   deleteArchivedTestCase,
+  duplicateTestCase,
   getDashboardState,
   moveAndReorderTestCases,
   restoreTestCase,
@@ -775,6 +776,28 @@ function ProjectRepositoryPage() {
         error instanceof Error
           ? error.message
           : 'Failed to delete test case permanently.',
+      )
+    } finally {
+      setPendingCaseActionId(null)
+    }
+  }
+
+  async function handleCaseDuplicate(testId: number): Promise<void> {
+    setCaseActionErrorMessage(null)
+    setPendingCaseActionId(testId)
+
+    try {
+      await duplicateTestCase({
+        data: {
+          id: testId,
+        },
+      })
+
+      setOpenCaseMenuId(null)
+      await router.invalidate()
+    } catch (error) {
+      setCaseActionErrorMessage(
+        error instanceof Error ? error.message : 'Failed to duplicate test case.',
       )
     } finally {
       setPendingCaseActionId(null)
@@ -1713,6 +1736,14 @@ function ProjectRepositoryPage() {
                                       >
                                         Edit
                                       </Link>
+                                      <button
+                                        type="button"
+                                        disabled={isPendingCaseAction}
+                                        onClick={() => handleCaseDuplicate(test.id)}
+                                        className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-[#60718f] hover:bg-[#f5f8ff] disabled:cursor-not-allowed disabled:opacity-55"
+                                      >
+                                        Duplicate
+                                      </button>
                                       {isArchived ? (
                                         <>
                                           <button
