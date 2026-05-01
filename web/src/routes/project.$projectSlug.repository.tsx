@@ -5,7 +5,7 @@ import {
   redirect,
   useRouter,
 } from '@tanstack/react-router'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   createSuite,
   deleteSuite,
@@ -265,6 +265,7 @@ function ProjectRepositoryPage() {
     null,
   )
   const [editingCaseTitleValue, setEditingCaseTitleValue] = useState('')
+  const [previewTestId, setPreviewTestId] = useState<number | null>(null)
   const [caseActionErrorMessage, setCaseActionErrorMessage] = useState<
     string | null
   >(null)
@@ -390,6 +391,31 @@ function ProjectRepositoryPage() {
   const selectedArchivedTests = selectedTests.filter(
     (test) => test.status === 'Archived',
   )
+  const previewTest =
+    previewTestId === null
+      ? null
+      : dashboard.tests.find((test) => test.id === previewTestId) ?? null
+  const previewSuite =
+    previewTest?.sectionId == null
+      ? null
+      : dashboard.sections.find((section) => section.id === previewTest.sectionId) ??
+        null
+
+  useEffect(() => {
+    if (!previewTest) {
+      return
+    }
+
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === 'Escape') {
+        setPreviewTestId(null)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [previewTest])
 
   function clearBulkConfirmations(): void {
     setIsBulkArchiveConfirming(false)
@@ -411,6 +437,30 @@ function ProjectRepositoryPage() {
   function cancelCaseTitleEdit(): void {
     setEditingCaseTitleId(null)
     setEditingCaseTitleValue('')
+  }
+
+  function openCasePreview(testId: number): void {
+    setCaseActionErrorMessage(null)
+    setOpenCaseMenuId(null)
+    setPreviewTestId(testId)
+  }
+
+  function handleRichContentClick(event: React.MouseEvent<HTMLElement>): void {
+    const target = event.target
+
+    if (!(target instanceof HTMLElement)) {
+      return
+    }
+
+    const mediaElement = target.closest<HTMLElement>('[data-media-url]')
+    const url = mediaElement?.dataset.mediaUrl
+
+    if (!url) {
+      return
+    }
+
+    event.preventDefault()
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   function toggleTestSelection(testId: number): void {
@@ -2253,6 +2303,13 @@ function ProjectRepositoryPage() {
                                       >
                                         Open
                                       </Link>
+                                      <button
+                                        type="button"
+                                        onClick={() => openCasePreview(test.id)}
+                                        className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-[#60718f] hover:bg-[#f5f8ff]"
+                                      >
+                                        Preview
+                                      </button>
                                       <Link
                                         to="/edit-test/$testId"
                                         params={{ testId: test.id.toString() }}
@@ -2341,7 +2398,127 @@ function ProjectRepositoryPage() {
             )}
           </section>
 
-        
+          {previewTest ? (
+            <div className="fixed inset-0 z-40">
+              <button
+                type="button"
+                aria-label="Close case preview"
+                onClick={() => setPreviewTestId(null)}
+                className="absolute inset-0 bg-[#16233f]/30"
+              />
+              <aside className="absolute right-0 top-0 flex h-full w-full max-w-[560px] flex-col border-l border-[#dbe4f4] bg-white shadow-[0_24px_80px_rgba(31,57,102,0.22)]">
+                <div className="border-b border-[#e9eef8] px-6 py-5">
+                  <div className="mb-4 flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-[#7f8da9]">
+                        Case #{previewTest.id}
+                      </p>
+                      <h2 className="m-0 mt-2 text-2xl font-bold leading-tight text-[#1b2f5b]">
+                        {previewTest.title}
+                      </h2>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewTestId(null)}
+                      className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]"
+                    >
+                      Close
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                    <span className="rounded-full bg-[#eef6ff] px-2.5 py-1 text-[#506487]">
+                      {previewSuite?.name ?? 'No suite'}
+                    </span>
+                    <span
+                      className={`rounded-full px-2.5 py-1 ${
+                        previewTest.status === 'Ready'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : previewTest.status === 'Archived'
+                            ? 'bg-amber-50 text-amber-800'
+                            : 'bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      {previewTest.status ?? 'Draft'}
+                    </span>
+                    <span className="rounded-full bg-[#f3f5f9] px-2.5 py-1 text-[#60718f]">
+                      {previewTest.priority ?? 'Medium'}
+                    </span>
+                    <span className="rounded-full bg-[#f3f5f9] px-2.5 py-1 text-[#60718f]">
+                      {previewTest.caseType ?? 'Functional'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+                  <section className="mb-5">
+                    <h3 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[#7f8da9]">
+                      Steps
+                    </h3>
+                    <div
+                      className="rich-output prose prose-sm mt-3 max-w-none text-[#1b2f5b]"
+                      onClick={handleRichContentClick}
+                      dangerouslySetInnerHTML={{
+                        __html: previewTest.steps || '<p>-</p>',
+                      }}
+                    />
+                  </section>
+
+                  <section>
+                    <h3 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[#7f8da9]">
+                      Expected result
+                    </h3>
+                    <div
+                      className="rich-output prose prose-sm mt-3 max-w-none text-[#1b2f5b]"
+                      onClick={handleRichContentClick}
+                      dangerouslySetInnerHTML={{
+                        __html: previewTest.expected || '<p>-</p>',
+                      }}
+                    />
+                  </section>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 border-t border-[#e9eef8] px-6 py-4">
+                  <Link
+                    to="/edit-test/$testId"
+                    params={{ testId: previewTest.id.toString() }}
+                    className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#3369d6]"
+                  >
+                    Edit
+                  </Link>
+                  <Link
+                    to="/test/$testId"
+                    params={{ testId: previewTest.id.toString() }}
+                    className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#60718f]"
+                  >
+                    Open full page
+                  </Link>
+                  {previewTest.status === 'Archived' ? (
+                    <button
+                      type="button"
+                      disabled={pendingCaseActionId === previewTest.id}
+                      onClick={() => {
+                        void handleCaseRestore(previewTest.id)
+                      }}
+                      className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      Restore
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={pendingCaseActionId === previewTest.id}
+                      onClick={() => {
+                        void handleCaseArchive(previewTest.id)
+                      }}
+                      className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      Archive
+                    </button>
+                  )}
+                </div>
+              </aside>
+            </div>
+          ) : null}
       </div>
     </main>
   )
