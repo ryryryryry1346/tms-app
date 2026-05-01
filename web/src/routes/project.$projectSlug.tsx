@@ -1,8 +1,10 @@
 import {
   Link,
+  Outlet,
   createFileRoute,
   notFound,
   redirect,
+  useLocation,
   useRouter,
 } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
@@ -127,6 +129,11 @@ function ProjectPage() {
   const loaderData = Route.useLoaderData()
   const { project, dashboard, runs } = loaderData
   const router = useRouter()
+  const location = useLocation()
+
+  if (location.pathname.endsWith('/runs')) {
+    return <Outlet />
+  }
 
   const [suiteName, setSuiteName] = useState('')
   const [suiteErrorMessage, setSuiteErrorMessage] = useState<string | null>(null)
