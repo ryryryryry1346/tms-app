@@ -19,6 +19,7 @@ import {
   bulkUpdateTestStatus,
   deleteArchivedTestCase,
   getDashboardState,
+  moveAndReorderTestCases,
   restoreTestCase,
 } from '../features/tests/server'
 
@@ -223,6 +224,7 @@ function ProjectRepositoryPage() {
   >(null)
   const [draggedTestIds, setDraggedTestIds] = useState<number[]>([])
   const [dragOverSuiteId, setDragOverSuiteId] = useState<number | null>(null)
+  const [dragOverTestId, setDragOverTestId] = useState<number | null>(null)
 
   const activeTests = dashboard.tests.filter((test) => test.status !== 'Archived')
   const filteredLifecycleTests = dashboard.tests.filter((test) => {
@@ -466,10 +468,53 @@ function ProjectRepositoryPage() {
       setMoveTargetSuiteId('')
       setDraggedTestIds([])
       setDragOverSuiteId(null)
+      setDragOverTestId(null)
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
         error instanceof Error ? error.message : 'Failed to move test cases.',
+      )
+    } finally {
+      setIsApplyingBulkAction(false)
+    }
+  }
+
+  async function handleMoveAndReorderTestCases({
+    testIds,
+    targetSuiteId,
+    orderedIds,
+  }: {
+    testIds: number[]
+    targetSuiteId: number
+    orderedIds: number[]
+  }): Promise<void> {
+    if (testIds.length === 0 || orderedIds.length === 0) {
+      return
+    }
+
+    setBulkActionErrorMessage(null)
+    setIsApplyingBulkAction(true)
+
+    try {
+      await moveAndReorderTestCases({
+        data: {
+          ids: testIds,
+          sectionId: targetSuiteId,
+          orderedIds,
+        },
+      })
+
+      setSelectedTestIds([])
+      setMoveTargetSuiteId('')
+      setDraggedTestIds([])
+      setDragOverSuiteId(null)
+      setDragOverTestId(null)
+      await router.invalidate()
+    } catch (error) {
+      setBulkActionErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Failed to move and reorder test cases.',
       )
     } finally {
       setIsApplyingBulkAction(false)
@@ -503,6 +548,58 @@ function ProjectRepositoryPage() {
     event.dataTransfer.setData('text/plain', ids.join(','))
   }
 
+  function getDraggedIdsFromEvent(
+    event: React.DragEvent<HTMLElement>,
+  ): number[] {
+    if (draggedTestIds.length > 0) {
+      return draggedTestIds
+    }
+
+    try {
+      const rawPayload = event.dataTransfer.getData('application/json')
+      const parsedPayload = JSON.parse(rawPayload) as unknown
+
+      if (Array.isArray(parsedPayload)) {
+        return parsedPayload.filter(
+          (id): id is number => Number.isInteger(id) && id > 0,
+        )
+      }
+    } catch {
+      return []
+    }
+
+    return []
+  }
+
+  function buildReorderedIds({
+    currentIds,
+    draggedIds,
+    beforeId,
+  }: {
+    currentIds: number[]
+    draggedIds: number[]
+    beforeId?: number
+  }): number[] {
+    const draggedIdSet = new Set(draggedIds)
+    const remainingIds = currentIds.filter((id) => !draggedIdSet.has(id))
+
+    if (!beforeId) {
+      return [...remainingIds, ...draggedIds]
+    }
+
+    const beforeIndex = remainingIds.indexOf(beforeId)
+
+    if (beforeIndex < 0) {
+      return [...remainingIds, ...draggedIds]
+    }
+
+    return [
+      ...remainingIds.slice(0, beforeIndex),
+      ...draggedIds,
+      ...remainingIds.slice(beforeIndex),
+    ]
+  }
+
   function handleSuiteDragOver(
     event: React.DragEvent<HTMLElement>,
     suiteId: number,
@@ -519,27 +616,57 @@ function ProjectRepositoryPage() {
   async function handleSuiteDrop(
     event: React.DragEvent<HTMLElement>,
     suiteId: number,
+    currentSuiteTestIds: number[],
   ): Promise<void> {
     event.preventDefault()
 
-    let ids = draggedTestIds
+    const ids = getDraggedIdsFromEvent(event)
+    const orderedIds = buildReorderedIds({
+      currentIds: currentSuiteTestIds,
+      draggedIds: ids,
+    })
 
-    if (ids.length === 0) {
-      try {
-        const rawPayload = event.dataTransfer.getData('application/json')
-        const parsedPayload = JSON.parse(rawPayload) as unknown
+    await handleMoveAndReorderTestCases({
+      testIds: ids,
+      targetSuiteId: suiteId,
+      orderedIds,
+    })
+  }
 
-        if (Array.isArray(parsedPayload)) {
-          ids = parsedPayload.filter(
-            (id): id is number => Number.isInteger(id) && id > 0,
-          )
-        }
-      } catch {
-        ids = []
-      }
+  async function handleCaseDrop({
+    event,
+    suiteId,
+    beforeTestId,
+    currentSuiteTestIds,
+  }: {
+    event: React.DragEvent<HTMLElement>
+    suiteId: number
+    beforeTestId: number
+    currentSuiteTestIds: number[]
+  }): Promise<void> {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const ids = getDraggedIdsFromEvent(event)
+
+    if (ids.includes(beforeTestId) && ids.length === 1) {
+      setDraggedTestIds([])
+      setDragOverSuiteId(null)
+      setDragOverTestId(null)
+      return
     }
 
-    await handleMoveTestCases(ids, suiteId)
+    const orderedIds = buildReorderedIds({
+      currentIds: currentSuiteTestIds,
+      draggedIds: ids,
+      beforeId: beforeTestId,
+    })
+
+    await handleMoveAndReorderTestCases({
+      testIds: ids,
+      targetSuiteId: suiteId,
+      orderedIds,
+    })
   }
 
   async function handleCaseArchive(testId: number): Promise<void> {
@@ -1176,6 +1303,7 @@ function ProjectRepositoryPage() {
                     (test) => test.status === 'Ready',
                   ).length
                   const draftCount = sectionTests.length - readyCount
+                  const sectionTestIds = sectionTests.map((test) => test.id)
                   const visibleTestIds = visibleTests.map((test) => test.id)
                   const allVisibleSelected =
                     visibleTestIds.length > 0 &&
@@ -1191,7 +1319,7 @@ function ProjectRepositoryPage() {
                         )
                       }
                       onDrop={(event) => {
-                        void handleSuiteDrop(event, section.id)
+                        void handleSuiteDrop(event, section.id, sectionTestIds)
                       }}
                       className={`overflow-hidden rounded-3xl border transition ${
                         dragOverSuiteId === section.id
@@ -1413,10 +1541,37 @@ function ProjectRepositoryPage() {
                                 onDragEnd={() => {
                                   setDraggedTestIds([])
                                   setDragOverSuiteId(null)
+                                  setDragOverTestId(null)
+                                }}
+                                onDragOver={(event) => {
+                                  if (draggedTestIds.length === 0) {
+                                    return
+                                  }
+
+                                  event.preventDefault()
+                                  event.stopPropagation()
+                                  event.dataTransfer.dropEffect = 'move'
+                                  setDragOverSuiteId(section.id)
+                                  setDragOverTestId(test.id)
+                                }}
+                                onDragLeave={() =>
+                                  setDragOverTestId((current) =>
+                                    current === test.id ? null : current,
+                                  )
+                                }
+                                onDrop={(event) => {
+                                  void handleCaseDrop({
+                                    event,
+                                    suiteId: section.id,
+                                    beforeTestId: test.id,
+                                    currentSuiteTestIds: sectionTestIds,
+                                  })
                                 }}
                                 className={`grid cursor-grab grid-cols-[44px_82px_minmax(220px,1fr)_120px_120px_110px_96px] items-center border-t border-[#eef2f8] px-5 py-2.5 transition hover:bg-[#f8fbff] active:cursor-grabbing ${
                                   draggedTestIds.includes(test.id)
                                     ? 'bg-[#f8fbff] opacity-70'
+                                    : dragOverTestId === test.id
+                                      ? 'bg-[#ecf2ff] shadow-[inset_0_2px_0_#2f6fe4]'
                                     : ''
                                 }`}
                               >

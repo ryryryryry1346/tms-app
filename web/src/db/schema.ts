@@ -45,6 +45,7 @@ export const tests = mysqlTable(
     archivedFromStatus: varchar('archived_from_status', { length: 64 }),
     sectionId: int('section_id'),
     projectId: int('project_id'),
+    sortOrder: int('sort_order'),
   },
   (table) => ({
     sectionIdIndex: index('tests_section_id_idx').on(table.sectionId),

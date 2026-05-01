@@ -26,6 +26,12 @@ const bulkMoveTestCasesInput = z.object({
   sectionId: z.number().int().positive(),
 })
 
+const moveAndReorderTestCasesInput = z.object({
+  ids: z.array(z.number().int().positive()).min(1),
+  sectionId: z.number().int().positive(),
+  orderedIds: z.array(z.number().int().positive()).min(1),
+})
+
 const bulkRestoreTestCasesInput = z.object({
   ids: z.array(z.number().int().positive()).min(1),
 })
@@ -74,6 +80,7 @@ export type DashboardTest = {
   archivedFromStatus: string | null
   sectionId: number | null
   projectId: number | null
+  sortOrder: number | null
 }
 
 export type DashboardSection = {
@@ -199,10 +206,11 @@ export const getDashboardState = createServerFn({ method: 'POST' })
         archivedFromStatus: tests.archivedFromStatus,
         sectionId: tests.sectionId,
         projectId: tests.projectId,
+        sortOrder: tests.sortOrder,
       })
       .from(tests)
       .where(eq(tests.projectId, selectedProjectId))
-      .orderBy(asc(tests.id))
+      .orderBy(asc(tests.sectionId), asc(tests.sortOrder), asc(tests.id))
 
     return {
       databaseConfigured: true,
@@ -311,6 +319,52 @@ export const bulkMoveTestCases = createServerFn({ method: 'POST' })
         projectId: section.projectId,
       })
       .where(inArray(tests.id, data.ids))
+
+    return { ok: true }
+  })
+
+export const moveAndReorderTestCases = createServerFn({ method: 'POST' })
+  .inputValidator(moveAndReorderTestCasesInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    const matchingSection = await db
+      .select({
+        id: sections.id,
+        projectId: sections.projectId,
+      })
+      .from(sections)
+      .where(eq(sections.id, data.sectionId))
+      .limit(1)
+
+    const section = matchingSection[0]
+
+    if (!section || !section.projectId) {
+      throw new Error(
+        'The target suite is missing or is not attached to a project.',
+      )
+    }
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(tests)
+        .set({
+          sectionId: section.id,
+          projectId: section.projectId,
+        })
+        .where(inArray(tests.id, data.ids))
+
+      for (const [index, testId] of data.orderedIds.entries()) {
+        await tx
+          .update(tests)
+          .set({
+            sortOrder: (index + 1) * 10,
+          })
+          .where(eq(tests.id, testId))
+      }
+    })
 
     return { ok: true }
   })
