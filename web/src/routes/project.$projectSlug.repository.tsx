@@ -778,7 +778,7 @@ function ProjectRepositoryPage() {
               id="project-suites"
               className="overflow-hidden rounded-3xl border border-[#e6ecf8] bg-white shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
             >
-            <div className="sticky top-[65px] z-20 border-b border-[#e6ecf8] bg-white/95 px-5 py-3 backdrop-blur">
+            <div className="border-b border-[#e6ecf8] bg-white px-5 py-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="m-0 text-xl font-semibold text-[#1b2f5b]">
@@ -788,14 +788,14 @@ function ProjectRepositoryPage() {
                     {filteredLifecycleTests.length} visible cases
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                <label className="flex min-w-[260px] items-center gap-2 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm text-[#6d7d9e]">
-                  <span className="font-semibold">Search</span>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                <label className="flex w-[260px] items-center gap-2 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm text-[#6d7d9e]">
+                  <span className="shrink-0 whitespace-nowrap font-semibold">Search</span>
                   <input
                     value={searchValue}
                     onChange={(event) => setSearchValue(event.target.value)}
                     placeholder="Search cases..."
-                    className="w-full border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none"
+                    className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none"
                   />
                 </label>
                 <label className="flex items-center gap-2 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm text-[#6d7d9e]">
