@@ -496,6 +496,36 @@ function ProjectRepositoryPage() {
     }
   }
 
+  async function handleCaseMetadataChange(
+    testId: number,
+    metadata:
+      | { priority: PriorityValue; caseType?: never }
+      | { priority?: never; caseType: CaseTypeValue },
+  ): Promise<void> {
+    setCaseActionErrorMessage(null)
+    setOpenCaseMenuId(null)
+    setPendingCaseActionId(testId)
+
+    try {
+      await bulkUpdateTestMetadata({
+        data: {
+          ids: [testId],
+          ...metadata,
+        },
+      })
+
+      await router.invalidate()
+    } catch (error) {
+      setCaseActionErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Failed to update test case metadata.',
+      )
+    } finally {
+      setPendingCaseActionId(null)
+    }
+  }
+
   function handleBulkArchiveRequest(): void {
     if (selectedArchivableTests.length === 0) {
       return
@@ -1987,8 +2017,23 @@ function ProjectRepositoryPage() {
                                 >
                                   {test.title}
                                 </Link>
-                                <span
-                                  className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                <select
+                                  value={test.priority ?? 'Medium'}
+                                  onChange={(event) => {
+                                    const priority = event.target
+                                      .value as PriorityValue
+
+                                    if (priority === (test.priority ?? 'Medium')) {
+                                      return
+                                    }
+
+                                    void handleCaseMetadataChange(test.id, {
+                                      priority,
+                                    })
+                                  }}
+                                  onPointerDown={(event) => event.stopPropagation()}
+                                  disabled={isPendingCaseAction}
+                                  className={`w-fit rounded-full border-0 px-2.5 py-1 text-xs font-semibold outline-none disabled:cursor-not-allowed disabled:opacity-55 ${
                                     test.priority === 'Critical'
                                       ? 'bg-rose-50 text-rose-700'
                                       : test.priority === 'High'
@@ -1997,12 +2042,41 @@ function ProjectRepositoryPage() {
                                           ? 'bg-slate-100 text-slate-600'
                                           : 'bg-[#eef6ff] text-[#506487]'
                                   }`}
+                                  aria-label={`Change priority for ${test.title}`}
                                 >
-                                  {test.priority ?? 'Medium'}
-                                </span>
-                                <span className="w-fit rounded-full bg-[#f3f5f9] px-2.5 py-1 text-xs font-semibold text-[#60718f]">
-                                  {test.caseType ?? 'Functional'}
-                                </span>
+                                  {PRIORITY_OPTIONS.map((priority) => (
+                                    <option key={priority} value={priority}>
+                                      {priority}
+                                    </option>
+                                  ))}
+                                </select>
+                                <select
+                                  value={test.caseType ?? 'Functional'}
+                                  onChange={(event) => {
+                                    const caseType = event.target
+                                      .value as CaseTypeValue
+
+                                    if (
+                                      caseType === (test.caseType ?? 'Functional')
+                                    ) {
+                                      return
+                                    }
+
+                                    void handleCaseMetadataChange(test.id, {
+                                      caseType,
+                                    })
+                                  }}
+                                  onPointerDown={(event) => event.stopPropagation()}
+                                  disabled={isPendingCaseAction}
+                                  className="w-fit rounded-full border-0 bg-[#f3f5f9] px-2.5 py-1 text-xs font-semibold text-[#60718f] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+                                  aria-label={`Change type for ${test.title}`}
+                                >
+                                  {CASE_TYPE_OPTIONS.map((caseType) => (
+                                    <option key={caseType} value={caseType}>
+                                      {caseType}
+                                    </option>
+                                  ))}
+                                </select>
                                 <span className="text-sm font-semibold text-[#60718f]">
                                   {formatRepositoryDate(test.createdAt)}
                                 </span>
