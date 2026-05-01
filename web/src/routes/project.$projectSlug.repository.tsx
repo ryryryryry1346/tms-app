@@ -12,10 +12,13 @@ import {
   updateSuite,
 } from '../features/projects/server'
 import {
+  archiveTestCase,
   bulkDeleteArchivedTestCases,
   bulkRestoreTestCases,
   bulkUpdateTestStatus,
+  deleteArchivedTestCase,
   getDashboardState,
+  restoreTestCase,
 } from '../features/tests/server'
 
 export const Route = createFileRoute('/project/$projectSlug/repository')({
@@ -200,6 +203,11 @@ function ProjectRepositoryPage() {
   const [bulkActionErrorMessage, setBulkActionErrorMessage] = useState<string | null>(
     null,
   )
+  const [openCaseMenuId, setOpenCaseMenuId] = useState<number | null>(null)
+  const [pendingCaseActionId, setPendingCaseActionId] = useState<number | null>(null)
+  const [caseActionErrorMessage, setCaseActionErrorMessage] = useState<
+    string | null
+  >(null)
 
   const activeTests = dashboard.tests.filter((test) => test.status !== 'Archived')
   const filteredLifecycleTests = dashboard.tests.filter((test) => {
@@ -396,6 +404,77 @@ function ProjectRepositoryPage() {
       )
     } finally {
       setIsApplyingBulkAction(false)
+    }
+  }
+
+  async function handleCaseArchive(testId: number): Promise<void> {
+    setCaseActionErrorMessage(null)
+    setPendingCaseActionId(testId)
+
+    try {
+      await archiveTestCase({
+        data: {
+          id: testId,
+        },
+      })
+
+      setOpenCaseMenuId(null)
+      setSelectedTestIds((current) => current.filter((id) => id !== testId))
+      await router.invalidate()
+    } catch (error) {
+      setCaseActionErrorMessage(
+        error instanceof Error ? error.message : 'Failed to archive test case.',
+      )
+    } finally {
+      setPendingCaseActionId(null)
+    }
+  }
+
+  async function handleCaseRestore(testId: number): Promise<void> {
+    setCaseActionErrorMessage(null)
+    setPendingCaseActionId(testId)
+
+    try {
+      await restoreTestCase({
+        data: {
+          id: testId,
+        },
+      })
+
+      setOpenCaseMenuId(null)
+      setSelectedTestIds((current) => current.filter((id) => id !== testId))
+      await router.invalidate()
+    } catch (error) {
+      setCaseActionErrorMessage(
+        error instanceof Error ? error.message : 'Failed to restore test case.',
+      )
+    } finally {
+      setPendingCaseActionId(null)
+    }
+  }
+
+  async function handleCaseDeletePermanently(testId: number): Promise<void> {
+    setCaseActionErrorMessage(null)
+    setPendingCaseActionId(testId)
+
+    try {
+      await deleteArchivedTestCase({
+        data: {
+          id: testId,
+        },
+      })
+
+      setOpenCaseMenuId(null)
+      setSelectedTestIds((current) => current.filter((id) => id !== testId))
+      await router.invalidate()
+    } catch (error) {
+      setCaseActionErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Failed to delete test case permanently.',
+      )
+    } finally {
+      setPendingCaseActionId(null)
     }
   }
 
@@ -870,6 +949,12 @@ function ProjectRepositoryPage() {
               </div>
             ) : null}
 
+            {caseActionErrorMessage ? (
+              <div className="mx-5 mt-4 rounded-xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                {caseActionErrorMessage}
+              </div>
+            ) : null}
+
             {dashboard.sections.length === 0 ? (
               <div className="m-5 rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-6 text-sm text-[#63759a]">
                 This project does not have test suites yet.
@@ -1090,20 +1175,23 @@ function ProjectRepositoryPage() {
                         </div>
                       ) : (
                         <div className="bg-white">
-                          <div className="grid grid-cols-[44px_92px_minmax(220px,1fr)_130px_72px] items-center border-t border-[#e9eef8] bg-[#fbfcff] px-5 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
+                          <div className="grid grid-cols-[44px_92px_minmax(220px,1fr)_130px_96px] items-center border-t border-[#e9eef8] bg-[#fbfcff] px-5 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
                             <div />
                             <div>ID</div>
                             <div>Title</div>
                             <div>Status</div>
-                            <div className="text-right">Action</div>
+                            <div className="text-right">Actions</div>
                           </div>
                           {visibleTests.map((test) => {
                             const isReady = test.status === 'Ready'
+                            const isArchived = test.status === 'Archived'
+                            const isCaseMenuOpen = openCaseMenuId === test.id
+                            const isPendingCaseAction = pendingCaseActionId === test.id
 
                             return (
                               <article
                                 key={test.id}
-                                className="grid grid-cols-[44px_92px_minmax(220px,1fr)_130px_72px] items-center border-t border-[#eef2f8] px-5 py-2.5 transition hover:bg-[#f8fbff]"
+                                className="grid grid-cols-[44px_92px_minmax(220px,1fr)_130px_96px] items-center border-t border-[#eef2f8] px-5 py-2.5 transition hover:bg-[#f8fbff]"
                               >
                                 <div>
                                   <input
@@ -1138,13 +1226,71 @@ function ProjectRepositoryPage() {
                                 >
                                   {test.status ?? 'Draft'}
                                 </span>
-                                <Link
-                                  to="/test/$testId"
-                                  params={{ testId: test.id.toString() }}
-                                  className="text-right text-sm font-semibold no-underline text-[#60718f] hover:text-[#2f6fe4]"
-                                >
-                                  Open
-                                </Link>
+                                <div className="relative flex justify-end">
+                                  <button
+                                    type="button"
+                                    disabled={isPendingCaseAction}
+                                    onClick={() => {
+                                      setCaseActionErrorMessage(null)
+                                      setOpenCaseMenuId((current) =>
+                                        current === test.id ? null : test.id,
+                                      )
+                                    }}
+                                    className="rounded-lg border border-[#dbe4f4] bg-white px-2.5 py-1 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
+                                    aria-label="Open test case actions"
+                                  >
+                                    ...
+                                  </button>
+                                  {isCaseMenuOpen ? (
+                                    <div className="absolute right-0 top-full z-10 mt-2 min-w-[170px] rounded-2xl border border-[#dbe4f4] bg-white p-2 text-left shadow-[0_12px_30px_rgba(31,57,102,0.12)]">
+                                      <Link
+                                        to="/test/$testId"
+                                        params={{ testId: test.id.toString() }}
+                                        className="block rounded-xl px-3 py-2 text-sm font-semibold no-underline text-[#60718f] hover:bg-[#f5f8ff]"
+                                      >
+                                        Open
+                                      </Link>
+                                      <Link
+                                        to="/edit-test/$testId"
+                                        params={{ testId: test.id.toString() }}
+                                        className="block rounded-xl px-3 py-2 text-sm font-semibold no-underline text-[#60718f] hover:bg-[#f5f8ff]"
+                                      >
+                                        Edit
+                                      </Link>
+                                      {isArchived ? (
+                                        <>
+                                          <button
+                                            type="button"
+                                            disabled={isPendingCaseAction}
+                                            onClick={() => handleCaseRestore(test.id)}
+                                            className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-55"
+                                          >
+                                            Restore
+                                          </button>
+                                          <button
+                                            type="button"
+                                            disabled={isPendingCaseAction}
+                                            onClick={() =>
+                                              handleCaseDeletePermanently(test.id)
+                                            }
+                                            className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-55"
+                                          >
+                                            Delete permanently
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          disabled={isPendingCaseAction}
+                                          onClick={() => handleCaseArchive(test.id)}
+                                          className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-amber-800 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-55"
+                                        >
+                                          Archive
+                                        </button>
+                                      )}
+                                    </div>
+                                  ) : null}
+                                </div>
                               </article>
                             )
                           })}
