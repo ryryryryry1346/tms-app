@@ -19,6 +19,7 @@ import { Route as RunRunIdRouteImport } from './routes/run.$runId'
 import { Route as ProjectProjectSlugRouteImport } from './routes/project.$projectSlug'
 import { Route as EditTestTestIdRouteImport } from './routes/edit-test.$testId'
 import { Route as ProjectProjectSlugRunsRouteImport } from './routes/project.$projectSlug.runs'
+import { Route as ProjectProjectSlugRepositoryRouteImport } from './routes/project.$projectSlug.repository'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -70,6 +71,12 @@ const ProjectProjectSlugRunsRoute = ProjectProjectSlugRunsRouteImport.update({
   path: '/runs',
   getParentRoute: () => ProjectProjectSlugRoute,
 } as any)
+const ProjectProjectSlugRepositoryRoute =
+  ProjectProjectSlugRepositoryRouteImport.update({
+    id: '/repository',
+    path: '/repository',
+    getParentRoute: () => ProjectProjectSlugRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/project/$projectSlug': typeof ProjectProjectSlugRouteWithChildren
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
+  '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
 }
 export interface FileRoutesByTo {
@@ -93,6 +101,7 @@ export interface FileRoutesByTo {
   '/project/$projectSlug': typeof ProjectProjectSlugRouteWithChildren
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
+  '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
 }
 export interface FileRoutesById {
@@ -106,6 +115,7 @@ export interface FileRoutesById {
   '/project/$projectSlug': typeof ProjectProjectSlugRouteWithChildren
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
+  '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
 }
 export interface FileRouteTypes {
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/project/$projectSlug'
     | '/run/$runId'
     | '/test/$testId'
+    | '/project/$projectSlug/repository'
     | '/project/$projectSlug/runs'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/project/$projectSlug'
     | '/run/$runId'
     | '/test/$testId'
+    | '/project/$projectSlug/repository'
     | '/project/$projectSlug/runs'
   id:
     | '__root__'
@@ -144,6 +156,7 @@ export interface FileRouteTypes {
     | '/project/$projectSlug'
     | '/run/$runId'
     | '/test/$testId'
+    | '/project/$projectSlug/repository'
     | '/project/$projectSlug/runs'
   fileRoutesById: FileRoutesById
 }
@@ -231,14 +244,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectProjectSlugRunsRouteImport
       parentRoute: typeof ProjectProjectSlugRoute
     }
+    '/project/$projectSlug/repository': {
+      id: '/project/$projectSlug/repository'
+      path: '/repository'
+      fullPath: '/project/$projectSlug/repository'
+      preLoaderRoute: typeof ProjectProjectSlugRepositoryRouteImport
+      parentRoute: typeof ProjectProjectSlugRoute
+    }
   }
 }
 
 interface ProjectProjectSlugRouteChildren {
+  ProjectProjectSlugRepositoryRoute: typeof ProjectProjectSlugRepositoryRoute
   ProjectProjectSlugRunsRoute: typeof ProjectProjectSlugRunsRoute
 }
 
 const ProjectProjectSlugRouteChildren: ProjectProjectSlugRouteChildren = {
+  ProjectProjectSlugRepositoryRoute: ProjectProjectSlugRepositoryRoute,
   ProjectProjectSlugRunsRoute: ProjectProjectSlugRunsRoute,
 }
 

@@ -79,6 +79,47 @@ export const Route = createFileRoute('/project/$projectSlug/runs')({
   component: ProjectRunsPage,
 })
 
+function ProjectSubnav({
+  projectSlug,
+  active,
+}: {
+  projectSlug: string
+  active: 'overview' | 'repository' | 'runs'
+}) {
+  const tabClass = (isActive: boolean): string =>
+    `rounded-full px-4 py-2 text-sm font-semibold no-underline ${
+      isActive
+        ? 'bg-[#ecf2ff] text-[#2f6fe4]'
+        : 'text-[#60718f] hover:bg-[#f5f8ff]'
+    }`
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Link
+        to="/project/$projectSlug"
+        params={{ projectSlug }}
+        className={tabClass(active === 'overview')}
+      >
+        Overview
+      </Link>
+      <Link
+        to="/project/$projectSlug/repository"
+        params={{ projectSlug }}
+        className={tabClass(active === 'repository')}
+      >
+        Repository
+      </Link>
+      <Link
+        to="/project/$projectSlug/runs"
+        params={{ projectSlug }}
+        className={tabClass(active === 'runs')}
+      >
+        Runs
+      </Link>
+    </div>
+  )
+}
+
 function ProjectRunsPage() {
   const { project, dashboard, runs } = Route.useLoaderData()
   const router = useRouter()
@@ -187,6 +228,12 @@ function ProjectRunsPage() {
             <p className="mt-3 text-lg text-[#63759a]">
               Manage execution runs for this project.
             </p>
+            <div className="mt-4">
+              <ProjectSubnav
+                projectSlug={project.slug ?? project.id.toString()}
+                active="runs"
+              />
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-3">
@@ -197,13 +244,6 @@ function ProjectRunsPage() {
             >
               + Run
             </button>
-            <Link
-              to="/project/$projectSlug"
-              params={{ projectSlug: project.slug ?? project.id.toString() }}
-              className="rounded-2xl border border-[#dbe4f4] bg-white px-6 py-3 text-base font-semibold no-underline text-[#60718f]"
-            >
-              Back to project
-            </Link>
           </div>
         </section>
 
