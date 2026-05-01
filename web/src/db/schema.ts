@@ -40,6 +40,8 @@ export const tests = mysqlTable(
     steps: text('steps'),
     expected: text('expected'),
     status: varchar('status', { length: 64 }),
+    priority: varchar('priority', { length: 64 }),
+    caseType: varchar('case_type', { length: 64 }),
     archivedFromStatus: varchar('archived_from_status', { length: 64 }),
     sectionId: int('section_id'),
     projectId: int('project_id'),

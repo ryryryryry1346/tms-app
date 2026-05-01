@@ -131,6 +131,12 @@ function TestDetailPage() {
           >
             {test.status ?? 'Draft'}
           </span>
+          <span className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1 font-semibold text-[var(--sea-ink-soft)]">
+            Priority: {test.priority ?? 'Medium'}
+          </span>
+          <span className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1 font-semibold text-[var(--sea-ink-soft)]">
+            Type: {test.caseType ?? 'Functional'}
+          </span>
         </div>
 
         <div className="grid gap-6">

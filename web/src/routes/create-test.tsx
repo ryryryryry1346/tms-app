@@ -50,6 +50,12 @@ function CreateTestPage() {
   const [title, setTitle] = useState('')
   const [sectionId, setSectionId] = useState(initialSection?.id?.toString() ?? '')
   const [status, setStatus] = useState<'Draft' | 'Ready'>('Draft')
+  const [priority, setPriority] = useState<'Low' | 'Medium' | 'High' | 'Critical'>(
+    'Medium',
+  )
+  const [caseType, setCaseType] = useState<
+    'Functional' | 'Regression' | 'Smoke' | 'E2E' | 'UI' | 'API'
+  >('Functional')
   const [steps, setSteps] = useState('')
   const [expected, setExpected] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -94,6 +100,8 @@ function CreateTestPage() {
           title,
           sectionId: Number(sectionId),
           status,
+          priority,
+          caseType,
           steps,
           expected,
         },
@@ -173,19 +181,75 @@ function CreateTestPage() {
             </div>
           </div>
 
-          <label className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
-            Initial case status
-            <select
-              value={status}
-              onChange={(event) =>
-                setStatus(event.target.value === 'Ready' ? 'Ready' : 'Draft')
-              }
-              className="rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
-            >
-              <option value="Draft">Draft</option>
-              <option value="Ready">Ready</option>
-            </select>
-          </label>
+          <div className="grid gap-4 md:grid-cols-3">
+            <label className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
+              Initial case status
+              <select
+                value={status}
+                onChange={(event) =>
+                  setStatus(event.target.value === 'Ready' ? 'Ready' : 'Draft')
+                }
+                className="rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
+              >
+                <option value="Draft">Draft</option>
+                <option value="Ready">Ready</option>
+              </select>
+            </label>
+
+            <label className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
+              Priority
+              <select
+                value={priority}
+                onChange={(event) =>
+                  setPriority(
+                    event.target.value === 'Low'
+                      ? 'Low'
+                      : event.target.value === 'High'
+                        ? 'High'
+                        : event.target.value === 'Critical'
+                          ? 'Critical'
+                          : 'Medium',
+                  )
+                }
+                className="rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
+              >
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Critical">Critical</option>
+              </select>
+            </label>
+
+            <label className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
+              Type
+              <select
+                value={caseType}
+                onChange={(event) =>
+                  setCaseType(
+                    event.target.value === 'Regression'
+                      ? 'Regression'
+                      : event.target.value === 'Smoke'
+                        ? 'Smoke'
+                        : event.target.value === 'E2E'
+                          ? 'E2E'
+                          : event.target.value === 'UI'
+                            ? 'UI'
+                            : event.target.value === 'API'
+                              ? 'API'
+                              : 'Functional',
+                  )
+                }
+                className="rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
+              >
+                <option value="Functional">Functional</option>
+                <option value="Regression">Regression</option>
+                <option value="Smoke">Smoke</option>
+                <option value="E2E">E2E</option>
+                <option value="UI">UI</option>
+                <option value="API">API</option>
+              </select>
+            </label>
+          </div>
 
           <RichTextEditor
             label="Steps"

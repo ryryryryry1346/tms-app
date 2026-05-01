@@ -82,6 +82,15 @@ export const Route = createFileRoute('/project/$projectSlug/repository')({
 
 type ComposerKind = 'suite' | null
 type CaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
+type PriorityFilter = 'All' | 'Low' | 'Medium' | 'High' | 'Critical'
+type CaseTypeFilter =
+  | 'All'
+  | 'Functional'
+  | 'Regression'
+  | 'Smoke'
+  | 'E2E'
+  | 'UI'
+  | 'API'
 const ALL_SUITES_FILTER = 'all'
 
 function ChevronRightIcon() {
@@ -197,6 +206,8 @@ function ProjectRepositoryPage() {
   const [activeComposer, setActiveComposer] = useState<ComposerKind>(null)
   const [searchValue, setSearchValue] = useState('')
   const [caseFilter, setCaseFilter] = useState<CaseFilter>('All')
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('All')
+  const [caseTypeFilter, setCaseTypeFilter] = useState<CaseTypeFilter>('All')
   const [suiteFilterId, setSuiteFilterId] = useState<string>(ALL_SUITES_FILTER)
   const [selectedTestIds, setSelectedTestIds] = useState<number[]>([])
   const [isApplyingBulkAction, setIsApplyingBulkAction] = useState(false)
@@ -212,14 +223,29 @@ function ProjectRepositoryPage() {
   const activeTests = dashboard.tests.filter((test) => test.status !== 'Archived')
   const filteredLifecycleTests = dashboard.tests.filter((test) => {
     if (caseFilter === 'All') {
-      return test.status !== 'Archived'
+      if (test.status === 'Archived') {
+        return false
+      }
+    } else if (caseFilter === 'Archived') {
+      if (test.status !== 'Archived') {
+        return false
+      }
+    } else if (test.status !== caseFilter) {
+      return false
     }
 
-    if (caseFilter === 'Archived') {
-      return test.status === 'Archived'
+    if (priorityFilter !== 'All' && (test.priority ?? 'Medium') !== priorityFilter) {
+      return false
     }
 
-    return test.status === caseFilter
+    if (
+      caseTypeFilter !== 'All' &&
+      (test.caseType ?? 'Functional') !== caseTypeFilter
+    ) {
+      return false
+    }
+
+    return true
   })
   const totalCases =
     caseFilter === 'All' ? activeTests.length : filteredLifecycleTests.length
@@ -251,11 +277,15 @@ function ProjectRepositoryPage() {
                 const title = test.title.toLowerCase()
                 const id = String(test.id)
                 const suiteName = section.name.toLowerCase()
+                const priority = (test.priority ?? 'Medium').toLowerCase()
+                const caseType = (test.caseType ?? 'Functional').toLowerCase()
 
                 return (
                   title.includes(normalizedSearch) ||
                   id.includes(normalizedSearch) ||
-                  suiteName.includes(normalizedSearch)
+                  suiteName.includes(normalizedSearch) ||
+                  priority.includes(normalizedSearch) ||
+                  caseType.includes(normalizedSearch)
                 )
               })
 
@@ -280,8 +310,10 @@ function ProjectRepositoryPage() {
       .filter((item): item is NonNullable<typeof item> => item !== null)
   }, [
     dashboard.sections,
+    caseTypeFilter,
     filteredLifecycleTests,
     normalizedSearch,
+    priorityFilter,
     suiteFilterId,
   ])
 
@@ -813,6 +845,40 @@ function ProjectRepositoryPage() {
                     ))}
                   </select>
                 </label>
+                <label className="flex items-center gap-2 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm text-[#6d7d9e]">
+                  <span className="font-semibold">Priority</span>
+                  <select
+                    value={priorityFilter}
+                    onChange={(event) =>
+                      setPriorityFilter(event.target.value as PriorityFilter)
+                    }
+                    className="min-w-[110px] border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none"
+                  >
+                    <option value="All">All</option>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                    <option value="Critical">Critical</option>
+                  </select>
+                </label>
+                <label className="flex items-center gap-2 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm text-[#6d7d9e]">
+                  <span className="font-semibold">Type</span>
+                  <select
+                    value={caseTypeFilter}
+                    onChange={(event) =>
+                      setCaseTypeFilter(event.target.value as CaseTypeFilter)
+                    }
+                    className="min-w-[120px] border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none"
+                  >
+                    <option value="All">All</option>
+                    <option value="Functional">Functional</option>
+                    <option value="Regression">Regression</option>
+                    <option value="Smoke">Smoke</option>
+                    <option value="E2E">E2E</option>
+                    <option value="UI">UI</option>
+                    <option value="API">API</option>
+                  </select>
+                </label>
                 <div className="flex flex-wrap gap-2">
                   {(['All', 'Ready', 'Draft', 'Archived'] as const).map((filter) => (
                     <button
@@ -1175,10 +1241,12 @@ function ProjectRepositoryPage() {
                         </div>
                       ) : (
                         <div className="bg-white">
-                          <div className="grid grid-cols-[44px_92px_minmax(220px,1fr)_130px_96px] items-center border-t border-[#e9eef8] bg-[#fbfcff] px-5 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
+                          <div className="grid grid-cols-[44px_82px_minmax(220px,1fr)_120px_120px_110px_96px] items-center border-t border-[#e9eef8] bg-[#fbfcff] px-5 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
                             <div />
                             <div>ID</div>
                             <div>Title</div>
+                            <div>Priority</div>
+                            <div>Type</div>
                             <div>Status</div>
                             <div className="text-right">Actions</div>
                           </div>
@@ -1191,7 +1259,7 @@ function ProjectRepositoryPage() {
                             return (
                               <article
                                 key={test.id}
-                                className="grid grid-cols-[44px_92px_minmax(220px,1fr)_130px_96px] items-center border-t border-[#eef2f8] px-5 py-2.5 transition hover:bg-[#f8fbff]"
+                                className="grid grid-cols-[44px_82px_minmax(220px,1fr)_120px_120px_110px_96px] items-center border-t border-[#eef2f8] px-5 py-2.5 transition hover:bg-[#f8fbff]"
                               >
                                 <div>
                                   <input
@@ -1215,6 +1283,22 @@ function ProjectRepositoryPage() {
                                 >
                                   {test.title}
                                 </Link>
+                                <span
+                                  className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                    test.priority === 'Critical'
+                                      ? 'bg-rose-50 text-rose-700'
+                                      : test.priority === 'High'
+                                        ? 'bg-amber-50 text-amber-800'
+                                        : test.priority === 'Low'
+                                          ? 'bg-slate-100 text-slate-600'
+                                          : 'bg-[#eef6ff] text-[#506487]'
+                                  }`}
+                                >
+                                  {test.priority ?? 'Medium'}
+                                </span>
+                                <span className="w-fit rounded-full bg-[#f3f5f9] px-2.5 py-1 text-xs font-semibold text-[#60718f]">
+                                  {test.caseType ?? 'Functional'}
+                                </span>
                                 <span
                                   className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${
                                     isReady

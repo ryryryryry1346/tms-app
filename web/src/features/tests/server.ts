@@ -37,6 +37,10 @@ const createTestInput = z.object({
   title: z.string().trim().min(1),
   sectionId: z.number().int().positive(),
   status: z.enum(['Draft', 'Ready']),
+  priority: z.enum(['Low', 'Medium', 'High', 'Critical']).default('Medium'),
+  caseType: z
+    .enum(['Functional', 'Regression', 'Smoke', 'E2E', 'UI', 'API'])
+    .default('Functional'),
   steps: z.string(),
   expected: z.string(),
 })
@@ -46,6 +50,10 @@ const updateTestInput = z.object({
   title: z.string().trim().min(1),
   sectionId: z.number().int().positive(),
   status: z.enum(['Draft', 'Ready', 'Archived']),
+  priority: z.enum(['Low', 'Medium', 'High', 'Critical']).default('Medium'),
+  caseType: z
+    .enum(['Functional', 'Regression', 'Smoke', 'E2E', 'UI', 'API'])
+    .default('Functional'),
   steps: z.string(),
   expected: z.string(),
 })
@@ -56,6 +64,8 @@ export type DashboardTest = {
   steps: string | null
   expected: string | null
   status: string | null
+  priority: string | null
+  caseType: string | null
   archivedFromStatus: string | null
   sectionId: number | null
   projectId: number | null
@@ -98,6 +108,8 @@ export type EditTestFormState = {
     steps: string
     expected: string
     status: 'Draft' | 'Ready' | 'Archived'
+    priority: 'Low' | 'Medium' | 'High' | 'Critical'
+    caseType: 'Functional' | 'Regression' | 'Smoke' | 'E2E' | 'UI' | 'API'
     sectionId: number
     projectId: number | null
   }
@@ -109,6 +121,8 @@ export type TestDetail = {
   steps: string | null
   expected: string | null
   status: string | null
+  priority: string | null
+  caseType: string | null
   archivedFromStatus: string | null
   sectionId: number | null
   projectId: number | null
@@ -175,6 +189,8 @@ export const getDashboardState = createServerFn({ method: 'POST' })
         steps: tests.steps,
         expected: tests.expected,
         status: tests.status,
+        priority: tests.priority,
+        caseType: tests.caseType,
         archivedFromStatus: tests.archivedFromStatus,
         sectionId: tests.sectionId,
         projectId: tests.projectId,
@@ -541,6 +557,8 @@ export const createTestCase = createServerFn({ method: 'POST' })
       steps: data.steps,
       expected: data.expected,
       status: data.status,
+      priority: data.priority,
+      caseType: data.caseType,
       sectionId: data.sectionId,
       projectId: section.projectId,
     })
@@ -569,6 +587,8 @@ export const getEditTestFormState = createServerFn({ method: 'POST' })
         steps: tests.steps,
         expected: tests.expected,
         status: tests.status,
+        priority: tests.priority,
+        caseType: tests.caseType,
         archivedFromStatus: tests.archivedFromStatus,
         sectionId: tests.sectionId,
         projectId: tests.projectId,
@@ -626,6 +646,26 @@ export const getEditTestFormState = createServerFn({ method: 'POST' })
             : test.status === 'Archived'
               ? 'Archived'
               : 'Draft',
+        priority:
+          test.priority === 'Low'
+            ? 'Low'
+            : test.priority === 'High'
+              ? 'High'
+              : test.priority === 'Critical'
+                ? 'Critical'
+                : 'Medium',
+        caseType:
+          test.caseType === 'Regression'
+            ? 'Regression'
+            : test.caseType === 'Smoke'
+              ? 'Smoke'
+              : test.caseType === 'E2E'
+                ? 'E2E'
+                : test.caseType === 'UI'
+                  ? 'UI'
+                  : test.caseType === 'API'
+                    ? 'API'
+                    : 'Functional',
         sectionId: test.sectionId,
         projectId: test.projectId,
       },
@@ -663,6 +703,8 @@ export const updateTestCase = createServerFn({ method: 'POST' })
         steps: data.steps,
         expected: data.expected,
         status: data.status,
+        priority: data.priority,
+        caseType: data.caseType,
         sectionId: data.sectionId,
         projectId: section.projectId,
       })
@@ -688,6 +730,8 @@ export const getTestDetail = createServerFn({ method: 'POST' })
         steps: tests.steps,
         expected: tests.expected,
         status: tests.status,
+        priority: tests.priority,
+        caseType: tests.caseType,
         archivedFromStatus: tests.archivedFromStatus,
         sectionId: tests.sectionId,
         projectId: tests.projectId,
