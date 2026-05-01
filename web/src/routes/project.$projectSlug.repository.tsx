@@ -233,6 +233,7 @@ function ProjectRepositoryPage() {
   const [selectedTestIds, setSelectedTestIds] = useState<number[]>([])
   const [moveTargetSuiteId, setMoveTargetSuiteId] = useState('')
   const [isApplyingBulkAction, setIsApplyingBulkAction] = useState(false)
+  const [isBulkArchiveConfirming, setIsBulkArchiveConfirming] = useState(false)
   const [bulkActionErrorMessage, setBulkActionErrorMessage] = useState<string | null>(
     null,
   )
@@ -353,9 +354,17 @@ function ProjectRepositoryPage() {
     () => new Set(selectedSuiteIds),
     [selectedSuiteIds],
   )
+  const selectedTests = useMemo(
+    () => dashboard.tests.filter((test) => selectedTestIdSet.has(test.id)),
+    [dashboard.tests, selectedTestIdSet],
+  )
+  const selectedArchivableTests = selectedTests.filter(
+    (test) => test.status !== 'Archived',
+  )
 
   function toggleTestSelection(testId: number): void {
     setBulkActionErrorMessage(null)
+    setIsBulkArchiveConfirming(false)
     setSelectedTestIds((current) =>
       current.includes(testId)
         ? current.filter((id) => id !== testId)
@@ -369,6 +378,7 @@ function ProjectRepositoryPage() {
     }
 
     setBulkActionErrorMessage(null)
+    setIsBulkArchiveConfirming(false)
     setSelectedTestIds((current) => {
       const allSelected = testIds.every((id) => current.includes(id))
 
@@ -388,17 +398,22 @@ function ProjectRepositoryPage() {
     }
 
     setBulkActionErrorMessage(null)
+    setIsBulkArchiveConfirming(false)
     setIsApplyingBulkAction(true)
 
     try {
       await bulkUpdateTestStatus({
         data: {
-          ids: selectedTestIds,
+          ids:
+            status === 'Archived'
+              ? selectedArchivableTests.map((test) => test.id)
+              : selectedTestIds,
           status,
         },
       })
 
       setSelectedTestIds([])
+      setIsBulkArchiveConfirming(false)
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
@@ -411,12 +426,22 @@ function ProjectRepositoryPage() {
     }
   }
 
+  function handleBulkArchiveRequest(): void {
+    if (selectedArchivableTests.length === 0) {
+      return
+    }
+
+    setBulkActionErrorMessage(null)
+    setIsBulkArchiveConfirming(true)
+  }
+
   async function handleBulkRestore(): Promise<void> {
     if (selectedTestIds.length === 0) {
       return
     }
 
     setBulkActionErrorMessage(null)
+    setIsBulkArchiveConfirming(false)
     setIsApplyingBulkAction(true)
 
     try {
@@ -427,6 +452,7 @@ function ProjectRepositoryPage() {
       })
 
       setSelectedTestIds([])
+      setIsBulkArchiveConfirming(false)
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
@@ -445,6 +471,7 @@ function ProjectRepositoryPage() {
     }
 
     setBulkActionErrorMessage(null)
+    setIsBulkArchiveConfirming(false)
     setIsApplyingBulkAction(true)
 
     try {
@@ -455,6 +482,7 @@ function ProjectRepositoryPage() {
       })
 
       setSelectedTestIds([])
+      setIsBulkArchiveConfirming(false)
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
@@ -476,6 +504,7 @@ function ProjectRepositoryPage() {
     }
 
     setBulkActionErrorMessage(null)
+    setIsBulkArchiveConfirming(false)
     setIsApplyingBulkAction(true)
 
     try {
@@ -487,6 +516,7 @@ function ProjectRepositoryPage() {
       })
 
       setSelectedTestIds([])
+      setIsBulkArchiveConfirming(false)
       setMoveTargetSuiteId('')
       setDraggedTestIds([])
       setDragOverSuiteId(null)
@@ -515,6 +545,7 @@ function ProjectRepositoryPage() {
     }
 
     setBulkActionErrorMessage(null)
+    setIsBulkArchiveConfirming(false)
     setIsApplyingBulkAction(true)
 
     try {
@@ -527,6 +558,7 @@ function ProjectRepositoryPage() {
       })
 
       setSelectedTestIds([])
+      setIsBulkArchiveConfirming(false)
       setMoveTargetSuiteId('')
       setDraggedTestIds([])
       setDragOverSuiteId(null)
@@ -1310,7 +1342,9 @@ function ProjectRepositoryPage() {
                       <>
                         <button
                           type="button"
-                          onClick={() => handleBulkStatusChange('Ready')}
+                          onClick={() => {
+                            void handleBulkStatusChange('Ready')
+                          }}
                           disabled={isApplyingBulkAction}
                           className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-55"
                         >
@@ -1318,7 +1352,9 @@ function ProjectRepositoryPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleBulkStatusChange('Draft')}
+                          onClick={() => {
+                            void handleBulkStatusChange('Draft')
+                          }}
                           disabled={isApplyingBulkAction}
                           className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-55"
                         >
@@ -1326,8 +1362,11 @@ function ProjectRepositoryPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleBulkStatusChange('Archived')}
-                          disabled={isApplyingBulkAction}
+                          onClick={handleBulkArchiveRequest}
+                          disabled={
+                            isApplyingBulkAction ||
+                            selectedArchivableTests.length === 0
+                          }
                           className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 disabled:cursor-not-allowed disabled:opacity-55"
                         >
                           Archive
@@ -1336,7 +1375,10 @@ function ProjectRepositoryPage() {
                     )}
                     <button
                       type="button"
-                      onClick={() => setSelectedTestIds([])}
+                      onClick={() => {
+                        setSelectedTestIds([])
+                        setIsBulkArchiveConfirming(false)
+                      }}
                       disabled={isApplyingBulkAction}
                       className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
                     >
@@ -1344,6 +1386,41 @@ function ProjectRepositoryPage() {
                     </button>
                   </div>
                 </div>
+
+                {isBulkArchiveConfirming ? (
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                    <div>
+                      <p className="m-0 text-sm font-semibold text-amber-950">
+                        Archive {selectedArchivableTests.length} selected case
+                        {selectedArchivableTests.length === 1 ? '' : 's'}?
+                      </p>
+                      <p className="m-0 mt-1 text-sm text-amber-900">
+                        Archived cases leave the active repository and can be
+                        restored from the Archived filter.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsBulkArchiveConfirming(false)}
+                        disabled={isApplyingBulkAction}
+                        className="rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm font-semibold text-amber-900 disabled:cursor-not-allowed disabled:opacity-55"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void handleBulkStatusChange('Archived')
+                        }}
+                        disabled={isApplyingBulkAction}
+                        className="rounded-xl border border-amber-300 bg-amber-600 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
+                      >
+                        {isApplyingBulkAction ? 'Archiving...' : 'Confirm archive'}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
 
                 {bulkActionErrorMessage ? (
                   <div className="mt-3 rounded-xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
