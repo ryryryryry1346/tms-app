@@ -224,7 +224,10 @@ function ProjectRepositoryPage() {
   >(null)
   const [draggedTestIds, setDraggedTestIds] = useState<number[]>([])
   const [dragOverSuiteId, setDragOverSuiteId] = useState<number | null>(null)
-  const [dragOverTestId, setDragOverTestId] = useState<number | null>(null)
+  const [dragOverTestDrop, setDragOverTestDrop] = useState<{
+    testId: number
+    position: 'before' | 'after'
+  } | null>(null)
 
   const activeTests = dashboard.tests.filter((test) => test.status !== 'Archived')
   const filteredLifecycleTests = dashboard.tests.filter((test) => {
@@ -468,7 +471,7 @@ function ProjectRepositoryPage() {
       setMoveTargetSuiteId('')
       setDraggedTestIds([])
       setDragOverSuiteId(null)
-      setDragOverTestId(null)
+      setDragOverTestDrop(null)
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
@@ -508,7 +511,7 @@ function ProjectRepositoryPage() {
       setMoveTargetSuiteId('')
       setDraggedTestIds([])
       setDragOverSuiteId(null)
-      setDragOverTestId(null)
+      setDragOverTestDrop(null)
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
@@ -600,6 +603,30 @@ function ProjectRepositoryPage() {
     ]
   }
 
+  function buildReorderedIdsAfter({
+    currentIds,
+    draggedIds,
+    afterId,
+  }: {
+    currentIds: number[]
+    draggedIds: number[]
+    afterId: number
+  }): number[] {
+    const draggedIdSet = new Set(draggedIds)
+    const remainingIds = currentIds.filter((id) => !draggedIdSet.has(id))
+    const afterIndex = remainingIds.indexOf(afterId)
+
+    if (afterIndex < 0) {
+      return [...remainingIds, ...draggedIds]
+    }
+
+    return [
+      ...remainingIds.slice(0, afterIndex + 1),
+      ...draggedIds,
+      ...remainingIds.slice(afterIndex + 1),
+    ]
+  }
+
   function handleSuiteDragOver(
     event: React.DragEvent<HTMLElement>,
     suiteId: number,
@@ -613,12 +640,17 @@ function ProjectRepositoryPage() {
     setDragOverSuiteId(suiteId)
   }
 
-  async function handleSuiteDrop(
-    event: React.DragEvent<HTMLElement>,
-    suiteId: number,
-    currentSuiteTestIds: number[],
-  ): Promise<void> {
+  async function handleSuiteAppendDrop({
+    event,
+    suiteId,
+    currentSuiteTestIds,
+  }: {
+    event: React.DragEvent<HTMLElement>
+    suiteId: number
+    currentSuiteTestIds: number[]
+  }): Promise<void> {
     event.preventDefault()
+    event.stopPropagation()
 
     const ids = getDraggedIdsFromEvent(event)
     const orderedIds = buildReorderedIds({
@@ -636,12 +668,14 @@ function ProjectRepositoryPage() {
   async function handleCaseDrop({
     event,
     suiteId,
-    beforeTestId,
+    targetTestId,
+    position,
     currentSuiteTestIds,
   }: {
     event: React.DragEvent<HTMLElement>
     suiteId: number
-    beforeTestId: number
+    targetTestId: number
+    position: 'before' | 'after'
     currentSuiteTestIds: number[]
   }): Promise<void> {
     event.preventDefault()
@@ -649,18 +683,25 @@ function ProjectRepositoryPage() {
 
     const ids = getDraggedIdsFromEvent(event)
 
-    if (ids.includes(beforeTestId) && ids.length === 1) {
+    if (ids.includes(targetTestId)) {
       setDraggedTestIds([])
       setDragOverSuiteId(null)
-      setDragOverTestId(null)
+      setDragOverTestDrop(null)
       return
     }
 
-    const orderedIds = buildReorderedIds({
-      currentIds: currentSuiteTestIds,
-      draggedIds: ids,
-      beforeId: beforeTestId,
-    })
+    const orderedIds =
+      position === 'before'
+        ? buildReorderedIds({
+            currentIds: currentSuiteTestIds,
+            draggedIds: ids,
+            beforeId: targetTestId,
+          })
+        : buildReorderedIdsAfter({
+            currentIds: currentSuiteTestIds,
+            draggedIds: ids,
+            afterId: targetTestId,
+          })
 
     await handleMoveAndReorderTestCases({
       testIds: ids,
@@ -1303,7 +1344,9 @@ function ProjectRepositoryPage() {
                     (test) => test.status === 'Ready',
                   ).length
                   const draftCount = sectionTests.length - readyCount
-                  const sectionTestIds = sectionTests.map((test) => test.id)
+                  const sectionAllTestIds = dashboard.tests
+                    .filter((test) => test.sectionId === section.id)
+                    .map((test) => test.id)
                   const visibleTestIds = visibleTests.map((test) => test.id)
                   const allVisibleSelected =
                     visibleTestIds.length > 0 &&
@@ -1318,9 +1361,6 @@ function ProjectRepositoryPage() {
                           current === section.id ? null : current,
                         )
                       }
-                      onDrop={(event) => {
-                        void handleSuiteDrop(event, section.id, sectionTestIds)
-                      }}
                       className={`overflow-hidden rounded-3xl border transition ${
                         dragOverSuiteId === section.id
                           ? 'border-[#2f6fe4] bg-[#f8fbff] shadow-[0_0_0_3px_rgba(47,111,228,0.12)]'
@@ -1541,7 +1581,7 @@ function ProjectRepositoryPage() {
                                 onDragEnd={() => {
                                   setDraggedTestIds([])
                                   setDragOverSuiteId(null)
-                                  setDragOverTestId(null)
+                                  setDragOverTestDrop(null)
                                 }}
                                 onDragOver={(event) => {
                                   if (draggedTestIds.length === 0) {
@@ -1551,27 +1591,45 @@ function ProjectRepositoryPage() {
                                   event.preventDefault()
                                   event.stopPropagation()
                                   event.dataTransfer.dropEffect = 'move'
+                                  const bounds =
+                                    event.currentTarget.getBoundingClientRect()
+                                  const position =
+                                    event.clientY - bounds.top > bounds.height / 2
+                                      ? 'after'
+                                      : 'before'
+
                                   setDragOverSuiteId(section.id)
-                                  setDragOverTestId(test.id)
+                                  setDragOverTestDrop({
+                                    testId: test.id,
+                                    position,
+                                  })
                                 }}
                                 onDragLeave={() =>
-                                  setDragOverTestId((current) =>
-                                    current === test.id ? null : current,
+                                  setDragOverTestDrop((current) =>
+                                    current?.testId === test.id ? null : current,
                                   )
                                 }
                                 onDrop={(event) => {
+                                  const position =
+                                    dragOverTestDrop?.testId === test.id
+                                      ? dragOverTestDrop.position
+                                      : 'before'
+
                                   void handleCaseDrop({
                                     event,
                                     suiteId: section.id,
-                                    beforeTestId: test.id,
-                                    currentSuiteTestIds: sectionTestIds,
+                                    targetTestId: test.id,
+                                    position,
+                                    currentSuiteTestIds: sectionAllTestIds,
                                   })
                                 }}
                                 className={`grid cursor-grab grid-cols-[44px_82px_minmax(220px,1fr)_120px_120px_110px_96px] items-center border-t border-[#eef2f8] px-5 py-2.5 transition hover:bg-[#f8fbff] active:cursor-grabbing ${
                                   draggedTestIds.includes(test.id)
                                     ? 'bg-[#f8fbff] opacity-70'
-                                    : dragOverTestId === test.id
-                                      ? 'bg-[#ecf2ff] shadow-[inset_0_2px_0_#2f6fe4]'
+                                    : dragOverTestDrop?.testId === test.id
+                                      ? dragOverTestDrop.position === 'before'
+                                        ? 'bg-[#ecf2ff] shadow-[inset_0_2px_0_#2f6fe4]'
+                                        : 'bg-[#ecf2ff] shadow-[inset_0_-2px_0_#2f6fe4]'
                                     : ''
                                 }`}
                               >
@@ -1692,6 +1750,33 @@ function ProjectRepositoryPage() {
                               </article>
                             )
                           })}
+                          <div
+                            onDragOver={(event) => {
+                              if (draggedTestIds.length === 0) {
+                                return
+                              }
+
+                              event.preventDefault()
+                              event.stopPropagation()
+                              event.dataTransfer.dropEffect = 'move'
+                              setDragOverSuiteId(section.id)
+                              setDragOverTestDrop(null)
+                            }}
+                            onDrop={(event) => {
+                              void handleSuiteAppendDrop({
+                                event,
+                                suiteId: section.id,
+                                currentSuiteTestIds: sectionAllTestIds,
+                              })
+                            }}
+                            className={`border-t border-dashed px-5 py-3 text-center text-xs font-semibold uppercase tracking-[0.08em] transition ${
+                              dragOverSuiteId === section.id && !dragOverTestDrop
+                                ? 'border-[#9dbaf7] bg-[#ecf2ff] text-[#2f6fe4]'
+                                : 'border-[#e9eef8] text-[#9aa7bf]'
+                            }`}
+                          >
+                            Drop here to move to the end
+                          </div>
                         </div>
                       )}
                     </section>
