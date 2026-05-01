@@ -16,6 +16,7 @@ import {
   bulkDeleteArchivedTestCases,
   bulkMoveTestCases,
   bulkRestoreTestCases,
+  bulkUpdateTestMetadata,
   bulkUpdateTestStatus,
   deleteArchivedTestCase,
   duplicateTestCase,
@@ -86,6 +87,7 @@ export const Route = createFileRoute('/project/$projectSlug/repository')({
 type ComposerKind = 'suite' | null
 type CaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
 type PriorityFilter = 'All' | 'Low' | 'Medium' | 'High' | 'Critical'
+type PriorityValue = Exclude<PriorityFilter, 'All'>
 type CaseTypeFilter =
   | 'All'
   | 'Functional'
@@ -94,7 +96,17 @@ type CaseTypeFilter =
   | 'E2E'
   | 'UI'
   | 'API'
+type CaseTypeValue = Exclude<CaseTypeFilter, 'All'>
 const ALL_SUITES_FILTER = 'all'
+const PRIORITY_OPTIONS: PriorityValue[] = ['Low', 'Medium', 'High', 'Critical']
+const CASE_TYPE_OPTIONS: CaseTypeValue[] = [
+  'Functional',
+  'Regression',
+  'Smoke',
+  'E2E',
+  'UI',
+  'API',
+]
 
 function formatRepositoryDate(value: string | null | undefined): string {
   if (!value) {
@@ -232,6 +244,12 @@ function ProjectRepositoryPage() {
   const [suiteFilterId, setSuiteFilterId] = useState<string>(ALL_SUITES_FILTER)
   const [selectedTestIds, setSelectedTestIds] = useState<number[]>([])
   const [moveTargetSuiteId, setMoveTargetSuiteId] = useState('')
+  const [bulkPriorityValue, setBulkPriorityValue] = useState<'' | PriorityValue>(
+    '',
+  )
+  const [bulkCaseTypeValue, setBulkCaseTypeValue] = useState<'' | CaseTypeValue>(
+    '',
+  )
   const [isApplyingBulkAction, setIsApplyingBulkAction] = useState(false)
   const [isBulkArchiveConfirming, setIsBulkArchiveConfirming] = useState(false)
   const [isBulkDeleteConfirming, setIsBulkDeleteConfirming] = useState(false)
@@ -371,6 +389,11 @@ function ProjectRepositoryPage() {
     setIsBulkDeleteConfirming(false)
   }
 
+  function resetBulkMetadataFields(): void {
+    setBulkPriorityValue('')
+    setBulkCaseTypeValue('')
+  }
+
   function toggleTestSelection(testId: number): void {
     setBulkActionErrorMessage(null)
     clearBulkConfirmations()
@@ -425,12 +448,48 @@ function ProjectRepositoryPage() {
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
+      resetBulkMetadataFields()
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
         error instanceof Error
           ? error.message
           : 'Failed to update selected test cases.',
+      )
+    } finally {
+      setIsApplyingBulkAction(false)
+    }
+  }
+
+  async function handleBulkMetadataUpdate(
+    metadata:
+      | { priority: PriorityValue; caseType?: never }
+      | { priority?: never; caseType: CaseTypeValue },
+  ): Promise<void> {
+    if (selectedTestIds.length === 0) {
+      return
+    }
+
+    setBulkActionErrorMessage(null)
+    clearBulkConfirmations()
+    setIsApplyingBulkAction(true)
+
+    try {
+      await bulkUpdateTestMetadata({
+        data: {
+          ids: selectedTestIds,
+          ...metadata,
+        },
+      })
+
+      setSelectedTestIds([])
+      resetBulkMetadataFields()
+      await router.invalidate()
+    } catch (error) {
+      setBulkActionErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Failed to update selected test case metadata.',
       )
     } finally {
       setIsApplyingBulkAction(false)
@@ -467,6 +526,7 @@ function ProjectRepositoryPage() {
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
+      resetBulkMetadataFields()
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
@@ -499,6 +559,7 @@ function ProjectRepositoryPage() {
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
+      resetBulkMetadataFields()
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
@@ -545,6 +606,7 @@ function ProjectRepositoryPage() {
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
+      resetBulkMetadataFields()
       setMoveTargetSuiteId('')
       setDraggedTestIds([])
       setDragOverSuiteId(null)
@@ -589,6 +651,7 @@ function ProjectRepositoryPage() {
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
+      resetBulkMetadataFields()
       setMoveTargetSuiteId('')
       setDraggedTestIds([])
       setDragOverSuiteId(null)
@@ -1360,6 +1423,74 @@ function ProjectRepositoryPage() {
                     >
                       Move
                     </button>
+                    <label className="flex items-center gap-2 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]">
+                      Priority
+                      <select
+                        value={bulkPriorityValue}
+                        onChange={(event) =>
+                          setBulkPriorityValue(event.target.value as PriorityValue)
+                        }
+                        disabled={isApplyingBulkAction}
+                        className="min-w-[110px] border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none disabled:cursor-not-allowed"
+                      >
+                        <option value="">Choose</option>
+                        {PRIORITY_OPTIONS.map((priority) => (
+                          <option key={priority} value={priority}>
+                            {priority}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!bulkPriorityValue) {
+                          return
+                        }
+
+                        void handleBulkMetadataUpdate({
+                          priority: bulkPriorityValue,
+                        })
+                      }}
+                      disabled={isApplyingBulkAction || !bulkPriorityValue}
+                      className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      Set
+                    </button>
+                    <label className="flex items-center gap-2 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]">
+                      Type
+                      <select
+                        value={bulkCaseTypeValue}
+                        onChange={(event) =>
+                          setBulkCaseTypeValue(event.target.value as CaseTypeValue)
+                        }
+                        disabled={isApplyingBulkAction}
+                        className="min-w-[120px] border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none disabled:cursor-not-allowed"
+                      >
+                        <option value="">Choose</option>
+                        {CASE_TYPE_OPTIONS.map((caseType) => (
+                          <option key={caseType} value={caseType}>
+                            {caseType}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!bulkCaseTypeValue) {
+                          return
+                        }
+
+                        void handleBulkMetadataUpdate({
+                          caseType: bulkCaseTypeValue,
+                        })
+                      }}
+                      disabled={isApplyingBulkAction || !bulkCaseTypeValue}
+                      className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      Set
+                    </button>
                     {caseFilter === 'Archived' ? (
                       <>
                         <button
@@ -1423,6 +1554,7 @@ function ProjectRepositoryPage() {
                         setSelectedTestIds([])
                         setIsBulkArchiveConfirming(false)
                         setIsBulkDeleteConfirming(false)
+                        resetBulkMetadataFields()
                       }}
                       disabled={isApplyingBulkAction}
                       className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"

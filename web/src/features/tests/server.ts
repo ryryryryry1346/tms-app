@@ -21,6 +21,18 @@ const bulkUpdateTestStatusInput = z.object({
   status: z.enum(['Draft', 'Ready', 'Archived']),
 })
 
+const bulkUpdateTestMetadataInput = z
+  .object({
+    ids: z.array(z.number().int().positive()).min(1),
+    priority: z.enum(['Low', 'Medium', 'High', 'Critical']).optional(),
+    caseType: z
+      .enum(['Functional', 'Regression', 'Smoke', 'E2E', 'UI', 'API'])
+      .optional(),
+  })
+  .refine((data) => data.priority || data.caseType, {
+    message: 'Choose metadata to update.',
+  })
+
 const bulkMoveTestCasesInput = z.object({
   ids: z.array(z.number().int().positive()).min(1),
   sectionId: z.number().int().positive(),
@@ -295,6 +307,34 @@ export const bulkUpdateTestStatus = createServerFn({ method: 'POST' })
           .where(eq(tests.id, test.id))
       }
     })
+
+    return { ok: true }
+  })
+
+export const bulkUpdateTestMetadata = createServerFn({ method: 'POST' })
+  .inputValidator(bulkUpdateTestMetadataInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    const updateValues: {
+      priority?: 'Low' | 'Medium' | 'High' | 'Critical'
+      caseType?: 'Functional' | 'Regression' | 'Smoke' | 'E2E' | 'UI' | 'API'
+      updatedAt: string
+    } = {
+      updatedAt: new Date().toISOString(),
+    }
+
+    if (data.priority) {
+      updateValues.priority = data.priority
+    }
+
+    if (data.caseType) {
+      updateValues.caseType = data.caseType
+    }
+
+    await db.update(tests).set(updateValues).where(inArray(tests.id, data.ids))
 
     return { ok: true }
   })
