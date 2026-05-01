@@ -571,6 +571,18 @@ function ProjectPage() {
               <p className="mt-3 text-lg text-[#63759a]">
                 Work with suites, cases, and execution runs for this project.
               </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <span className="rounded-full border border-[#9dbaf7] bg-[#edf4ff] px-4 py-2 text-sm font-semibold text-[#2f6fe4]">
+                  Overview
+                </span>
+                <Link
+                  to="/project/$projectSlug/runs"
+                  params={{ projectSlug: project.slug ?? project.id.toString() }}
+                  className="rounded-full border border-[#dbe4f4] bg-white px-4 py-2 text-sm font-semibold no-underline text-[#60718f]"
+                >
+                  Runs
+                </Link>
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -599,6 +611,13 @@ function ProjectPage() {
               >
                 + Run
               </button>
+              <Link
+                to="/project/$projectSlug/runs"
+                params={{ projectSlug: project.slug ?? project.id.toString() }}
+                className="rounded-2xl border border-[#dbe4f4] bg-white px-7 py-3 text-base font-semibold no-underline text-[#60718f]"
+              >
+                Runs
+              </Link>
             </div>
           </section>
 
@@ -613,67 +632,20 @@ function ProjectPage() {
                 key={item.label}
                 className="rounded-3xl border border-[#e6ecf8] bg-white px-7 py-6 shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
               >
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`flex h-14 w-14 items-center justify-center rounded-full bg-[#f4f7ff] text-xl font-bold ${item.tone}`}
-                  >
-                    0
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold uppercase tracking-[0.08em] text-[#7686a7]">
-                      {item.label}
-                    </div>
-                    <div className="mt-1 text-4xl font-semibold text-[#1b2f5b]">
-                      {item.value}
-                    </div>
-                  </div>
+                <div className="text-sm font-semibold uppercase tracking-[0.08em] text-[#7686a7]">
+                  {item.label}
+                </div>
+                <div className={`mt-3 text-4xl font-semibold ${item.tone}`}>
+                  {item.value}
                 </div>
               </div>
             ))}
           </section>
 
-          <section className="mb-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-            <div />
-            <section
-              id="project-runs"
-              className="rounded-3xl border border-[#e6ecf8] bg-white px-5 py-5 shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
-            >
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <h2 className="m-0 text-xl font-semibold text-[#1b2f5b]">
-                  Recent runs
-                </h2>
-                <span className="text-sm text-[#63759a]">
-                  {runs.length} run{runs.length === 1 ? '' : 's'}
-                </span>
-              </div>
-
-              {runs.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-4 text-sm text-[#63759a]">
-                  No runs yet.
-                </div>
-              ) : (
-                <div className="grid gap-3">
-                  {runs.slice(0, 3).map((run) => (
-                    <Link
-                      key={run.id}
-                      to="/run/$runId"
-                      params={{ runId: run.id.toString() }}
-                      className="rounded-2xl border border-[#dbe4f4] bg-[#fbfcff] px-4 py-3 no-underline text-[#1b2f5b] hover:text-[#2f6fe4]"
-                    >
-                      <div className="text-sm font-semibold">{run.name}</div>
-                      <div className="mt-1 text-xs text-[#63759a]">
-                        Run ID: {run.id}
-                      </div>
-                    </Link>
-                  ))}
-                  {runs.length > 3 ? (
-                    <div className="text-xs text-[#63759a]">
-                      Showing 3 of {runs.length} runs.
-                    </div>
-                  ) : null}
-                </div>
-              )}
-            </section>
+          <section className="mb-8">
+            <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-white/60 px-4 py-3 text-sm text-[#63759a]">
+              Runs moved to a separate tab. Open <strong>Runs</strong> to review recent executions and manage run names.
+            </div>
           </section>
 
           {activeComposer ? (
@@ -955,9 +927,6 @@ function ProjectPage() {
                           >
                             {isCollapsed ? '>' : 'v'}
                           </button>
-                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#dbe4f4] bg-white text-[#506487]">
-                            []
-                          </div>
                           <div className="min-w-0">
                             {isEditingSuite ? (
                               <form

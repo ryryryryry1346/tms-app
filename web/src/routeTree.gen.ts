@@ -18,6 +18,7 @@ import { Route as TestTestIdRouteImport } from './routes/test.$testId'
 import { Route as RunRunIdRouteImport } from './routes/run.$runId'
 import { Route as ProjectProjectSlugRouteImport } from './routes/project.$projectSlug'
 import { Route as EditTestTestIdRouteImport } from './routes/edit-test.$testId'
+import { Route as ProjectProjectSlugRunsRouteImport } from './routes/project.$projectSlug.runs'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -64,6 +65,11 @@ const EditTestTestIdRoute = EditTestTestIdRouteImport.update({
   path: '/edit-test/$testId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectProjectSlugRunsRoute = ProjectProjectSlugRunsRouteImport.update({
+  id: '/runs',
+  path: '/runs',
+  getParentRoute: () => ProjectProjectSlugRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -72,9 +78,10 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/edit-test/$testId': typeof EditTestTestIdRoute
-  '/project/$projectSlug': typeof ProjectProjectSlugRoute
+  '/project/$projectSlug': typeof ProjectProjectSlugRouteWithChildren
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
+  '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -83,9 +90,10 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/edit-test/$testId': typeof EditTestTestIdRoute
-  '/project/$projectSlug': typeof ProjectProjectSlugRoute
+  '/project/$projectSlug': typeof ProjectProjectSlugRouteWithChildren
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
+  '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -95,9 +103,10 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/edit-test/$testId': typeof EditTestTestIdRoute
-  '/project/$projectSlug': typeof ProjectProjectSlugRoute
+  '/project/$projectSlug': typeof ProjectProjectSlugRouteWithChildren
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
+  '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +120,7 @@ export interface FileRouteTypes {
     | '/project/$projectSlug'
     | '/run/$runId'
     | '/test/$testId'
+    | '/project/$projectSlug/runs'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
     | '/project/$projectSlug'
     | '/run/$runId'
     | '/test/$testId'
+    | '/project/$projectSlug/runs'
   id:
     | '__root__'
     | '/'
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/project/$projectSlug'
     | '/run/$runId'
     | '/test/$testId'
+    | '/project/$projectSlug/runs'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -142,7 +154,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
   EditTestTestIdRoute: typeof EditTestTestIdRoute
-  ProjectProjectSlugRoute: typeof ProjectProjectSlugRoute
+  ProjectProjectSlugRoute: typeof ProjectProjectSlugRouteWithChildren
   RunRunIdRoute: typeof RunRunIdRoute
   TestTestIdRoute: typeof TestTestIdRoute
 }
@@ -212,8 +224,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EditTestTestIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/project/$projectSlug/runs': {
+      id: '/project/$projectSlug/runs'
+      path: '/runs'
+      fullPath: '/project/$projectSlug/runs'
+      preLoaderRoute: typeof ProjectProjectSlugRunsRouteImport
+      parentRoute: typeof ProjectProjectSlugRoute
+    }
   }
 }
+
+interface ProjectProjectSlugRouteChildren {
+  ProjectProjectSlugRunsRoute: typeof ProjectProjectSlugRunsRoute
+}
+
+const ProjectProjectSlugRouteChildren: ProjectProjectSlugRouteChildren = {
+  ProjectProjectSlugRunsRoute: ProjectProjectSlugRunsRoute,
+}
+
+const ProjectProjectSlugRouteWithChildren =
+  ProjectProjectSlugRoute._addFileChildren(ProjectProjectSlugRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -222,7 +252,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
   EditTestTestIdRoute: EditTestTestIdRoute,
-  ProjectProjectSlugRoute: ProjectProjectSlugRoute,
+  ProjectProjectSlugRoute: ProjectProjectSlugRouteWithChildren,
   RunRunIdRoute: RunRunIdRoute,
   TestTestIdRoute: TestTestIdRoute,
 }

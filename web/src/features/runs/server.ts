@@ -15,6 +15,11 @@ const createRunInput = z.object({
   name: z.string().trim().min(1),
 })
 
+const updateRunNameInput = z.object({
+  runId: z.number().int().positive(),
+  name: z.string().trim().min(1),
+})
+
 const getRunDetailInput = z.object({
   runId: z.number().int().positive(),
 })
@@ -215,6 +220,35 @@ export const getRunDetail = createServerFn({ method: 'POST' })
       },
       tests: fallbackRunTests,
     }
+  })
+
+export const updateRunName = createServerFn({ method: 'POST' })
+  .inputValidator(updateRunNameInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    const existingRun = await db
+      .select({
+        id: testRuns.id,
+      })
+      .from(testRuns)
+      .where(eq(testRuns.id, data.runId))
+      .limit(1)
+
+    if (existingRun.length === 0) {
+      throw notFound()
+    }
+
+    await db
+      .update(testRuns)
+      .set({
+        name: data.name,
+      })
+      .where(eq(testRuns.id, data.runId))
+
+    return { ok: true }
   })
 
 export const executeRunTest = createServerFn({ method: 'POST' })
