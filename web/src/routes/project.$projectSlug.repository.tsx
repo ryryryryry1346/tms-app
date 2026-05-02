@@ -277,7 +277,6 @@ function ProjectRepositoryPage() {
   const [collapsedSuiteById, setCollapsedSuiteById] = useState<
     Record<number, boolean>
   >({})
-  const [selectedSuiteIds, setSelectedSuiteIds] = useState<number[]>([])
   const [activeComposer, setActiveComposer] = useState<ComposerKind>(null)
   const [searchValue, setSearchValue] = useState('')
   const [caseFilter, setCaseFilter] = useState<CaseFilter>('All')
@@ -433,10 +432,6 @@ function ProjectRepositoryPage() {
   const selectedTestIdSet = useMemo(
     () => new Set(selectedTestIds),
     [selectedTestIds],
-  )
-  const selectedSuiteIdSet = useMemo(
-    () => new Set(selectedSuiteIds),
-    [selectedSuiteIds],
   )
   const selectedTests = useMemo(
     () => dashboard.tests.filter((test) => selectedTestIdSet.has(test.id)),
@@ -1343,92 +1338,6 @@ function ProjectRepositoryPage() {
     }))
   }
 
-  function toggleSuiteBulkSelection(suiteId: number): void {
-    setSuiteActionErrorMessage(null)
-    setSelectedSuiteIds((current) =>
-      current.includes(suiteId)
-        ? current.filter((id) => id !== suiteId)
-        : [...current, suiteId],
-    )
-  }
-
-  function clearSuiteSelection(): void {
-    setSelectedSuiteIds([])
-  }
-
-  function handleCollapseSelectedSuites(): void {
-    if (selectedSuiteIds.length === 0) {
-      return
-    }
-
-    setCollapsedSuiteById((current) => {
-      const nextState = { ...current }
-      for (const suiteId of selectedSuiteIds) {
-        nextState[suiteId] = true
-      }
-      return nextState
-    })
-  }
-
-  function handleExpandSelectedSuites(): void {
-    if (selectedSuiteIds.length === 0) {
-      return
-    }
-
-    setCollapsedSuiteById((current) => {
-      const nextState = { ...current }
-      for (const suiteId of selectedSuiteIds) {
-        nextState[suiteId] = false
-      }
-      return nextState
-    })
-  }
-
-  async function handleDeleteSelectedSuites(): Promise<void> {
-    if (selectedSuiteIds.length === 0) {
-      return
-    }
-
-    setSuiteActionErrorMessage(null)
-    setSuiteActionSuiteId(null)
-
-    const nextPending: Record<number, boolean> = {}
-    for (const suiteId of selectedSuiteIds) {
-      nextPending[suiteId] = true
-    }
-    setPendingSuiteActionById((current) => ({
-      ...current,
-      ...nextPending,
-    }))
-
-    try {
-      for (const suiteId of selectedSuiteIds) {
-        await deleteSuite({
-          data: {
-            suiteId,
-          },
-        })
-      }
-
-      setSelectedSuiteIds([])
-      await router.invalidate()
-    } catch (error) {
-      setSuiteActionErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Failed to delete selected suites.',
-      )
-    } finally {
-      setPendingSuiteActionById((current) => {
-        const nextState = { ...current }
-        for (const suiteId of selectedSuiteIds) {
-          delete nextState[suiteId]
-        }
-        return nextState
-      })
-    }
-  }
-
   function renderQuickCreateCaseRow(sectionId: number, projectId: number) {
     const isPending = pendingQuickCreateSuiteId === sectionId
 
@@ -1789,47 +1698,6 @@ function ProjectRepositoryPage() {
               </div>
             </div>
 
-            {selectedSuiteIds.length > 0 ? (
-              <div className="mx-5 mt-4 rounded-2xl border border-[#dbe4f4] bg-[#f8fbff] px-4 py-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-[#1b2f5b]">
-                    {selectedSuiteIds.length} suite
-                    {selectedSuiteIds.length === 1 ? '' : 's'} selected
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleExpandSelectedSuites}
-                      className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]"
-                    >
-                      Expand
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCollapseSelectedSuites}
-                      className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]"
-                    >
-                      Collapse
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDeleteSelectedSuites}
-                      className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700"
-                    >
-                      Delete empty suites
-                    </button>
-                    <button
-                      type="button"
-                      onClick={clearSuiteSelection}
-                      className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
             {selectedTestIds.length > 0 ? (
               <div className="mx-5 mt-4 rounded-2xl border border-[#dbe4f4] bg-[#f8fbff] px-4 py-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -2139,12 +2007,6 @@ function ProjectRepositoryPage() {
                     >
                       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e9eef8] bg-[#fbfcff] px-5 py-4">
                         <div className="flex min-w-0 items-center gap-4">
-                          <input
-                            type="checkbox"
-                            checked={selectedSuiteIdSet.has(section.id)}
-                            onChange={() => toggleSuiteBulkSelection(section.id)}
-                            className="h-4 w-4 rounded border-[#c7d5ee] text-[#2f6fe4] focus:ring-[#2f6fe4]"
-                          />
                           <button
                             type="button"
                             onClick={() => toggleSuiteCollapsed(section.id)}
@@ -2221,7 +2083,7 @@ function ProjectRepositoryPage() {
                             }
                             className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
                           >
-                            {allVisibleSelected ? 'Clear suite' : 'Select suite'}
+                            {allVisibleSelected ? 'Clear cases' : 'Select cases'}
                           </button>
                           <button
                             type="button"
@@ -2248,13 +2110,23 @@ function ProjectRepositoryPage() {
                                 ...
                               </button>
                               {isMenuOpen ? (
-                                <div className="absolute right-0 top-full z-50 mt-2 min-w-[160px] rounded-2xl border border-[#dbe4f4] bg-white p-2 shadow-[0_12px_30px_rgba(31,57,102,0.12)]">
+                                <div className="absolute right-0 top-full z-50 mt-2 min-w-[190px] rounded-2xl border border-[#dbe4f4] bg-white p-2 shadow-[0_12px_30px_rgba(31,57,102,0.12)]">
                                   <button
                                     type="button"
                                     onClick={() => startRenameSuite(section.id, section.name)}
                                     className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-[#60718f] hover:bg-[#f5f8ff]"
                                   >
                                     Rename
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      toggleSuiteCollapsed(section.id)
+                                      setOpenSuiteMenuId(null)
+                                    }}
+                                    className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-[#60718f] hover:bg-[#f5f8ff]"
+                                  >
+                                    {isCollapsed ? 'Expand' : 'Collapse'}
                                   </button>
                                   <button
                                     type="button"
@@ -2268,7 +2140,7 @@ function ProjectRepositoryPage() {
                                     }}
                                     className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50"
                                   >
-                                    Delete
+                                    Delete empty suite
                                   </button>
                                 </div>
                               ) : null}
