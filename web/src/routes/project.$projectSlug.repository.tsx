@@ -8,6 +8,9 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { BulkCaseBar } from '../components/repository/BulkCaseBar'
 import { CasePreviewDrawer } from '../components/repository/CasePreviewDrawer'
+import { RepositoryEmptyState } from '../components/repository/RepositoryEmptyState'
+import { RepositoryErrorBanner } from '../components/repository/RepositoryErrorBanner'
+import { RepositoryPanel } from '../components/repository/RepositoryPanel'
 import { RepositoryToolbar } from '../components/repository/RepositoryToolbar'
 import { SuiteSection } from '../components/repository/SuiteSection'
 import { uploadTestMedia } from '../features/media/server'
@@ -1442,10 +1445,7 @@ function ProjectRepositoryPage() {
             </section>
           ) : null}
 
-            <section
-              id="project-suites"
-              className="overflow-visible rounded-3xl border border-[#e6ecf8] bg-white shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
-            >
+          <RepositoryPanel>
             <RepositoryToolbar
               visibleCount={filteredLifecycleTests.length}
               searchValue={searchValue}
@@ -1526,23 +1526,16 @@ function ProjectRepositoryPage() {
             ) : null}
 
             {caseActionErrorMessage ? (
-              <div className="mx-5 mt-4 rounded-xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-                {caseActionErrorMessage}
-              </div>
+              <RepositoryErrorBanner message={caseActionErrorMessage} />
             ) : null}
 
             {dashboard.sections.length === 0 ? (
-              <div className="m-5 rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-6 text-sm text-[#63759a]">
-                This project does not have test suites yet.
-              </div>
+              <RepositoryEmptyState reason="no-suites" />
             ) : filteredSections.length === 0 ? (
-              <div className="m-5 rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-6 text-sm text-[#63759a]">
-                {caseFilter === 'All'
-                  ? 'No test cases match the current search and suite filters.'
-                  : caseFilter === 'Archived'
-                    ? 'No archived test cases match the current search and suite filters.'
-                    : `No ${caseFilter.toLowerCase()} test cases match the current search and suite filters.`}
-              </div>
+              <RepositoryEmptyState
+                reason="no-matching-cases"
+                caseFilter={caseFilter}
+              />
             ) : (
               <div className="grid gap-4 p-5">
                 {filteredSections.map(({ section, sectionTests, visibleTests }) => {
@@ -1741,7 +1734,7 @@ function ProjectRepositoryPage() {
                 })}
               </div>
             )}
-          </section>
+          </RepositoryPanel>
 
           {previewTest ? (
             <CasePreviewDrawer
