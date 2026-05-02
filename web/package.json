@@ -10,7 +10,8 @@
   },
   "scripts": {
     "dev": "vite dev --port 3000",
-    "build": "vite build",
+    "build": "npm run check:boundaries && vite build",
+    "check:boundaries": "node scripts/check-server-boundaries.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
