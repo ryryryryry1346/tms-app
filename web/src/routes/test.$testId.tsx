@@ -9,11 +9,15 @@ import { RichTextEditor } from '../components/RichTextEditor'
 import { uploadTestMedia } from '../features/media/server'
 import {
   archiveTestCase,
+  bulkMoveTestCases,
+  bulkUpdateTestMetadata,
   deleteArchivedTestCase,
   duplicateTestCase,
   getTestDetail,
   restoreTestCase,
   updateTestContent,
+  updateTestStatus,
+  updateTestTitle,
 } from '../features/tests/server'
 
 export const Route = createFileRoute('/test/$testId')({
@@ -32,6 +36,22 @@ export const Route = createFileRoute('/test/$testId')({
   },
   component: TestDetailPage,
 })
+
+const CASE_STATUS_OPTIONS = ['Draft', 'Ready', 'Archived'] as const
+const PRIORITY_OPTIONS = ['Low', 'Medium', 'High', 'Critical'] as const
+const CASE_TYPE_OPTIONS = [
+  'Functional',
+  'Regression',
+  'Smoke',
+  'E2E',
+  'UI',
+  'API',
+] as const
+
+type CaseStatusValue = (typeof CASE_STATUS_OPTIONS)[number]
+type PriorityValue = (typeof PRIORITY_OPTIONS)[number]
+type CaseTypeValue = (typeof CASE_TYPE_OPTIONS)[number]
+type PendingMetadataField = 'title' | 'status' | 'priority' | 'caseType' | 'suite'
 
 function formatDetailDate(value: string | null | undefined): string {
   if (!value) {
@@ -110,6 +130,10 @@ function TestDetailPage() {
   const [expectedValue, setExpectedValue] = useState(test.expected ?? '')
   const [isSavingContent, setIsSavingContent] = useState(false)
   const [isUploadingMedia, setIsUploadingMedia] = useState(false)
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [titleValue, setTitleValue] = useState(test.title)
+  const [pendingMetadataField, setPendingMetadataField] =
+    useState<PendingMetadataField | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -236,6 +260,156 @@ function TestDetailPage() {
     }
   }
 
+  function startTitleEdit(): void {
+    setActionError(null)
+    setTitleValue(test.title)
+    setIsEditingTitle(true)
+  }
+
+  function cancelTitleEdit(): void {
+    setTitleValue(test.title)
+    setIsEditingTitle(false)
+  }
+
+  async function saveTitleEdit(): Promise<void> {
+    const nextTitle = titleValue.trim()
+
+    if (!nextTitle) {
+      setActionError('Test case title cannot be empty.')
+      return
+    }
+
+    if (nextTitle === test.title) {
+      cancelTitleEdit()
+      return
+    }
+
+    setActionError(null)
+    setPendingMetadataField('title')
+
+    try {
+      await updateTestTitle({
+        data: {
+          id: test.id,
+          title: nextTitle,
+        },
+      })
+
+      setIsEditingTitle(false)
+      await router.invalidate()
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : 'Failed to update test title.',
+      )
+    } finally {
+      setPendingMetadataField(null)
+    }
+  }
+
+  async function handleStatusChange(status: CaseStatusValue): Promise<void> {
+    if (status === (test.status ?? 'Draft')) {
+      return
+    }
+
+    setActionError(null)
+    setPendingMetadataField('status')
+
+    try {
+      await updateTestStatus({
+        data: {
+          id: test.id,
+          status,
+        },
+      })
+
+      await router.invalidate()
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : 'Failed to update status.',
+      )
+    } finally {
+      setPendingMetadataField(null)
+    }
+  }
+
+  async function handlePriorityChange(priority: PriorityValue): Promise<void> {
+    if (priority === (test.priority ?? 'Medium')) {
+      return
+    }
+
+    setActionError(null)
+    setPendingMetadataField('priority')
+
+    try {
+      await bulkUpdateTestMetadata({
+        data: {
+          ids: [test.id],
+          priority,
+        },
+      })
+
+      await router.invalidate()
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : 'Failed to update priority.',
+      )
+    } finally {
+      setPendingMetadataField(null)
+    }
+  }
+
+  async function handleCaseTypeChange(caseType: CaseTypeValue): Promise<void> {
+    if (caseType === (test.caseType ?? 'Functional')) {
+      return
+    }
+
+    setActionError(null)
+    setPendingMetadataField('caseType')
+
+    try {
+      await bulkUpdateTestMetadata({
+        data: {
+          ids: [test.id],
+          caseType,
+        },
+      })
+
+      await router.invalidate()
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : 'Failed to update type.',
+      )
+    } finally {
+      setPendingMetadataField(null)
+    }
+  }
+
+  async function handleSuiteChange(sectionId: number): Promise<void> {
+    if (sectionId === test.sectionId) {
+      return
+    }
+
+    setActionError(null)
+    setPendingMetadataField('suite')
+
+    try {
+      await bulkMoveTestCases({
+        data: {
+          ids: [test.id],
+          sectionId,
+        },
+      })
+
+      await router.invalidate()
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : 'Failed to move test case.',
+      )
+    } finally {
+      setPendingMetadataField(null)
+    }
+  }
+
   async function handleDeletePermanently(): Promise<void> {
     setActionError(null)
     setIsDeleting(true)
@@ -312,9 +486,60 @@ function TestDetailPage() {
                 <p className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-[#7f8da9]">
                   Test case
                 </p>
-                <h1 className="m-0 mt-2 text-4xl font-bold leading-tight text-[#1b2f5b]">
-                  {test.title}
-                </h1>
+                {isEditingTitle ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <input
+                      value={titleValue}
+                      onChange={(event) => setTitleValue(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault()
+                          void saveTitleEdit()
+                        }
+
+                        if (event.key === 'Escape') {
+                          event.preventDefault()
+                          cancelTitleEdit()
+                        }
+                      }}
+                      disabled={pendingMetadataField === 'title'}
+                      autoFocus
+                      className="min-w-[280px] flex-1 rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-3xl font-bold leading-tight text-[#1b2f5b] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+                      aria-label="Edit test case title"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void saveTitleEdit()
+                      }}
+                      disabled={pendingMetadataField === 'title'}
+                      className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#3369d6] disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      Save title
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelTitleEdit}
+                      disabled={pendingMetadataField === 'title'}
+                      className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-2 flex flex-wrap items-start gap-3">
+                    <h1 className="m-0 text-4xl font-bold leading-tight text-[#1b2f5b]">
+                      {test.title}
+                    </h1>
+                    <button
+                      type="button"
+                      onClick={startTitleEdit}
+                      className="mt-1 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] hover:text-[#2f6fe4]"
+                    >
+                      Edit title
+                    </button>
+                  </div>
+                )}
                 <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
                   <span className={`rounded-full px-2.5 py-1 ${getStatusTone(test.status)}`}>
                     {test.status ?? 'Draft'}
@@ -479,8 +704,98 @@ function TestDetailPage() {
                   </div>
                   <div>
                     <dt className="font-semibold text-[#7f8da9]">Suite</dt>
-                    <dd className="m-0 mt-1 font-semibold text-[#1b2f5b]">
-                      {test.sectionName ?? '-'}
+                    <dd className="m-0 mt-1">
+                      <select
+                        value={test.sectionId ?? ''}
+                        onChange={(event) => {
+                          const sectionId = Number(event.target.value)
+
+                          if (Number.isInteger(sectionId) && sectionId > 0) {
+                            void handleSuiteChange(sectionId)
+                          }
+                        }}
+                        disabled={
+                          pendingMetadataField !== null ||
+                          test.sections.length === 0
+                        }
+                        className="w-full rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#1b2f5b] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+                        aria-label="Change suite"
+                      >
+                        {test.sectionId === null ? (
+                          <option value="">No suite</option>
+                        ) : null}
+                        {test.sections.map((section) => (
+                          <option key={section.id} value={section.id}>
+                            {section.name}
+                          </option>
+                        ))}
+                      </select>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold text-[#7f8da9]">Status</dt>
+                    <dd className="m-0 mt-1">
+                      <select
+                        value={test.status ?? 'Draft'}
+                        onChange={(event) => {
+                          void handleStatusChange(
+                            event.target.value as CaseStatusValue,
+                          )
+                        }}
+                        disabled={pendingMetadataField !== null}
+                        className="w-full rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#1b2f5b] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+                        aria-label="Change status"
+                      >
+                        {CASE_STATUS_OPTIONS.map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold text-[#7f8da9]">Priority</dt>
+                    <dd className="m-0 mt-1">
+                      <select
+                        value={test.priority ?? 'Medium'}
+                        onChange={(event) => {
+                          void handlePriorityChange(
+                            event.target.value as PriorityValue,
+                          )
+                        }}
+                        disabled={pendingMetadataField !== null}
+                        className="w-full rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#1b2f5b] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+                        aria-label="Change priority"
+                      >
+                        {PRIORITY_OPTIONS.map((priority) => (
+                          <option key={priority} value={priority}>
+                            {priority}
+                          </option>
+                        ))}
+                      </select>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold text-[#7f8da9]">Type</dt>
+                    <dd className="m-0 mt-1">
+                      <select
+                        value={test.caseType ?? 'Functional'}
+                        onChange={(event) => {
+                          void handleCaseTypeChange(
+                            event.target.value as CaseTypeValue,
+                          )
+                        }}
+                        disabled={pendingMetadataField !== null}
+                        className="w-full rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#1b2f5b] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+                        aria-label="Change type"
+                      >
+                        {CASE_TYPE_OPTIONS.map((caseType) => (
+                          <option key={caseType} value={caseType}>
+                            {caseType}
+                          </option>
+                        ))}
+                      </select>
                     </dd>
                   </div>
                   <div>

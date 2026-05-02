@@ -253,6 +253,7 @@ export type TestDetail = {
   createdAt: string | null
   updatedAt: string | null
   activities: DashboardActivity[]
+  sections: DashboardSection[]
 }
 
 export const getDashboardState = createServerFn({ method: 'POST' })
@@ -1436,6 +1437,18 @@ export const getTestDetail = createServerFn({ method: 'POST' })
             .limit(1)
 
     const project = projectRows[0] ?? null
+    const projectSectionRows =
+      test.projectId === null
+        ? []
+        : await db
+            .select({
+              id: sections.id,
+              name: sections.name,
+              projectId: sections.projectId,
+            })
+            .from(sections)
+            .where(eq(sections.projectId, test.projectId))
+            .orderBy(asc(sections.id))
     let activityRows: DashboardActivity[] = []
 
     try {
@@ -1455,5 +1468,6 @@ export const getTestDetail = createServerFn({ method: 'POST' })
       projectName: project?.name ?? null,
       projectSlug: project?.slug ?? null,
       activities: activityRows,
+      sections: projectSectionRows,
     }
   })
