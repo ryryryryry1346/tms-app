@@ -1,15 +1,52 @@
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray } from 'drizzle-orm'
 import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { getDb, isDatabaseConfigured } from '../../db/client'
-import { projects, sections, tests, testRunItems } from '../../db/schema'
+import {
+  projects,
+  sections,
+  testCaseActivity,
+  tests,
+  testRunItems,
+} from '../../db/schema'
 import { ensureProjectSlugs } from '../projects/slug'
+import type { SessionUser } from '../auth/helpers.server'
 
 const dashboardInput = z.object({
   projectId: z.number().int().positive().optional(),
   projectSlug: z.string().trim().min(1).optional(),
 })
+
+type ActivityDb = ReturnType<typeof getDb>
+
+async function logTestCaseActivity({
+  db,
+  testId,
+  projectId,
+  actor,
+  action,
+  summary,
+  createdAt = new Date().toISOString(),
+}: {
+  db: ActivityDb
+  testId: number
+  projectId: number | null
+  actor: SessionUser
+  action: string
+  summary: string
+  createdAt?: string
+}): Promise<void> {
+  await db.insert(testCaseActivity).values({
+    testId,
+    projectId,
+    actorId: actor.id,
+    actorName: actor.username,
+    action,
+    summary,
+    createdAt,
+  })
+}
 
 const updateTestStatusInput = z.object({
   id: z.number().int().positive(),
@@ -108,6 +145,17 @@ export type DashboardTest = {
   updatedAt: string | null
 }
 
+export type DashboardActivity = {
+  id: number
+  testId: number
+  projectId: number | null
+  actorId: number | null
+  actorName: string | null
+  action: string
+  summary: string
+  createdAt: string
+}
+
 export type DashboardSection = {
   id: number
   name: string
@@ -129,6 +177,7 @@ export type DashboardState = {
   selectedProjectId?: number
   sections: DashboardSection[]
   tests: DashboardTest[]
+  activities: DashboardActivity[]
 }
 
 export type CreateTestFormState = {
@@ -183,6 +232,7 @@ export const getDashboardState = createServerFn({ method: 'POST' })
         selectedProjectId: data.projectId,
         sections: [],
         tests: [],
+        activities: [],
       }
     }
 
@@ -208,6 +258,7 @@ export const getDashboardState = createServerFn({ method: 'POST' })
         projects: projectRows,
         sections: [],
         tests: [],
+        activities: [],
       }
     }
 
@@ -241,12 +292,28 @@ export const getDashboardState = createServerFn({ method: 'POST' })
       .where(eq(tests.projectId, selectedProjectId))
       .orderBy(asc(tests.sectionId), asc(tests.sortOrder), asc(tests.id))
 
+    const activityRows = await db
+      .select({
+        id: testCaseActivity.id,
+        testId: testCaseActivity.testId,
+        projectId: testCaseActivity.projectId,
+        actorId: testCaseActivity.actorId,
+        actorName: testCaseActivity.actorName,
+        action: testCaseActivity.action,
+        summary: testCaseActivity.summary,
+        createdAt: testCaseActivity.createdAt,
+      })
+      .from(testCaseActivity)
+      .where(eq(testCaseActivity.projectId, selectedProjectId))
+      .orderBy(desc(testCaseActivity.id))
+
     return {
       databaseConfigured: true,
       projects: projectRows,
       selectedProjectId,
       sections: sectionRows,
       tests: testRows,
+      activities: activityRows,
     }
   })
 
@@ -254,9 +321,20 @@ export const updateTestStatus = createServerFn({ method: 'POST' })
   .inputValidator(updateTestStatusInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const user = await requireSessionUser()
 
     const db = getDb()
+    const rows = await db
+      .select({
+        id: tests.id,
+        status: tests.status,
+        projectId: tests.projectId,
+      })
+      .from(tests)
+      .where(eq(tests.id, data.id))
+      .limit(1)
+    const test = rows[0]
+
     await db
       .update(tests)
       .set({
@@ -265,6 +343,17 @@ export const updateTestStatus = createServerFn({ method: 'POST' })
       })
       .where(and(eq(tests.id, data.id)))
 
+    if (test) {
+      await logTestCaseActivity({
+        db,
+        testId: test.id,
+        projectId: test.projectId,
+        actor: user,
+        action: 'status_changed',
+        summary: `Status changed from ${test.status ?? 'Draft'} to ${data.status}.`,
+      })
+    }
+
     return { ok: true }
   })
 
@@ -272,9 +361,20 @@ export const updateTestTitle = createServerFn({ method: 'POST' })
   .inputValidator(updateTestTitleInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const user = await requireSessionUser()
 
     const db = getDb()
+    const rows = await db
+      .select({
+        id: tests.id,
+        title: tests.title,
+        projectId: tests.projectId,
+      })
+      .from(tests)
+      .where(eq(tests.id, data.id))
+      .limit(1)
+    const test = rows[0]
+
     await db
       .update(tests)
       .set({
@@ -283,6 +383,17 @@ export const updateTestTitle = createServerFn({ method: 'POST' })
       })
       .where(eq(tests.id, data.id))
 
+    if (test) {
+      await logTestCaseActivity({
+        db,
+        testId: test.id,
+        projectId: test.projectId,
+        actor: user,
+        action: 'title_updated',
+        summary: `Title changed from "${test.title}" to "${data.title}".`,
+      })
+    }
+
     return { ok: true }
   })
 
@@ -290,9 +401,19 @@ export const updateTestContent = createServerFn({ method: 'POST' })
   .inputValidator(updateTestContentInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const user = await requireSessionUser()
 
     const db = getDb()
+    const rows = await db
+      .select({
+        id: tests.id,
+        projectId: tests.projectId,
+      })
+      .from(tests)
+      .where(eq(tests.id, data.id))
+      .limit(1)
+    const test = rows[0]
+
     await db
       .update(tests)
       .set({
@@ -302,6 +423,17 @@ export const updateTestContent = createServerFn({ method: 'POST' })
       })
       .where(eq(tests.id, data.id))
 
+    if (test) {
+      await logTestCaseActivity({
+        db,
+        testId: test.id,
+        projectId: test.projectId,
+        actor: user,
+        action: 'content_updated',
+        summary: 'Steps and expected result updated.',
+      })
+    }
+
     return { ok: true }
   })
 
@@ -309,7 +441,7 @@ export const bulkUpdateTestStatus = createServerFn({ method: 'POST' })
   .inputValidator(bulkUpdateTestStatusInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const user = await requireSessionUser()
 
     const db = getDb()
     const rows = await db
@@ -317,6 +449,7 @@ export const bulkUpdateTestStatus = createServerFn({ method: 'POST' })
         id: tests.id,
         status: tests.status,
         archivedFromStatus: tests.archivedFromStatus,
+        projectId: tests.projectId,
       })
       .from(tests)
       .where(inArray(tests.id, data.ids))
@@ -356,6 +489,22 @@ export const bulkUpdateTestStatus = createServerFn({ method: 'POST' })
       }
     })
 
+    await Promise.all(
+      rows.map((test) =>
+        logTestCaseActivity({
+          db,
+          testId: test.id,
+          projectId: test.projectId,
+          actor: user,
+          action: data.status === 'Archived' ? 'archived' : 'status_changed',
+          summary:
+            data.status === 'Archived'
+              ? `Archived from ${test.status ?? 'Draft'}.`
+              : `Status changed from ${test.status ?? 'Draft'} to ${data.status}.`,
+        }),
+      ),
+    )
+
     return { ok: true }
   })
 
@@ -363,9 +512,18 @@ export const bulkUpdateTestMetadata = createServerFn({ method: 'POST' })
   .inputValidator(bulkUpdateTestMetadataInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const user = await requireSessionUser()
 
     const db = getDb()
+    const rows = await db
+      .select({
+        id: tests.id,
+        priority: tests.priority,
+        caseType: tests.caseType,
+        projectId: tests.projectId,
+      })
+      .from(tests)
+      .where(inArray(tests.id, data.ids))
     const updateValues: {
       priority?: 'Low' | 'Medium' | 'High' | 'Critical'
       caseType?: 'Functional' | 'Regression' | 'Smoke' | 'E2E' | 'UI' | 'API'
@@ -384,6 +542,28 @@ export const bulkUpdateTestMetadata = createServerFn({ method: 'POST' })
 
     await db.update(tests).set(updateValues).where(inArray(tests.id, data.ids))
 
+    await Promise.all(
+      rows.map((test) => {
+        const changes = [
+          data.priority
+            ? `priority from ${test.priority ?? 'Medium'} to ${data.priority}`
+            : null,
+          data.caseType
+            ? `type from ${test.caseType ?? 'Functional'} to ${data.caseType}`
+            : null,
+        ].filter(Boolean)
+
+        return logTestCaseActivity({
+          db,
+          testId: test.id,
+          projectId: test.projectId,
+          actor: user,
+          action: 'metadata_updated',
+          summary: `Updated ${changes.join(' and ')}.`,
+        })
+      }),
+    )
+
     return { ok: true }
   })
 
@@ -391,7 +571,7 @@ export const bulkMoveTestCases = createServerFn({ method: 'POST' })
   .inputValidator(bulkMoveTestCasesInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const user = await requireSessionUser()
 
     const db = getDb()
     const matchingSection = await db
@@ -410,6 +590,15 @@ export const bulkMoveTestCases = createServerFn({ method: 'POST' })
         'The target suite is missing or is not attached to a project.',
       )
     }
+
+    const movingRows = await db
+      .select({
+        id: tests.id,
+        sectionId: tests.sectionId,
+        projectId: tests.projectId,
+      })
+      .from(tests)
+      .where(inArray(tests.id, data.ids))
 
     await db
       .update(tests)
@@ -420,6 +609,19 @@ export const bulkMoveTestCases = createServerFn({ method: 'POST' })
       })
       .where(inArray(tests.id, data.ids))
 
+    await Promise.all(
+      movingRows.map((test) =>
+        logTestCaseActivity({
+          db,
+          testId: test.id,
+          projectId: section.projectId,
+          actor: user,
+          action: 'moved',
+          summary: `Moved from suite #${test.sectionId ?? '-'} to suite #${section.id}.`,
+        }),
+      ),
+    )
+
     return { ok: true }
   })
 
@@ -427,7 +629,7 @@ export const moveAndReorderTestCases = createServerFn({ method: 'POST' })
   .inputValidator(moveAndReorderTestCasesInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const user = await requireSessionUser()
 
     const db = getDb()
     const matchingSection = await db
@@ -446,6 +648,14 @@ export const moveAndReorderTestCases = createServerFn({ method: 'POST' })
         'The target suite is missing or is not attached to a project.',
       )
     }
+
+    const movingRows = await db
+      .select({
+        id: tests.id,
+        sectionId: tests.sectionId,
+      })
+      .from(tests)
+      .where(inArray(tests.id, data.ids))
 
     await db.transaction(async (tx) => {
       const now = new Date().toISOString()
@@ -470,6 +680,22 @@ export const moveAndReorderTestCases = createServerFn({ method: 'POST' })
       }
     })
 
+    await Promise.all(
+      movingRows.map((test) =>
+        logTestCaseActivity({
+          db,
+          testId: test.id,
+          projectId: section.projectId,
+          actor: user,
+          action: 'moved',
+          summary:
+            test.sectionId === section.id
+              ? `Reordered in suite #${section.id}.`
+              : `Moved from suite #${test.sectionId ?? '-'} to suite #${section.id}.`,
+        }),
+      ),
+    )
+
     return { ok: true }
   })
 
@@ -477,7 +703,7 @@ export const bulkRestoreTestCases = createServerFn({ method: 'POST' })
   .inputValidator(bulkRestoreTestCasesInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const user = await requireSessionUser()
 
     const db = getDb()
     const rows = await db
@@ -485,6 +711,7 @@ export const bulkRestoreTestCases = createServerFn({ method: 'POST' })
         id: tests.id,
         status: tests.status,
         archivedFromStatus: tests.archivedFromStatus,
+        projectId: tests.projectId,
       })
       .from(tests)
       .where(inArray(tests.id, data.ids))
@@ -514,6 +741,19 @@ export const bulkRestoreTestCases = createServerFn({ method: 'POST' })
           .where(eq(tests.id, test.id))
       }
     })
+
+    await Promise.all(
+      archivedRows.map((test) =>
+        logTestCaseActivity({
+          db,
+          testId: test.id,
+          projectId: test.projectId,
+          actor: user,
+          action: 'restored',
+          summary: `Restored to ${test.archivedFromStatus ?? 'Draft'}.`,
+        }),
+      ),
+    )
 
     return { ok: true }
   })
@@ -562,7 +802,7 @@ export const archiveTestCase = createServerFn({ method: 'POST' })
   .inputValidator(getTestDetailInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const user = await requireSessionUser()
 
     const db = getDb()
     const rows = await db
@@ -570,6 +810,7 @@ export const archiveTestCase = createServerFn({ method: 'POST' })
         id: tests.id,
         status: tests.status,
         archivedFromStatus: tests.archivedFromStatus,
+        projectId: tests.projectId,
       })
       .from(tests)
       .where(eq(tests.id, data.id))
@@ -593,6 +834,15 @@ export const archiveTestCase = createServerFn({ method: 'POST' })
       })
       .where(eq(tests.id, data.id))
 
+    await logTestCaseActivity({
+      db,
+      testId: test.id,
+      projectId: test.projectId,
+      actor: user,
+      action: 'archived',
+      summary: `Archived from ${test.status ?? 'Draft'}.`,
+    })
+
     return { ok: true }
   })
 
@@ -600,7 +850,7 @@ export const restoreTestCase = createServerFn({ method: 'POST' })
   .inputValidator(getTestDetailInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const user = await requireSessionUser()
 
     const db = getDb()
     const rows = await db
@@ -608,6 +858,7 @@ export const restoreTestCase = createServerFn({ method: 'POST' })
         id: tests.id,
         status: tests.status,
         archivedFromStatus: tests.archivedFromStatus,
+        projectId: tests.projectId,
       })
       .from(tests)
       .where(eq(tests.id, data.id))
@@ -632,6 +883,15 @@ export const restoreTestCase = createServerFn({ method: 'POST' })
         updatedAt: new Date().toISOString(),
       })
       .where(eq(tests.id, data.id))
+
+    await logTestCaseActivity({
+      db,
+      testId: test.id,
+      projectId: test.projectId,
+      actor: user,
+      action: 'restored',
+      summary: `Restored to ${test.archivedFromStatus ?? 'Draft'}.`,
+    })
 
     return { ok: true }
   })
@@ -735,7 +995,7 @@ export const createTestCase = createServerFn({ method: 'POST' })
   .inputValidator(createTestInput)
   .handler(async ({ data }): Promise<{ id: number }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const user = await requireSessionUser()
 
     const db = getDb()
     const now = new Date().toISOString()
@@ -769,9 +1029,20 @@ export const createTestCase = createServerFn({ method: 'POST' })
       createdAt: now,
       updatedAt: now,
     })
+    const testId = result[0].insertId
+
+    await logTestCaseActivity({
+      db,
+      testId,
+      projectId: section.projectId,
+      actor: user,
+      action: 'created',
+      summary: `Created in suite #${data.sectionId}.`,
+      createdAt: now,
+    })
 
     return {
-      id: result[0].insertId,
+      id: testId,
     }
   })
 
@@ -779,7 +1050,7 @@ export const duplicateTestCase = createServerFn({ method: 'POST' })
   .inputValidator(getTestDetailInput)
   .handler(async ({ data }): Promise<{ id: number }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const user = await requireSessionUser()
 
     const db = getDb()
     const rows = await db
@@ -849,6 +1120,16 @@ export const duplicateTestCase = createServerFn({ method: 'POST' })
           })
           .where(eq(tests.id, testId))
       }
+    })
+
+    await logTestCaseActivity({
+      db,
+      testId: duplicatedId,
+      projectId: source.projectId,
+      actor: user,
+      action: 'duplicated',
+      summary: `Duplicated from case #${source.id}.`,
+      createdAt: now,
     })
 
     return {
@@ -966,9 +1247,23 @@ export const updateTestCase = createServerFn({ method: 'POST' })
   .inputValidator(updateTestInput)
   .handler(async ({ data }): Promise<{ id: number }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const user = await requireSessionUser()
 
     const db = getDb()
+    const existingRows = await db
+      .select({
+        id: tests.id,
+        title: tests.title,
+        status: tests.status,
+        priority: tests.priority,
+        caseType: tests.caseType,
+        sectionId: tests.sectionId,
+        projectId: tests.projectId,
+      })
+      .from(tests)
+      .where(eq(tests.id, data.id))
+      .limit(1)
+    const existing = existingRows[0]
     const matchingSection = await db
       .select({
         id: sections.id,
@@ -1000,6 +1295,26 @@ export const updateTestCase = createServerFn({ method: 'POST' })
         updatedAt: new Date().toISOString(),
       })
       .where(eq(tests.id, data.id))
+
+    if (existing) {
+      const changes = [
+        existing.title !== data.title ? 'title' : null,
+        existing.status !== data.status ? 'status' : null,
+        (existing.priority ?? 'Medium') !== data.priority ? 'priority' : null,
+        (existing.caseType ?? 'Functional') !== data.caseType ? 'type' : null,
+        existing.sectionId !== data.sectionId ? 'suite' : null,
+        'content',
+      ].filter(Boolean)
+
+      await logTestCaseActivity({
+        db,
+        testId: existing.id,
+        projectId: section.projectId,
+        actor: user,
+        action: 'updated',
+        summary: `Updated ${changes.join(', ')}.`,
+      })
+    }
 
     return {
       id: data.id,

@@ -135,6 +135,26 @@ function formatRepositoryDate(value: string | null | undefined): string {
   }).format(date)
 }
 
+function formatRepositoryDateTime(value: string | null | undefined): string {
+  if (!value) {
+    return '-'
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return '-'
+  }
+
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
 function ChevronRightIcon() {
   return (
     <svg
@@ -424,6 +444,11 @@ function ProjectRepositoryPage() {
       ? null
       : dashboard.sections.find((section) => section.id === previewTest.sectionId) ??
         null
+  const previewActivities = previewTest
+    ? dashboard.activities
+        .filter((activity) => activity.testId === previewTest.id)
+        .slice(0, 12)
+    : []
 
   useEffect(() => {
     if (!previewTest) {
@@ -2769,6 +2794,39 @@ function ProjectRepositoryPage() {
                             __html: previewTest.expected || '<p>-</p>',
                           }}
                         />
+                      </section>
+
+                      <section className="mt-6 border-t border-[#e9eef8] pt-5">
+                        <h3 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[#7f8da9]">
+                          Activity
+                        </h3>
+                        {previewActivities.length === 0 ? (
+                          <p className="m-0 mt-3 text-sm text-[#60718f]">
+                            No activity recorded yet.
+                          </p>
+                        ) : (
+                          <div className="mt-3 grid gap-3">
+                            {previewActivities.map((activity) => (
+                              <div
+                                key={activity.id}
+                                className="rounded-xl border border-[#e9eef8] bg-[#fbfcff] px-3 py-2"
+                              >
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <span className="text-sm font-semibold text-[#1b2f5b]">
+                                    {activity.summary}
+                                  </span>
+                                  <span className="text-xs font-semibold text-[#7f8da9]">
+                                    {formatRepositoryDateTime(activity.createdAt)}
+                                  </span>
+                                </div>
+                                <div className="mt-1 text-xs font-semibold text-[#60718f]">
+                                  {activity.actorName ?? 'system'} ·{' '}
+                                  {activity.action.replaceAll('_', ' ')}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </section>
                     </>
                   )}

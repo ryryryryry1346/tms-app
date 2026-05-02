@@ -55,6 +55,24 @@ export const tests = mysqlTable(
   }),
 )
 
+export const testCaseActivity = mysqlTable(
+  'test_case_activity',
+  {
+    id: int('id').autoincrement().primaryKey(),
+    testId: int('test_id').notNull(),
+    projectId: int('project_id'),
+    actorId: int('actor_id'),
+    actorName: varchar('actor_name', { length: 255 }),
+    action: varchar('action', { length: 64 }).notNull(),
+    summary: text('summary').notNull(),
+    createdAt: varchar('created_at', { length: 32 }).notNull(),
+  },
+  (table) => ({
+    testIdIndex: index('test_case_activity_test_id_idx').on(table.testId),
+    projectIdIndex: index('test_case_activity_project_id_idx').on(table.projectId),
+  }),
+)
+
 export const testRuns = mysqlTable(
   'test_runs',
   {
