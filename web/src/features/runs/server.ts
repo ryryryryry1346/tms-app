@@ -4,6 +4,7 @@ import { z } from 'zod'
 
 let asc: typeof import('drizzle-orm')['asc']
 let eq: typeof import('drizzle-orm')['eq']
+let inArray: typeof import('drizzle-orm')['inArray']
 let getDb: typeof import('../../db/client')['getDb']
 let isDatabaseConfigured: typeof import('../../db/client')['isDatabaseConfigured']
 let projects: typeof import('../../db/schema')['projects']
@@ -26,6 +27,7 @@ async function ensureRunServerDeps(): Promise<void> {
 
   asc = drizzle.asc
   eq = drizzle.eq
+  inArray = drizzle.inArray
   getDb = dbClient.getDb
   isDatabaseConfigured = dbClient.isDatabaseConfigured
   projects = schema.projects
@@ -73,6 +75,11 @@ export type ProjectRun = {
   projectId: number | null
   name: string
   projectSlug?: string | null
+  total: number
+  passed: number
+  failed: number
+  blocked: number
+  notRun: number
 }
 
 export type RunDetail = {
@@ -112,8 +119,68 @@ export const getRunsForProject = createServerFn({ method: 'POST' })
       .where(eq(testRuns.projectId, data.projectId))
       .orderBy(asc(testRuns.id))
 
+    const runIds = rows.map((run) => run.id)
+    const runItemRows =
+      runIds.length === 0
+        ? []
+        : await db
+            .select({
+              runId: testRunItems.runId,
+              status: testRunItems.status,
+            })
+            .from(testRunItems)
+            .where(inArray(testRunItems.runId, runIds))
+
+    const countsByRunId = new Map<
+      number,
+      Pick<ProjectRun, 'total' | 'passed' | 'failed' | 'blocked' | 'notRun'>
+    >()
+
+    for (const run of rows) {
+      countsByRunId.set(run.id, {
+        total: 0,
+        passed: 0,
+        failed: 0,
+        blocked: 0,
+        notRun: 0,
+      })
+    }
+
+    for (const item of runItemRows) {
+      if (item.runId === null) {
+        continue
+      }
+
+      const counts = countsByRunId.get(item.runId)
+
+      if (!counts) {
+        continue
+      }
+
+      counts.total += 1
+
+      if (item.status === 'Passed') {
+        counts.passed += 1
+      } else if (item.status === 'Failed') {
+        counts.failed += 1
+      } else if (item.status === 'Blocked') {
+        counts.blocked += 1
+      } else {
+        counts.notRun += 1
+      }
+    }
+
     return {
-      runs: rows,
+      runs: rows.map((run) => ({
+        ...run,
+        ...(countsByRunId.get(run.id) ?? {
+          total: 0,
+          passed: 0,
+          failed: 0,
+          blocked: 0,
+          notRun: 0,
+        }),
+      })),
     }
   })
 
@@ -136,14 +203,18 @@ export const createRun = createServerFn({ method: 'POST' })
         .select({
           id: tests.id,
           title: tests.title,
+          status: tests.status,
         })
         .from(tests)
         .where(eq(tests.projectId, data.projectId))
         .orderBy(asc(tests.id))
+      const executableTests = projectTests.filter(
+        (test) => test.status !== 'Archived',
+      )
 
-      if (projectTests.length > 0) {
+      if (executableTests.length > 0) {
         await tx.insert(testRunItems).values(
-          projectTests.map((test) => ({
+          executableTests.map((test) => ({
             runId,
             testId: test.id,
             testTitle: test.title,
@@ -243,12 +314,21 @@ export const getRunDetail = createServerFn({ method: 'POST' })
             status: null,
             comment: null,
           }))
+    const passed = fallbackRunTests.filter((test) => test.status === 'Passed').length
+    const failed = fallbackRunTests.filter((test) => test.status === 'Failed').length
+    const blocked = fallbackRunTests.filter((test) => test.status === 'Blocked').length
+    const notRun = fallbackRunTests.filter((test) => test.status === null).length
 
     return {
       run: {
         ...run,
         projectName: project?.name ?? null,
         projectSlug: project?.slug ?? null,
+        total: fallbackRunTests.length,
+        passed,
+        failed,
+        blocked,
+        notRun,
       },
       tests: fallbackRunTests,
     }

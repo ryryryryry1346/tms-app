@@ -156,7 +156,7 @@ function ProjectRunsPage() {
     setIsCreatingRun(true)
 
     try {
-      await createRun({
+      const result = await createRun({
         data: {
           projectId: project.id,
           name: runName,
@@ -165,7 +165,7 @@ function ProjectRunsPage() {
 
       setRunName('')
       setShowCreateRunForm(false)
-      await router.invalidate()
+      window.location.href = `/run/${result.id}`
     } catch (error) {
       setCreateRunErrorMessage(
         error instanceof Error ? error.message : 'Failed to create run.',
@@ -278,9 +278,9 @@ function ProjectRunsPage() {
         <section className="rounded-3xl border border-[#dfe6f4] bg-white px-6 py-6 shadow-[0_10px_30px_rgba(31,57,102,0.05)]">
           <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="m-0 text-2xl font-semibold text-[#1b2f5b]">Runs</h2>
+            <h2 className="m-0 text-2xl font-semibold text-[#1b2f5b]">Runs</h2>
               <p className="mt-2 text-sm text-[#63759a]">
-                Create, rename, and open execution runs for this project.
+                Create, rename, and track execution progress for this project.
               </p>
             </div>
             <div className="rounded-full border border-[#dbe4f4] bg-[#fbfcff] px-3 py-1 text-sm text-[#63759a]">
@@ -319,6 +319,9 @@ function ProjectRunsPage() {
                   Cancel
                 </button>
               </div>
+              <p className="m-0 text-xs font-semibold text-[#7f8da9] sm:basis-full">
+                New runs include active repository cases and skip archived cases.
+              </p>
             </form>
           ) : null}
 
@@ -339,21 +342,37 @@ function ProjectRunsPage() {
               No runs yet. Create the first run when you are ready to execute test cases.
             </div>
           ) : (
-            <div className="grid gap-4">
+            <div className="overflow-x-auto rounded-2xl border border-[#e9eef8]">
+              <div className="grid min-w-[1050px] grid-cols-[minmax(220px,1fr)_120px_110px_110px_110px_130px_150px] items-center bg-[#fbfcff] px-5 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
+                <div>Run</div>
+                <div>Progress</div>
+                <div>Passed</div>
+                <div>Failed</div>
+                <div>Blocked</div>
+                <div>Not run</div>
+                <div className="text-right">Actions</div>
+              </div>
               {runs.map((run) => {
                 const isEditing = editingRunId === run.id
                 const isPending = pendingRunId === run.id
+                const executed = run.passed + run.failed + run.blocked
+                const progress =
+                  run.total === 0 ? 0 : Math.round((executed / run.total) * 100)
+                const stateLabel =
+                  run.total === 0
+                    ? 'Empty'
+                    : run.notRun === 0
+                      ? 'Complete'
+                      : run.failed > 0
+                        ? 'Needs review'
+                        : 'In progress'
 
                 return (
                   <section
                     key={run.id}
-                    className="rounded-2xl border border-[#dfe6f4] bg-[#fbfcff] px-5 py-5"
+                    className="grid min-w-[1050px] grid-cols-[minmax(220px,1fr)_120px_110px_110px_110px_130px_150px] items-center border-t border-[#e9eef8] bg-white px-5 py-4"
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#7f8da9]">
-                          Run
-                        </div>
+                    <div className="min-w-0 pr-4">
                         {isEditing ? (
                           <form
                             className="flex flex-wrap items-center gap-2"
@@ -387,18 +406,57 @@ function ProjectRunsPage() {
                           </form>
                         ) : (
                           <>
-                            <div className="text-2xl font-semibold text-[#1b2f5b]">
+                            <div className="truncate text-base font-semibold text-[#1b2f5b]">
                               {run.name}
                             </div>
-                            <div className="mt-2 text-sm text-[#63759a]">
-                              Run ID: {run.id}
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs font-semibold text-[#63759a]">
+                              <span>#{run.id}</span>
+                              <span
+                                className={`rounded-full px-2 py-0.5 ${
+                                  stateLabel === 'Complete'
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : stateLabel === 'Needs review'
+                                      ? 'bg-rose-50 text-rose-700'
+                                      : stateLabel === 'Empty'
+                                        ? 'bg-slate-100 text-slate-600'
+                                        : 'bg-[#eef6ff] text-[#506487]'
+                                }`}
+                              >
+                                {stateLabel}
+                              </span>
                             </div>
                           </>
                         )}
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-[#1b2f5b]">
+                        {progress}%
                       </div>
-
+                      <div className="mt-1 h-2 overflow-hidden rounded-full bg-[#edf2fa]">
+                        <div
+                          className="h-full rounded-full bg-[#2f6fe4]"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <div className="mt-1 text-xs text-[#7f8da9]">
+                        {executed}/{run.total}
+                      </div>
+                    </div>
+                    <div className="text-sm font-semibold text-emerald-700">
+                      {run.passed}
+                    </div>
+                    <div className="text-sm font-semibold text-rose-700">
+                      {run.failed}
+                    </div>
+                    <div className="text-sm font-semibold text-amber-700">
+                      {run.blocked}
+                    </div>
+                    <div className="text-sm font-semibold text-slate-600">
+                      {run.notRun}
+                    </div>
+                    <div className="flex justify-end gap-2">
                       {!isEditing ? (
-                        <div className="flex flex-wrap items-center gap-2">
+                        <>
                           <button
                             type="button"
                             onClick={() => startRenameRun(run.id, run.name)}
@@ -413,7 +471,7 @@ function ProjectRunsPage() {
                           >
                             Open run
                           </Link>
-                        </div>
+                        </>
                       ) : null}
                     </div>
                   </section>
