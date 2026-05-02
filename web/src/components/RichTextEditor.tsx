@@ -295,7 +295,23 @@ export function RichTextEditor({
   return (
     <div className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
       <div>{label}</div>
-      <div className="editor-shell">
+      <div
+        className="editor-shell"
+        onPaste={(event) => void handlePaste(event)}
+        onDrop={(event) => void handleDrop(event)}
+        onDragOver={(event) => event.preventDefault()}
+        onClick={(event) => {
+          if (editor) {
+            selectionRef.current = {
+              from: editor.state.selection.from,
+              to: editor.state.selection.to,
+            }
+          }
+          if (openMediaFromTarget(event.target)) {
+            event.preventDefault()
+          }
+        }}
+      >
         <div className="editor-toolbar" role="toolbar" aria-label={`${label} formatting`}>
           <div className="editor-tool-group">
             <button
@@ -399,6 +415,8 @@ export function RichTextEditor({
             ? 'Uploading media...'
             : 'Images, GIFs, and videos become inline previews.'}
         </div>
+
+        <EditorContent editor={editor} />
       </div>
 
       <input
@@ -412,24 +430,6 @@ export function RichTextEditor({
         }}
       />
 
-      <div
-        onPaste={(event) => void handlePaste(event)}
-        onDrop={(event) => void handleDrop(event)}
-        onDragOver={(event) => event.preventDefault()}
-        onClick={(event) => {
-          if (editor) {
-            selectionRef.current = {
-              from: editor.state.selection.from,
-              to: editor.state.selection.to,
-            }
-          }
-          if (openMediaFromTarget(event.target)) {
-            event.preventDefault()
-          }
-        }}
-      >
-        <EditorContent editor={editor} />
-      </div>
     </div>
   )
 }
