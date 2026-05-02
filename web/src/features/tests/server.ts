@@ -1,22 +1,50 @@
-import { and, asc, eq, inArray } from 'drizzle-orm'
 import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { getDb, isDatabaseConfigured } from '../../db/client'
-import {
-  projects,
-  sections,
-  tests,
-  testRunItems,
-} from '../../db/schema'
-import { ensureProjectSlugs } from '../projects/slug'
+
+let and: typeof import('drizzle-orm')['and']
+let asc: typeof import('drizzle-orm')['asc']
+let eq: typeof import('drizzle-orm')['eq']
+let inArray: typeof import('drizzle-orm')['inArray']
+let getDb: typeof import('../../db/client')['getDb']
+let isDatabaseConfigured: typeof import('../../db/client')['isDatabaseConfigured']
+let projects: typeof import('../../db/schema')['projects']
+let sections: typeof import('../../db/schema')['sections']
+let tests: typeof import('../../db/schema')['tests']
+let testRunItems: typeof import('../../db/schema')['testRunItems']
+let ensureProjectSlugs: typeof import('../projects/slug')['ensureProjectSlugs']
+
+async function ensureTestServerDeps(): Promise<void> {
+  if (getDb) {
+    return
+  }
+
+  const [drizzle, dbClient, schema, slug] = await Promise.all([
+    import('drizzle-orm'),
+    import('../../db/client'),
+    import('../../db/schema'),
+    import('../projects/slug'),
+  ])
+
+  and = drizzle.and
+  asc = drizzle.asc
+  eq = drizzle.eq
+  inArray = drizzle.inArray
+  getDb = dbClient.getDb
+  isDatabaseConfigured = dbClient.isDatabaseConfigured
+  projects = schema.projects
+  sections = schema.sections
+  tests = schema.tests
+  testRunItems = schema.testRunItems
+  ensureProjectSlugs = slug.ensureProjectSlugs
+}
 
 const dashboardInput = z.object({
   projectId: z.number().int().positive().optional(),
   projectSlug: z.string().trim().min(1).optional(),
 })
 
-type ActivityDb = ReturnType<typeof getDb>
+type ActivityDb = ReturnType<typeof import('../../db/client')['getDb']>
 
 type ActivityActor = {
   id: number
@@ -231,6 +259,7 @@ export const getDashboardState = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<DashboardState> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureTestServerDeps()
 
     if (!isDatabaseConfigured()) {
       return {
@@ -327,6 +356,7 @@ export const updateTestStatus = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     const user = await requireSessionUser()
+    await ensureTestServerDeps()
 
     const db = getDb()
     const rows = await db
@@ -367,6 +397,7 @@ export const updateTestTitle = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     const user = await requireSessionUser()
+    await ensureTestServerDeps()
 
     const db = getDb()
     const rows = await db
@@ -407,6 +438,7 @@ export const updateTestContent = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     const user = await requireSessionUser()
+    await ensureTestServerDeps()
 
     const db = getDb()
     const rows = await db
@@ -447,6 +479,7 @@ export const bulkUpdateTestStatus = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     const user = await requireSessionUser()
+    await ensureTestServerDeps()
 
     const db = getDb()
     const rows = await db
@@ -518,6 +551,7 @@ export const bulkUpdateTestMetadata = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     const user = await requireSessionUser()
+    await ensureTestServerDeps()
 
     const db = getDb()
     const rows = await db
@@ -577,6 +611,7 @@ export const bulkMoveTestCases = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     const user = await requireSessionUser()
+    await ensureTestServerDeps()
 
     const db = getDb()
     const matchingSection = await db
@@ -635,6 +670,7 @@ export const moveAndReorderTestCases = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     const user = await requireSessionUser()
+    await ensureTestServerDeps()
 
     const db = getDb()
     const matchingSection = await db
@@ -709,6 +745,7 @@ export const bulkRestoreTestCases = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     const user = await requireSessionUser()
+    await ensureTestServerDeps()
 
     const db = getDb()
     const rows = await db
@@ -768,6 +805,7 @@ export const bulkDeleteArchivedTestCases = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureTestServerDeps()
 
     const db = getDb()
     const rows = await db
@@ -808,6 +846,7 @@ export const archiveTestCase = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     const user = await requireSessionUser()
+    await ensureTestServerDeps()
 
     const db = getDb()
     const rows = await db
@@ -856,6 +895,7 @@ export const restoreTestCase = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     const user = await requireSessionUser()
+    await ensureTestServerDeps()
 
     const db = getDb()
     const rows = await db
@@ -906,6 +946,7 @@ export const deleteArchivedTestCase = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureTestServerDeps()
 
     const db = getDb()
     const rows = await db
@@ -950,6 +991,7 @@ export const getCreateTestFormState = createServerFn({ method: 'GET' }).handler(
   async (): Promise<CreateTestFormState> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureTestServerDeps()
 
     if (!isDatabaseConfigured()) {
       return {
@@ -1001,6 +1043,7 @@ export const createTestCase = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ id: number }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     const user = await requireSessionUser()
+    await ensureTestServerDeps()
 
     const db = getDb()
     const now = new Date().toISOString()
@@ -1056,6 +1099,7 @@ export const duplicateTestCase = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ id: number }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     const user = await requireSessionUser()
+    await ensureTestServerDeps()
 
     const db = getDb()
     const rows = await db
@@ -1147,6 +1191,7 @@ export const getEditTestFormState = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<EditTestFormState> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureTestServerDeps()
 
     if (!isDatabaseConfigured()) {
       throw new Error('Database is not configured.')
@@ -1253,6 +1298,7 @@ export const updateTestCase = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ id: number }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     const user = await requireSessionUser()
+    await ensureTestServerDeps()
 
     const db = getDb()
     const existingRows = await db
@@ -1331,6 +1377,7 @@ export const getTestDetail = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<TestDetail> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureTestServerDeps()
 
     const db = getDb()
     await ensureProjectSlugs()

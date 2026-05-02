@@ -1,15 +1,44 @@
-import { asc, eq, inArray } from 'drizzle-orm'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { getDb, isDatabaseConfigured } from '../../db/client'
-import {
-  projects,
-  sections,
-  testRunItems,
-  testRuns,
-  tests,
-} from '../../db/schema'
-import { ensureProjectSlugs, ensureUniqueProjectSlug } from './slug'
+
+let asc: typeof import('drizzle-orm')['asc']
+let eq: typeof import('drizzle-orm')['eq']
+let inArray: typeof import('drizzle-orm')['inArray']
+let getDb: typeof import('../../db/client')['getDb']
+let isDatabaseConfigured: typeof import('../../db/client')['isDatabaseConfigured']
+let projects: typeof import('../../db/schema')['projects']
+let sections: typeof import('../../db/schema')['sections']
+let testRunItems: typeof import('../../db/schema')['testRunItems']
+let testRuns: typeof import('../../db/schema')['testRuns']
+let tests: typeof import('../../db/schema')['tests']
+let ensureProjectSlugs: typeof import('./slug')['ensureProjectSlugs']
+let ensureUniqueProjectSlug: typeof import('./slug')['ensureUniqueProjectSlug']
+
+async function ensureProjectServerDeps(): Promise<void> {
+  if (getDb) {
+    return
+  }
+
+  const [drizzle, dbClient, schema, slug] = await Promise.all([
+    import('drizzle-orm'),
+    import('../../db/client'),
+    import('../../db/schema'),
+    import('./slug'),
+  ])
+
+  asc = drizzle.asc
+  eq = drizzle.eq
+  inArray = drizzle.inArray
+  getDb = dbClient.getDb
+  isDatabaseConfigured = dbClient.isDatabaseConfigured
+  projects = schema.projects
+  sections = schema.sections
+  testRunItems = schema.testRunItems
+  testRuns = schema.testRuns
+  tests = schema.tests
+  ensureProjectSlugs = slug.ensureProjectSlugs
+  ensureUniqueProjectSlug = slug.ensureUniqueProjectSlug
+}
 
 const createProjectInput = z.object({
   name: z.string().trim().min(1),
@@ -51,6 +80,7 @@ export const listProjects = createServerFn({ method: 'GET' }).handler(
   async (): Promise<ProjectsDashboardState> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureProjectServerDeps()
 
     if (!isDatabaseConfigured()) {
       return {
@@ -84,6 +114,7 @@ export const createProject = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ id: number }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureProjectServerDeps()
 
     const db = getDb()
     const slug = await ensureUniqueProjectSlug(data.name)
@@ -103,6 +134,7 @@ export const createSuite = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ id: number }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureProjectServerDeps()
 
     const db = getDb()
     const result = await db.insert(sections).values({
@@ -120,6 +152,7 @@ export const updateSuite = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureProjectServerDeps()
 
     const db = getDb()
     await db
@@ -139,6 +172,7 @@ export const deleteSuite = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureProjectServerDeps()
 
     const db = getDb()
     const linkedTests = await db
@@ -167,6 +201,7 @@ export const archiveProject = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureProjectServerDeps()
 
     const db = getDb()
     await db
@@ -186,6 +221,7 @@ export const restoreProject = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureProjectServerDeps()
 
     const db = getDb()
     await db
@@ -205,6 +241,7 @@ export const deleteProject = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureProjectServerDeps()
 
     const db = getDb()
 

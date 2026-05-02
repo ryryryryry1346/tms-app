@@ -1,10 +1,39 @@
-import { asc, eq } from 'drizzle-orm'
 import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { getDb, isDatabaseConfigured } from '../../db/client'
-import { projects, testRunItems, testRuns, tests } from '../../db/schema'
-import { ensureProjectSlugs } from '../projects/slug'
+
+let asc: typeof import('drizzle-orm')['asc']
+let eq: typeof import('drizzle-orm')['eq']
+let getDb: typeof import('../../db/client')['getDb']
+let isDatabaseConfigured: typeof import('../../db/client')['isDatabaseConfigured']
+let projects: typeof import('../../db/schema')['projects']
+let testRunItems: typeof import('../../db/schema')['testRunItems']
+let testRuns: typeof import('../../db/schema')['testRuns']
+let tests: typeof import('../../db/schema')['tests']
+let ensureProjectSlugs: typeof import('../projects/slug')['ensureProjectSlugs']
+
+async function ensureRunServerDeps(): Promise<void> {
+  if (getDb) {
+    return
+  }
+
+  const [drizzle, dbClient, schema, slug] = await Promise.all([
+    import('drizzle-orm'),
+    import('../../db/client'),
+    import('../../db/schema'),
+    import('../projects/slug'),
+  ])
+
+  asc = drizzle.asc
+  eq = drizzle.eq
+  getDb = dbClient.getDb
+  isDatabaseConfigured = dbClient.isDatabaseConfigured
+  projects = schema.projects
+  testRunItems = schema.testRunItems
+  testRuns = schema.testRuns
+  tests = schema.tests
+  ensureProjectSlugs = slug.ensureProjectSlugs
+}
 
 const runsForProjectInput = z.object({
   projectId: z.number().int().positive().optional(),
@@ -63,6 +92,7 @@ export const getRunsForProject = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ runs: ProjectRun[] }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureRunServerDeps()
 
     if (!isDatabaseConfigured() || !data.projectId) {
       return { runs: [] }
@@ -92,6 +122,7 @@ export const createRun = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ id: number }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureRunServerDeps()
 
     const db = getDb()
     const result = await db.transaction(async (tx) => {
@@ -134,6 +165,7 @@ export const getRunDetail = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<RunDetail> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureRunServerDeps()
 
     const db = getDb()
     await ensureProjectSlugs()
@@ -227,6 +259,7 @@ export const updateRunName = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureRunServerDeps()
 
     const db = getDb()
     const existingRun = await db
@@ -256,6 +289,7 @@ export const executeRunTest = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureRunServerDeps()
 
     const db = getDb()
     const runRows = await db
@@ -346,6 +380,7 @@ export const saveRunItemComment = createServerFn({ method: 'POST' })
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
+    await ensureRunServerDeps()
 
     const db = getDb()
     const runRows = await db
