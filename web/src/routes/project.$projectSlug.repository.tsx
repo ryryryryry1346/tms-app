@@ -8,6 +8,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { BulkCaseBar } from '../components/repository/BulkCaseBar'
 import { CasePreviewDrawer } from '../components/repository/CasePreviewDrawer'
+import { RepositoryToolbar } from '../components/repository/RepositoryToolbar'
 import { SuiteSection } from '../components/repository/SuiteSection'
 import { uploadTestMedia } from '../features/media/server'
 import {
@@ -1445,106 +1446,38 @@ function ProjectRepositoryPage() {
               id="project-suites"
               className="overflow-visible rounded-3xl border border-[#e6ecf8] bg-white shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
             >
-            <div className="border-b border-[#e6ecf8] bg-white px-5 py-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="m-0 text-xl font-semibold text-[#1b2f5b]">
-                    Test suites and cases
-                  </h2>
-                  <div className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
-                    {filteredLifecycleTests.length} visible cases
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                <label className="flex w-[260px] items-center gap-2 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm text-[#6d7d9e]">
-                  <span className="shrink-0 whitespace-nowrap font-semibold">Search</span>
-                  <input
-                    value={searchValue}
-                    onChange={(event) => {
-                      clearBulkConfirmations()
-                      setSearchValue(event.target.value)
-                    }}
-                    className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none"
-                  />
-                </label>
-                <label className="flex items-center gap-2 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm text-[#6d7d9e]">
-                  <span className="font-semibold">Suite</span>
-                  <select
-                    value={suiteFilterId}
-                    onChange={(event) => {
-                      clearBulkConfirmations()
-                      setSuiteFilterId(event.target.value)
-                    }}
-                    className="min-w-[160px] border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none"
-                  >
-                    <option value={ALL_SUITES_FILTER}>All suites</option>
-                    {dashboard.sections.map((section) => (
-                      <option key={section.id} value={section.id.toString()}>
-                        {section.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex items-center gap-2 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm text-[#6d7d9e]">
-                  <span className="font-semibold">Priority</span>
-                  <select
-                    value={priorityFilter}
-                    onChange={(event) => {
-                      clearBulkConfirmations()
-                      setPriorityFilter(event.target.value as PriorityFilter)
-                    }}
-                    className="min-w-[110px] border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none"
-                  >
-                    <option value="All">All</option>
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                    <option value="Critical">Critical</option>
-                  </select>
-                </label>
-                <label className="flex items-center gap-2 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm text-[#6d7d9e]">
-                  <span className="font-semibold">Type</span>
-                  <select
-                    value={caseTypeFilter}
-                    onChange={(event) => {
-                      clearBulkConfirmations()
-                      setCaseTypeFilter(event.target.value as CaseTypeFilter)
-                    }}
-                    className="min-w-[120px] border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none"
-                  >
-                    <option value="All">All</option>
-                    <option value="Functional">Functional</option>
-                    <option value="Regression">Regression</option>
-                    <option value="Smoke">Smoke</option>
-                    <option value="E2E">E2E</option>
-                    <option value="UI">UI</option>
-                    <option value="API">API</option>
-                  </select>
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {(['All', 'Ready', 'Draft', 'Archived'] as const).map((filter) => (
-                    <button
-                      key={filter}
-                      type="button"
-                      onClick={() => {
-                        clearBulkConfirmations()
-                        setCaseFilter(filter)
-                      }}
-                      className={`rounded-xl border px-3 py-2 text-sm font-semibold ${
-                        caseFilter === filter
-                          ? filter === 'Archived'
-                            ? 'border-amber-300 bg-amber-50 text-amber-900'
-                            : 'border-[#b7cdfa] bg-[#ecf2ff] text-[#2f6fe4]'
-                          : 'border-[#dbe4f4] bg-white text-[#60718f]'
-                      }`}
-                    >
-                      {filter}
-                    </button>
-                  ))}
-                </div>
-                </div>
-              </div>
-            </div>
+            <RepositoryToolbar
+              visibleCount={filteredLifecycleTests.length}
+              searchValue={searchValue}
+              suiteFilterId={suiteFilterId}
+              priorityFilter={priorityFilter}
+              caseTypeFilter={caseTypeFilter}
+              caseFilter={caseFilter}
+              allSuitesFilter={ALL_SUITES_FILTER}
+              suites={dashboard.sections}
+              priorityOptions={PRIORITY_OPTIONS}
+              caseTypeOptions={CASE_TYPE_OPTIONS}
+              onSearchChange={(value) => {
+                clearBulkConfirmations()
+                setSearchValue(value)
+              }}
+              onSuiteFilterChange={(value) => {
+                clearBulkConfirmations()
+                setSuiteFilterId(value)
+              }}
+              onPriorityFilterChange={(value) => {
+                clearBulkConfirmations()
+                setPriorityFilter(value)
+              }}
+              onCaseTypeFilterChange={(value) => {
+                clearBulkConfirmations()
+                setCaseTypeFilter(value)
+              }}
+              onCaseFilterChange={(value) => {
+                clearBulkConfirmations()
+                setCaseFilter(value)
+              }}
+            />
 
             {selectedTestIds.length > 0 ? (
               <BulkCaseBar
