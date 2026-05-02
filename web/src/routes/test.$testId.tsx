@@ -5,12 +5,15 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { useState } from 'react'
+import { RichTextEditor } from '../components/RichTextEditor'
+import { uploadTestMedia } from '../features/media/server'
 import {
   archiveTestCase,
   deleteArchivedTestCase,
   duplicateTestCase,
   getTestDetail,
   restoreTestCase,
+  updateTestContent,
 } from '../features/tests/server'
 
 export const Route = createFileRoute('/test/$testId')({
@@ -102,6 +105,11 @@ function TestDetailPage() {
   const [isArchiving, setIsArchiving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDuplicating, setIsDuplicating] = useState(false)
+  const [isEditingContent, setIsEditingContent] = useState(false)
+  const [stepsValue, setStepsValue] = useState(test.steps ?? '')
+  const [expectedValue, setExpectedValue] = useState(test.expected ?? '')
+  const [isSavingContent, setIsSavingContent] = useState(false)
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -172,6 +180,59 @@ function TestDetailPage() {
       )
     } finally {
       setIsDuplicating(false)
+    }
+  }
+
+  function startContentEdit(): void {
+    setActionError(null)
+    setStepsValue(test.steps ?? '')
+    setExpectedValue(test.expected ?? '')
+    setIsEditingContent(true)
+  }
+
+  function cancelContentEdit(): void {
+    setStepsValue(test.steps ?? '')
+    setExpectedValue(test.expected ?? '')
+    setIsEditingContent(false)
+  }
+
+  async function uploadInlineMedia(file: File): Promise<string> {
+    setIsUploadingMedia(true)
+
+    try {
+      const result = await uploadTestMedia({
+        data: {
+          file,
+        },
+      })
+
+      return result.url
+    } finally {
+      setIsUploadingMedia(false)
+    }
+  }
+
+  async function saveContentEdit(): Promise<void> {
+    setActionError(null)
+    setIsSavingContent(true)
+
+    try {
+      await updateTestContent({
+        data: {
+          id: test.id,
+          steps: stepsValue,
+          expected: expectedValue,
+        },
+      })
+
+      setIsEditingContent(false)
+      await router.invalidate()
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : 'Failed to update test content.',
+      )
+    } finally {
+      setIsSavingContent(false)
     }
   }
 
@@ -279,6 +340,36 @@ function TestDetailPage() {
                 >
                   Full editor
                 </Link>
+                {isEditingContent ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void saveContentEdit()
+                      }}
+                      disabled={isSavingContent || isUploadingMedia}
+                      className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#3369d6] disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      {isSavingContent ? 'Saving...' : 'Save content'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelContentEdit}
+                      disabled={isSavingContent}
+                      className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={startContentEdit}
+                    className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#3369d6]"
+                  >
+                    Edit content
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -324,31 +415,54 @@ function TestDetailPage() {
 
           <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="grid gap-6 px-6 py-6">
-              <section>
-                <h2 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[#7f8da9]">
-                  Steps
-                </h2>
-                <div
-                  className="rich-output prose prose-sm mt-3 max-w-none rounded-2xl border border-[#e9eef8] bg-[#fbfcff] px-4 py-4 text-[#1b2f5b]"
-                  onClick={handleRichContentClick}
-                  dangerouslySetInnerHTML={{
-                    __html: test.steps || '<p>-</p>',
-                  }}
-                />
-              </section>
+              {isEditingContent ? (
+                <>
+                  <RichTextEditor
+                    label="Steps"
+                    placeholder="Describe the test steps"
+                    value={stepsValue}
+                    onChange={setStepsValue}
+                    onUploadMedia={uploadInlineMedia}
+                    isUploading={isUploadingMedia}
+                  />
+                  <RichTextEditor
+                    label="Expected result"
+                    placeholder="Describe the expected result"
+                    value={expectedValue}
+                    onChange={setExpectedValue}
+                    onUploadMedia={uploadInlineMedia}
+                    isUploading={isUploadingMedia}
+                  />
+                </>
+              ) : (
+                <>
+                  <section>
+                    <h2 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[#7f8da9]">
+                      Steps
+                    </h2>
+                    <div
+                      className="rich-output prose prose-sm mt-3 max-w-none rounded-2xl border border-[#e9eef8] bg-[#fbfcff] px-4 py-4 text-[#1b2f5b]"
+                      onClick={handleRichContentClick}
+                      dangerouslySetInnerHTML={{
+                        __html: test.steps || '<p>-</p>',
+                      }}
+                    />
+                  </section>
 
-              <section>
-                <h2 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[#7f8da9]">
-                  Expected result
-                </h2>
-                <div
-                  className="rich-output prose prose-sm mt-3 max-w-none rounded-2xl border border-[#e9eef8] bg-[#fbfcff] px-4 py-4 text-[#1b2f5b]"
-                  onClick={handleRichContentClick}
-                  dangerouslySetInnerHTML={{
-                    __html: test.expected || '<p>-</p>',
-                  }}
-                />
-              </section>
+                  <section>
+                    <h2 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[#7f8da9]">
+                      Expected result
+                    </h2>
+                    <div
+                      className="rich-output prose prose-sm mt-3 max-w-none rounded-2xl border border-[#e9eef8] bg-[#fbfcff] px-4 py-4 text-[#1b2f5b]"
+                      onClick={handleRichContentClick}
+                      dangerouslySetInnerHTML={{
+                        __html: test.expected || '<p>-</p>',
+                      }}
+                    />
+                  </section>
+                </>
+              )}
             </div>
 
             <aside className="border-t border-[#e9eef8] bg-[#fbfcff] px-6 py-6 lg:border-l lg:border-t-0">
