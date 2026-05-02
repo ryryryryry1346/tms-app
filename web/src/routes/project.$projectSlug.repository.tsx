@@ -1512,13 +1512,6 @@ function ProjectRepositoryPage() {
           >
             {isPending ? 'Saving' : 'Save'}
           </button>
-          <Link
-            to="/create-test"
-            search={{ suiteId: sectionId, projectId }}
-            className="rounded-lg border border-[#dbe4f4] bg-white px-2.5 py-1 text-sm font-semibold no-underline text-[#60718f]"
-          >
-            Editor
-          </Link>
         </div>
       </div>
     )
@@ -1714,7 +1707,6 @@ function ProjectRepositoryPage() {
                       clearBulkConfirmations()
                       setSearchValue(event.target.value)
                     }}
-                    placeholder="Search cases..."
                     className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none"
                   />
                 </label>
@@ -2238,13 +2230,6 @@ function ProjectRepositoryPage() {
                           >
                             + Case
                           </button>
-                          <Link
-                            to="/create-test"
-                            search={{ suiteId: section.id, projectId: project.id }}
-                            className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#60718f]"
-                          >
-                            Editor
-                          </Link>
                           {!isEditingSuite ? (
                             <div className="relative">
                               <button
@@ -2339,16 +2324,6 @@ function ProjectRepositoryPage() {
                                 >
                                   + Case
                                 </button>
-                                <Link
-                                  to="/create-test"
-                                  search={{
-                                    suiteId: section.id,
-                                    projectId: project.id,
-                                  }}
-                                  className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#60718f]"
-                                >
-                                  Editor
-                                </Link>
                               </div>
                             </div>
                           </div>
