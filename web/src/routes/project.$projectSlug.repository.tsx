@@ -6,8 +6,9 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
-import { RichTextEditor } from '../components/RichTextEditor'
 import { BulkCaseBar } from '../components/repository/BulkCaseBar'
+import { CaseActionsMenu } from '../components/repository/CaseActionsMenu'
+import { CasePreviewDrawer } from '../components/repository/CasePreviewDrawer'
 import { uploadTestMedia } from '../features/media/server'
 import {
   createSuite,
@@ -2221,93 +2222,31 @@ function ProjectRepositoryPage() {
                                     </option>
                                   ))}
                                 </select>
-                                <div
-                                  className="relative flex justify-end"
-                                  onPointerDown={(event) => event.stopPropagation()}
-                                >
-                                  <button
-                                    type="button"
-                                    disabled={isPendingCaseAction}
-                                    onClick={(event) => {
-                                      event.stopPropagation()
-                                      setCaseActionErrorMessage(null)
-                                      setOpenCaseMenuId((current) =>
-                                        current === test.id ? null : test.id,
-                                      )
-                                    }}
-                                    className="rounded-lg border border-[#dbe4f4] bg-white px-2.5 py-1 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
-                                    aria-label="Open test case actions"
-                                  >
-                                    ...
-                                  </button>
-                                  {isCaseMenuOpen ? (
-                                    <div
-                                      className="absolute right-0 top-full z-50 mt-2 min-w-[170px] rounded-2xl border border-[#dbe4f4] bg-white p-2 text-left shadow-[0_12px_30px_rgba(31,57,102,0.12)]"
-                                      onClick={(event) => event.stopPropagation()}
-                                    >
-                                      <Link
-                                        to="/test/$testId"
-                                        params={{ testId: test.id.toString() }}
-                                        className="block rounded-xl px-3 py-2 text-sm font-semibold no-underline text-[#60718f] hover:bg-[#f5f8ff]"
-                                      >
-                                        Open
-                                      </Link>
-                                      <button
-                                        type="button"
-                                        onClick={() => openCasePreview(test.id)}
-                                        className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-[#60718f] hover:bg-[#f5f8ff]"
-                                      >
-                                        Preview
-                                      </button>
-                                      <Link
-                                        to="/edit-test/$testId"
-                                        params={{ testId: test.id.toString() }}
-                                        className="block rounded-xl px-3 py-2 text-sm font-semibold no-underline text-[#60718f] hover:bg-[#f5f8ff]"
-                                      >
-                                        Edit
-                                      </Link>
-                                      <button
-                                        type="button"
-                                        disabled={isPendingCaseAction}
-                                        onClick={() => handleCaseDuplicate(test.id)}
-                                        className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-[#60718f] hover:bg-[#f5f8ff] disabled:cursor-not-allowed disabled:opacity-55"
-                                      >
-                                        Duplicate
-                                      </button>
-                                      {isArchived ? (
-                                        <>
-                                          <button
-                                            type="button"
-                                            disabled={isPendingCaseAction}
-                                            onClick={() => handleCaseRestore(test.id)}
-                                            className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-55"
-                                          >
-                                            Restore
-                                          </button>
-                                          <button
-                                            type="button"
-                                            disabled={isPendingCaseAction}
-                                            onClick={() =>
-                                              handleCaseDeletePermanently(test.id)
-                                            }
-                                            className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-55"
-                                          >
-                                            Delete permanently
-                                          </button>
-                                        </>
-                                      ) : (
-                                        <button
-                                          type="button"
-                                          disabled={isPendingCaseAction}
-                                          onClick={() => handleCaseArchive(test.id)}
-                                          className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-amber-800 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-55"
-                                        >
-                                          Archive
-                                        </button>
-                                      )}
-                                    </div>
-                                  ) : null}
-                                </div>
+                                <CaseActionsMenu
+                                  testId={test.id}
+                                  isOpen={isCaseMenuOpen}
+                                  isArchived={isArchived}
+                                  isPending={isPendingCaseAction}
+                                  onToggle={() => {
+                                    setCaseActionErrorMessage(null)
+                                    setOpenCaseMenuId((current) =>
+                                      current === test.id ? null : test.id,
+                                    )
+                                  }}
+                                  onPreview={() => openCasePreview(test.id)}
+                                  onDuplicate={() => {
+                                    void handleCaseDuplicate(test.id)
+                                  }}
+                                  onRestore={() => {
+                                    void handleCaseRestore(test.id)
+                                  }}
+                                  onDeletePermanently={() => {
+                                    void handleCaseDeletePermanently(test.id)
+                                  }}
+                                  onArchive={() => {
+                                    void handleCaseArchive(test.id)
+                                  }}
+                                />
                               </article>
                             )
                           })}
@@ -2348,211 +2287,34 @@ function ProjectRepositoryPage() {
           </section>
 
           {previewTest ? (
-            <div className="fixed inset-0 z-40">
-              <button
-                type="button"
-                aria-label="Close case preview"
-                onClick={() => setPreviewTestId(null)}
-                className="absolute inset-0 bg-[#16233f]/30"
-              />
-              <aside className="absolute right-0 top-0 flex h-full w-full max-w-[560px] flex-col border-l border-[#dbe4f4] bg-white shadow-[0_24px_80px_rgba(31,57,102,0.22)]">
-                <div className="border-b border-[#e9eef8] px-6 py-5">
-                  <div className="mb-4 flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-[#7f8da9]">
-                        Case #{previewTest.id}
-                      </p>
-                      <h2 className="m-0 mt-2 text-2xl font-bold leading-tight text-[#1b2f5b]">
-                        {previewTest.title}
-                      </h2>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setPreviewTestId(null)}
-                      className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]"
-                    >
-                      Close
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                    <span className="rounded-full bg-[#eef6ff] px-2.5 py-1 text-[#506487]">
-                      {previewSuite?.name ?? 'No suite'}
-                    </span>
-                    <span
-                      className={`rounded-full px-2.5 py-1 ${
-                        previewTest.status === 'Ready'
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : previewTest.status === 'Archived'
-                            ? 'bg-amber-50 text-amber-800'
-                            : 'bg-slate-100 text-slate-700'
-                      }`}
-                    >
-                      {previewTest.status ?? 'Draft'}
-                    </span>
-                    <span className="rounded-full bg-[#f3f5f9] px-2.5 py-1 text-[#60718f]">
-                      {previewTest.priority ?? 'Medium'}
-                    </span>
-                    <span className="rounded-full bg-[#f3f5f9] px-2.5 py-1 text-[#60718f]">
-                      {previewTest.caseType ?? 'Functional'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-                  {isEditingPreviewContent ? (
-                    <div className="grid gap-5">
-                      <RichTextEditor
-                        label="Steps"
-                        placeholder="Describe the test steps"
-                        value={previewStepsValue}
-                        onChange={setPreviewStepsValue}
-                        onUploadMedia={uploadPreviewMedia}
-                        isUploading={isUploadingPreviewMedia}
-                      />
-                      <RichTextEditor
-                        label="Expected result"
-                        placeholder="Describe the expected result"
-                        value={previewExpectedValue}
-                        onChange={setPreviewExpectedValue}
-                        onUploadMedia={uploadPreviewMedia}
-                        isUploading={isUploadingPreviewMedia}
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <section className="mb-5">
-                        <h3 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[#7f8da9]">
-                          Steps
-                        </h3>
-                        <div
-                          className="rich-output prose prose-sm mt-3 max-w-none text-[#1b2f5b]"
-                          onClick={handleRichContentClick}
-                          dangerouslySetInnerHTML={{
-                            __html: previewTest.steps || '<p>-</p>',
-                          }}
-                        />
-                      </section>
-
-                      <section>
-                        <h3 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[#7f8da9]">
-                          Expected result
-                        </h3>
-                        <div
-                          className="rich-output prose prose-sm mt-3 max-w-none text-[#1b2f5b]"
-                          onClick={handleRichContentClick}
-                          dangerouslySetInnerHTML={{
-                            __html: previewTest.expected || '<p>-</p>',
-                          }}
-                        />
-                      </section>
-
-                      <section className="mt-6 border-t border-[#e9eef8] pt-5">
-                        <h3 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[#7f8da9]">
-                          Activity
-                        </h3>
-                        {previewActivities.length === 0 ? (
-                          <p className="m-0 mt-3 text-sm text-[#60718f]">
-                            No activity recorded yet.
-                          </p>
-                        ) : (
-                          <div className="mt-3 grid gap-3">
-                            {previewActivities.map((activity) => (
-                              <div
-                                key={activity.id}
-                                className="rounded-xl border border-[#e9eef8] bg-[#fbfcff] px-3 py-2"
-                              >
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <span className="text-sm font-semibold text-[#1b2f5b]">
-                                    {activity.summary}
-                                  </span>
-                                  <span className="text-xs font-semibold text-[#7f8da9]">
-                                    {formatRepositoryDateTime(activity.createdAt)}
-                                  </span>
-                                </div>
-                                <div className="mt-1 text-xs font-semibold text-[#60718f]">
-                                  {activity.actorName ?? 'system'} ·{' '}
-                                  {activity.action.replaceAll('_', ' ')}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </section>
-                    </>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 border-t border-[#e9eef8] px-6 py-4">
-                  {isEditingPreviewContent ? (
-                    <>
-                      <button
-                        type="button"
-                        disabled={isSavingPreviewContent || isUploadingPreviewMedia}
-                        onClick={() => {
-                          void savePreviewContent()
-                        }}
-                        className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#3369d6] disabled:cursor-not-allowed disabled:opacity-55"
-                      >
-                        {isSavingPreviewContent ? 'Saving...' : 'Save content'}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isSavingPreviewContent}
-                        onClick={cancelPreviewContentEdit}
-                        className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={startPreviewContentEdit}
-                      className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#3369d6]"
-                    >
-                      Edit content
-                    </button>
-                  )}
-                  <Link
-                    to="/edit-test/$testId"
-                    params={{ testId: previewTest.id.toString() }}
-                    className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#60718f]"
-                  >
-                    Full editor
-                  </Link>
-                  <Link
-                    to="/test/$testId"
-                    params={{ testId: previewTest.id.toString() }}
-                    className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#60718f]"
-                  >
-                    Open full page
-                  </Link>
-                  {previewTest.status === 'Archived' ? (
-                    <button
-                      type="button"
-                      disabled={pendingCaseActionId === previewTest.id}
-                      onClick={() => {
-                        void handleCaseRestore(previewTest.id)
-                      }}
-                      className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-55"
-                    >
-                      Restore
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={pendingCaseActionId === previewTest.id}
-                      onClick={() => {
-                        void handleCaseArchive(previewTest.id)
-                      }}
-                      className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 disabled:cursor-not-allowed disabled:opacity-55"
-                    >
-                      Archive
-                    </button>
-                  )}
-                </div>
-              </aside>
-            </div>
+            <CasePreviewDrawer
+              test={previewTest}
+              suite={previewSuite}
+              activities={previewActivities}
+              isEditingContent={isEditingPreviewContent}
+              stepsValue={previewStepsValue}
+              expectedValue={previewExpectedValue}
+              isSavingContent={isSavingPreviewContent}
+              isUploadingMedia={isUploadingPreviewMedia}
+              isPendingAction={pendingCaseActionId === previewTest.id}
+              onClose={() => setPreviewTestId(null)}
+              onStartEdit={startPreviewContentEdit}
+              onCancelEdit={cancelPreviewContentEdit}
+              onSaveContent={() => {
+                void savePreviewContent()
+              }}
+              onStepsChange={setPreviewStepsValue}
+              onExpectedChange={setPreviewExpectedValue}
+              onUploadMedia={uploadPreviewMedia}
+              onRichContentClick={handleRichContentClick}
+              onRestore={() => {
+                void handleCaseRestore(previewTest.id)
+              }}
+              onArchive={() => {
+                void handleCaseArchive(previewTest.id)
+              }}
+              formatDateTime={formatRepositoryDateTime}
+            />
           ) : null}
       </div>
     </main>
