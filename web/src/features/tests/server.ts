@@ -252,6 +252,7 @@ export type TestDetail = {
   projectSlug: string | null
   createdAt: string | null
   updatedAt: string | null
+  activities: DashboardActivity[]
 }
 
 export const getDashboardState = createServerFn({ method: 'POST' })
@@ -1435,11 +1436,24 @@ export const getTestDetail = createServerFn({ method: 'POST' })
             .limit(1)
 
     const project = projectRows[0] ?? null
+    let activityRows: DashboardActivity[] = []
+
+    try {
+      const { getTestCaseActivities } = await import('./activity.server')
+      activityRows = await getTestCaseActivities({
+        db,
+        testId: test.id,
+        limit: 20,
+      })
+    } catch (error) {
+      console.error('Failed to load test case activity', error)
+    }
 
     return {
       ...test,
       sectionName: section?.name ?? null,
       projectName: project?.name ?? null,
       projectSlug: project?.slug ?? null,
+      activities: activityRows,
     }
   })

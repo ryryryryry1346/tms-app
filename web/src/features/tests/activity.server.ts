@@ -73,3 +73,29 @@ export async function getProjectTestCaseActivities({
     .orderBy(desc(testCaseActivity.id))
     .limit(limit)
 }
+
+export async function getTestCaseActivities({
+  db,
+  testId,
+  limit = 20,
+}: {
+  db: ActivityDb
+  testId: number
+  limit?: number
+}): Promise<TestCaseActivityEvent[]> {
+  return db
+    .select({
+      id: testCaseActivity.id,
+      testId: testCaseActivity.testId,
+      projectId: testCaseActivity.projectId,
+      actorId: testCaseActivity.actorId,
+      actorName: testCaseActivity.actorName,
+      action: testCaseActivity.action,
+      summary: testCaseActivity.summary,
+      createdAt: testCaseActivity.createdAt,
+    })
+    .from(testCaseActivity)
+    .where(eq(testCaseActivity.testId, testId))
+    .orderBy(desc(testCaseActivity.id))
+    .limit(limit)
+}
