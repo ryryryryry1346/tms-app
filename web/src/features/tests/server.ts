@@ -361,6 +361,7 @@ export const updateTestStatus = createServerFn({ method: 'POST' })
     await ensureTestServerDeps()
 
     const db = getDb()
+    const now = new Date().toISOString()
     const rows = await db
       .select({
         id: tests.id,

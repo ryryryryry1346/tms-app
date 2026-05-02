@@ -1255,6 +1255,7 @@ function ProjectRepositoryPage() {
 
   async function handleCaseDuplicate(testId: number): Promise<void> {
     setCaseActionErrorMessage(null)
+    setOpenCaseMenuId(null)
     setPendingCaseActionId(testId)
 
     try {
