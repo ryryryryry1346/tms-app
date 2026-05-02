@@ -189,6 +189,19 @@ function ChevronDownIcon() {
   )
 }
 
+function DragHandleIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      className="h-4 w-4"
+      fill="currentColor"
+    >
+      <path d="M5 3.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM13 3.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM13 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM5 12.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM13 12.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" />
+    </svg>
+  )
+}
+
 function ProjectSubnav({
   projectSlug,
   active,
@@ -1680,7 +1693,7 @@ function ProjectRepositoryPage() {
 
             <section
               id="project-suites"
-              className="overflow-hidden rounded-3xl border border-[#e6ecf8] bg-white shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
+              className="overflow-visible rounded-3xl border border-[#e6ecf8] bg-white shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
             >
             <div className="border-b border-[#e6ecf8] bg-white px-5 py-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -2126,7 +2139,7 @@ function ProjectRepositoryPage() {
                           current === section.id ? null : current,
                         )
                       }
-                      className={`overflow-hidden rounded-3xl border transition ${
+                      className={`overflow-visible rounded-3xl border transition ${
                         dragOverSuiteId === section.id
                           ? 'border-[#2f6fe4] bg-[#f8fbff] shadow-[0_0_0_3px_rgba(47,111,228,0.12)]'
                           : 'border-[#dfe6f4]'
@@ -2250,7 +2263,7 @@ function ProjectRepositoryPage() {
                                 ...
                               </button>
                               {isMenuOpen ? (
-                                <div className="absolute right-0 top-full z-10 mt-2 min-w-[160px] rounded-2xl border border-[#dbe4f4] bg-white p-2 shadow-[0_12px_30px_rgba(31,57,102,0.12)]">
+                                <div className="absolute right-0 top-full z-50 mt-2 min-w-[160px] rounded-2xl border border-[#dbe4f4] bg-white p-2 shadow-[0_12px_30px_rgba(31,57,102,0.12)]">
                                   <button
                                     type="button"
                                     onClick={() => startRenameSuite(section.id, section.name)}
@@ -2345,7 +2358,7 @@ function ProjectRepositoryPage() {
                         </div>
                       ) : (
                         <div className="bg-white">
-                          <div className="grid grid-cols-[44px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] items-center border-t border-[#e9eef8] bg-[#fbfcff] px-5 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
+                          <div className="grid grid-cols-[64px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] items-center border-t border-[#e9eef8] bg-[#fbfcff] px-5 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
                             <div />
                             <div>ID</div>
                             <div>Title</div>
@@ -2368,15 +2381,6 @@ function ProjectRepositoryPage() {
                             return (
                               <article
                                 key={test.id}
-                                draggable
-                                onDragStart={(event) =>
-                                  handleCaseDragStart(event, test.id)
-                                }
-                                onDragEnd={() => {
-                                  setDraggedTestIds([])
-                                  setDragOverSuiteId(null)
-                                  setDragOverTestDrop(null)
-                                }}
                                 onDragOver={(event) => {
                                   if (draggedTestIds.length === 0) {
                                     return
@@ -2417,7 +2421,7 @@ function ProjectRepositoryPage() {
                                     currentSuiteTestIds: sectionAllTestIds,
                                   })
                                 }}
-                                className={`grid cursor-grab grid-cols-[44px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] items-center border-t border-[#eef2f8] px-5 py-2.5 transition hover:bg-[#f8fbff] active:cursor-grabbing ${
+                                className={`grid grid-cols-[64px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] items-center border-t border-[#eef2f8] px-5 py-2.5 transition hover:bg-[#f8fbff] ${
                                   draggedTestIds.includes(test.id)
                                     ? 'bg-[#f8fbff] opacity-70'
                                     : dragOverTestDrop?.testId === test.id
@@ -2427,13 +2431,29 @@ function ProjectRepositoryPage() {
                                     : ''
                                 }`}
                               >
-                                <div>
+                                <div className="flex items-center gap-2">
                                   <input
                                     type="checkbox"
                                     checked={selectedTestIdSet.has(test.id)}
                                     onChange={() => toggleTestSelection(test.id)}
                                     className="h-4 w-4 rounded border-[#c7d5ee] text-[#2f6fe4] focus:ring-[#2f6fe4]"
                                   />
+                                  <button
+                                    type="button"
+                                    draggable
+                                    onDragStart={(event) =>
+                                      handleCaseDragStart(event, test.id)
+                                    }
+                                    onDragEnd={() => {
+                                      setDraggedTestIds([])
+                                      setDragOverSuiteId(null)
+                                      setDragOverTestDrop(null)
+                                    }}
+                                    className="cursor-grab rounded-md p-1 text-[#9aa7bf] hover:bg-[#eef3fb] hover:text-[#60718f] active:cursor-grabbing"
+                                    aria-label={`Drag test case ${test.id}`}
+                                  >
+                                    <DragHandleIcon />
+                                  </button>
                                 </div>
                                 <Link
                                   to="/test/$testId"
@@ -2578,11 +2598,15 @@ function ProjectRepositoryPage() {
                                     </option>
                                   ))}
                                 </select>
-                                <div className="relative flex justify-end">
+                                <div
+                                  className="relative flex justify-end"
+                                  onPointerDown={(event) => event.stopPropagation()}
+                                >
                                   <button
                                     type="button"
                                     disabled={isPendingCaseAction}
-                                    onClick={() => {
+                                    onClick={(event) => {
+                                      event.stopPropagation()
                                       setCaseActionErrorMessage(null)
                                       setOpenCaseMenuId((current) =>
                                         current === test.id ? null : test.id,
@@ -2594,7 +2618,10 @@ function ProjectRepositoryPage() {
                                     ...
                                   </button>
                                   {isCaseMenuOpen ? (
-                                    <div className="absolute right-0 top-full z-10 mt-2 min-w-[170px] rounded-2xl border border-[#dbe4f4] bg-white p-2 text-left shadow-[0_12px_30px_rgba(31,57,102,0.12)]">
+                                    <div
+                                      className="absolute right-0 top-full z-50 mt-2 min-w-[170px] rounded-2xl border border-[#dbe4f4] bg-white p-2 text-left shadow-[0_12px_30px_rgba(31,57,102,0.12)]"
+                                      onClick={(event) => event.stopPropagation()}
+                                    >
                                       <Link
                                         to="/test/$testId"
                                         params={{ testId: test.id.toString() }}
