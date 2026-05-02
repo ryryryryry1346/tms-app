@@ -7,8 +7,8 @@ import {
 } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 import { BulkCaseBar } from '../components/repository/BulkCaseBar'
-import { CaseActionsMenu } from '../components/repository/CaseActionsMenu'
 import { CasePreviewDrawer } from '../components/repository/CasePreviewDrawer'
+import { SuiteSection } from '../components/repository/SuiteSection'
 import { uploadTestMedia } from '../features/media/server'
 import {
   createSuite,
@@ -155,53 +155,6 @@ function formatRepositoryDateTime(value: string | null | undefined): string {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date)
-}
-
-function ChevronRightIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 16 16"
-      className="h-4 w-4"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M6 3.5 10.5 8 6 12.5" />
-    </svg>
-  )
-}
-
-function ChevronDownIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 16 16"
-      className="h-4 w-4"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3.5 6 8 10.5 12.5 6" />
-    </svg>
-  )
-}
-
-function DragHandleIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 16 16"
-      className="h-4 w-4"
-      fill="currentColor"
-    >
-      <path d="M5 3.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM13 3.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM13 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM5 12.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM13 12.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" />
-    </svg>
-  )
 }
 
 function ProjectSubnav({
@@ -1321,94 +1274,6 @@ function ProjectRepositoryPage() {
     }))
   }
 
-  function renderQuickCreateCaseRow(sectionId: number, projectId: number) {
-    const isPending = pendingQuickCreateSuiteId === sectionId
-
-    return (
-      <div className="grid grid-cols-[44px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] items-center border-t border-[#dbe4f4] bg-[#f8fbff] px-5 py-2.5">
-        <div />
-        <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[#9aa7bf]">
-          New
-        </div>
-        <input
-          value={quickCreateTitle}
-          onChange={(event) => setQuickCreateTitle(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault()
-              void handleQuickCreateCase(sectionId)
-            }
-
-            if (event.key === 'Escape') {
-              event.preventDefault()
-              cancelQuickCreateCase()
-            }
-          }}
-          disabled={isPending}
-          autoFocus
-          placeholder="Test case title"
-          className="min-w-0 rounded-lg border border-[#c7d5ee] bg-white px-2 py-1 text-sm font-semibold text-[#1b2f5b] outline-none disabled:cursor-not-allowed disabled:opacity-55"
-        />
-        <select
-          value={quickCreatePriority}
-          onChange={(event) =>
-            setQuickCreatePriority(event.target.value as PriorityValue)
-          }
-          disabled={isPending}
-          className="w-fit rounded-full border-0 bg-[#eef6ff] px-2.5 py-1 text-xs font-semibold text-[#506487] outline-none disabled:cursor-not-allowed disabled:opacity-55"
-        >
-          {PRIORITY_OPTIONS.map((priority) => (
-            <option key={priority} value={priority}>
-              {priority}
-            </option>
-          ))}
-        </select>
-        <select
-          value={quickCreateType}
-          onChange={(event) =>
-            setQuickCreateType(event.target.value as CaseTypeValue)
-          }
-          disabled={isPending}
-          className="w-fit rounded-full border-0 bg-[#f3f5f9] px-2.5 py-1 text-xs font-semibold text-[#60718f] outline-none disabled:cursor-not-allowed disabled:opacity-55"
-        >
-          {CASE_TYPE_OPTIONS.map((caseType) => (
-            <option key={caseType} value={caseType}>
-              {caseType}
-            </option>
-          ))}
-        </select>
-        <span className="text-sm font-semibold text-[#9aa7bf]">-</span>
-        <span className="text-sm font-semibold text-[#9aa7bf]">-</span>
-        <select
-          value={quickCreateStatus}
-          onChange={(event) =>
-            setQuickCreateStatus(event.target.value as QuickCreateStatusValue)
-          }
-          disabled={isPending}
-          className="w-fit rounded-full border-0 bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 outline-none disabled:cursor-not-allowed disabled:opacity-55"
-        >
-          {QUICK_CREATE_STATUS_OPTIONS.map((status) => (
-            <option key={status} value={status}>
-              {status}
-            </option>
-          ))}
-        </select>
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              void handleQuickCreateCase(sectionId)
-            }}
-            disabled={isPending}
-            className="rounded-lg border border-[#9dbaf7] bg-white px-2.5 py-1 text-sm font-semibold text-[#3369d6] disabled:cursor-not-allowed disabled:opacity-55"
-          >
-            {isPending ? 'Saving' : 'Save'}
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   async function handleRenameSuite(
     event: React.FormEvent<HTMLFormElement>,
     suiteId: number,
@@ -1754,11 +1619,6 @@ function ProjectRepositoryPage() {
                   const isPendingSuiteAction = Boolean(
                     pendingSuiteActionById[section.id],
                   )
-                  const isMenuOpen = openSuiteMenuId === section.id
-                  const readyCount = sectionTests.filter(
-                    (test) => test.status === 'Ready',
-                  ).length
-                  const draftCount = sectionTests.length - readyCount
                   const sectionAllTestIds = dashboard.tests
                     .filter((test) => test.sectionId === section.id)
                     .map((test) => test.id)
@@ -1768,518 +1628,182 @@ function ProjectRepositoryPage() {
                     visibleTestIds.every((id) => selectedTestIdSet.has(id))
 
                   return (
-                    <section
+                    <SuiteSection
                       key={section.id}
-                      onDragOver={(event) => handleSuiteDragOver(event, section.id)}
-                      onDragLeave={() =>
-                        setDragOverSuiteId((current) =>
-                          current === section.id ? null : current,
+                      section={section}
+                      sectionTests={sectionTests}
+                      visibleTests={visibleTests}
+                      sectionAllTestIds={sectionAllTestIds}
+                      visibleTestIds={visibleTestIds}
+                      selectedTestIdSet={selectedTestIdSet}
+                      isCollapsed={isCollapsed}
+                      isEditingSuite={isEditingSuite}
+                      isDeleteConfirming={isDeleteConfirming}
+                      isPendingSuiteAction={isPendingSuiteAction}
+                      isMenuOpen={openSuiteMenuId === section.id}
+                      allVisibleSelected={allVisibleSelected}
+                      editingSuiteName={editingSuiteName}
+                      suiteActionErrorMessage={suiteActionErrorMessage}
+                      showSuiteActionError={suiteActionSuiteId === section.id}
+                      dragOverSuiteId={dragOverSuiteId}
+                      draggedTestIds={draggedTestIds}
+                      dragOverTestDrop={dragOverTestDrop}
+                      isApplyingBulkAction={isApplyingBulkAction}
+                      quickCreateSuiteId={quickCreateSuiteId}
+                      pendingQuickCreateSuiteId={pendingQuickCreateSuiteId}
+                      quickCreateTitle={quickCreateTitle}
+                      quickCreatePriority={quickCreatePriority}
+                      quickCreateType={quickCreateType}
+                      quickCreateStatus={quickCreateStatus}
+                      priorityOptions={PRIORITY_OPTIONS}
+                      caseTypeOptions={CASE_TYPE_OPTIONS}
+                      statusOptions={CASE_STATUS_OPTIONS}
+                      quickCreateStatusOptions={QUICK_CREATE_STATUS_OPTIONS}
+                      openCaseMenuId={openCaseMenuId}
+                      pendingCaseActionId={pendingCaseActionId}
+                      editingCaseTitleId={editingCaseTitleId}
+                      editingCaseTitleValue={editingCaseTitleValue}
+                      formatDate={formatRepositoryDate}
+                      onToggleCollapsed={toggleSuiteCollapsed}
+                      onRenameSuite={(event, suiteId) => {
+                        void handleRenameSuite(event, suiteId)
+                      }}
+                      onEditingSuiteNameChange={setEditingSuiteName}
+                      onCancelRenameSuite={() => {
+                        setEditingSuiteId(null)
+                        setEditingSuiteName('')
+                        setSuiteActionErrorMessage(null)
+                      }}
+                      onToggleSuiteSelection={toggleSuiteSelection}
+                      onStartQuickCreateCase={startQuickCreateCase}
+                      onQuickCreateTitleChange={setQuickCreateTitle}
+                      onQuickCreatePriorityChange={setQuickCreatePriority}
+                      onQuickCreateTypeChange={setQuickCreateType}
+                      onQuickCreateStatusChange={setQuickCreateStatus}
+                      onSubmitQuickCreateCase={(suiteId) => {
+                        void handleQuickCreateCase(suiteId)
+                      }}
+                      onCancelQuickCreateCase={cancelQuickCreateCase}
+                      onToggleSuiteMenu={(suiteId) => {
+                        setSuiteActionErrorMessage(null)
+                        setDeleteConfirmSuiteId(null)
+                        setOpenSuiteMenuId((current) =>
+                          current === suiteId ? null : suiteId,
                         )
-                      }
-                      className={`overflow-visible rounded-3xl border transition ${
-                        dragOverSuiteId === section.id
-                          ? 'border-[#2f6fe4] bg-[#f8fbff] shadow-[0_0_0_3px_rgba(47,111,228,0.12)]'
-                          : 'border-[#dfe6f4]'
-                      }`}
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e9eef8] bg-[#fbfcff] px-5 py-4">
-                        <div className="flex min-w-0 items-center gap-4">
-                          <button
-                            type="button"
-                            onClick={() => toggleSuiteCollapsed(section.id)}
-                            className="rounded-lg px-2 py-1 text-sm font-semibold text-[#506487]"
-                            aria-label={isCollapsed ? 'Expand suite' : 'Collapse suite'}
-                          >
-                            {isCollapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
-                          </button>
-                          <div className="min-w-0">
-                            {isEditingSuite ? (
-                              <form
-                                className="flex flex-wrap items-center gap-2"
-                                onSubmit={(event) =>
-                                  handleRenameSuite(event, section.id)
-                                }
-                              >
-                                <input
-                                  value={editingSuiteName}
-                                  onChange={(event) =>
-                                    setEditingSuiteName(event.target.value)
-                                  }
-                                  className="min-w-[220px] rounded-xl border border-[#d9e2f2] bg-white px-3 py-2 text-base font-semibold text-[#1b2f5b] outline-none transition focus:border-[#2f6fe4]"
-                                />
-                                <button
-                                  type="submit"
-                                  disabled={isPendingSuiteAction}
-                                  className="rounded-xl border border-[#2f6fe4] bg-[#2f6fe4] px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
-                                >
-                                  {isPendingSuiteAction ? 'Saving...' : 'Save'}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEditingSuiteId(null)
-                                    setEditingSuiteName('')
-                                    setSuiteActionErrorMessage(null)
-                                  }}
-                                  className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]"
-                                >
-                                  Cancel
-                                </button>
-                              </form>
-                            ) : (
-                              <div className="flex flex-wrap items-center gap-4">
-                                <div className="text-[1.75rem] font-semibold text-[#1b2f5b]">
-                                  {section.name}
-                                </div>
-                                <div className="text-sm text-[#7f8da9]">
-                                  {sectionTests.length} case
-                                  {sectionTests.length === 1 ? '' : 's'}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                      }}
+                      onStartRenameSuite={startRenameSuite}
+                      onRequestDeleteSuite={(suiteId) => {
+                        setSuiteActionErrorMessage(null)
+                        setSuiteActionSuiteId(suiteId)
+                        setDeleteConfirmSuiteId((current) =>
+                          current === suiteId ? null : suiteId,
+                        )
+                        setOpenSuiteMenuId(null)
+                      }}
+                      onConfirmDeleteSuite={(suiteId) => {
+                        void handleDeleteSuite(suiteId)
+                      }}
+                      onCancelDeleteSuite={() => setDeleteConfirmSuiteId(null)}
+                      onSuiteDragOver={handleSuiteDragOver}
+                      onSuiteDragLeave={(suiteId) => {
+                        setDragOverSuiteId((current) =>
+                          current === suiteId ? null : current,
+                        )
+                      }}
+                      onSuiteAppendDrop={(event, suiteId) => {
+                        setDragOverTestDrop(null)
+                        void handleSuiteAppendDrop({
+                          event,
+                          suiteId,
+                          currentSuiteTestIds: sectionAllTestIds,
+                        })
+                      }}
+                      onToggleTestSelection={toggleTestSelection}
+                      onCaseDragStart={handleCaseDragStart}
+                      onCaseDragEnd={() => {
+                        setDraggedTestIds([])
+                        setDragOverSuiteId(null)
+                        setDragOverTestDrop(null)
+                      }}
+                      onCaseDragOver={(_event, testId, position) => {
+                        setDragOverSuiteId(section.id)
+                        setDragOverTestDrop({
+                          testId,
+                          position,
+                        })
+                      }}
+                      onCaseDragLeave={(testId) => {
+                        setDragOverTestDrop((current) =>
+                          current?.testId === testId ? null : current,
+                        )
+                      }}
+                      onCaseDrop={(event, testId) => {
+                        const position =
+                          dragOverTestDrop?.testId === testId
+                            ? dragOverTestDrop.position
+                            : 'before'
 
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full bg-[#eef6ff] px-3 py-1 text-xs font-semibold text-[#60718f]">
-                            Ready {readyCount}
-                          </span>
-                          <span className="rounded-full bg-[#f3f5f9] px-3 py-1 text-xs font-semibold text-[#60718f]">
-                            Draft {draftCount}
-                          </span>
-                          {dragOverSuiteId === section.id ? (
-                            <span className="rounded-full bg-[#ecf2ff] px-3 py-1 text-xs font-semibold text-[#2f6fe4]">
-                              Drop to move
-                            </span>
-                          ) : null}
-                          <button
-                            type="button"
-                            onClick={() => toggleSuiteSelection(visibleTestIds)}
-                            disabled={
-                              visibleTestIds.length === 0 || isApplyingBulkAction
-                            }
-                            className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
-                          >
-                            {allVisibleSelected ? 'Clear cases' : 'Select cases'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => startQuickCreateCase(section.id)}
-                            className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#3369d6]"
-                          >
-                            + Case
-                          </button>
-                          {!isEditingSuite ? (
-                            <div className="relative">
-                              <button
-                                type="button"
-                                disabled={isPendingSuiteAction}
-                                onClick={() => {
-                                  setSuiteActionErrorMessage(null)
-                                  setDeleteConfirmSuiteId(null)
-                                  setOpenSuiteMenuId((current) =>
-                                    current === section.id ? null : section.id,
-                                  )
-                                }}
-                                className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]"
-                                aria-label="Open suite actions"
-                              >
-                                ...
-                              </button>
-                              {isMenuOpen ? (
-                                <div className="absolute right-0 top-full z-50 mt-2 min-w-[190px] rounded-2xl border border-[#dbe4f4] bg-white p-2 shadow-[0_12px_30px_rgba(31,57,102,0.12)]">
-                                  <button
-                                    type="button"
-                                    onClick={() => startRenameSuite(section.id, section.name)}
-                                    className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-[#60718f] hover:bg-[#f5f8ff]"
-                                  >
-                                    Rename
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      toggleSuiteCollapsed(section.id)
-                                      setOpenSuiteMenuId(null)
-                                    }}
-                                    className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-[#60718f] hover:bg-[#f5f8ff]"
-                                  >
-                                    {isCollapsed ? 'Expand' : 'Collapse'}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setSuiteActionErrorMessage(null)
-                                      setSuiteActionSuiteId(section.id)
-                                      setDeleteConfirmSuiteId((current) =>
-                                        current === section.id ? null : section.id,
-                                      )
-                                      setOpenSuiteMenuId(null)
-                                    }}
-                                    className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50"
-                                  >
-                                    Delete empty suite
-                                  </button>
-                                </div>
-                              ) : null}
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
+                        void handleCaseDrop({
+                          event,
+                          suiteId: section.id,
+                          targetTestId: testId,
+                          position,
+                          currentSuiteTestIds: sectionAllTestIds,
+                        })
+                      }}
+                      onStartCaseTitleEdit={startCaseTitleEdit}
+                      onCaseTitleEditChange={setEditingCaseTitleValue}
+                      onSaveCaseTitleEdit={(testId, currentTitle) => {
+                        void saveCaseTitleEdit(testId, currentTitle)
+                      }}
+                      onCancelCaseTitleEdit={cancelCaseTitleEdit}
+                      onCasePriorityChange={(testId, priority) => {
+                        const test = visibleTests.find((item) => item.id === testId)
 
-                      {isDeleteConfirming ? (
-                        <div className="border-b border-[#e9eef8] bg-amber-50 px-5 py-4">
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div className="text-sm text-amber-950">
-                              Delete this suite? This only works when the suite has no
-                              test cases.
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              <button
-                                type="button"
-                                disabled={isPendingSuiteAction}
-                                onClick={() => handleDeleteSuite(section.id)}
-                                className="rounded-xl border border-rose-200 bg-rose-100 px-3 py-2 text-sm font-semibold text-rose-700"
-                              >
-                                Confirm delete
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setDeleteConfirmSuiteId(null)}
-                                className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ) : null}
+                        if (priority === (test?.priority ?? 'Medium')) {
+                          return
+                        }
 
-                      {suiteActionErrorMessage && suiteActionSuiteId === section.id ? (
-                        <div className="border-b border-[#e9eef8] bg-rose-50 px-5 py-3 text-sm text-rose-900">
-                          {suiteActionErrorMessage}
-                        </div>
-                      ) : null}
+                        void handleCaseMetadataChange(testId, { priority })
+                      }}
+                      onCaseTypeChange={(testId, caseType) => {
+                        const test = visibleTests.find((item) => item.id === testId)
 
-                      {isCollapsed ? null : visibleTests.length === 0 ? (
-                        <div className="bg-white">
-                          <div className="px-5 py-4 text-sm text-[#63759a]">
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                              <span>No test cases in this suite yet.</span>
-                              <div className="flex flex-wrap gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => startQuickCreateCase(section.id)}
-                                  className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#3369d6]"
-                                >
-                                  + Case
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                          {quickCreateSuiteId === section.id
-                            ? renderQuickCreateCaseRow(section.id, project.id)
-                            : null}
-                        </div>
-                      ) : (
-                        <div className="bg-white">
-                          <div className="grid grid-cols-[64px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] items-center border-t border-[#e9eef8] bg-[#fbfcff] px-5 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
-                            <div />
-                            <div>ID</div>
-                            <div>Title</div>
-                            <div>Priority</div>
-                            <div>Type</div>
-                            <div>Created</div>
-                            <div>Updated</div>
-                            <div>Status</div>
-                            <div className="text-right">Actions</div>
-                          </div>
-                          {quickCreateSuiteId === section.id
-                            ? renderQuickCreateCaseRow(section.id, project.id)
-                            : null}
-                          {visibleTests.map((test) => {
-                            const isReady = test.status === 'Ready'
-                            const isArchived = test.status === 'Archived'
-                            const isCaseMenuOpen = openCaseMenuId === test.id
-                            const isPendingCaseAction = pendingCaseActionId === test.id
+                        if (caseType === (test?.caseType ?? 'Functional')) {
+                          return
+                        }
 
-                            return (
-                              <article
-                                key={test.id}
-                                onDragOver={(event) => {
-                                  if (draggedTestIds.length === 0) {
-                                    return
-                                  }
+                        void handleCaseMetadataChange(testId, { caseType })
+                      }}
+                      onCaseStatusChange={(testId, status) => {
+                        const test = visibleTests.find((item) => item.id === testId)
 
-                                  event.preventDefault()
-                                  event.stopPropagation()
-                                  event.dataTransfer.dropEffect = 'move'
-                                  const bounds =
-                                    event.currentTarget.getBoundingClientRect()
-                                  const position =
-                                    event.clientY - bounds.top > bounds.height / 2
-                                      ? 'after'
-                                      : 'before'
+                        if (status === (test?.status ?? 'Draft')) {
+                          return
+                        }
 
-                                  setDragOverSuiteId(section.id)
-                                  setDragOverTestDrop({
-                                    testId: test.id,
-                                    position,
-                                  })
-                                }}
-                                onDragLeave={() =>
-                                  setDragOverTestDrop((current) =>
-                                    current?.testId === test.id ? null : current,
-                                  )
-                                }
-                                onDrop={(event) => {
-                                  const position =
-                                    dragOverTestDrop?.testId === test.id
-                                      ? dragOverTestDrop.position
-                                      : 'before'
-
-                                  void handleCaseDrop({
-                                    event,
-                                    suiteId: section.id,
-                                    targetTestId: test.id,
-                                    position,
-                                    currentSuiteTestIds: sectionAllTestIds,
-                                  })
-                                }}
-                                className={`grid grid-cols-[64px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] items-center border-t border-[#eef2f8] px-5 py-2.5 transition hover:bg-[#f8fbff] ${
-                                  draggedTestIds.includes(test.id)
-                                    ? 'bg-[#f8fbff] opacity-70'
-                                    : dragOverTestDrop?.testId === test.id
-                                      ? dragOverTestDrop.position === 'before'
-                                        ? 'bg-[#ecf2ff] shadow-[inset_0_2px_0_#2f6fe4]'
-                                        : 'bg-[#ecf2ff] shadow-[inset_0_-2px_0_#2f6fe4]'
-                                    : ''
-                                }`}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedTestIdSet.has(test.id)}
-                                    onChange={() => toggleTestSelection(test.id)}
-                                    className="h-4 w-4 rounded border-[#c7d5ee] text-[#2f6fe4] focus:ring-[#2f6fe4]"
-                                  />
-                                  <button
-                                    type="button"
-                                    draggable
-                                    onDragStart={(event) =>
-                                      handleCaseDragStart(event, test.id)
-                                    }
-                                    onDragEnd={() => {
-                                      setDraggedTestIds([])
-                                      setDragOverSuiteId(null)
-                                      setDragOverTestDrop(null)
-                                    }}
-                                    className="cursor-grab rounded-md p-1 text-[#9aa7bf] hover:bg-[#eef3fb] hover:text-[#60718f] active:cursor-grabbing"
-                                    aria-label={`Drag test case ${test.id}`}
-                                  >
-                                    <DragHandleIcon />
-                                  </button>
-                                </div>
-                                <Link
-                                  to="/test/$testId"
-                                  params={{ testId: test.id.toString() }}
-                                  className="text-sm font-semibold no-underline text-[#2f6fe4]"
-                                >
-                                  #{test.id}
-                                </Link>
-                                {editingCaseTitleId === test.id ? (
-                                  <input
-                                    value={editingCaseTitleValue}
-                                    onChange={(event) =>
-                                      setEditingCaseTitleValue(event.target.value)
-                                    }
-                                    onBlur={() => {
-                                      void saveCaseTitleEdit(test.id, test.title)
-                                    }}
-                                    onKeyDown={(event) => {
-                                      if (event.key === 'Enter') {
-                                        event.preventDefault()
-                                        event.currentTarget.blur()
-                                      }
-
-                                      if (event.key === 'Escape') {
-                                        event.preventDefault()
-                                        cancelCaseTitleEdit()
-                                      }
-                                    }}
-                                    onPointerDown={(event) => event.stopPropagation()}
-                                    disabled={isPendingCaseAction}
-                                    autoFocus
-                                    className="min-w-0 rounded-lg border border-[#9dbaf7] bg-white px-2 py-1 text-sm font-semibold text-[#1b2f5b] outline-none disabled:cursor-not-allowed disabled:opacity-55"
-                                    aria-label={`Edit title for ${test.title}`}
-                                  />
-                                ) : (
-                                  <Link
-                                    to="/test/$testId"
-                                    params={{ testId: test.id.toString() }}
-                                    onDoubleClick={(event) => {
-                                      event.preventDefault()
-                                      startCaseTitleEdit(test.id, test.title)
-                                    }}
-                                    className="block min-w-0 truncate pr-4 text-sm font-semibold no-underline text-[#1b2f5b] hover:text-[#2f6fe4]"
-                                  >
-                                    {test.title}
-                                  </Link>
-                                )}
-                                <select
-                                  value={test.priority ?? 'Medium'}
-                                  onChange={(event) => {
-                                    const priority = event.target
-                                      .value as PriorityValue
-
-                                    if (priority === (test.priority ?? 'Medium')) {
-                                      return
-                                    }
-
-                                    void handleCaseMetadataChange(test.id, {
-                                      priority,
-                                    })
-                                  }}
-                                  onPointerDown={(event) => event.stopPropagation()}
-                                  disabled={isPendingCaseAction}
-                                  className={`w-fit rounded-full border-0 px-2.5 py-1 text-xs font-semibold outline-none disabled:cursor-not-allowed disabled:opacity-55 ${
-                                    test.priority === 'Critical'
-                                      ? 'bg-rose-50 text-rose-700'
-                                      : test.priority === 'High'
-                                        ? 'bg-amber-50 text-amber-800'
-                                        : test.priority === 'Low'
-                                          ? 'bg-slate-100 text-slate-600'
-                                          : 'bg-[#eef6ff] text-[#506487]'
-                                  }`}
-                                  aria-label={`Change priority for ${test.title}`}
-                                >
-                                  {PRIORITY_OPTIONS.map((priority) => (
-                                    <option key={priority} value={priority}>
-                                      {priority}
-                                    </option>
-                                  ))}
-                                </select>
-                                <select
-                                  value={test.caseType ?? 'Functional'}
-                                  onChange={(event) => {
-                                    const caseType = event.target
-                                      .value as CaseTypeValue
-
-                                    if (
-                                      caseType === (test.caseType ?? 'Functional')
-                                    ) {
-                                      return
-                                    }
-
-                                    void handleCaseMetadataChange(test.id, {
-                                      caseType,
-                                    })
-                                  }}
-                                  onPointerDown={(event) => event.stopPropagation()}
-                                  disabled={isPendingCaseAction}
-                                  className="w-fit rounded-full border-0 bg-[#f3f5f9] px-2.5 py-1 text-xs font-semibold text-[#60718f] outline-none disabled:cursor-not-allowed disabled:opacity-55"
-                                  aria-label={`Change type for ${test.title}`}
-                                >
-                                  {CASE_TYPE_OPTIONS.map((caseType) => (
-                                    <option key={caseType} value={caseType}>
-                                      {caseType}
-                                    </option>
-                                  ))}
-                                </select>
-                                <span className="text-sm font-semibold text-[#60718f]">
-                                  {formatRepositoryDate(test.createdAt)}
-                                </span>
-                                <span className="text-sm font-semibold text-[#60718f]">
-                                  {formatRepositoryDate(
-                                    test.updatedAt ?? test.createdAt,
-                                  )}
-                                </span>
-                                <select
-                                  value={test.status ?? 'Draft'}
-                                  onChange={(event) => {
-                                    const status = event.target
-                                      .value as CaseStatusValue
-
-                                    if (status === (test.status ?? 'Draft')) {
-                                      return
-                                    }
-
-                                    void handleCaseStatusChange(test.id, status)
-                                  }}
-                                  onPointerDown={(event) => event.stopPropagation()}
-                                  disabled={isPendingCaseAction}
-                                  className={`w-fit rounded-full border-0 px-2.5 py-1 text-xs font-semibold outline-none disabled:cursor-not-allowed disabled:opacity-55 ${
-                                    isReady
-                                      ? 'bg-emerald-50 text-emerald-700'
-                                      : test.status === 'Archived'
-                                        ? 'bg-amber-50 text-amber-800'
-                                        : 'bg-slate-100 text-slate-700'
-                                  }`}
-                                  aria-label={`Change status for ${test.title}`}
-                                >
-                                  {CASE_STATUS_OPTIONS.map((status) => (
-                                    <option key={status} value={status}>
-                                      {status}
-                                    </option>
-                                  ))}
-                                </select>
-                                <CaseActionsMenu
-                                  testId={test.id}
-                                  isOpen={isCaseMenuOpen}
-                                  isArchived={isArchived}
-                                  isPending={isPendingCaseAction}
-                                  onToggle={() => {
-                                    setCaseActionErrorMessage(null)
-                                    setOpenCaseMenuId((current) =>
-                                      current === test.id ? null : test.id,
-                                    )
-                                  }}
-                                  onPreview={() => openCasePreview(test.id)}
-                                  onDuplicate={() => {
-                                    void handleCaseDuplicate(test.id)
-                                  }}
-                                  onRestore={() => {
-                                    void handleCaseRestore(test.id)
-                                  }}
-                                  onDeletePermanently={() => {
-                                    void handleCaseDeletePermanently(test.id)
-                                  }}
-                                  onArchive={() => {
-                                    void handleCaseArchive(test.id)
-                                  }}
-                                />
-                              </article>
-                            )
-                          })}
-                          <div
-                            onDragOver={(event) => {
-                              if (draggedTestIds.length === 0) {
-                                return
-                              }
-
-                              event.preventDefault()
-                              event.stopPropagation()
-                              event.dataTransfer.dropEffect = 'move'
-                              setDragOverSuiteId(section.id)
-                              setDragOverTestDrop(null)
-                            }}
-                            onDrop={(event) => {
-                              void handleSuiteAppendDrop({
-                                event,
-                                suiteId: section.id,
-                                currentSuiteTestIds: sectionAllTestIds,
-                              })
-                            }}
-                            className={`border-t border-dashed px-5 py-3 text-center text-xs font-semibold uppercase tracking-[0.08em] transition ${
-                              dragOverSuiteId === section.id && !dragOverTestDrop
-                                ? 'border-[#9dbaf7] bg-[#ecf2ff] text-[#2f6fe4]'
-                                : 'border-[#e9eef8] text-[#9aa7bf]'
-                            }`}
-                          >
-                            Drop here to move to the end
-                          </div>
-                        </div>
-                      )}
-                    </section>
+                        void handleCaseStatusChange(testId, status)
+                      }}
+                      onToggleCaseMenu={(testId) => {
+                        setCaseActionErrorMessage(null)
+                        setOpenCaseMenuId((current) =>
+                          current === testId ? null : testId,
+                        )
+                      }}
+                      onPreviewCase={openCasePreview}
+                      onDuplicateCase={(testId) => {
+                        void handleCaseDuplicate(testId)
+                      }}
+                      onRestoreCase={(testId) => {
+                        void handleCaseRestore(testId)
+                      }}
+                      onDeleteCasePermanently={(testId) => {
+                        void handleCaseDeletePermanently(testId)
+                      }}
+                      onArchiveCase={(testId) => {
+                        void handleCaseArchive(testId)
+                      }}
+                    />
                   )
                 })}
               </div>
