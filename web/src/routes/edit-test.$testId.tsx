@@ -1,4 +1,4 @@
-import { createFileRoute, notFound, useNavigate } from '@tanstack/react-router'
+import { Link, createFileRoute, notFound, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { uploadTestMedia } from '../features/media/server'
@@ -57,6 +57,7 @@ function EditTestPage() {
 
   const selectedSection =
     formState.sections.find((section) => section.id.toString() === sectionId) ?? null
+  const selectedProjectSlug = selectedSection?.projectSlug ?? null
 
   async function uploadMedia(file: File): Promise<string> {
     setErrorMessage(null)
@@ -116,196 +117,216 @@ function EditTestPage() {
   }
 
   return (
-    <main className="page-wrap px-4 py-8">
-      <section className="mb-5 flex flex-wrap items-end justify-between gap-4">
-        <div className="max-w-2xl">
-          <p className="island-kicker mb-2">Project / Suite / Case</p>
-          <h1 className="m-0 text-3xl font-bold tracking-tight text-[var(--sea-ink)] sm:text-4xl">
-            Edit Test Case
-          </h1>
-        </div>
-      </section>
+    <main className="min-h-[calc(100vh-65px)] bg-[#f7f9fe]">
+      <div className="mx-auto max-w-[1180px] px-6 py-8">
+        <section className="mb-5 flex flex-wrap items-end justify-between gap-4">
+          <div className="max-w-3xl">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-sm font-semibold text-[#60718f]">
+              <Link to="/" className="no-underline text-[#2f6fe4]">
+                Workspace
+              </Link>
+              <span>/</span>
+              <span>{selectedSection?.projectName ?? 'Project'}</span>
+              <span>/</span>
+              <span>{selectedSection?.name ?? 'Suite'}</span>
+              <span>/</span>
+              <span>Case #{formState.test.id}</span>
+            </div>
+            <h1 className="m-0 text-4xl font-bold tracking-tight text-[#1b2f5b]">
+              Edit Test Case
+            </h1>
+          </div>
 
-      <section className="mx-auto max-w-5xl">
-        <form
-          className="island-shell grid gap-4 rounded-[1.5rem] p-6"
-          onSubmit={handleSubmit}
-        >
-          <label className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
-            Test case title
-            <input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              className="rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
-              placeholder="Verify order cancellation"
-            />
-          </label>
-
-          <div className="grid gap-4 md:grid-cols-[1.15fr_0.85fr]">
-            <label className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
-              Test suite
-              <select
-                value={sectionId}
-                onChange={(event) => setSectionId(event.target.value)}
-                className="rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
+          <div className="flex flex-wrap gap-2">
+            {selectedProjectSlug ? (
+              <Link
+                to="/project/$projectSlug/repository"
+                params={{ projectSlug: selectedProjectSlug }}
+                className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#60718f] hover:text-[#2f6fe4]"
               >
-                {formState.sections.map((section) => (
-                  <option key={section.id} value={section.id}>
-                    {section.projectName
-                      ? `${section.projectName} / ${section.name}`
-                      : section.name}
-                  </option>
-                ))}
-              </select>
+                Repository
+              </Link>
+            ) : null}
+            <Link
+              to="/test/$testId"
+              params={{ testId: formState.test.id.toString() }}
+              className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#60718f] hover:text-[#2f6fe4]"
+            >
+              View case
+            </Link>
+          </div>
+        </section>
+
+        <section>
+          <form
+            className="rounded-[1.5rem] border border-[#e6ecf8] bg-white p-6 shadow-[0_12px_36px_rgba(31,57,102,0.06)]"
+            onSubmit={handleSubmit}
+          >
+            <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
+              Test case title
+              <input
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
+                placeholder="Verify order cancellation"
+              />
             </label>
 
-            <div className="grid gap-3 rounded-2xl border border-[var(--line)] bg-white/55 p-4 text-sm text-[var(--sea-ink-soft)]">
-              <div>
-                <strong className="block text-[var(--sea-ink)]">Project</strong>
-                <div className="mt-1">
-                  {selectedSection?.projectName ?? 'No project linked'}
-                </div>
+            <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px_180px_190px]">
+              <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
+                Test suite
+                <select
+                  value={sectionId}
+                  onChange={(event) => setSectionId(event.target.value)}
+                  className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
+                >
+                  {formState.sections.map((section) => (
+                    <option key={section.id} value={section.id}>
+                      {section.projectName
+                        ? `${section.projectName} / ${section.name}`
+                        : section.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
+                Status
+                <select
+                  value={status}
+                  onChange={(event) =>
+                    setStatus(
+                      event.target.value === 'Ready'
+                        ? 'Ready'
+                        : event.target.value === 'Archived'
+                          ? 'Archived'
+                          : 'Draft',
+                    )
+                  }
+                  className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
+                >
+                  <option value="Draft">Draft</option>
+                  <option value="Ready">Ready</option>
+                  <option value="Archived">Archived</option>
+                </select>
+              </label>
+
+              <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
+                Priority
+                <select
+                  value={priority}
+                  onChange={(event) =>
+                    setPriority(
+                      event.target.value === 'Low'
+                        ? 'Low'
+                        : event.target.value === 'High'
+                          ? 'High'
+                          : event.target.value === 'Critical'
+                            ? 'Critical'
+                            : 'Medium',
+                    )
+                  }
+                  className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                  <option value="Critical">Critical</option>
+                </select>
+              </label>
+
+              <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
+                Type
+                <select
+                  value={caseType}
+                  onChange={(event) =>
+                    setCaseType(
+                      event.target.value === 'Regression'
+                        ? 'Regression'
+                        : event.target.value === 'Smoke'
+                          ? 'Smoke'
+                          : event.target.value === 'E2E'
+                            ? 'E2E'
+                            : event.target.value === 'UI'
+                              ? 'UI'
+                              : event.target.value === 'API'
+                                ? 'API'
+                                : 'Functional',
+                    )
+                  }
+                  className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
+                >
+                  <option value="Functional">Functional</option>
+                  <option value="Regression">Regression</option>
+                  <option value="Smoke">Smoke</option>
+                  <option value="E2E">E2E</option>
+                  <option value="UI">UI</option>
+                  <option value="API">API</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="mt-5 grid gap-5">
+              <RichTextEditor
+                label="Steps"
+                placeholder="Describe the test steps"
+                value={steps}
+                onChange={setSteps}
+                onUploadMedia={uploadMedia}
+                isUploading={isUploading}
+              />
+
+              <RichTextEditor
+                label="Expected result"
+                placeholder="Describe the expected result"
+                value={expected}
+                onChange={setExpected}
+                onUploadMedia={uploadMedia}
+                isUploading={isUploading}
+              />
+            </div>
+
+            {errorMessage ? (
+              <div className="mt-5 rounded-xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                {errorMessage}
               </div>
-              <div>
-                <strong className="block text-[var(--sea-ink)]">Suite</strong>
-                <div className="mt-1">{selectedSection?.name ?? 'No suite selected'}</div>
+            ) : null}
+
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#e9eef8] pt-5">
+              <div className="text-sm font-semibold text-[#60718f]">
+                {selectedSection
+                  ? `${selectedSection.projectName ?? 'Project'} / ${selectedSection.name}`
+                  : 'Choose a suite for this case.'}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  to="/test/$testId"
+                  params={{ testId: formState.test.id.toString() }}
+                  className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-3 text-sm font-semibold no-underline text-[#60718f]"
+                >
+                  Cancel
+                </Link>
+                <button
+                  type="submit"
+                  disabled={
+                    isSubmitting ||
+                    isUploading ||
+                    !formState.databaseConfigured ||
+                    formState.sections.length === 0
+                  }
+                  className="rounded-xl border border-[#2f6fe4] bg-[#2f6fe4] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
+                >
+                  {isUploading
+                    ? 'Uploading media...'
+                    : isSubmitting
+                      ? 'Saving...'
+                      : 'Save changes'}
+                </button>
               </div>
             </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <label className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
-              Case status
-              <select
-                value={status}
-                onChange={(event) =>
-                  setStatus(
-                    event.target.value === 'Ready'
-                      ? 'Ready'
-                      : event.target.value === 'Archived'
-                        ? 'Archived'
-                        : 'Draft',
-                  )
-                }
-                className="rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
-              >
-                <option value="Draft">Draft</option>
-                <option value="Ready">Ready</option>
-                <option value="Archived">Archived</option>
-              </select>
-            </label>
-
-            <label className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
-              Priority
-              <select
-                value={priority}
-                onChange={(event) =>
-                  setPriority(
-                    event.target.value === 'Low'
-                      ? 'Low'
-                      : event.target.value === 'High'
-                        ? 'High'
-                        : event.target.value === 'Critical'
-                          ? 'Critical'
-                          : 'Medium',
-                  )
-                }
-                className="rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
-              >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-                <option value="Critical">Critical</option>
-              </select>
-            </label>
-
-            <label className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
-              Type
-              <select
-                value={caseType}
-                onChange={(event) =>
-                  setCaseType(
-                    event.target.value === 'Regression'
-                      ? 'Regression'
-                      : event.target.value === 'Smoke'
-                        ? 'Smoke'
-                        : event.target.value === 'E2E'
-                          ? 'E2E'
-                          : event.target.value === 'UI'
-                            ? 'UI'
-                            : event.target.value === 'API'
-                              ? 'API'
-                              : 'Functional',
-                  )
-                }
-                className="rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus:border-[var(--lagoon-deep)]"
-              >
-                <option value="Functional">Functional</option>
-                <option value="Regression">Regression</option>
-                <option value="Smoke">Smoke</option>
-                <option value="E2E">E2E</option>
-                <option value="UI">UI</option>
-                <option value="API">API</option>
-              </select>
-            </label>
-          </div>
-
-          <RichTextEditor
-            label="Steps"
-            placeholder="Describe the test steps"
-            value={steps}
-            onChange={setSteps}
-            onUploadMedia={uploadMedia}
-            isUploading={isUploading}
-          />
-
-          <RichTextEditor
-            label="Expected result"
-            placeholder="Describe the expected result"
-            value={expected}
-            onChange={setExpected}
-            onUploadMedia={uploadMedia}
-            isUploading={isUploading}
-          />
-
-          {errorMessage ? (
-            <div className="rounded-xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-              {errorMessage}
-            </div>
-          ) : null}
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="submit"
-              disabled={
-                isSubmitting ||
-                isUploading ||
-                !formState.databaseConfigured ||
-                formState.sections.length === 0
-              }
-              className="flex-1 rounded-xl border border-[rgba(50,143,151,0.3)] bg-[rgba(79,184,178,0.18)] px-4 py-3 text-sm font-semibold text-[var(--lagoon-deep)] disabled:cursor-not-allowed disabled:opacity-55"
-            >
-              {isUploading
-                ? 'Uploading media...'
-                : isSubmitting
-                  ? 'Saving...'
-                  : 'Save changes'}
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                navigate({
-                  to: '/test/$testId',
-                  params: { testId: formState.test.id.toString() },
-                })
-              }
-              className="rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-sm font-semibold text-[var(--sea-ink-soft)]"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </section>
+          </form>
+        </section>
+      </div>
     </main>
   )
 }
