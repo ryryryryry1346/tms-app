@@ -284,13 +284,6 @@ function ProjectRepositoryPage() {
   const [caseTypeFilter, setCaseTypeFilter] = useState<CaseTypeFilter>('All')
   const [suiteFilterId, setSuiteFilterId] = useState<string>(ALL_SUITES_FILTER)
   const [selectedTestIds, setSelectedTestIds] = useState<number[]>([])
-  const [moveTargetSuiteId, setMoveTargetSuiteId] = useState('')
-  const [bulkPriorityValue, setBulkPriorityValue] = useState<'' | PriorityValue>(
-    '',
-  )
-  const [bulkCaseTypeValue, setBulkCaseTypeValue] = useState<'' | CaseTypeValue>(
-    '',
-  )
   const [isApplyingBulkAction, setIsApplyingBulkAction] = useState(false)
   const [isBulkArchiveConfirming, setIsBulkArchiveConfirming] = useState(false)
   const [isBulkDeleteConfirming, setIsBulkDeleteConfirming] = useState(false)
@@ -493,11 +486,6 @@ function ProjectRepositoryPage() {
     setIsBulkDeleteConfirming(false)
   }
 
-  function resetBulkMetadataFields(): void {
-    setBulkPriorityValue('')
-    setBulkCaseTypeValue('')
-  }
-
   function startCaseTitleEdit(testId: number, title: string): void {
     setCaseActionErrorMessage(null)
     setOpenCaseMenuId(null)
@@ -667,7 +655,6 @@ function ProjectRepositoryPage() {
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
-      resetBulkMetadataFields()
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
@@ -702,7 +689,6 @@ function ProjectRepositoryPage() {
       })
 
       setSelectedTestIds([])
-      resetBulkMetadataFields()
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
@@ -874,7 +860,6 @@ function ProjectRepositoryPage() {
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
-      resetBulkMetadataFields()
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
@@ -907,7 +892,6 @@ function ProjectRepositoryPage() {
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
-      resetBulkMetadataFields()
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
@@ -954,8 +938,6 @@ function ProjectRepositoryPage() {
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
-      resetBulkMetadataFields()
-      setMoveTargetSuiteId('')
       setDraggedTestIds([])
       setDragOverSuiteId(null)
       setDragOverTestDrop(null)
@@ -999,8 +981,6 @@ function ProjectRepositoryPage() {
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
-      resetBulkMetadataFields()
-      setMoveTargetSuiteId('')
       setDraggedTestIds([])
       setDragOverSuiteId(null)
       setDragOverTestDrop(null)
@@ -1016,8 +996,8 @@ function ProjectRepositoryPage() {
     }
   }
 
-  async function handleMoveSelectedCases(): Promise<void> {
-    const targetSuiteId = Number(moveTargetSuiteId)
+  async function handleMoveSelectedCases(targetSuiteIdValue: string): Promise<void> {
+    const targetSuiteId = Number(targetSuiteIdValue)
 
     if (!Number.isInteger(targetSuiteId) || targetSuiteId <= 0) {
       setBulkActionErrorMessage('Choose a target suite first.')
@@ -1699,21 +1679,25 @@ function ProjectRepositoryPage() {
             </div>
 
             {selectedTestIds.length > 0 ? (
-              <div className="mx-5 mt-4 rounded-2xl border border-[#dbe4f4] bg-[#f8fbff] px-4 py-4">
+              <div className="mx-5 mt-4 rounded-2xl border border-[#dbe4f4] bg-[#f8fbff] px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-[#1b2f5b]">
                     {selectedTestIds.length} selected
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <label className="flex items-center gap-2 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]">
-                      Move to
                       <select
-                        value={moveTargetSuiteId}
-                        onChange={(event) => setMoveTargetSuiteId(event.target.value)}
+                        value=""
+                        onChange={(event) => {
+                          void handleMoveSelectedCases(event.target.value)
+                        }}
                         disabled={isApplyingBulkAction}
-                        className="min-w-[160px] border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none disabled:cursor-not-allowed"
+                        className="min-w-[145px] border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none disabled:cursor-not-allowed"
+                        aria-label="Move selected cases to suite"
                       >
-                        <option value="">Choose suite</option>
+                        <option value="" disabled>
+                          Move to...
+                        </option>
                         {dashboard.sections.map((section) => (
                           <option key={section.id} value={section.id}>
                             {section.name}
@@ -1721,148 +1705,114 @@ function ProjectRepositoryPage() {
                         ))}
                       </select>
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void handleMoveSelectedCases()
-                      }}
-                      disabled={isApplyingBulkAction || !moveTargetSuiteId}
-                      className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#3369d6] disabled:cursor-not-allowed disabled:opacity-55"
-                    >
-                      Move
-                    </button>
-                    <label className="flex items-center gap-2 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]">
-                      Priority
-                      <select
-                        value={bulkPriorityValue}
-                        onChange={(event) =>
-                          setBulkPriorityValue(event.target.value as PriorityValue)
-                        }
-                        disabled={isApplyingBulkAction}
-                        className="min-w-[110px] border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none disabled:cursor-not-allowed"
-                      >
-                        <option value="">Choose</option>
-                        {PRIORITY_OPTIONS.map((priority) => (
-                          <option key={priority} value={priority}>
-                            {priority}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!bulkPriorityValue) {
-                          return
-                        }
 
-                        void handleBulkMetadataUpdate({
-                          priority: bulkPriorityValue,
-                        })
-                      }}
-                      disabled={isApplyingBulkAction || !bulkPriorityValue}
-                      className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
-                    >
-                      Set
-                    </button>
                     <label className="flex items-center gap-2 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]">
-                      Type
                       <select
-                        value={bulkCaseTypeValue}
-                        onChange={(event) =>
-                          setBulkCaseTypeValue(event.target.value as CaseTypeValue)
-                        }
-                        disabled={isApplyingBulkAction}
-                        className="min-w-[120px] border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none disabled:cursor-not-allowed"
-                      >
-                        <option value="">Choose</option>
-                        {CASE_TYPE_OPTIONS.map((caseType) => (
-                          <option key={caseType} value={caseType}>
-                            {caseType}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!bulkCaseTypeValue) {
-                          return
-                        }
+                        value=""
+                        onChange={(event) => {
+                          const nextStatus = event.target.value as CaseStatusValue
 
-                        void handleBulkMetadataUpdate({
-                          caseType: bulkCaseTypeValue,
-                        })
-                      }}
-                      disabled={isApplyingBulkAction || !bulkCaseTypeValue}
-                      className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
-                    >
-                      Set
-                    </button>
-                    {caseFilter === 'Archived' ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={handleBulkRestore}
-                          disabled={isApplyingBulkAction}
-                          className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-55"
-                        >
-                          Restore
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleBulkDeleteArchivedRequest}
-                          disabled={
-                            isApplyingBulkAction ||
-                            selectedArchivedTests.length === 0
+                          if (nextStatus === 'Archived') {
+                            handleBulkArchiveRequest()
+                            return
                           }
-                          className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-55"
-                        >
-                          Delete permanently
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            void handleBulkStatusChange('Ready')
-                          }}
-                          disabled={isApplyingBulkAction}
-                          className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-55"
-                        >
-                          Mark Ready
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            void handleBulkStatusChange('Draft')
-                          }}
-                          disabled={isApplyingBulkAction}
-                          className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-55"
-                        >
-                          Mark Draft
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleBulkArchiveRequest}
-                          disabled={
-                            isApplyingBulkAction ||
-                            selectedArchivableTests.length === 0
-                          }
-                          className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 disabled:cursor-not-allowed disabled:opacity-55"
+
+                          void handleBulkStatusChange(nextStatus)
+                        }}
+                        disabled={isApplyingBulkAction}
+                        className="min-w-[105px] border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none disabled:cursor-not-allowed"
+                        aria-label="Change selected cases status"
+                      >
+                        <option value="" disabled>
+                          Status...
+                        </option>
+                        <option value="Ready">Mark Ready</option>
+                        <option value="Draft">Mark Draft</option>
+                        <option
+                          value="Archived"
+                          disabled={selectedArchivableTests.length === 0}
                         >
                           Archive
-                        </button>
-                      </>
-                    )}
+                        </option>
+                      </select>
+                    </label>
+
+                    <label className="flex items-center gap-2 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]">
+                      <select
+                        value=""
+                        onChange={(event) => {
+                          const action = event.target.value
+
+                          if (action.startsWith('priority:')) {
+                            void handleBulkMetadataUpdate({
+                              priority: action.replace(
+                                'priority:',
+                                '',
+                              ) as PriorityValue,
+                            })
+                            return
+                          }
+
+                          if (action.startsWith('type:')) {
+                            void handleBulkMetadataUpdate({
+                              caseType: action.replace(
+                                'type:',
+                                '',
+                              ) as CaseTypeValue,
+                            })
+                            return
+                          }
+
+                          if (action === 'restore') {
+                            void handleBulkRestore()
+                            return
+                          }
+
+                          if (action === 'delete-archived') {
+                            handleBulkDeleteArchivedRequest()
+                          }
+                        }}
+                        disabled={isApplyingBulkAction}
+                        className="min-w-[95px] border-0 bg-transparent p-0 text-sm text-[#1b2f5b] outline-none disabled:cursor-not-allowed"
+                        aria-label="More bulk actions"
+                      >
+                        <option value="" disabled>
+                          More...
+                        </option>
+                        <optgroup label="Priority">
+                          {PRIORITY_OPTIONS.map((priority) => (
+                            <option key={priority} value={`priority:${priority}`}>
+                              {priority}
+                            </option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="Type">
+                          {CASE_TYPE_OPTIONS.map((caseType) => (
+                            <option key={caseType} value={`type:${caseType}`}>
+                              {caseType}
+                            </option>
+                          ))}
+                        </optgroup>
+                        {caseFilter === 'Archived' ? (
+                          <optgroup label="Archived">
+                            <option value="restore">Restore</option>
+                            <option
+                              value="delete-archived"
+                              disabled={selectedArchivedTests.length === 0}
+                            >
+                              Delete permanently
+                            </option>
+                          </optgroup>
+                        ) : null}
+                      </select>
+                    </label>
+
                     <button
                       type="button"
                       onClick={() => {
                         setSelectedTestIds([])
                         setIsBulkArchiveConfirming(false)
                         setIsBulkDeleteConfirming(false)
-                        resetBulkMetadataFields()
                       }}
                       disabled={isApplyingBulkAction}
                       className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
