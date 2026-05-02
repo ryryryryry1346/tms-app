@@ -44,6 +44,7 @@ const runsForProjectInput = z.object({
 const createRunInput = z.object({
   projectId: z.number().int().positive(),
   name: z.string().trim().min(1),
+  testIds: z.array(z.number().int().positive()).optional(),
 })
 
 const updateRunNameInput = z.object({
@@ -208,9 +209,17 @@ export const createRun = createServerFn({ method: 'POST' })
         .from(tests)
         .where(eq(tests.projectId, data.projectId))
         .orderBy(asc(tests.id))
+      const selectedTestIdSet =
+        data.testIds && data.testIds.length > 0 ? new Set(data.testIds) : null
       const executableTests = projectTests.filter(
-        (test) => test.status !== 'Archived',
+        (test) =>
+          test.status !== 'Archived' &&
+          (selectedTestIdSet === null || selectedTestIdSet.has(test.id)),
       )
+
+      if (executableTests.length === 0) {
+        throw new Error('Choose at least one active test case for this run.')
+      }
 
       if (executableTests.length > 0) {
         await tx.insert(testRunItems).values(

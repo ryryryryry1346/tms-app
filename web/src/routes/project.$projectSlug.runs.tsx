@@ -5,7 +5,7 @@ import {
   redirect,
   useRouter,
 } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { getDashboardState } from '../features/tests/server'
 import {
   createRun,
@@ -132,6 +132,9 @@ function ProjectRunsPage() {
   const router = useRouter()
   const [showCreateRunForm, setShowCreateRunForm] = useState(false)
   const [runName, setRunName] = useState('')
+  const [runScope, setRunScope] = useState<'all' | 'suites' | 'cases'>('all')
+  const [selectedRunSuiteIds, setSelectedRunSuiteIds] = useState<number[]>([])
+  const [selectedRunCaseIds, setSelectedRunCaseIds] = useState<number[]>([])
   const [isCreatingRun, setIsCreatingRun] = useState(false)
   const [createRunErrorMessage, setCreateRunErrorMessage] = useState<string | null>(
     null,
@@ -147,12 +150,63 @@ function ProjectRunsPage() {
   const totalCases = activeTests.length
   const totalSuites = dashboard.sections.length
   const readyCases = activeTests.filter((test) => test.status === 'Ready').length
+  const selectedRunTestIds = useMemo(() => {
+    if (runScope === 'all') {
+      return activeTests.map((test) => test.id)
+    }
+
+    if (runScope === 'suites') {
+      const suiteIds = new Set(selectedRunSuiteIds)
+      return activeTests
+        .filter((test) => test.sectionId !== null && suiteIds.has(test.sectionId))
+        .map((test) => test.id)
+    }
+
+    const caseIds = new Set(selectedRunCaseIds)
+    return activeTests.filter((test) => caseIds.has(test.id)).map((test) => test.id)
+  }, [activeTests, runScope, selectedRunCaseIds, selectedRunSuiteIds])
+  const selectedRunTestIdSet = useMemo(
+    () => new Set(selectedRunTestIds),
+    [selectedRunTestIds],
+  )
+
+  function resetCreateRunForm(): void {
+    setRunName('')
+    setRunScope('all')
+    setSelectedRunSuiteIds([])
+    setSelectedRunCaseIds([])
+    setCreateRunErrorMessage(null)
+  }
+
+  function toggleRunSuiteSelection(suiteId: number): void {
+    setCreateRunErrorMessage(null)
+    setSelectedRunSuiteIds((current) =>
+      current.includes(suiteId)
+        ? current.filter((id) => id !== suiteId)
+        : [...current, suiteId],
+    )
+  }
+
+  function toggleRunCaseSelection(testId: number): void {
+    setCreateRunErrorMessage(null)
+    setSelectedRunCaseIds((current) =>
+      current.includes(testId)
+        ? current.filter((id) => id !== testId)
+        : [...current, testId],
+    )
+  }
 
   async function handleCreateRun(
     event: React.FormEvent<HTMLFormElement>,
   ): Promise<void> {
     event.preventDefault()
     setCreateRunErrorMessage(null)
+
+    if (selectedRunTestIds.length === 0) {
+      setCreateRunErrorMessage('Choose at least one active test case for this run.')
+      return
+    }
+
     setIsCreatingRun(true)
 
     try {
@@ -160,10 +214,11 @@ function ProjectRunsPage() {
         data: {
           projectId: project.id,
           name: runName,
+          testIds: selectedRunTestIds,
         },
       })
 
-      setRunName('')
+      resetCreateRunForm()
       setShowCreateRunForm(false)
       window.location.href = `/run/${result.id}`
     } catch (error) {
@@ -290,38 +345,144 @@ function ProjectRunsPage() {
 
           {showCreateRunForm ? (
             <form
-              className="mb-6 flex flex-col gap-3 sm:flex-row"
+              className="mb-6 rounded-2xl border border-[#dbe4f4] bg-[#fbfcff] p-4"
               onSubmit={handleCreateRun}
             >
-              <input
-                value={runName}
-                onChange={(event) => setRunName(event.target.value)}
-                placeholder="New run name"
-                className="min-w-0 flex-1 rounded-2xl border border-[#dbe4f4] bg-white px-4 py-3 text-base text-[#1b2f5b] outline-none transition focus:border-[#2f6fe4]"
-              />
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={isCreatingRun}
-                  className="rounded-2xl border border-[#2f6fe4] bg-[#2f6fe4] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
-                >
-                  {isCreatingRun ? 'Creating...' : 'Create run'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateRunForm(false)
-                    setRunName('')
-                    setCreateRunErrorMessage(null)
-                  }}
-                  className="rounded-2xl border border-[#dbe4f4] bg-white px-5 py-3 text-sm font-semibold text-[#60718f]"
-                >
-                  Cancel
-                </button>
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+                <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
+                  Run name
+                  <input
+                    value={runName}
+                    onChange={(event) => setRunName(event.target.value)}
+                    placeholder="Week 13. Regression"
+                    className="min-w-0 rounded-2xl border border-[#dbe4f4] bg-white px-4 py-3 text-base text-[#1b2f5b] outline-none transition focus:border-[#2f6fe4]"
+                  />
+                </label>
+                <div className="flex items-end gap-2">
+                  <button
+                    type="submit"
+                    disabled={isCreatingRun || selectedRunTestIds.length === 0}
+                    className="whitespace-nowrap rounded-2xl border border-[#2f6fe4] bg-[#2f6fe4] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
+                  >
+                    {isCreatingRun ? 'Creating...' : 'Create run'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateRunForm(false)
+                      resetCreateRunForm()
+                    }}
+                    className="whitespace-nowrap rounded-2xl border border-[#dbe4f4] bg-white px-5 py-3 text-sm font-semibold text-[#60718f]"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-              <p className="m-0 text-xs font-semibold text-[#7f8da9] sm:basis-full">
-                New runs include active repository cases and skip archived cases.
-              </p>
+
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: 'all', label: 'All active cases' },
+                    { value: 'suites', label: 'Suites' },
+                    { value: 'cases', label: 'Cases' },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        setRunScope(option.value as 'all' | 'suites' | 'cases')
+                        setCreateRunErrorMessage(null)
+                      }}
+                      className={`rounded-xl border px-3 py-2 text-sm font-semibold ${
+                        runScope === option.value
+                          ? 'border-[#9dbaf7] bg-[#ecf2ff] text-[#2f6fe4]'
+                          : 'border-[#dbe4f4] bg-white text-[#60718f]'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="rounded-full border border-[#dbe4f4] bg-white px-3 py-1 text-sm font-semibold text-[#60718f]">
+                  {selectedRunTestIds.length} case
+                  {selectedRunTestIds.length === 1 ? '' : 's'} in run
+                </div>
+              </div>
+
+              {runScope === 'suites' ? (
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  {dashboard.sections.map((section) => {
+                    const sectionCaseCount = activeTests.filter(
+                      (test) => test.sectionId === section.id,
+                    ).length
+                    const isSelected = selectedRunSuiteIds.includes(section.id)
+
+                    return (
+                      <label
+                        key={section.id}
+                        className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 text-sm font-semibold ${
+                          isSelected
+                            ? 'border-[#9dbaf7] bg-[#ecf2ff] text-[#1b2f5b]'
+                            : 'border-[#dbe4f4] bg-white text-[#60718f]'
+                        }`}
+                      >
+                        <span className="min-w-0 truncate">{section.name}</span>
+                        <span className="flex shrink-0 items-center gap-2">
+                          <span className="text-xs text-[#7f8da9]">
+                            {sectionCaseCount}
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleRunSuiteSelection(section.id)}
+                            className="h-4 w-4 rounded border-[#c7d5ee] text-[#2f6fe4] focus:ring-[#2f6fe4]"
+                          />
+                        </span>
+                      </label>
+                    )
+                  })}
+                </div>
+              ) : null}
+
+              {runScope === 'cases' ? (
+                <div className="mt-4 max-h-[260px] overflow-y-auto rounded-2xl border border-[#e9eef8] bg-white">
+                  {activeTests.length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-[#63759a]">
+                      No active cases are available for this run.
+                    </div>
+                  ) : (
+                    activeTests.map((test) => {
+                      const section = dashboard.sections.find(
+                        (item) => item.id === test.sectionId,
+                      )
+
+                      return (
+                        <label
+                          key={test.id}
+                          className="flex items-center justify-between gap-4 border-t border-[#eef2f8] px-4 py-2.5 first:border-t-0"
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-semibold text-[#1b2f5b]">
+                              #{test.id} {test.title}
+                            </span>
+                            <span className="text-xs font-semibold text-[#7f8da9]">
+                              {section?.name ?? 'No suite'} ·{' '}
+                              {test.priority ?? 'Medium'} ·{' '}
+                              {test.caseType ?? 'Functional'}
+                            </span>
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={selectedRunTestIdSet.has(test.id)}
+                            onChange={() => toggleRunCaseSelection(test.id)}
+                            className="h-4 w-4 shrink-0 rounded border-[#c7d5ee] text-[#2f6fe4] focus:ring-[#2f6fe4]"
+                          />
+                        </label>
+                      )
+                    })
+                  )}
+                </div>
+              ) : null}
             </form>
           ) : null}
 
@@ -343,7 +504,7 @@ function ProjectRunsPage() {
             </div>
           ) : (
             <div className="overflow-x-auto rounded-2xl border border-[#e9eef8]">
-              <div className="grid min-w-[1050px] grid-cols-[minmax(220px,1fr)_120px_110px_110px_110px_130px_150px] items-center bg-[#fbfcff] px-5 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
+              <div className="grid min-w-[1180px] grid-cols-[minmax(300px,1fr)_190px_96px_96px_96px_110px_190px] items-center bg-[#fbfcff] px-5 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
                 <div>Run</div>
                 <div>Progress</div>
                 <div>Passed</div>
@@ -370,12 +531,12 @@ function ProjectRunsPage() {
                 return (
                   <section
                     key={run.id}
-                    className="grid min-w-[1050px] grid-cols-[minmax(220px,1fr)_120px_110px_110px_110px_130px_150px] items-center border-t border-[#e9eef8] bg-white px-5 py-4"
+                    className="grid min-w-[1180px] grid-cols-[minmax(300px,1fr)_190px_96px_96px_96px_110px_190px] items-center border-t border-[#e9eef8] bg-white px-5 py-4"
                   >
                     <div className="min-w-0 pr-4">
-                        {isEditing ? (
+                      {isEditing ? (
                           <form
-                            className="flex flex-wrap items-center gap-2"
+                            className="grid gap-2 xl:grid-cols-[minmax(240px,1fr)_auto_auto]"
                             onSubmit={(event) => handleRenameRun(event, run.id)}
                           >
                             <input
@@ -383,7 +544,7 @@ function ProjectRunsPage() {
                               onChange={(event) =>
                                 setEditingRunName(event.target.value)
                               }
-                              className="min-w-[260px] rounded-xl border border-[#d9e2f2] bg-white px-3 py-2 text-base font-semibold text-[#1b2f5b] outline-none transition focus:border-[#2f6fe4]"
+                              className="min-w-0 rounded-xl border border-[#d9e2f2] bg-white px-3 py-2 text-base font-semibold text-[#1b2f5b] outline-none transition focus:border-[#2f6fe4]"
                             />
                             <button
                               type="submit"
@@ -428,18 +589,18 @@ function ProjectRunsPage() {
                           </>
                         )}
                     </div>
-                    <div>
-                      <div className="text-sm font-semibold text-[#1b2f5b]">
-                        {progress}%
+                    <div className="pr-6">
+                      <div className="flex items-center justify-between gap-3 text-sm font-semibold text-[#1b2f5b]">
+                        <span>{progress}%</span>
+                        <span className="text-xs text-[#7f8da9]">
+                          {executed}/{run.total}
+                        </span>
                       </div>
                       <div className="mt-1 h-2 overflow-hidden rounded-full bg-[#edf2fa]">
                         <div
                           className="h-full rounded-full bg-[#2f6fe4]"
                           style={{ width: `${progress}%` }}
                         />
-                      </div>
-                      <div className="mt-1 text-xs text-[#7f8da9]">
-                        {executed}/{run.total}
                       </div>
                     </div>
                     <div className="text-sm font-semibold text-emerald-700">
@@ -454,7 +615,7 @@ function ProjectRunsPage() {
                     <div className="text-sm font-semibold text-slate-600">
                       {run.notRun}
                     </div>
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-2 whitespace-nowrap">
                       {!isEditing ? (
                         <>
                           <button
