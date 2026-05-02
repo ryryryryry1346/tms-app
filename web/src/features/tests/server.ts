@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
@@ -6,12 +6,10 @@ import { getDb, isDatabaseConfigured } from '../../db/client'
 import {
   projects,
   sections,
-  testCaseActivity,
   tests,
   testRunItems,
 } from '../../db/schema'
 import { ensureProjectSlugs } from '../projects/slug'
-import type { SessionUser } from '../auth/helpers.server'
 
 const dashboardInput = z.object({
   projectId: z.number().int().positive().optional(),
@@ -19,6 +17,11 @@ const dashboardInput = z.object({
 })
 
 type ActivityDb = ReturnType<typeof getDb>
+
+type ActivityActor = {
+  id: number
+  username: string
+}
 
 async function logTestCaseActivity({
   db,
@@ -32,16 +35,20 @@ async function logTestCaseActivity({
   db: ActivityDb
   testId: number
   projectId: number | null
-  actor: SessionUser
+  actor: ActivityActor
   action: string
   summary: string
   createdAt?: string
 }): Promise<void> {
-  await db.insert(testCaseActivity).values({
+  const { logTestCaseActivity: writeTestCaseActivity } = await import(
+    './activity.server'
+  )
+
+  await writeTestCaseActivity({
+    db,
     testId,
     projectId,
-    actorId: actor.id,
-    actorName: actor.username,
+    actor,
     action,
     summary,
     createdAt,
@@ -292,20 +299,18 @@ export const getDashboardState = createServerFn({ method: 'POST' })
       .where(eq(tests.projectId, selectedProjectId))
       .orderBy(asc(tests.sectionId), asc(tests.sortOrder), asc(tests.id))
 
-    const activityRows = await db
-      .select({
-        id: testCaseActivity.id,
-        testId: testCaseActivity.testId,
-        projectId: testCaseActivity.projectId,
-        actorId: testCaseActivity.actorId,
-        actorName: testCaseActivity.actorName,
-        action: testCaseActivity.action,
-        summary: testCaseActivity.summary,
-        createdAt: testCaseActivity.createdAt,
+    let activityRows: DashboardActivity[] = []
+
+    try {
+      const { getProjectTestCaseActivities } = await import('./activity.server')
+      activityRows = await getProjectTestCaseActivities({
+        db,
+        projectId: selectedProjectId,
+        limit: 200,
       })
-      .from(testCaseActivity)
-      .where(eq(testCaseActivity.projectId, selectedProjectId))
-      .orderBy(desc(testCaseActivity.id))
+    } catch (error) {
+      console.error('Failed to load test case activity', error)
+    }
 
     return {
       databaseConfigured: true,
