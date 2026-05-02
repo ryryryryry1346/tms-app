@@ -18,6 +18,7 @@ import {
   bulkRestoreTestCases,
   bulkUpdateTestMetadata,
   bulkUpdateTestStatus,
+  createTestCase,
   deleteArchivedTestCase,
   duplicateTestCase,
   getDashboardState,
@@ -88,6 +89,7 @@ export const Route = createFileRoute('/project/$projectSlug/repository')({
 type ComposerKind = 'suite' | null
 type CaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
 type CaseStatusValue = Exclude<CaseFilter, 'All'>
+type QuickCreateStatusValue = Exclude<CaseStatusValue, 'Archived'>
 type PriorityFilter = 'All' | 'Low' | 'Medium' | 'High' | 'Critical'
 type PriorityValue = Exclude<PriorityFilter, 'All'>
 type CaseTypeFilter =
@@ -101,6 +103,7 @@ type CaseTypeFilter =
 type CaseTypeValue = Exclude<CaseTypeFilter, 'All'>
 const ALL_SUITES_FILTER = 'all'
 const CASE_STATUS_OPTIONS: CaseStatusValue[] = ['Draft', 'Ready', 'Archived']
+const QUICK_CREATE_STATUS_OPTIONS: QuickCreateStatusValue[] = ['Draft', 'Ready']
 const PRIORITY_OPTIONS: PriorityValue[] = ['Low', 'Medium', 'High', 'Critical']
 const CASE_TYPE_OPTIONS: CaseTypeValue[] = [
   'Functional',
@@ -266,6 +269,19 @@ function ProjectRepositoryPage() {
   )
   const [editingCaseTitleValue, setEditingCaseTitleValue] = useState('')
   const [previewTestId, setPreviewTestId] = useState<number | null>(null)
+  const [quickCreateSuiteId, setQuickCreateSuiteId] = useState<number | null>(
+    null,
+  )
+  const [quickCreateTitle, setQuickCreateTitle] = useState('')
+  const [quickCreatePriority, setQuickCreatePriority] =
+    useState<PriorityValue>('Medium')
+  const [quickCreateType, setQuickCreateType] =
+    useState<CaseTypeValue>('Functional')
+  const [quickCreateStatus, setQuickCreateStatus] =
+    useState<QuickCreateStatusValue>('Draft')
+  const [pendingQuickCreateSuiteId, setPendingQuickCreateSuiteId] = useState<
+    number | null
+  >(null)
   const [caseActionErrorMessage, setCaseActionErrorMessage] = useState<
     string | null
   >(null)
@@ -437,6 +453,24 @@ function ProjectRepositoryPage() {
   function cancelCaseTitleEdit(): void {
     setEditingCaseTitleId(null)
     setEditingCaseTitleValue('')
+  }
+
+  function startQuickCreateCase(suiteId: number): void {
+    setCaseActionErrorMessage(null)
+    setOpenCaseMenuId(null)
+    setQuickCreateSuiteId(suiteId)
+    setQuickCreateTitle('')
+    setQuickCreatePriority('Medium')
+    setQuickCreateType('Functional')
+    setQuickCreateStatus('Draft')
+  }
+
+  function cancelQuickCreateCase(): void {
+    setQuickCreateSuiteId(null)
+    setQuickCreateTitle('')
+    setQuickCreatePriority('Medium')
+    setQuickCreateType('Functional')
+    setQuickCreateStatus('Draft')
   }
 
   function openCasePreview(testId: number): void {
@@ -656,6 +690,41 @@ function ProjectRepositoryPage() {
       )
     } finally {
       setPendingCaseActionId(null)
+    }
+  }
+
+  async function handleQuickCreateCase(suiteId: number): Promise<void> {
+    const title = quickCreateTitle.trim()
+
+    if (!title) {
+      setCaseActionErrorMessage('Test case title cannot be empty.')
+      return
+    }
+
+    setCaseActionErrorMessage(null)
+    setPendingQuickCreateSuiteId(suiteId)
+
+    try {
+      await createTestCase({
+        data: {
+          title,
+          sectionId: suiteId,
+          status: quickCreateStatus,
+          priority: quickCreatePriority,
+          caseType: quickCreateType,
+          steps: '',
+          expected: '',
+        },
+      })
+
+      cancelQuickCreateCase()
+      await router.invalidate()
+    } catch (error) {
+      setCaseActionErrorMessage(
+        error instanceof Error ? error.message : 'Failed to create test case.',
+      )
+    } finally {
+      setPendingQuickCreateSuiteId(null)
     }
   }
 
@@ -1237,6 +1306,101 @@ function ProjectRepositoryPage() {
         return nextState
       })
     }
+  }
+
+  function renderQuickCreateCaseRow(sectionId: number, projectId: number) {
+    const isPending = pendingQuickCreateSuiteId === sectionId
+
+    return (
+      <div className="grid grid-cols-[44px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] items-center border-t border-[#dbe4f4] bg-[#f8fbff] px-5 py-2.5">
+        <div />
+        <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[#9aa7bf]">
+          New
+        </div>
+        <input
+          value={quickCreateTitle}
+          onChange={(event) => setQuickCreateTitle(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              void handleQuickCreateCase(sectionId)
+            }
+
+            if (event.key === 'Escape') {
+              event.preventDefault()
+              cancelQuickCreateCase()
+            }
+          }}
+          disabled={isPending}
+          autoFocus
+          placeholder="Test case title"
+          className="min-w-0 rounded-lg border border-[#c7d5ee] bg-white px-2 py-1 text-sm font-semibold text-[#1b2f5b] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+        />
+        <select
+          value={quickCreatePriority}
+          onChange={(event) =>
+            setQuickCreatePriority(event.target.value as PriorityValue)
+          }
+          disabled={isPending}
+          className="w-fit rounded-full border-0 bg-[#eef6ff] px-2.5 py-1 text-xs font-semibold text-[#506487] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+        >
+          {PRIORITY_OPTIONS.map((priority) => (
+            <option key={priority} value={priority}>
+              {priority}
+            </option>
+          ))}
+        </select>
+        <select
+          value={quickCreateType}
+          onChange={(event) =>
+            setQuickCreateType(event.target.value as CaseTypeValue)
+          }
+          disabled={isPending}
+          className="w-fit rounded-full border-0 bg-[#f3f5f9] px-2.5 py-1 text-xs font-semibold text-[#60718f] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+        >
+          {CASE_TYPE_OPTIONS.map((caseType) => (
+            <option key={caseType} value={caseType}>
+              {caseType}
+            </option>
+          ))}
+        </select>
+        <span className="text-sm font-semibold text-[#9aa7bf]">-</span>
+        <span className="text-sm font-semibold text-[#9aa7bf]">-</span>
+        <select
+          value={quickCreateStatus}
+          onChange={(event) =>
+            setQuickCreateStatus(event.target.value as QuickCreateStatusValue)
+          }
+          disabled={isPending}
+          className="w-fit rounded-full border-0 bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 outline-none disabled:cursor-not-allowed disabled:opacity-55"
+        >
+          {QUICK_CREATE_STATUS_OPTIONS.map((status) => (
+            <option key={status} value={status}>
+              {status}
+            </option>
+          ))}
+        </select>
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              void handleQuickCreateCase(sectionId)
+            }}
+            disabled={isPending}
+            className="rounded-lg border border-[#9dbaf7] bg-white px-2.5 py-1 text-sm font-semibold text-[#3369d6] disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            {isPending ? 'Saving' : 'Save'}
+          </button>
+          <Link
+            to="/create-test"
+            search={{ suiteId: sectionId, projectId }}
+            className="rounded-lg border border-[#dbe4f4] bg-white px-2.5 py-1 text-sm font-semibold no-underline text-[#60718f]"
+          >
+            Editor
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   async function handleRenameSuite(
@@ -1946,12 +2110,19 @@ function ProjectRepositoryPage() {
                           >
                             {allVisibleSelected ? 'Clear suite' : 'Select suite'}
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => startQuickCreateCase(section.id)}
+                            className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#3369d6]"
+                          >
+                            + Case
+                          </button>
                           <Link
                             to="/create-test"
                             search={{ suiteId: section.id, projectId: project.id }}
-                            className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#3369d6]"
+                            className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#60718f]"
                           >
-                            + Case
+                            Editor
                           </Link>
                           {!isEditingSuite ? (
                             <div className="relative">
@@ -2035,17 +2206,34 @@ function ProjectRepositoryPage() {
                       ) : null}
 
                       {isCollapsed ? null : visibleTests.length === 0 ? (
-                        <div className="bg-white px-5 py-4 text-sm text-[#63759a]">
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <span>No test cases in this suite yet.</span>
-                            <Link
-                              to="/create-test"
-                              search={{ suiteId: section.id, projectId: project.id }}
-                              className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#3369d6]"
-                            >
-                              + Case
-                            </Link>
+                        <div className="bg-white">
+                          <div className="px-5 py-4 text-sm text-[#63759a]">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <span>No test cases in this suite yet.</span>
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => startQuickCreateCase(section.id)}
+                                  className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#3369d6]"
+                                >
+                                  + Case
+                                </button>
+                                <Link
+                                  to="/create-test"
+                                  search={{
+                                    suiteId: section.id,
+                                    projectId: project.id,
+                                  }}
+                                  className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#60718f]"
+                                >
+                                  Editor
+                                </Link>
+                              </div>
+                            </div>
                           </div>
+                          {quickCreateSuiteId === section.id
+                            ? renderQuickCreateCaseRow(section.id, project.id)
+                            : null}
                         </div>
                       ) : (
                         <div className="bg-white">
@@ -2060,6 +2248,9 @@ function ProjectRepositoryPage() {
                             <div>Status</div>
                             <div className="text-right">Actions</div>
                           </div>
+                          {quickCreateSuiteId === section.id
+                            ? renderQuickCreateCaseRow(section.id, project.id)
+                            : null}
                           {visibleTests.map((test) => {
                             const isReady = test.status === 'Ready'
                             const isArchived = test.status === 'Archived'
