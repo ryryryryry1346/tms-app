@@ -21,6 +21,12 @@ const updateTestTitleInput = z.object({
   title: z.string().trim().min(1),
 })
 
+const updateTestContentInput = z.object({
+  id: z.number().int().positive(),
+  steps: z.string(),
+  expected: z.string(),
+})
+
 const bulkUpdateTestStatusInput = z.object({
   ids: z.array(z.number().int().positive()).min(1),
   status: z.enum(['Draft', 'Ready', 'Archived']),
@@ -273,6 +279,25 @@ export const updateTestTitle = createServerFn({ method: 'POST' })
       .update(tests)
       .set({
         title: data.title,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(tests.id, data.id))
+
+    return { ok: true }
+  })
+
+export const updateTestContent = createServerFn({ method: 'POST' })
+  .inputValidator(updateTestContentInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const db = getDb()
+    await db
+      .update(tests)
+      .set({
+        steps: data.steps,
+        expected: data.expected,
         updatedAt: new Date().toISOString(),
       })
       .where(eq(tests.id, data.id))

@@ -6,6 +6,8 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
+import { RichTextEditor } from '../components/RichTextEditor'
+import { uploadTestMedia } from '../features/media/server'
 import {
   createSuite,
   deleteSuite,
@@ -24,6 +26,7 @@ import {
   getDashboardState,
   moveAndReorderTestCases,
   restoreTestCase,
+  updateTestContent,
   updateTestTitle,
 } from '../features/tests/server'
 
@@ -282,6 +285,11 @@ function ProjectRepositoryPage() {
   const [pendingQuickCreateSuiteId, setPendingQuickCreateSuiteId] = useState<
     number | null
   >(null)
+  const [isEditingPreviewContent, setIsEditingPreviewContent] = useState(false)
+  const [previewStepsValue, setPreviewStepsValue] = useState('')
+  const [previewExpectedValue, setPreviewExpectedValue] = useState('')
+  const [isSavingPreviewContent, setIsSavingPreviewContent] = useState(false)
+  const [isUploadingPreviewMedia, setIsUploadingPreviewMedia] = useState(false)
   const [caseActionErrorMessage, setCaseActionErrorMessage] = useState<
     string | null
   >(null)
@@ -433,6 +441,20 @@ function ProjectRepositoryPage() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [previewTest])
 
+  useEffect(() => {
+    if (!previewTest) {
+      setIsEditingPreviewContent(false)
+      setPreviewStepsValue('')
+      setPreviewExpectedValue('')
+      return
+    }
+
+    if (!isEditingPreviewContent) {
+      setPreviewStepsValue(previewTest.steps ?? '')
+      setPreviewExpectedValue(previewTest.expected ?? '')
+    }
+  }, [isEditingPreviewContent, previewTest])
+
   function clearBulkConfirmations(): void {
     setIsBulkArchiveConfirming(false)
     setIsBulkDeleteConfirming(false)
@@ -495,6 +517,67 @@ function ProjectRepositoryPage() {
 
     event.preventDefault()
     window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  function startPreviewContentEdit(): void {
+    if (!previewTest) {
+      return
+    }
+
+    setCaseActionErrorMessage(null)
+    setPreviewStepsValue(previewTest.steps ?? '')
+    setPreviewExpectedValue(previewTest.expected ?? '')
+    setIsEditingPreviewContent(true)
+  }
+
+  function cancelPreviewContentEdit(): void {
+    setIsEditingPreviewContent(false)
+    setPreviewStepsValue(previewTest?.steps ?? '')
+    setPreviewExpectedValue(previewTest?.expected ?? '')
+  }
+
+  async function uploadPreviewMedia(file: File): Promise<string> {
+    setIsUploadingPreviewMedia(true)
+
+    try {
+      const result = await uploadTestMedia({
+        data: {
+          file,
+        },
+      })
+
+      return result.url
+    } finally {
+      setIsUploadingPreviewMedia(false)
+    }
+  }
+
+  async function savePreviewContent(): Promise<void> {
+    if (!previewTest) {
+      return
+    }
+
+    setCaseActionErrorMessage(null)
+    setIsSavingPreviewContent(true)
+
+    try {
+      await updateTestContent({
+        data: {
+          id: previewTest.id,
+          steps: previewStepsValue,
+          expected: previewExpectedValue,
+        },
+      })
+
+      setIsEditingPreviewContent(false)
+      await router.invalidate()
+    } catch (error) {
+      setCaseActionErrorMessage(
+        error instanceof Error ? error.message : 'Failed to update test content.',
+      )
+    } finally {
+      setIsSavingPreviewContent(false)
+    }
   }
 
   function toggleTestSelection(testId: number): void {
@@ -2641,40 +2724,93 @@ function ProjectRepositoryPage() {
                 </div>
 
                 <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-                  <section className="mb-5">
-                    <h3 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[#7f8da9]">
-                      Steps
-                    </h3>
-                    <div
-                      className="rich-output prose prose-sm mt-3 max-w-none text-[#1b2f5b]"
-                      onClick={handleRichContentClick}
-                      dangerouslySetInnerHTML={{
-                        __html: previewTest.steps || '<p>-</p>',
-                      }}
-                    />
-                  </section>
+                  {isEditingPreviewContent ? (
+                    <div className="grid gap-5">
+                      <RichTextEditor
+                        label="Steps"
+                        placeholder="Describe the test steps"
+                        value={previewStepsValue}
+                        onChange={setPreviewStepsValue}
+                        onUploadMedia={uploadPreviewMedia}
+                        isUploading={isUploadingPreviewMedia}
+                      />
+                      <RichTextEditor
+                        label="Expected result"
+                        placeholder="Describe the expected result"
+                        value={previewExpectedValue}
+                        onChange={setPreviewExpectedValue}
+                        onUploadMedia={uploadPreviewMedia}
+                        isUploading={isUploadingPreviewMedia}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <section className="mb-5">
+                        <h3 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[#7f8da9]">
+                          Steps
+                        </h3>
+                        <div
+                          className="rich-output prose prose-sm mt-3 max-w-none text-[#1b2f5b]"
+                          onClick={handleRichContentClick}
+                          dangerouslySetInnerHTML={{
+                            __html: previewTest.steps || '<p>-</p>',
+                          }}
+                        />
+                      </section>
 
-                  <section>
-                    <h3 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[#7f8da9]">
-                      Expected result
-                    </h3>
-                    <div
-                      className="rich-output prose prose-sm mt-3 max-w-none text-[#1b2f5b]"
-                      onClick={handleRichContentClick}
-                      dangerouslySetInnerHTML={{
-                        __html: previewTest.expected || '<p>-</p>',
-                      }}
-                    />
-                  </section>
+                      <section>
+                        <h3 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[#7f8da9]">
+                          Expected result
+                        </h3>
+                        <div
+                          className="rich-output prose prose-sm mt-3 max-w-none text-[#1b2f5b]"
+                          onClick={handleRichContentClick}
+                          dangerouslySetInnerHTML={{
+                            __html: previewTest.expected || '<p>-</p>',
+                          }}
+                        />
+                      </section>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 border-t border-[#e9eef8] px-6 py-4">
+                  {isEditingPreviewContent ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={isSavingPreviewContent || isUploadingPreviewMedia}
+                        onClick={() => {
+                          void savePreviewContent()
+                        }}
+                        className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#3369d6] disabled:cursor-not-allowed disabled:opacity-55"
+                      >
+                        {isSavingPreviewContent ? 'Saving...' : 'Save content'}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isSavingPreviewContent}
+                        onClick={cancelPreviewContentEdit}
+                        className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={startPreviewContentEdit}
+                      className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#3369d6]"
+                    >
+                      Edit content
+                    </button>
+                  )}
                   <Link
                     to="/edit-test/$testId"
                     params={{ testId: previewTest.id.toString() }}
-                    className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#3369d6]"
+                    className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#60718f]"
                   >
-                    Edit
+                    Full editor
                   </Link>
                   <Link
                     to="/test/$testId"
