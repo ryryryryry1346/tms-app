@@ -5,16 +5,21 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { useState } from 'react'
+import { z } from 'zod'
 import { getCurrentUser } from '../features/auth/server'
 import { sendVerificationEmail, signIn } from '../lib/auth-client'
 
 export const Route = createFileRoute('/login')({
-  loader: async () => {
+  validateSearch: z.object({
+    redirectTo: z.string().optional(),
+  }),
+  loader: async ({ context }) => {
     const user = await getCurrentUser()
+    const redirectTo = getSafeRedirectTo(context.location.search.redirectTo)
 
     if (user) {
       throw redirect({
-        to: '/',
+        href: redirectTo,
       })
     }
 
@@ -26,6 +31,8 @@ export const Route = createFileRoute('/login')({
 function LoginPage() {
   const navigate = useNavigate()
   const router = useRouter()
+  const search = Route.useSearch()
+  const redirectTo = getSafeRedirectTo(search.redirectTo)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -78,7 +85,7 @@ function LoginPage() {
 
       await router.invalidate()
       await navigate({
-        to: '/',
+        href: redirectTo,
         replace: true,
       })
     } finally {
@@ -218,4 +225,30 @@ function LoginPage() {
       </section>
     </main>
   )
+}
+
+function getSafeRedirectTo(value: string | undefined): string {
+  if (!value) {
+    return '/'
+  }
+
+  try {
+    const decoded = decodeURIComponent(value)
+
+    if (
+      decoded.startsWith('/') &&
+      !decoded.startsWith('//') &&
+      !decoded.startsWith('/login') &&
+      !decoded.startsWith('/register') &&
+      !decoded.startsWith('/forgot-password') &&
+      !decoded.startsWith('/reset-password') &&
+      !decoded.startsWith('/api/auth')
+    ) {
+      return decoded
+    }
+  } catch {
+    return '/'
+  }
+
+  return '/'
 }

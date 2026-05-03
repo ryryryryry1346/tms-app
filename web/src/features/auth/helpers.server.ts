@@ -1,5 +1,8 @@
 import { redirect } from '@tanstack/react-router'
-import { getRequestHeaders } from '@tanstack/react-start/server'
+import {
+  getRequestHeaders,
+  getRequestUrl,
+} from '@tanstack/react-start/server'
 import { auth } from '../../lib/auth'
 
 export type SessionUser = {
@@ -36,10 +39,60 @@ export async function requireSessionUser(): Promise<SessionUser> {
   if (!user) {
     throw redirect({
       to: '/login',
+      search: {
+        redirectTo: getLoginRedirectTo(),
+      },
     })
   }
 
   return user
+}
+
+function getLoginRedirectTo(): string {
+  const requestUrl = getRequestUrl({
+    xForwardedHost: true,
+  })
+  const requestPath = toLocalRedirectPath(requestUrl)
+
+  if (requestPath) {
+    return requestPath
+  }
+
+  const referer = getRequestHeaders().get('referer')
+
+  if (!referer) {
+    return '/'
+  }
+
+  try {
+    const refererUrl = new URL(referer)
+
+    if (refererUrl.origin !== requestUrl.origin) {
+      return '/'
+    }
+
+    return toLocalRedirectPath(refererUrl) ?? '/'
+  } catch {
+    return '/'
+  }
+}
+
+function toLocalRedirectPath(url: URL): string | null {
+  const path = `${url.pathname}${url.search}`
+
+  if (
+    !path.startsWith('/') ||
+    path.startsWith('//') ||
+    path.startsWith('/login') ||
+    path.startsWith('/register') ||
+    path.startsWith('/forgot-password') ||
+    path.startsWith('/reset-password') ||
+    path.startsWith('/api/auth')
+  ) {
+    return null
+  }
+
+  return path
 }
 
 export async function clearSession(): Promise<void> {
