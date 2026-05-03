@@ -6,7 +6,7 @@ import {
 } from '@tanstack/react-router'
 import { useState } from 'react'
 import { getCurrentUser } from '../features/auth/server'
-import { signIn } from '../lib/auth-client'
+import { sendVerificationEmail, signIn } from '../lib/auth-client'
 
 export const Route = createFileRoute('/login')({
   loader: async () => {
@@ -29,6 +29,9 @@ function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null)
+  const [resendMessage, setResendMessage] = useState<string | null>(null)
+  const [isResending, setIsResending] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function handleSubmit(
@@ -36,6 +39,8 @@ function LoginPage() {
   ): Promise<void> {
     event.preventDefault()
     setErrorMessage(null)
+    setUnverifiedEmail(null)
+    setResendMessage(null)
     setIsSubmitting(true)
 
     try {
@@ -58,13 +63,16 @@ function LoginPage() {
       if (result.error) {
         const message = result.error.message ?? 'Invalid credentials.'
         const normalizedMessage = message.toLowerCase()
-
-        setErrorMessage(
+        const needsVerification =
           normalizedMessage.includes('verify') ||
-            normalizedMessage.includes('verification')
-            ? 'Please verify your email before logging in. We sent you a verification link.'
-            : message,
-        )
+          normalizedMessage.includes('verification')
+
+        if (needsVerification) {
+          setUnverifiedEmail(submittedEmail)
+          setErrorMessage(null)
+        } else {
+          setErrorMessage(message)
+        }
         return
       }
 
@@ -75,6 +83,34 @@ function LoginPage() {
       })
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleResendVerification(): Promise<void> {
+    if (!unverifiedEmail) {
+      return
+    }
+
+    setIsResending(true)
+    setErrorMessage(null)
+    setResendMessage(null)
+
+    try {
+      const result = await sendVerificationEmail({
+        email: unverifiedEmail,
+        callbackURL: '/login',
+      })
+
+      if (result.error) {
+        setErrorMessage(
+          result.error.message ?? 'Unable to send verification email right now.',
+        )
+        return
+      }
+
+      setResendMessage(`Verification email sent to ${unverifiedEmail}.`)
+    } finally {
+      setIsResending(false)
     }
   }
 
@@ -127,6 +163,30 @@ function LoginPage() {
           {errorMessage ? (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
               {errorMessage}
+            </div>
+          ) : null}
+
+          {unverifiedEmail ? (
+            <div className="grid gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
+              <div>
+                <p className="m-0 font-semibold">Verify your email to continue.</p>
+                <p className="m-0 mt-1">
+                  We sent a verification link to{' '}
+                  <span className="font-semibold">{unverifiedEmail}</span>. If it
+                  expired or did not arrive, send a new one.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={isResending}
+                className="w-fit rounded-xl border border-amber-300 bg-white px-4 py-2 font-semibold text-amber-950 shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isResending ? 'Sending...' : 'Send verification again'}
+              </button>
+              {resendMessage ? (
+                <p className="m-0 text-emerald-800">{resendMessage}</p>
+              ) : null}
             </div>
           ) : null}
 
