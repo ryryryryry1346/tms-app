@@ -5,7 +5,7 @@ import { testCaseActivity } from '../../db/schema'
 type ActivityDb = ReturnType<typeof getDb>
 
 type ActivityActor = {
-  id: number
+  id: number | string
   username: string
 }
 
@@ -40,7 +40,7 @@ export async function logTestCaseActivity({
   await db.insert(testCaseActivity).values({
     testId,
     projectId,
-    actorId: actor.id,
+    actorId: typeof actor.id === 'number' ? actor.id : null,
     actorName: actor.username,
     action,
     summary,
