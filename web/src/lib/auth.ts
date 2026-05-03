@@ -9,11 +9,7 @@ const localFallbackSecret =
   'local-development-only-better-auth-secret-change-before-production'
 
 function getAuthSecret(): string {
-  return (
-    process.env.BETTER_AUTH_SECRET ??
-    process.env.SESSION_SECRET ??
-    localFallbackSecret
-  )
+  return process.env.BETTER_AUTH_SECRET ?? localFallbackSecret
 }
 
 function getAuthBaseUrl(): string {

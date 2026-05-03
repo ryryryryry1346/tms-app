@@ -16,12 +16,6 @@ export const projects = mysqlTable('projects', {
   status: varchar('status', { length: 64 }),
 })
 
-export const users = mysqlTable('users', {
-  id: int('id').autoincrement().primaryKey(),
-  username: varchar('username', { length: 255 }).notNull().unique(),
-  password: text('password').notNull(),
-})
-
 export const user = mysqlTable(
   'user',
   {
@@ -180,6 +174,4 @@ export const testRunItems = mysqlTable(
 
 export type Project = typeof projects.$inferSelect
 export type NewProject = typeof projects.$inferInsert
-export type User = typeof users.$inferSelect
-export type NewUser = typeof users.$inferInsert
 export type AuthUser = typeof user.$inferSelect

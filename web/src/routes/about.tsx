@@ -20,19 +20,19 @@ function About() {
             creating a project, creating a test without upload handling,
             reading the dedicated test detail page, restoring image upload for
             create test, creating a run, reading the run detail page, restoring
-            the historical <code>/run_test</code> execution contract, and basic
-            username/password auth.
+            the historical <code>/run_test</code> execution contract, and Better
+            Auth email/password registration with email verification.
           </p>
           <p>
             MySQL and Drizzle are added explicitly, and the schema mirrors the
-            currently observed Python domain model without inventing broader auth
-            or execution workflow beyond the verified Flask behavior.
+            currently observed Python domain model while the auth layer now uses
+            Better Auth tables managed through Drizzle.
           </p>
           <ul className="m-0 list-disc space-y-2 pl-5">
             <li>Old Flask code is still present and untouched.</li>
             <li>Create-test image upload is restored against Cloudinary, but broader media behavior beyond the confirmed image flow is still intentionally narrow.</li>
             <li>Run execution now preserves only the confirmed per-test Passed/Failed save flow tied to a run.</li>
-            <li>Existing Flask user hash compatibility is partially addressed, but real data migration still needs validation against production rows.</li>
+            <li>Legacy Flask user rows are no longer used by the TypeScript auth flow; a later cleanup can drop the old table with a dedicated migration.</li>
           </ul>
         </div>
       </section>
