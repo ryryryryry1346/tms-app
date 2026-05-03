@@ -1,6 +1,7 @@
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
-import { getCurrentUser, registerUser } from '../features/auth/server'
+import { getCurrentUser } from '../features/auth/server'
+import { signUp } from '../lib/auth-client'
 
 export const Route = createFileRoute('/register')({
   loader: async () => {
@@ -18,9 +19,10 @@ export const Route = createFileRoute('/register')({
 })
 
 function RegisterPage() {
-  const navigate = useNavigate()
-  const [username, setUsername] = useState('')
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -33,24 +35,32 @@ function RegisterPage() {
 
     try {
       const formData = new FormData(event.currentTarget)
-      const submittedUsername = String(formData.get('username') ?? '').trim()
+      const submittedName = String(formData.get('name') ?? '').trim()
+      const submittedEmail = String(formData.get('email') ?? '')
+        .trim()
+        .toLowerCase()
       const submittedPassword = String(formData.get('password') ?? '')
 
-      const result = await registerUser({
-        data: {
-          username: submittedUsername,
-          password: submittedPassword,
-        },
-      })
-
-      if (!result.ok) {
-        setErrorMessage('Unable to create account right now.')
+      if (!submittedName || !submittedEmail || !submittedPassword) {
+        setErrorMessage('Name, email, and password are required.')
         return
       }
 
-      await navigate({
-        to: '/login',
+      const result = await signUp.email({
+        name: submittedName,
+        email: submittedEmail,
+        password: submittedPassword,
+        callbackURL: '/login',
       })
+
+      if (result.error) {
+        setErrorMessage(
+          result.error.message ?? 'Unable to create account right now.',
+        )
+        return
+      }
+
+      setSubmittedEmail(submittedEmail)
     } finally {
       setIsSubmitting(false)
     }
@@ -61,60 +71,96 @@ function RegisterPage() {
       <section className="auth-card rise-in mx-auto flex min-h-[35rem] w-full max-w-[35rem] flex-col rounded-[2rem] border border-[var(--auth-card-line)] bg-[var(--auth-card-bg)] p-8 shadow-[0_24px_70px_rgba(28,44,90,0.08)] sm:p-10">
         <div className="mb-8 text-center">
           <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--brand-strong)]">
-            Register
+            {submittedEmail ? 'Check your email' : 'Register'}
           </h1>
         </div>
 
-        <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
-          <label className="grid gap-2 text-left">
-            <span className="text-lg font-medium text-[var(--auth-label)]">
-              Email or username
-            </span>
-            <input
-              name="username"
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-              className="auth-input rounded-2xl border border-[var(--auth-input-line)] bg-[var(--auth-input-bg)] px-5 py-4 text-lg outline-none transition focus:border-[var(--brand)]"
-              placeholder="Choose your email or username"
-            />
-          </label>
-
-          <label className="grid gap-2 text-left">
-            <span className="text-lg font-medium text-[var(--auth-label)]">
-              Password
-            </span>
-            <input
-              name="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              type="password"
-              className="auth-input rounded-2xl border border-[var(--auth-input-line)] bg-[var(--auth-input-bg)] px-5 py-4 text-lg outline-none transition focus:border-[var(--brand)]"
-              placeholder="Create a password"
-            />
-          </label>
-
-          {errorMessage ? (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-              {errorMessage}
+        {submittedEmail ? (
+          <div className="grid flex-1 content-start gap-5 text-center">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-left text-sm text-emerald-950">
+              We sent a verification link to{' '}
+              <span className="font-semibold">{submittedEmail}</span>. Open it
+              to confirm your email before logging in.
             </div>
-          ) : null}
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="mt-auto rounded-2xl bg-[var(--brand)] px-5 py-4 text-lg font-bold text-white shadow-[0_16px_34px_rgba(34,145,233,0.24)] disabled:cursor-not-allowed disabled:opacity-55"
-          >
-            {isSubmitting ? 'Creating...' : 'Create account'}
-          </button>
-
-          <p className="pt-2 text-center text-lg text-[var(--sea-ink-soft)]">
-            Already have an account?{' '}
-            <a href="/login" className="font-semibold text-[var(--brand)] no-underline">
-              Log in
+            <a
+              href="/login"
+              className="rounded-2xl bg-[var(--brand)] px-5 py-4 text-lg font-bold text-white no-underline shadow-[0_16px_34px_rgba(34,145,233,0.24)]"
+            >
+              Go to login
             </a>
-            .
-          </p>
-        </form>
+          </div>
+        ) : (
+          <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
+            <label className="grid gap-2 text-left">
+              <span className="text-lg font-medium text-[var(--auth-label)]">
+                Name
+              </span>
+              <input
+                name="name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                className="auth-input rounded-2xl border border-[var(--auth-input-line)] bg-[var(--auth-input-bg)] px-5 py-4 text-lg outline-none transition focus:border-[var(--brand)]"
+                placeholder="Your name"
+                autoComplete="name"
+              />
+            </label>
+
+            <label className="grid gap-2 text-left">
+              <span className="text-lg font-medium text-[var(--auth-label)]">
+                Email
+              </span>
+              <input
+                name="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                type="email"
+                className="auth-input rounded-2xl border border-[var(--auth-input-line)] bg-[var(--auth-input-bg)] px-5 py-4 text-lg outline-none transition focus:border-[var(--brand)]"
+                placeholder="you@example.com"
+                autoComplete="email"
+              />
+            </label>
+
+            <label className="grid gap-2 text-left">
+              <span className="text-lg font-medium text-[var(--auth-label)]">
+                Password
+              </span>
+              <input
+                name="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                type="password"
+                className="auth-input rounded-2xl border border-[var(--auth-input-line)] bg-[var(--auth-input-bg)] px-5 py-4 text-lg outline-none transition focus:border-[var(--brand)]"
+                placeholder="Create a password"
+                autoComplete="new-password"
+              />
+            </label>
+
+            {errorMessage ? (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                {errorMessage}
+              </div>
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="mt-auto rounded-2xl bg-[var(--brand)] px-5 py-4 text-lg font-bold text-white shadow-[0_16px_34px_rgba(34,145,233,0.24)] disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {isSubmitting ? 'Sending verification...' : 'Create account'}
+            </button>
+
+            <p className="pt-2 text-center text-lg text-[var(--sea-ink-soft)]">
+              Already have an account?{' '}
+              <a
+                href="/login"
+                className="font-semibold text-[var(--brand)] no-underline"
+              >
+                Log in
+              </a>
+              .
+            </p>
+          </form>
+        )}
       </section>
     </main>
   )
