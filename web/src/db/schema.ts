@@ -1,8 +1,10 @@
 import {
   index,
   int,
+  boolean,
   mysqlTable,
   text,
+  timestamp,
   uniqueIndex,
   varchar,
 } from 'drizzle-orm/mysql-core'
@@ -19,6 +21,77 @@ export const users = mysqlTable('users', {
   username: varchar('username', { length: 255 }).notNull().unique(),
   password: text('password').notNull(),
 })
+
+export const user = mysqlTable(
+  'user',
+  {
+    id: varchar('id', { length: 255 }).primaryKey(),
+    name: varchar('name', { length: 255 }).notNull(),
+    email: varchar('email', { length: 255 }).notNull(),
+    emailVerified: boolean('email_verified').notNull().default(false),
+    image: text('image'),
+    createdAt: timestamp('created_at').notNull(),
+    updatedAt: timestamp('updated_at').notNull(),
+  },
+  (table) => ({
+    emailUnique: uniqueIndex('user_email_unique').on(table.email),
+  }),
+)
+
+export const session = mysqlTable(
+  'session',
+  {
+    id: varchar('id', { length: 255 }).primaryKey(),
+    expiresAt: timestamp('expires_at').notNull(),
+    token: varchar('token', { length: 255 }).notNull(),
+    createdAt: timestamp('created_at').notNull(),
+    updatedAt: timestamp('updated_at').notNull(),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    userId: varchar('user_id', { length: 255 }).notNull(),
+  },
+  (table) => ({
+    tokenUnique: uniqueIndex('session_token_unique').on(table.token),
+    userIdIndex: index('session_user_id_idx').on(table.userId),
+  }),
+)
+
+export const account = mysqlTable(
+  'account',
+  {
+    id: varchar('id', { length: 255 }).primaryKey(),
+    accountId: varchar('account_id', { length: 255 }).notNull(),
+    providerId: varchar('provider_id', { length: 255 }).notNull(),
+    userId: varchar('user_id', { length: 255 }).notNull(),
+    accessToken: text('access_token'),
+    refreshToken: text('refresh_token'),
+    idToken: text('id_token'),
+    accessTokenExpiresAt: timestamp('access_token_expires_at'),
+    refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
+    scope: text('scope'),
+    password: text('password'),
+    createdAt: timestamp('created_at').notNull(),
+    updatedAt: timestamp('updated_at').notNull(),
+  },
+  (table) => ({
+    userIdIndex: index('account_user_id_idx').on(table.userId),
+  }),
+)
+
+export const verification = mysqlTable(
+  'verification',
+  {
+    id: varchar('id', { length: 255 }).primaryKey(),
+    identifier: varchar('identifier', { length: 255 }).notNull(),
+    value: text('value').notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
+    createdAt: timestamp('created_at').notNull(),
+    updatedAt: timestamp('updated_at').notNull(),
+  },
+  (table) => ({
+    identifierIndex: index('verification_identifier_idx').on(table.identifier),
+  }),
+)
 
 export const sections = mysqlTable(
   'sections',
@@ -109,3 +182,4 @@ export type Project = typeof projects.$inferSelect
 export type NewProject = typeof projects.$inferInsert
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
+export type AuthUser = typeof user.$inferSelect

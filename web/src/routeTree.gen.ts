@@ -21,6 +21,7 @@ import { Route as EditTestTestIdRouteImport } from './routes/edit-test.$testId'
 import { Route as ProjectProjectSlugRunsRouteImport } from './routes/project.$projectSlug.runs'
 import { Route as ProjectProjectSlugRepositoryRouteImport } from './routes/project.$projectSlug.repository'
 import { Route as ProjectProjectSlugReportsRouteImport } from './routes/project.$projectSlug.reports'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -84,6 +85,11 @@ const ProjectProjectSlugReportsRoute =
     path: '/reports',
     getParentRoute: () => ProjectProjectSlugRoute,
   } as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/project/$projectSlug': typeof ProjectProjectSlugRouteWithChildren
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/project/$projectSlug': typeof ProjectProjectSlugRouteWithChildren
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/project/$projectSlug': typeof ProjectProjectSlugRouteWithChildren
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
     | '/project/$projectSlug'
     | '/run/$runId'
     | '/test/$testId'
+    | '/api/auth/$'
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/repository'
     | '/project/$projectSlug/runs'
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/project/$projectSlug'
     | '/run/$runId'
     | '/test/$testId'
+    | '/api/auth/$'
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/repository'
     | '/project/$projectSlug/runs'
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/project/$projectSlug'
     | '/run/$runId'
     | '/test/$testId'
+    | '/api/auth/$'
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/repository'
     | '/project/$projectSlug/runs'
@@ -183,6 +195,7 @@ export interface RootRouteChildren {
   ProjectProjectSlugRoute: typeof ProjectProjectSlugRouteWithChildren
   RunRunIdRoute: typeof RunRunIdRoute
   TestTestIdRoute: typeof TestTestIdRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -271,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectProjectSlugReportsRouteImport
       parentRoute: typeof ProjectProjectSlugRoute
     }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -299,6 +319,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectProjectSlugRoute: ProjectProjectSlugRouteWithChildren,
   RunRunIdRoute: RunRunIdRoute,
   TestTestIdRoute: TestTestIdRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
