@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export type RepositoryBulkStatus = 'Draft' | 'Ready' | 'Archived'
 export type RepositoryBulkPriority = 'Low' | 'Medium' | 'High' | 'Critical'
@@ -89,14 +89,48 @@ export function BulkCaseBar({
   onConfirmDeleteArchived,
   onClearSelection,
 }: BulkCaseBarProps) {
+  const menuRef = useRef<HTMLDivElement>(null)
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null)
 
   function closeMenu(): void {
     setOpenMenu(null)
   }
 
+  useEffect(() => {
+    if (!openMenu) {
+      return
+    }
+
+    function handlePointerDown(event: PointerEvent): void {
+      const target = event.target
+
+      if (target instanceof Node && menuRef.current?.contains(target)) {
+        return
+      }
+
+      closeMenu()
+    }
+
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === 'Escape') {
+        closeMenu()
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [openMenu])
+
   return (
-    <div className="mx-5 mt-4 rounded-2xl border border-[#dbe4f4] bg-[#f8fbff] px-4 py-3">
+    <div
+      ref={menuRef}
+      className="mx-5 mt-4 rounded-2xl border border-[#dbe4f4] bg-[#f8fbff] px-4 py-3"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm font-semibold text-[#1b2f5b]">
           {selectedCount} selected

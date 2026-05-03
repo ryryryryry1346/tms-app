@@ -49,6 +49,7 @@ type CaseRowProps = {
   onCaseTypeChange: (caseType: RepositoryCaseType) => void
   onStatusChange: (status: RepositoryCaseStatus) => void
   onToggleMenu: () => void
+  onCloseMenu: () => void
   onPreview: () => void
   onDuplicate: () => void
   onRestore: () => void
@@ -96,6 +97,7 @@ export function CaseRow({
   onCaseTypeChange,
   onStatusChange,
   onToggleMenu,
+  onCloseMenu,
   onPreview,
   onDuplicate,
   onRestore,
@@ -271,6 +273,7 @@ export function CaseRow({
         isArchived={isArchived}
         isPending={isPending}
         onToggle={onToggleMenu}
+        onClose={onCloseMenu}
         onPreview={onPreview}
         onDuplicate={onDuplicate}
         onRestore={onRestore}

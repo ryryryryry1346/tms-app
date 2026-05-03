@@ -1617,6 +1617,7 @@ function ProjectRepositoryPage() {
                           current === suiteId ? null : suiteId,
                         )
                       }}
+                      onCloseSuiteMenu={() => setOpenSuiteMenuId(null)}
                       onStartRenameSuite={startRenameSuite}
                       onRequestDeleteSuite={(suiteId) => {
                         setSuiteActionErrorMessage(null)
@@ -1716,6 +1717,7 @@ function ProjectRepositoryPage() {
                           current === testId ? null : testId,
                         )
                       }}
+                      onCloseCaseMenu={() => setOpenCaseMenuId(null)}
                       onPreviewCase={openCasePreview}
                       onDuplicateCase={(testId) => {
                         void handleCaseDuplicate(testId)

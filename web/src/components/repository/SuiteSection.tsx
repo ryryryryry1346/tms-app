@@ -1,4 +1,4 @@
-import type { DragEvent, FormEvent } from 'react'
+import { useEffect, useRef, type DragEvent, type FormEvent } from 'react'
 import {
   CaseRow,
   type RepositoryCasePriority,
@@ -62,6 +62,7 @@ type SuiteSectionProps = {
   onSubmitQuickCreateCase: (suiteId: number) => void
   onCancelQuickCreateCase: () => void
   onToggleSuiteMenu: (suiteId: number) => void
+  onCloseSuiteMenu: () => void
   onStartRenameSuite: (suiteId: number, suiteName: string) => void
   onRequestDeleteSuite: (suiteId: number) => void
   onConfirmDeleteSuite: (suiteId: number) => void
@@ -87,6 +88,7 @@ type SuiteSectionProps = {
   onCaseTypeChange: (testId: number, caseType: RepositoryCaseType) => void
   onCaseStatusChange: (testId: number, status: RepositoryCaseStatus) => void
   onToggleCaseMenu: (testId: number) => void
+  onCloseCaseMenu: () => void
   onPreviewCase: (testId: number) => void
   onDuplicateCase: (testId: number) => void
   onRestoreCase: (testId: number) => void
@@ -176,6 +178,7 @@ export function SuiteSection({
   onSubmitQuickCreateCase,
   onCancelQuickCreateCase,
   onToggleSuiteMenu,
+  onCloseSuiteMenu,
   onStartRenameSuite,
   onRequestDeleteSuite,
   onConfirmDeleteSuite,
@@ -197,15 +200,47 @@ export function SuiteSection({
   onCaseTypeChange,
   onCaseStatusChange,
   onToggleCaseMenu,
+  onCloseCaseMenu,
   onPreviewCase,
   onDuplicateCase,
   onRestoreCase,
   onDeleteCasePermanently,
   onArchiveCase,
 }: SuiteSectionProps) {
+  const suiteMenuRef = useRef<HTMLDivElement>(null)
   const readyCount = sectionTests.filter((test) => test.status === 'Ready').length
   const draftCount = sectionTests.length - readyCount
   const isQuickCreateOpen = quickCreateSuiteId === section.id
+
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return
+    }
+
+    function handlePointerDown(event: PointerEvent): void {
+      const target = event.target
+
+      if (target instanceof Node && suiteMenuRef.current?.contains(target)) {
+        return
+      }
+
+      onCloseSuiteMenu()
+    }
+
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === 'Escape') {
+        onCloseSuiteMenu()
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isMenuOpen, onCloseSuiteMenu])
 
   function renderQuickCreateCaseRow() {
     const isPending = pendingQuickCreateSuiteId === section.id
@@ -387,7 +422,11 @@ export function SuiteSection({
             + Case
           </button>
           {!isEditingSuite ? (
-            <div className="relative">
+            <div
+              ref={suiteMenuRef}
+              className="relative"
+              onPointerDown={(event) => event.stopPropagation()}
+            >
               <button
                 type="button"
                 disabled={isPendingSuiteAction}
@@ -523,6 +562,7 @@ export function SuiteSection({
               onCaseTypeChange={(caseType) => onCaseTypeChange(test.id, caseType)}
               onStatusChange={(status) => onCaseStatusChange(test.id, status)}
               onToggleMenu={() => onToggleCaseMenu(test.id)}
+              onCloseMenu={onCloseCaseMenu}
               onPreview={() => onPreviewCase(test.id)}
               onDuplicate={() => onDuplicateCase(test.id)}
               onRestore={() => onRestoreCase(test.id)}

@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { useEffect, useRef } from 'react'
 
 type CaseActionsMenuProps = {
   testId: number
@@ -6,6 +7,7 @@ type CaseActionsMenuProps = {
   isArchived: boolean
   isPending: boolean
   onToggle: () => void
+  onClose: () => void
   onPreview: () => void
   onDuplicate: () => void
   onRestore: () => void
@@ -32,14 +34,51 @@ export function CaseActionsMenu({
   isArchived,
   isPending,
   onToggle,
+  onClose,
   onPreview,
   onDuplicate,
   onRestore,
   onDeletePermanently,
   onArchive,
 }: CaseActionsMenuProps) {
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) {
+      return
+    }
+
+    function handlePointerDown(event: PointerEvent): void {
+      const target = event.target
+
+      if (target instanceof Node && menuRef.current?.contains(target)) {
+        return
+      }
+
+      onClose()
+    }
+
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen, onClose])
+
   return (
-    <div className="relative flex justify-end" onPointerDown={(event) => event.stopPropagation()}>
+    <div
+      ref={menuRef}
+      className="relative flex justify-end"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
       <button
         type="button"
         disabled={isPending}
