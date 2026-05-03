@@ -1,6 +1,7 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { getCurrentUser, loginUser } from '../features/auth/server'
+import { getCurrentUser } from '../features/auth/server'
+import { signIn } from '../lib/auth-client'
 
 export const Route = createFileRoute('/login')({
   loader: async () => {
@@ -19,7 +20,7 @@ export const Route = createFileRoute('/login')({
 
 function LoginPage() {
   const navigate = useNavigate()
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -33,18 +34,31 @@ function LoginPage() {
 
     try {
       const formData = new FormData(event.currentTarget)
-      const submittedUsername = String(formData.get('username') ?? '').trim()
+      const submittedEmail = String(formData.get('email') ?? '')
+        .trim()
+        .toLowerCase()
       const submittedPassword = String(formData.get('password') ?? '')
 
-      const result = await loginUser({
-        data: {
-          username: submittedUsername,
-          password: submittedPassword,
-        },
+      if (!submittedEmail || !submittedPassword) {
+        setErrorMessage('Email and password are required.')
+        return
+      }
+
+      const result = await signIn.email({
+        email: submittedEmail,
+        password: submittedPassword,
       })
 
-      if (!result.ok) {
-        setErrorMessage('Invalid credentials.')
+      if (result.error) {
+        const message = result.error.message ?? 'Invalid credentials.'
+        const normalizedMessage = message.toLowerCase()
+
+        setErrorMessage(
+          normalizedMessage.includes('verify') ||
+            normalizedMessage.includes('verification')
+            ? 'Please verify your email before logging in. We sent you a verification link.'
+            : message,
+        )
         return
       }
 
@@ -68,14 +82,16 @@ function LoginPage() {
         <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
           <label className="grid gap-2 text-left">
             <span className="text-lg font-medium text-[var(--auth-label)]">
-              Email or username
+              Email
             </span>
             <input
-              name="username"
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
+              name="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              type="email"
               className="auth-input rounded-2xl border border-[var(--auth-input-line)] bg-[var(--auth-input-bg)] px-5 py-4 text-lg outline-none transition focus:border-[var(--brand)]"
-              placeholder="Enter your email or username"
+              placeholder="you@example.com"
+              autoComplete="email"
             />
           </label>
 
@@ -90,6 +106,7 @@ function LoginPage() {
               type="password"
               className="auth-input rounded-2xl border border-[var(--auth-input-line)] bg-[var(--auth-input-bg)] px-5 py-4 text-lg outline-none transition focus:border-[var(--brand)]"
               placeholder="Enter your password"
+              autoComplete="current-password"
             />
           </label>
 
