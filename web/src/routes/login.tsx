@@ -13,9 +13,9 @@ export const Route = createFileRoute('/login')({
   validateSearch: z.object({
     redirectTo: z.string().optional(),
   }),
-  loader: async ({ context }) => {
+  loader: async ({ search }) => {
     const user = await getCurrentUser()
-    const redirectTo = getSafeRedirectTo(context.location.search.redirectTo)
+    const redirectTo = getSafeRedirectTo(search.redirectTo)
 
     if (user) {
       throw redirect({
