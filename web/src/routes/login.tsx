@@ -1,4 +1,9 @@
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  redirect,
+  useNavigate,
+  useRouter,
+} from '@tanstack/react-router'
 import { useState } from 'react'
 import { getCurrentUser } from '../features/auth/server'
 import { signIn } from '../lib/auth-client'
@@ -20,6 +25,7 @@ export const Route = createFileRoute('/login')({
 
 function LoginPage() {
   const navigate = useNavigate()
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -62,8 +68,10 @@ function LoginPage() {
         return
       }
 
+      await router.invalidate()
       await navigate({
         to: '/',
+        replace: true,
       })
     } finally {
       setIsSubmitting(false)

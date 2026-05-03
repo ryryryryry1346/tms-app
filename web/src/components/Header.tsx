@@ -1,4 +1,9 @@
-import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
+import {
+  Link,
+  useNavigate,
+  useRouter,
+  useRouterState,
+} from '@tanstack/react-router'
 import { useState } from 'react'
 import { logoutUser, type SessionUser } from '../features/auth/server'
 
@@ -8,6 +13,7 @@ type HeaderProps = {
 
 export default function Header({ user }: HeaderProps) {
   const navigate = useNavigate()
+  const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
@@ -19,8 +25,10 @@ export default function Header({ user }: HeaderProps) {
 
     try {
       await logoutUser()
+      await router.invalidate()
       await navigate({
         to: '/login',
+        replace: true,
       })
     } finally {
       setIsLoggingOut(false)
@@ -36,7 +44,7 @@ export default function Header({ user }: HeaderProps) {
           {user ? (
             <>
               <div className="hidden rounded-full border border-[var(--chip-line)] bg-white/86 px-3 py-1 text-xs text-[var(--sea-ink-soft)] sm:block">
-                {user.username}
+                {user.displayName}
               </div>
               <Link
                 to="/"
