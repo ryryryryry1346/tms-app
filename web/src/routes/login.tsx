@@ -199,6 +199,15 @@ function LoginPage() {
           </button>
 
           <p className="pt-2 text-center text-lg text-[var(--sea-ink-soft)]">
+            <a
+              href="/forgot-password"
+              className="font-semibold text-[var(--brand)] no-underline"
+            >
+              Forgot password?
+            </a>
+          </p>
+
+          <p className="text-center text-lg text-[var(--sea-ink-soft)]">
             Don&apos;t have an account?{' '}
             <a href="/register" className="font-semibold text-[var(--brand)] no-underline">
               Create one now

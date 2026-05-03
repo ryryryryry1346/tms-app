@@ -9,8 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as CreateTestRouteImport } from './routes/create-test'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
@@ -23,6 +25,11 @@ import { Route as ProjectProjectSlugRepositoryRouteImport } from './routes/proje
 import { Route as ProjectProjectSlugReportsRouteImport } from './routes/project.$projectSlug.reports'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
@@ -31,6 +38,11 @@ const RegisterRoute = RegisterRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CreateTestRoute = CreateTestRouteImport.update({
@@ -95,8 +107,10 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/create-test': typeof CreateTestRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/edit-test/$testId': typeof EditTestTestIdRoute
   '/project/$projectSlug': typeof ProjectProjectSlugRouteWithChildren
   '/run/$runId': typeof RunRunIdRoute
@@ -110,8 +124,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/create-test': typeof CreateTestRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/edit-test/$testId': typeof EditTestTestIdRoute
   '/project/$projectSlug': typeof ProjectProjectSlugRouteWithChildren
   '/run/$runId': typeof RunRunIdRoute
@@ -126,8 +142,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/create-test': typeof CreateTestRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/edit-test/$testId': typeof EditTestTestIdRoute
   '/project/$projectSlug': typeof ProjectProjectSlugRouteWithChildren
   '/run/$runId': typeof RunRunIdRoute
@@ -143,8 +161,10 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/create-test'
+    | '/forgot-password'
     | '/login'
     | '/register'
+    | '/reset-password'
     | '/edit-test/$testId'
     | '/project/$projectSlug'
     | '/run/$runId'
@@ -158,8 +178,10 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/create-test'
+    | '/forgot-password'
     | '/login'
     | '/register'
+    | '/reset-password'
     | '/edit-test/$testId'
     | '/project/$projectSlug'
     | '/run/$runId'
@@ -173,8 +195,10 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/create-test'
+    | '/forgot-password'
     | '/login'
     | '/register'
+    | '/reset-password'
     | '/edit-test/$testId'
     | '/project/$projectSlug'
     | '/run/$runId'
@@ -189,8 +213,10 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   CreateTestRoute: typeof CreateTestRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   EditTestTestIdRoute: typeof EditTestTestIdRoute
   ProjectProjectSlugRoute: typeof ProjectProjectSlugRouteWithChildren
   RunRunIdRoute: typeof RunRunIdRoute
@@ -200,6 +226,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/register': {
       id: '/register'
       path: '/register'
@@ -212,6 +245,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/create-test': {
@@ -313,8 +353,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   CreateTestRoute: CreateTestRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   EditTestTestIdRoute: EditTestTestIdRoute,
   ProjectProjectSlugRoute: ProjectProjectSlugRouteWithChildren,
   RunRunIdRoute: RunRunIdRoute,
