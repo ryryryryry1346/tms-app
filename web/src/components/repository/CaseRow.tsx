@@ -129,13 +129,13 @@ export function CaseRow({
       }}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
-      className={`grid grid-cols-[64px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] items-center border-t border-[#eef2f8] px-5 py-2.5 transition hover:bg-[#f8fbff] ${
+      className={`tms-table-row grid grid-cols-[64px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] px-5 py-2.5 transition ${
         draggedTestIds.includes(test.id)
-          ? 'bg-[#f8fbff] opacity-70'
+          ? 'bg-[var(--tms-surface-muted)] opacity-70'
           : isDropTarget
             ? dragOverDrop.position === 'before'
-              ? 'bg-[#ecf2ff] shadow-[inset_0_2px_0_#2f6fe4]'
-              : 'bg-[#ecf2ff] shadow-[inset_0_-2px_0_#2f6fe4]'
+              ? 'bg-[var(--tms-primary-soft)] shadow-[inset_0_2px_0_var(--tms-primary)]'
+              : 'bg-[var(--tms-primary-soft)] shadow-[inset_0_-2px_0_var(--tms-primary)]'
             : ''
       }`}
     >
@@ -144,14 +144,14 @@ export function CaseRow({
           type="checkbox"
           checked={isSelected}
           onChange={onToggleSelection}
-          className="h-4 w-4 rounded border-[#c7d5ee] text-[#2f6fe4] focus:ring-[#2f6fe4]"
+          className="h-4 w-4 rounded border-[var(--tms-border)] text-[var(--tms-primary)] focus:ring-[var(--tms-primary)]"
         />
         <button
           type="button"
           draggable
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
-          className="cursor-grab rounded-md p-1 text-[#9aa7bf] hover:bg-[#eef3fb] hover:text-[#60718f] active:cursor-grabbing"
+          className="cursor-grab rounded-md p-1 text-[var(--tms-text-soft)] hover:bg-[var(--tms-surface-muted)] hover:text-[var(--tms-text-muted)] active:cursor-grabbing"
           aria-label={`Drag test case ${test.id}`}
         >
           <DragHandleIcon />
@@ -160,7 +160,7 @@ export function CaseRow({
       <Link
         to="/test/$testId"
         params={{ testId: test.id.toString() }}
-        className="text-sm font-semibold no-underline text-[#2f6fe4]"
+        className="text-sm font-semibold no-underline text-[var(--tms-primary)]"
       >
         #{test.id}
       </Link>
@@ -183,7 +183,7 @@ export function CaseRow({
           onPointerDown={(event) => event.stopPropagation()}
           disabled={isPending}
           autoFocus
-          className="min-w-0 rounded-lg border border-[#9dbaf7] bg-white px-2 py-1 text-sm font-semibold text-[#1b2f5b] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+          className="tms-input min-h-0 min-w-0 rounded-lg px-2 py-1 disabled:cursor-not-allowed disabled:opacity-55"
           aria-label={`Edit title for ${test.title}`}
         />
       ) : (
@@ -194,7 +194,7 @@ export function CaseRow({
             event.preventDefault()
             onStartTitleEdit()
           }}
-          className="block min-w-0 truncate pr-4 text-sm font-semibold no-underline text-[#1b2f5b] hover:text-[#2f6fe4]"
+          className="block min-w-0 truncate pr-4 text-sm font-semibold no-underline text-[var(--tms-text)] hover:text-[var(--tms-primary)]"
         >
           {test.title}
         </Link>
@@ -206,14 +206,14 @@ export function CaseRow({
         }
         onPointerDown={(event) => event.stopPropagation()}
         disabled={isPending}
-        className={`w-fit rounded-full border-0 px-2.5 py-1 text-xs font-semibold outline-none disabled:cursor-not-allowed disabled:opacity-55 ${
+        className={`tms-chip w-fit border-0 outline-none disabled:cursor-not-allowed disabled:opacity-55 ${
           priority === 'Critical'
-            ? 'bg-rose-50 text-rose-700'
+            ? 'tms-chip-danger'
             : priority === 'High'
-              ? 'bg-amber-50 text-amber-800'
-              : priority === 'Low'
-                ? 'bg-slate-100 text-slate-600'
-                : 'bg-[#eef6ff] text-[#506487]'
+              ? 'tms-chip-warning'
+            : priority === 'Low'
+                ? 'tms-chip-draft'
+                : 'tms-chip-primary'
         }`}
         aria-label={`Change priority for ${test.title}`}
       >
@@ -230,7 +230,7 @@ export function CaseRow({
         }
         onPointerDown={(event) => event.stopPropagation()}
         disabled={isPending}
-        className="w-fit rounded-full border-0 bg-[#f3f5f9] px-2.5 py-1 text-xs font-semibold text-[#60718f] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+        className="tms-chip w-fit border-0 outline-none disabled:cursor-not-allowed disabled:opacity-55"
         aria-label={`Change type for ${test.title}`}
       >
         {caseTypeOptions.map((option) => (
@@ -239,10 +239,10 @@ export function CaseRow({
           </option>
         ))}
       </select>
-      <span className="text-sm font-semibold text-[#60718f]">
+      <span className="text-sm font-semibold text-[var(--tms-text-muted)]">
         {formatDate(test.createdAt)}
       </span>
-      <span className="text-sm font-semibold text-[#60718f]">
+      <span className="text-sm font-semibold text-[var(--tms-text-muted)]">
         {formatDate(test.updatedAt ?? test.createdAt)}
       </span>
       <select
@@ -252,12 +252,12 @@ export function CaseRow({
         }
         onPointerDown={(event) => event.stopPropagation()}
         disabled={isPending}
-        className={`w-fit rounded-full border-0 px-2.5 py-1 text-xs font-semibold outline-none disabled:cursor-not-allowed disabled:opacity-55 ${
+        className={`tms-chip w-fit border-0 outline-none disabled:cursor-not-allowed disabled:opacity-55 ${
           isReady
-            ? 'bg-emerald-50 text-emerald-700'
+            ? 'tms-chip-success'
             : isArchived
-              ? 'bg-amber-50 text-amber-800'
-              : 'bg-slate-100 text-slate-700'
+              ? 'tms-chip-warning'
+              : 'tms-chip-draft'
         }`}
         aria-label={`Change status for ${test.title}`}
       >

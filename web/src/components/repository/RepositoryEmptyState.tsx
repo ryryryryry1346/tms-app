@@ -27,7 +27,7 @@ function getEmptyMessage({
 
 export function RepositoryEmptyState(props: RepositoryEmptyStateProps) {
   return (
-    <div className="m-5 rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-6 text-sm text-[#63759a]">
+    <div className="m-5 rounded-[var(--tms-radius-overlay)] border border-dashed border-[var(--tms-border)] bg-[var(--tms-surface-muted)] p-6 text-sm text-[var(--tms-text-muted)]">
       {getEmptyMessage(props)}
     </div>
   )

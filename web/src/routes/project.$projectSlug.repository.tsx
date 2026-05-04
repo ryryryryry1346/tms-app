@@ -171,8 +171,8 @@ function ProjectSubnav({
   const tabClass = (isActive: boolean): string =>
     `rounded-full px-4 py-2 text-sm font-semibold no-underline ${
       isActive
-        ? 'bg-[#ecf2ff] text-[#2f6fe4]'
-        : 'text-[#60718f] hover:bg-[#f5f8ff]'
+        ? 'bg-[var(--tms-primary-soft)] text-[var(--tms-primary)]'
+        : 'text-[var(--tms-text-muted)] hover:bg-[var(--tms-surface-muted)]'
     }`
 
   return (
@@ -1353,21 +1353,21 @@ function ProjectRepositoryPage() {
   }
 
   return (
-    <main className="min-h-[calc(100vh-65px)] bg-[#f7f9fe]">
+    <main className="tms-page">
       <div className="mx-auto max-w-[1600px] px-6 py-6 lg:px-10">
           <section className="mb-6 flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-3xl">
-              <div className="mb-2 flex items-center gap-3 text-sm text-[#6d7d9e]">
-                <Link to="/" className="no-underline text-[#6d7d9e]">
+              <div className="mb-2 flex items-center gap-3 text-sm text-[var(--tms-text-muted)]">
+                <Link to="/" className="no-underline text-[var(--tms-primary)]">
                   Workspace
                 </Link>
                 <span>/</span>
                 <span>Project</span>
               </div>
-              <h1 className="m-0 text-4xl font-bold tracking-tight text-[#1b2f5b] md:text-5xl">
+              <h1 className="m-0 text-4xl font-bold tracking-tight text-[var(--tms-text)] md:text-5xl">
                 {project.name}
               </h1>
-              <p className="mt-2 text-base text-[#63759a] md:text-lg">
+              <p className="mt-2 text-base text-[var(--tms-text-muted)] md:text-lg">
                 Browse suites, test cases, filters, and bulk repository actions.
               </p>
               <div className="mt-4">
@@ -1384,14 +1384,14 @@ function ProjectRepositoryPage() {
                 onClick={() =>
                   setActiveComposer((current) => (current === 'suite' ? null : 'suite'))
                 }
-                className="rounded-2xl border border-[#9dbaf7] bg-white px-7 py-3 text-base font-semibold text-[#2f6fe4]"
+                className="tms-button tms-button-primary px-7 py-3 text-base"
               >
                 + Suite
               </button>
               <Link
                 to="/create-test"
                 search={{ projectId: project.id }}
-                className="rounded-2xl border border-[#9dbaf7] bg-white px-7 py-3 text-base font-semibold no-underline text-[#2f6fe4]"
+                className="tms-button tms-button-primary px-7 py-3 text-base no-underline"
               >
                 + Test case
               </Link>
@@ -1407,37 +1407,37 @@ function ProjectRepositoryPage() {
             ].map((item) => (
               <div
                 key={item.label}
-                className="rounded-full border border-[#dfe6f4] bg-white px-3 py-1.5 font-semibold text-[#60718f]"
+                className="tms-chip"
               >
-                <span className="text-[#1b2f5b]">{item.value}</span> {item.label}
+                <span className="text-[var(--tms-text)]">{item.value}</span> {item.label}
               </div>
             ))}
           </section>
 
           {activeComposer ? (
-            <section className="mb-6 rounded-3xl border border-[#e6ecf8] bg-white px-6 py-5 shadow-[0_10px_30px_rgba(31,57,102,0.05)]">
+            <section className="tms-panel mb-6 px-6 py-5">
               <form
                 className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]"
                 onSubmit={handleCreateSuite}
               >
-                <div className="md:col-span-2 text-xl font-semibold text-[#1b2f5b]">
+                <div className="md:col-span-2 text-xl font-semibold text-[var(--tms-text)]">
                   Create suite
                 </div>
                 <input
                   value={suiteName}
                   onChange={(event) => setSuiteName(event.target.value)}
-                  className="rounded-2xl border border-[#d9e2f2] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
+                  className="tms-input px-4 py-3 text-base"
                   placeholder="Checkout smoke"
                 />
                 <button
                   type="submit"
                   disabled={isSubmittingSuite || !dashboard.databaseConfigured}
-                  className="rounded-2xl border border-[#9fd2ca] bg-[#dff5f1] px-4 py-3 text-sm font-semibold text-[#1b8b84] disabled:cursor-not-allowed disabled:opacity-55"
+                  className="tms-button border-[var(--tms-success)] bg-[var(--tms-success-soft)] px-4 py-3 text-sm text-[var(--tms-success)] disabled:cursor-not-allowed disabled:opacity-55"
                 >
                   {isSubmittingSuite ? 'Creating...' : 'Create suite'}
                 </button>
                 {suiteErrorMessage ? (
-                  <div className="md:col-span-2 rounded-2xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                  <div className="md:col-span-2 rounded-2xl border border-[var(--tms-border)] bg-[var(--tms-danger-soft)] px-4 py-3 text-sm text-[var(--tms-danger)]">
                     {suiteErrorMessage}
                   </div>
                 ) : null}

@@ -246,9 +246,9 @@ export function SuiteSection({
     const isPending = pendingQuickCreateSuiteId === section.id
 
     return (
-      <div className="grid grid-cols-[44px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] items-center border-t border-[#dbe4f4] bg-[#f8fbff] px-5 py-2.5">
+      <div className="tms-table-row grid grid-cols-[44px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] px-5 py-2.5">
         <div />
-        <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[#9aa7bf]">
+        <div className="tms-kicker">
           New
         </div>
         <input
@@ -268,7 +268,7 @@ export function SuiteSection({
           disabled={isPending}
           autoFocus
           placeholder="Test case title"
-          className="min-w-0 rounded-lg border border-[#c7d5ee] bg-white px-2 py-1 text-sm font-semibold text-[#1b2f5b] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+          className="tms-input min-h-0 min-w-0 rounded-lg px-2 py-1 disabled:cursor-not-allowed disabled:opacity-55"
         />
         <select
           value={quickCreatePriority}
@@ -278,7 +278,7 @@ export function SuiteSection({
             )
           }
           disabled={isPending}
-          className="w-fit rounded-full border-0 bg-[#eef6ff] px-2.5 py-1 text-xs font-semibold text-[#506487] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+          className="tms-chip tms-chip-primary w-fit border-0 outline-none disabled:cursor-not-allowed disabled:opacity-55"
         >
           {priorityOptions.map((priority) => (
             <option key={priority} value={priority}>
@@ -292,7 +292,7 @@ export function SuiteSection({
             onQuickCreateTypeChange(event.target.value as RepositoryCaseType)
           }
           disabled={isPending}
-          className="w-fit rounded-full border-0 bg-[#f3f5f9] px-2.5 py-1 text-xs font-semibold text-[#60718f] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+          className="tms-chip w-fit border-0 outline-none disabled:cursor-not-allowed disabled:opacity-55"
         >
           {caseTypeOptions.map((caseType) => (
             <option key={caseType} value={caseType}>
@@ -300,8 +300,8 @@ export function SuiteSection({
             </option>
           ))}
         </select>
-        <span className="text-sm font-semibold text-[#9aa7bf]">-</span>
-        <span className="text-sm font-semibold text-[#9aa7bf]">-</span>
+        <span className="text-sm font-semibold text-[var(--tms-text-soft)]">-</span>
+        <span className="text-sm font-semibold text-[var(--tms-text-soft)]">-</span>
         <select
           value={quickCreateStatus}
           onChange={(event) =>
@@ -310,7 +310,7 @@ export function SuiteSection({
             )
           }
           disabled={isPending}
-          className="w-fit rounded-full border-0 bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 outline-none disabled:cursor-not-allowed disabled:opacity-55"
+          className="tms-chip tms-chip-draft w-fit border-0 outline-none disabled:cursor-not-allowed disabled:opacity-55"
         >
           {quickCreateStatusOptions.map((status) => (
             <option key={status} value={status}>
@@ -323,7 +323,7 @@ export function SuiteSection({
             type="button"
             onClick={() => onSubmitQuickCreateCase(section.id)}
             disabled={isPending}
-            className="rounded-lg border border-[#9dbaf7] bg-white px-2.5 py-1 text-sm font-semibold text-[#3369d6] disabled:cursor-not-allowed disabled:opacity-55"
+            className="tms-button tms-button-primary min-h-0 px-2.5 py-1 disabled:cursor-not-allowed disabled:opacity-55"
           >
             {isPending ? 'Saving' : 'Save'}
           </button>
@@ -336,18 +336,18 @@ export function SuiteSection({
     <section
       onDragOver={(event) => onSuiteDragOver(event, section.id)}
       onDragLeave={() => onSuiteDragLeave(section.id)}
-      className={`overflow-visible rounded-3xl border transition ${
+      className={`overflow-visible rounded-[var(--tms-radius-panel)] border transition ${
         dragOverSuiteId === section.id
-          ? 'border-[#2f6fe4] bg-[#f8fbff] shadow-[0_0_0_3px_rgba(47,111,228,0.12)]'
-          : 'border-[#dfe6f4]'
+          ? 'border-[var(--tms-primary)] bg-[var(--tms-surface-muted)] shadow-[0_0_0_3px_rgba(47,111,228,0.12)]'
+          : 'border-[var(--tms-border)]'
       }`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e9eef8] bg-[#fbfcff] px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-5 py-4">
         <div className="flex min-w-0 items-center gap-4">
           <button
             type="button"
             onClick={() => onToggleCollapsed(section.id)}
-            className="rounded-lg px-2 py-1 text-sm font-semibold text-[#506487]"
+            className="rounded-lg px-2 py-1 text-sm font-semibold text-[var(--tms-text-muted)] hover:bg-[var(--tms-surface-muted)]"
             aria-label={isCollapsed ? 'Expand suite' : 'Collapse suite'}
           >
             {isCollapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
@@ -363,29 +363,29 @@ export function SuiteSection({
                   onChange={(event) =>
                     onEditingSuiteNameChange(event.target.value)
                   }
-                  className="min-w-[220px] rounded-xl border border-[#d9e2f2] bg-white px-3 py-2 text-base font-semibold text-[#1b2f5b] outline-none transition focus:border-[#2f6fe4]"
+                  className="tms-input min-w-[220px] text-base"
                 />
                 <button
                   type="submit"
                   disabled={isPendingSuiteAction}
-                  className="rounded-xl border border-[#2f6fe4] bg-[#2f6fe4] px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
+                  className="tms-button tms-button-primary disabled:cursor-not-allowed disabled:opacity-55"
                 >
                   {isPendingSuiteAction ? 'Saving...' : 'Save'}
                 </button>
                 <button
                   type="button"
                   onClick={onCancelRenameSuite}
-                  className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]"
+                  className="tms-button"
                 >
                   Cancel
                 </button>
               </form>
             ) : (
               <div className="flex flex-wrap items-center gap-4">
-                <div className="text-[1.75rem] font-semibold text-[#1b2f5b]">
+                <div className="text-[1.75rem] font-semibold text-[var(--tms-text)]">
                   {section.name}
                 </div>
-                <div className="text-sm text-[#7f8da9]">
+                <div className="text-sm text-[var(--tms-text-soft)]">
                   {sectionTests.length} case
                   {sectionTests.length === 1 ? '' : 's'}
                 </div>
@@ -395,14 +395,14 @@ export function SuiteSection({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-[#eef6ff] px-3 py-1 text-xs font-semibold text-[#60718f]">
+          <span className="tms-chip tms-chip-success">
             Ready {readyCount}
           </span>
-          <span className="rounded-full bg-[#f3f5f9] px-3 py-1 text-xs font-semibold text-[#60718f]">
+          <span className="tms-chip tms-chip-draft">
             Draft {draftCount}
           </span>
           {dragOverSuiteId === section.id ? (
-            <span className="rounded-full bg-[#ecf2ff] px-3 py-1 text-xs font-semibold text-[#2f6fe4]">
+            <span className="tms-chip tms-chip-primary">
               Drop to move
             </span>
           ) : null}
@@ -410,14 +410,14 @@ export function SuiteSection({
             type="button"
             onClick={() => onToggleSuiteSelection(visibleTestIds)}
             disabled={visibleTestIds.length === 0 || isApplyingBulkAction}
-            className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
+            className="tms-button disabled:cursor-not-allowed disabled:opacity-55"
           >
             {allVisibleSelected ? 'Clear cases' : 'Select cases'}
           </button>
           <button
             type="button"
             onClick={() => onStartQuickCreateCase(section.id)}
-            className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#3369d6]"
+            className="tms-button tms-button-primary"
           >
             + Case
           </button>
@@ -431,31 +431,31 @@ export function SuiteSection({
                 type="button"
                 disabled={isPendingSuiteAction}
                 onClick={() => onToggleSuiteMenu(section.id)}
-                className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]"
+                className="tms-button"
                 aria-label="Open suite actions"
               >
                 ...
               </button>
               {isMenuOpen ? (
-                <div className="absolute right-0 top-full z-50 mt-2 min-w-[190px] rounded-2xl border border-[#dbe4f4] bg-white p-2 shadow-[0_12px_30px_rgba(31,57,102,0.12)]">
+                <div className="tms-popover absolute right-0 top-full mt-2 min-w-[190px]">
                   <button
                     type="button"
                     onClick={() => onStartRenameSuite(section.id, section.name)}
-                    className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-[#60718f] hover:bg-[#f5f8ff]"
+                    className="tms-menu-item"
                   >
                     Rename
                   </button>
                   <button
                     type="button"
                     onClick={() => onToggleCollapsed(section.id)}
-                    className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-[#60718f] hover:bg-[#f5f8ff]"
+                    className="tms-menu-item"
                   >
                     {isCollapsed ? 'Expand' : 'Collapse'}
                   </button>
                   <button
                     type="button"
                     onClick={() => onRequestDeleteSuite(section.id)}
-                    className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                    className="tms-menu-item tms-menu-item-danger"
                   >
                     Delete empty suite
                   </button>
@@ -467,9 +467,9 @@ export function SuiteSection({
       </div>
 
       {isDeleteConfirming ? (
-        <div className="border-b border-[#e9eef8] bg-amber-50 px-5 py-4">
+        <div className="border-b border-[var(--tms-border-subtle)] bg-[var(--tms-warning-soft)] px-5 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="text-sm text-amber-950">
+            <div className="text-sm text-[var(--tms-warning)]">
               Delete this suite? This only works when the suite has no test cases.
             </div>
             <div className="flex flex-wrap gap-2">
@@ -477,14 +477,14 @@ export function SuiteSection({
                 type="button"
                 disabled={isPendingSuiteAction}
                 onClick={() => onConfirmDeleteSuite(section.id)}
-                className="rounded-xl border border-rose-200 bg-rose-100 px-3 py-2 text-sm font-semibold text-rose-700"
+                className="tms-button-danger bg-[var(--tms-danger-soft)]"
               >
                 Confirm delete
               </button>
               <button
                 type="button"
                 onClick={onCancelDeleteSuite}
-                className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]"
+                className="tms-button"
               >
                 Cancel
               </button>
@@ -494,21 +494,21 @@ export function SuiteSection({
       ) : null}
 
       {suiteActionErrorMessage && showSuiteActionError ? (
-        <div className="border-b border-[#e9eef8] bg-rose-50 px-5 py-3 text-sm text-rose-900">
+        <div className="border-b border-[var(--tms-border-subtle)] bg-[var(--tms-danger-soft)] px-5 py-3 text-sm text-[var(--tms-danger)]">
           {suiteActionErrorMessage}
         </div>
       ) : null}
 
       {isCollapsed ? null : visibleTests.length === 0 ? (
-        <div className="bg-white">
-          <div className="px-5 py-4 text-sm text-[#63759a]">
+        <div className="bg-[var(--tms-surface)]">
+          <div className="px-5 py-4 text-sm text-[var(--tms-text-muted)]">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span>No test cases in this suite yet.</span>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => onStartQuickCreateCase(section.id)}
-                  className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#3369d6]"
+                  className="tms-button tms-button-primary"
                 >
                   + Case
                 </button>
@@ -518,8 +518,8 @@ export function SuiteSection({
           {isQuickCreateOpen ? renderQuickCreateCaseRow() : null}
         </div>
       ) : (
-        <div className="bg-white">
-          <div className="grid grid-cols-[64px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] items-center border-t border-[#e9eef8] bg-[#fbfcff] px-5 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
+        <div className="bg-[var(--tms-surface)]">
+          <div className="tms-table-head grid grid-cols-[64px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] px-5 py-2">
             <div />
             <div>ID</div>
             <div>Title</div>
@@ -584,8 +584,8 @@ export function SuiteSection({
             onDrop={(event) => onSuiteAppendDrop(event, section.id)}
             className={`border-t border-dashed px-5 py-3 text-center text-xs font-semibold uppercase tracking-[0.08em] transition ${
               dragOverSuiteId === section.id && !dragOverTestDrop
-                ? 'border-[#9dbaf7] bg-[#ecf2ff] text-[#2f6fe4]'
-                : 'border-[#e9eef8] text-[#9aa7bf]'
+                ? 'border-[var(--tms-primary-border)] bg-[var(--tms-primary-soft)] text-[var(--tms-primary)]'
+                : 'border-[var(--tms-border-subtle)] text-[var(--tms-text-soft)]'
             }`}
           >
             Drop here to move to the end

@@ -18,14 +18,14 @@ type CaseActionsMenuProps = {
 function itemClass(tone: 'default' | 'success' | 'danger' | 'warning' = 'default'): string {
   const toneClass =
     tone === 'success'
-      ? 'text-emerald-700 hover:bg-emerald-50'
+      ? 'text-[var(--tms-success)] hover:bg-[var(--tms-success-soft)]'
       : tone === 'danger'
-        ? 'text-rose-700 hover:bg-rose-50'
+        ? 'tms-menu-item-danger'
         : tone === 'warning'
-          ? 'text-amber-800 hover:bg-amber-50'
-          : 'text-[#60718f] hover:bg-[#f5f8ff]'
+          ? 'text-[var(--tms-warning)] hover:bg-[var(--tms-warning-soft)]'
+          : ''
 
-  return `block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-55 ${toneClass}`
+  return `tms-menu-item disabled:cursor-not-allowed disabled:opacity-55 ${toneClass}`
 }
 
 export function CaseActionsMenu({
@@ -86,7 +86,7 @@ export function CaseActionsMenu({
           event.stopPropagation()
           onToggle()
         }}
-        className="rounded-lg border border-[#dbe4f4] bg-white px-2.5 py-1 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
+        className="tms-button min-h-0 px-2.5 py-1 disabled:cursor-not-allowed disabled:opacity-55"
         aria-label="Open test case actions"
         aria-haspopup="menu"
         aria-expanded={isOpen}
@@ -95,7 +95,7 @@ export function CaseActionsMenu({
       </button>
       {isOpen ? (
         <div
-          className="absolute right-0 top-full z-50 mt-2 min-w-[170px] rounded-2xl border border-[#dbe4f4] bg-white p-2 text-left shadow-[0_12px_30px_rgba(31,57,102,0.12)]"
+          className="tms-popover absolute right-0 top-full mt-2 min-w-[170px] text-left"
           onClick={(event) => event.stopPropagation()}
         >
           <Link
