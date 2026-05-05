@@ -1,51 +1,37 @@
+import { cva, type VariantProps } from 'class-variance-authority'
 import type { HTMLAttributes } from 'react'
 import { cx } from './utils'
 
-type BadgeVariant =
-  | 'default'
-  | 'primary'
-  | 'success'
-  | 'warning'
-  | 'danger'
-  | 'draft'
+const badgeVariants = cva('tms-chip', {
+  variants: {
+    variant: {
+      default: '',
+      primary: 'tms-chip-primary',
+      success: 'tms-chip-success',
+      warning: 'tms-chip-warning',
+      danger: 'tms-chip-danger',
+      draft: 'tms-chip-draft',
+    },
+  },
+  defaultVariants: {
+    variant: 'default',
+  },
+})
 
-type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
-  variant?: BadgeVariant
-}
-
-function getVariantClass(variant: BadgeVariant): string {
-  if (variant === 'primary') {
-    return 'tms-chip-primary'
-  }
-
-  if (variant === 'success') {
-    return 'tms-chip-success'
-  }
-
-  if (variant === 'warning') {
-    return 'tms-chip-warning'
-  }
-
-  if (variant === 'danger') {
-    return 'tms-chip-danger'
-  }
-
-  if (variant === 'draft') {
-    return 'tms-chip-draft'
-  }
-
-  return ''
-}
+export type BadgeProps = HTMLAttributes<HTMLSpanElement> &
+  VariantProps<typeof badgeVariants>
 
 export function Badge({
-  variant = 'default',
+  variant,
   className,
   ...props
 }: BadgeProps) {
   return (
     <span
-      className={cx('tms-chip', getVariantClass(variant), className)}
+      className={cx(badgeVariants({ variant }), className)}
       {...props}
     />
   )
 }
+
+export { badgeVariants }
