@@ -1,6 +1,7 @@
 import { Link, createFileRoute, notFound, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { RichTextEditor } from '../components/RichTextEditor'
+import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Select } from '../components/ui/Select'
@@ -290,9 +291,9 @@ function EditTestPage() {
             </div>
 
             {errorMessage ? (
-              <div className="mt-5 rounded-xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+              <Alert variant="danger" className="mt-5">
                 {errorMessage}
-              </div>
+              </Alert>
             ) : null}
 
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--tms-border-subtle)] pt-5">

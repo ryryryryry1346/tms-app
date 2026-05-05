@@ -1,6 +1,7 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { z } from 'zod'
+import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
@@ -97,9 +98,9 @@ function ResetPasswordPage() {
 
         {isComplete ? (
           <div className="grid flex-1 content-start gap-5 text-center">
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-left text-sm text-emerald-950">
+            <Alert variant="success" className="px-5 py-4 text-left">
               Your password has been reset. You can log in with the new password.
-            </div>
+            </Alert>
             <Button
               type="button"
               onClick={goToLogin}
@@ -145,9 +146,9 @@ function ResetPasswordPage() {
             </label>
 
             {errorMessage ? (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+              <Alert variant="danger">
                 {errorMessage}
-              </div>
+              </Alert>
             ) : null}
 
             <Button

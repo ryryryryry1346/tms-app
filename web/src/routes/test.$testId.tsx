@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-router'
 import { useState } from 'react'
 import { RichTextEditor } from '../components/RichTextEditor'
+import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -632,9 +633,9 @@ function TestDetailPage() {
             </div>
 
             {actionError ? (
-              <div className="mt-4 rounded-xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+              <Alert variant="danger" className="mt-4">
                 {actionError}
-              </div>
+              </Alert>
             ) : null}
           </div>
 
@@ -847,7 +848,7 @@ function TestDetailPage() {
               {test.status === 'Archived' ? (
                 <section className="mt-6 border-t border-[var(--tms-border-subtle)] pt-5">
                   {showDeleteConfirm ? (
-                    <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-950">
+                    <Alert variant="danger" className="p-3">
                       <p className="m-0 font-semibold">
                         Delete this archived test case permanently?
                       </p>
@@ -870,7 +871,7 @@ function TestDetailPage() {
                           Cancel
                         </Button>
                       </div>
-                    </div>
+                    </Alert>
                   ) : (
                     <Button
                       type="button"

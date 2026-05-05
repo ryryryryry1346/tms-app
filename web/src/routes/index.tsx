@@ -1,5 +1,6 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
+import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -202,18 +203,18 @@ function WorkspacePage() {
           </form>
 
           {projectErrorMessage ? (
-            <div className="mb-5 rounded-xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+            <Alert variant="danger" className="mb-5">
               {projectErrorMessage}
-            </div>
+            </Alert>
           ) : null}
 
           {!dashboard.databaseConfigured ? (
-            <div className="rounded-2xl border border-amber-300/60 bg-amber-100/70 p-4 text-sm text-amber-950">
+            <Alert variant="warning" className="p-4">
               <strong>Database is not configured yet.</strong> Set
               <code> MYSQL_DATABASE_URL </code>
               and run the Drizzle migration before using the workspace against
               MySQL.
-            </div>
+            </Alert>
           ) : visibleProjects.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-[var(--tms-border)] bg-[var(--tms-surface-soft)] p-6 text-sm text-[var(--tms-text-muted)]">
               {projectFilter === 'Archived'
@@ -301,14 +302,14 @@ function WorkspacePage() {
                     Open project workspace
                   </Link>
                   {deleteConfirmProjectId === project.id ? (
-                    <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-950">
+                    <Alert variant="danger" className="mt-4 px-4 py-4">
                       <div className="space-y-3">
                         <p className="m-0">
                           Delete project <strong>{project.name}</strong> permanently?
                           This also removes its suites, test cases, and runs.
                         </p>
                         <label className="block">
-                          <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-rose-800">
+                          <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--tms-danger)]">
                             Type the project name to confirm
                           </span>
                           <Input
@@ -346,7 +347,7 @@ function WorkspacePage() {
                           </Button>
                         </div>
                       </div>
-                    </div>
+                    </Alert>
                   ) : null}
                 </Panel>
               ))}

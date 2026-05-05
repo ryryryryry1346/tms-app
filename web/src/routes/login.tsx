@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-router'
 import { useState } from 'react'
 import { z } from 'zod'
+import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
@@ -172,13 +173,13 @@ function LoginPage() {
           />
 
           {errorMessage ? (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+            <Alert variant="danger">
               {errorMessage}
-            </div>
+            </Alert>
           ) : null}
 
           {unverifiedEmail ? (
-            <div className="grid gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
+            <Alert variant="warning" className="grid gap-3 px-4 py-4">
               <div>
                 <p className="m-0 font-semibold">Verify your email to continue.</p>
                 <p className="m-0 mt-1">
@@ -191,14 +192,14 @@ function LoginPage() {
                 type="button"
                 onClick={handleResendVerification}
                 disabled={isResending}
-                className="w-fit rounded-xl border-amber-300 bg-white px-4 py-2 font-semibold text-amber-950 shadow-sm"
+                className="w-fit rounded-xl px-4 py-2 font-semibold shadow-none"
               >
                 {isResending ? 'Sending...' : 'Send verification again'}
               </Button>
               {resendMessage ? (
-                <p className="m-0 text-emerald-800">{resendMessage}</p>
+                <p className="m-0 text-[var(--tms-success)]">{resendMessage}</p>
               ) : null}
-            </div>
+            </Alert>
           ) : null}
 
           <Button

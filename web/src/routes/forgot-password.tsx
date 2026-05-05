@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
+import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
@@ -74,11 +75,11 @@ function ForgotPasswordPage() {
 
         {submittedEmail ? (
           <div className="grid flex-1 content-start gap-5 text-center">
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-left text-sm text-emerald-950">
+            <Alert variant="success" className="px-5 py-4 text-left">
               If an account exists for{' '}
               <span className="font-semibold">{submittedEmail}</span>, we sent a
               password reset link.
-            </div>
+            </Alert>
             <a
               href="/login"
               className="tms-button tms-button-primary justify-center rounded-2xl px-5 py-4 text-lg font-bold no-underline shadow-[var(--tms-shadow-subtle)]"
@@ -105,9 +106,9 @@ function ForgotPasswordPage() {
             </label>
 
             {errorMessage ? (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+              <Alert variant="danger">
                 {errorMessage}
-              </div>
+              </Alert>
             ) : null}
 
             <Button
