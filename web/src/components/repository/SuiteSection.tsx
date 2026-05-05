@@ -1,6 +1,9 @@
 import { type DragEvent, type FormEvent } from 'react'
+import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
+import { Input } from '../ui/Input'
 import { PopoverMenu, PopoverMenuItem } from '../ui/PopoverMenu'
+import { Select } from '../ui/Select'
 import {
   CaseRow,
   type RepositoryCasePriority,
@@ -222,7 +225,7 @@ export function SuiteSection({
         <div className="tms-kicker">
           New
         </div>
-        <input
+        <Input
           value={quickCreateTitle}
           onChange={(event) => onQuickCreateTitleChange(event.target.value)}
           onKeyDown={(event) => {
@@ -239,9 +242,10 @@ export function SuiteSection({
           disabled={isPending}
           autoFocus
           placeholder="Test case title"
-          className="tms-input min-h-0 min-w-0 rounded-lg px-2 py-1 disabled:cursor-not-allowed disabled:opacity-55"
+          size="sm"
+          className="min-w-0 rounded-lg"
         />
-        <select
+        <Select
           value={quickCreatePriority}
           onChange={(event) =>
             onQuickCreatePriorityChange(
@@ -249,31 +253,33 @@ export function SuiteSection({
             )
           }
           disabled={isPending}
-          className="tms-chip tms-chip-primary w-fit border-0 outline-none disabled:cursor-not-allowed disabled:opacity-55"
+          size="sm"
+          className="tms-chip tms-chip-primary w-fit border-0 outline-none"
         >
           {priorityOptions.map((priority) => (
             <option key={priority} value={priority}>
               {priority}
             </option>
           ))}
-        </select>
-        <select
+        </Select>
+        <Select
           value={quickCreateType}
           onChange={(event) =>
             onQuickCreateTypeChange(event.target.value as RepositoryCaseType)
           }
           disabled={isPending}
-          className="tms-chip w-fit border-0 outline-none disabled:cursor-not-allowed disabled:opacity-55"
+          size="sm"
+          className="tms-chip w-fit border-0 outline-none"
         >
           {caseTypeOptions.map((caseType) => (
             <option key={caseType} value={caseType}>
               {caseType}
             </option>
           ))}
-        </select>
+        </Select>
         <span className="text-sm font-semibold text-[var(--tms-text-soft)]">-</span>
         <span className="text-sm font-semibold text-[var(--tms-text-soft)]">-</span>
-        <select
+        <Select
           value={quickCreateStatus}
           onChange={(event) =>
             onQuickCreateStatusChange(
@@ -281,23 +287,24 @@ export function SuiteSection({
             )
           }
           disabled={isPending}
-          className="tms-chip tms-chip-draft w-fit border-0 outline-none disabled:cursor-not-allowed disabled:opacity-55"
+          size="sm"
+          className="tms-chip tms-chip-draft w-fit border-0 outline-none"
         >
           {quickCreateStatusOptions.map((status) => (
             <option key={status} value={status}>
               {status}
             </option>
           ))}
-        </select>
+        </Select>
         <div className="flex justify-end gap-2">
-          <button
-            type="button"
+          <Button
+            size="sm"
             onClick={() => onSubmitQuickCreateCase(section.id)}
             disabled={isPending}
-            className="tms-button tms-button-primary min-h-0 px-2.5 py-1 disabled:cursor-not-allowed disabled:opacity-55"
+            variant="primary"
           >
             {isPending ? 'Saving' : 'Save'}
-          </button>
+          </Button>
         </div>
       </div>
     )
@@ -329,27 +336,26 @@ export function SuiteSection({
                 className="flex flex-wrap items-center gap-2"
                 onSubmit={(event) => onRenameSuite(event, section.id)}
               >
-                <input
+                <Input
                   value={editingSuiteName}
                   onChange={(event) =>
                     onEditingSuiteNameChange(event.target.value)
                   }
-                  className="tms-input min-w-[220px] text-base"
+                  size="lg"
+                  className="min-w-[220px]"
                 />
-                <button
+                <Button
                   type="submit"
                   disabled={isPendingSuiteAction}
-                  className="tms-button tms-button-primary disabled:cursor-not-allowed disabled:opacity-55"
+                  variant="primary"
                 >
                   {isPendingSuiteAction ? 'Saving...' : 'Save'}
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
                   onClick={onCancelRenameSuite}
-                  className="tms-button"
                 >
                   Cancel
-                </button>
+                </Button>
               </form>
             ) : (
               <div className="flex flex-wrap items-center gap-4">
@@ -366,32 +372,29 @@ export function SuiteSection({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="tms-chip tms-chip-success">
+          <Badge variant="success">
             Ready {readyCount}
-          </span>
-          <span className="tms-chip tms-chip-draft">
+          </Badge>
+          <Badge variant="draft">
             Draft {draftCount}
-          </span>
+          </Badge>
           {dragOverSuiteId === section.id ? (
-            <span className="tms-chip tms-chip-primary">
+            <Badge variant="primary">
               Drop to move
-            </span>
+            </Badge>
           ) : null}
-          <button
-            type="button"
+          <Button
             onClick={() => onToggleSuiteSelection(visibleTestIds)}
             disabled={visibleTestIds.length === 0 || isApplyingBulkAction}
-            className="tms-button disabled:cursor-not-allowed disabled:opacity-55"
           >
             {allVisibleSelected ? 'Clear cases' : 'Select cases'}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             onClick={() => onStartQuickCreateCase(section.id)}
-            className="tms-button tms-button-primary"
+            variant="primary"
           >
             + Case
-          </button>
+          </Button>
           {!isEditingSuite ? (
             <PopoverMenu
               isOpen={isMenuOpen}
@@ -439,21 +442,19 @@ export function SuiteSection({
               Delete this suite? This only works when the suite has no test cases.
             </div>
             <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
+              <Button
                 disabled={isPendingSuiteAction}
                 onClick={() => onConfirmDeleteSuite(section.id)}
-                className="tms-button-danger bg-[var(--tms-danger-soft)]"
+                variant="danger"
+                className="bg-[var(--tms-danger-soft)]"
               >
                 Confirm delete
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
                 onClick={onCancelDeleteSuite}
-                className="tms-button"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -471,13 +472,12 @@ export function SuiteSection({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span>No test cases in this suite yet.</span>
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
+                <Button
                   onClick={() => onStartQuickCreateCase(section.id)}
-                  className="tms-button tms-button-primary"
+                  variant="primary"
                 >
                   + Case
-                </button>
+                </Button>
               </div>
             </div>
           </div>

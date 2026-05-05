@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Panel } from '../ui/Panel'
 
 type RepositoryPanelProps = {
   children: ReactNode
@@ -6,8 +7,8 @@ type RepositoryPanelProps = {
 
 export function RepositoryPanel({ children }: RepositoryPanelProps) {
   return (
-    <section id="project-suites" className="tms-panel overflow-visible">
+    <Panel id="project-suites" className="overflow-visible">
       {children}
-    </section>
+    </Panel>
   )
 }

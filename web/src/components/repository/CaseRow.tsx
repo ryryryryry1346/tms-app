@@ -1,5 +1,8 @@
 import { Link } from '@tanstack/react-router'
 import type { DragEvent } from 'react'
+import { Button } from '../ui/Button'
+import { Input } from '../ui/Input'
+import { Select } from '../ui/Select'
 import { CaseActionsMenu } from './CaseActionsMenu'
 
 export type RepositoryCaseStatus = 'Draft' | 'Ready' | 'Archived'
@@ -146,16 +149,16 @@ export function CaseRow({
           onChange={onToggleSelection}
           className="h-4 w-4 rounded border-[var(--tms-border)] text-[var(--tms-primary)] focus:ring-[var(--tms-primary)]"
         />
-        <button
-          type="button"
+        <Button
+          size="sm"
           draggable
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
-          className="cursor-grab rounded-md p-1 text-[var(--tms-text-soft)] hover:bg-[var(--tms-surface-muted)] hover:text-[var(--tms-text-muted)] active:cursor-grabbing"
+          className="cursor-grab border-0 bg-transparent p-1 text-[var(--tms-text-soft)] shadow-none hover:bg-[var(--tms-surface-muted)] hover:text-[var(--tms-text-muted)] active:cursor-grabbing"
           aria-label={`Drag test case ${test.id}`}
         >
           <DragHandleIcon />
-        </button>
+        </Button>
       </div>
       <Link
         to="/test/$testId"
@@ -165,7 +168,7 @@ export function CaseRow({
         #{test.id}
       </Link>
       {isEditingTitle ? (
-        <input
+        <Input
           value={editingTitleValue}
           onChange={(event) => onTitleEditChange(event.target.value)}
           onBlur={onSaveTitleEdit}
@@ -183,7 +186,8 @@ export function CaseRow({
           onPointerDown={(event) => event.stopPropagation()}
           disabled={isPending}
           autoFocus
-          className="tms-input min-h-0 min-w-0 rounded-lg px-2 py-1 disabled:cursor-not-allowed disabled:opacity-55"
+          size="sm"
+          className="min-w-0 rounded-lg"
           aria-label={`Edit title for ${test.title}`}
         />
       ) : (
@@ -199,14 +203,15 @@ export function CaseRow({
           {test.title}
         </Link>
       )}
-      <select
+      <Select
         value={priority}
         onChange={(event) =>
           onPriorityChange(event.target.value as RepositoryCasePriority)
         }
         onPointerDown={(event) => event.stopPropagation()}
         disabled={isPending}
-        className={`tms-chip w-fit border-0 outline-none disabled:cursor-not-allowed disabled:opacity-55 ${
+        size="sm"
+        className={`tms-chip w-fit border-0 outline-none ${
           priority === 'Critical'
             ? 'tms-chip-danger'
             : priority === 'High'
@@ -222,15 +227,16 @@ export function CaseRow({
             {option}
           </option>
         ))}
-      </select>
-      <select
+      </Select>
+      <Select
         value={caseType}
         onChange={(event) =>
           onCaseTypeChange(event.target.value as RepositoryCaseType)
         }
         onPointerDown={(event) => event.stopPropagation()}
         disabled={isPending}
-        className="tms-chip w-fit border-0 outline-none disabled:cursor-not-allowed disabled:opacity-55"
+        size="sm"
+        className="tms-chip w-fit border-0 outline-none"
         aria-label={`Change type for ${test.title}`}
       >
         {caseTypeOptions.map((option) => (
@@ -238,21 +244,22 @@ export function CaseRow({
             {option}
           </option>
         ))}
-      </select>
+      </Select>
       <span className="text-sm font-semibold text-[var(--tms-text-muted)]">
         {formatDate(test.createdAt)}
       </span>
       <span className="text-sm font-semibold text-[var(--tms-text-muted)]">
         {formatDate(test.updatedAt ?? test.createdAt)}
       </span>
-      <select
+      <Select
         value={status}
         onChange={(event) =>
           onStatusChange(event.target.value as RepositoryCaseStatus)
         }
         onPointerDown={(event) => event.stopPropagation()}
         disabled={isPending}
-        className={`tms-chip w-fit border-0 outline-none disabled:cursor-not-allowed disabled:opacity-55 ${
+        size="sm"
+        className={`tms-chip w-fit border-0 outline-none ${
           isReady
             ? 'tms-chip-success'
             : isArchived
@@ -266,7 +273,7 @@ export function CaseRow({
             {option}
           </option>
         ))}
-      </select>
+      </Select>
       <CaseActionsMenu
         testId={test.id}
         isOpen={isMenuOpen}

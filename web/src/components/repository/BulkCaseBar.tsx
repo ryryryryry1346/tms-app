@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Button } from '../ui/Button'
+import { Panel } from '../ui/Panel'
 import { PopoverMenu, PopoverMenuItem } from '../ui/PopoverMenu'
 
 export type RepositoryBulkStatus = 'Draft' | 'Ready' | 'Archived'
@@ -81,7 +82,7 @@ export function BulkCaseBar({
   }
 
   return (
-    <div className="mx-5 mt-4 rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border)] bg-[var(--tms-surface-muted)] px-4 py-3">
+    <Panel className="mx-5 mt-4 rounded-[var(--tms-radius-overlay)] bg-[var(--tms-surface-muted)] px-4 py-3 shadow-none">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm font-semibold text-[var(--tms-text)]">
           {selectedCount} selected
@@ -241,17 +242,15 @@ export function BulkCaseBar({
             ) : null}
           </PopoverMenu>
 
-          <button
-            type="button"
+          <Button
             onClick={() => {
               closeMenu()
               onClearSelection()
             }}
             disabled={isApplying}
-            className="tms-button disabled:cursor-not-allowed disabled:opacity-55"
           >
             Clear selection
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -268,22 +267,20 @@ export function BulkCaseBar({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
+            <Button
               onClick={onCancelArchive}
               disabled={isApplying}
-              className="tms-button disabled:cursor-not-allowed disabled:opacity-55"
             >
               Cancel
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               onClick={onConfirmArchive}
               disabled={isApplying}
-              className="tms-button border-[var(--tms-warning)] bg-[var(--tms-warning)] text-white disabled:cursor-not-allowed disabled:opacity-55"
+              variant="warning"
+              className="bg-[var(--tms-warning)] text-white"
             >
               {isApplying ? 'Archiving...' : 'Confirm archive'}
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}
@@ -301,22 +298,20 @@ export function BulkCaseBar({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
+            <Button
               onClick={onCancelDeleteArchived}
               disabled={isApplying}
-              className="tms-button disabled:cursor-not-allowed disabled:opacity-55"
             >
               Cancel
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               onClick={onConfirmDeleteArchived}
               disabled={isApplying}
-              className="tms-button-danger bg-[var(--tms-danger)] text-white disabled:cursor-not-allowed disabled:opacity-55"
+              variant="danger"
+              className="bg-[var(--tms-danger)] text-white"
             >
               {isApplying ? 'Deleting...' : 'Confirm delete'}
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}
@@ -326,6 +321,6 @@ export function BulkCaseBar({
           {errorMessage}
         </div>
       ) : null}
-    </div>
+    </Panel>
   )
 }

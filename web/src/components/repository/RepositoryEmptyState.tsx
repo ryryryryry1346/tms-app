@@ -1,3 +1,5 @@
+import { Panel } from '../ui/Panel'
+
 type RepositoryEmptyReason = 'no-suites' | 'no-matching-cases'
 type RepositoryCaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
 
@@ -27,8 +29,8 @@ function getEmptyMessage({
 
 export function RepositoryEmptyState(props: RepositoryEmptyStateProps) {
   return (
-    <div className="m-5 rounded-[var(--tms-radius-overlay)] border border-dashed border-[var(--tms-border)] bg-[var(--tms-surface-muted)] p-6 text-sm text-[var(--tms-text-muted)]">
+    <Panel className="m-5 border-dashed bg-[var(--tms-surface-muted)] p-6 text-sm text-[var(--tms-text-muted)] shadow-none">
       {getEmptyMessage(props)}
-    </div>
+    </Panel>
   )
 }

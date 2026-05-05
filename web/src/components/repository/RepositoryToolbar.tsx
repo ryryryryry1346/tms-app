@@ -1,3 +1,8 @@
+import { Button } from '../ui/Button'
+import { Input } from '../ui/Input'
+import { PanelHeader } from '../ui/Panel'
+import { Select } from '../ui/Select'
+
 export type RepositoryCaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
 export type RepositoryPriorityFilter =
   | 'All'
@@ -62,7 +67,7 @@ export function RepositoryToolbar({
   onCaseFilterChange,
 }: RepositoryToolbarProps) {
   return (
-    <div className="tms-panel-header">
+    <PanelHeader>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="m-0 text-xl font-semibold text-[var(--tms-text)]">
@@ -73,22 +78,22 @@ export function RepositoryToolbar({
           </div>
         </div>
         <div className="tms-toolbar justify-end">
-          <label className="tms-input flex w-[260px] items-center gap-2">
+          <label className="flex items-center gap-2">
             <span className="shrink-0 whitespace-nowrap font-semibold">
               Search
             </span>
-            <input
+            <Input
               value={searchValue}
               onChange={(event) => onSearchChange(event.target.value)}
-              className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-[var(--tms-text)] outline-none"
+              className="w-[260px]"
             />
           </label>
-          <label className="tms-input flex items-center gap-2">
+          <label className="flex items-center gap-2">
             <span className="font-semibold">Suite</span>
-            <select
+            <Select
               value={suiteFilterId}
               onChange={(event) => onSuiteFilterChange(event.target.value)}
-              className="min-w-[160px] border-0 bg-transparent p-0 text-sm text-[var(--tms-text)] outline-none"
+              className="min-w-[160px]"
             >
               <option value={allSuitesFilter}>All suites</option>
               {suites.map((section) => (
@@ -96,18 +101,18 @@ export function RepositoryToolbar({
                   {section.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
-          <label className="tms-input flex items-center gap-2">
+          <label className="flex items-center gap-2">
             <span className="font-semibold">Priority</span>
-            <select
+            <Select
               value={priorityFilter}
               onChange={(event) =>
                 onPriorityFilterChange(
                   event.target.value as RepositoryPriorityFilter,
                 )
               }
-              className="min-w-[110px] border-0 bg-transparent p-0 text-sm text-[var(--tms-text)] outline-none"
+              className="min-w-[110px]"
             >
               <option value="All">All</option>
               {priorityOptions.map((priority) => (
@@ -115,18 +120,18 @@ export function RepositoryToolbar({
                   {priority}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
-          <label className="tms-input flex items-center gap-2">
+          <label className="flex items-center gap-2">
             <span className="font-semibold">Type</span>
-            <select
+            <Select
               value={caseTypeFilter}
               onChange={(event) =>
                 onCaseTypeFilterChange(
                   event.target.value as RepositoryCaseTypeFilter,
                 )
               }
-              className="min-w-[120px] border-0 bg-transparent p-0 text-sm text-[var(--tms-text)] outline-none"
+              className="min-w-[120px]"
             >
               <option value="All">All</option>
               {caseTypeOptions.map((caseType) => (
@@ -134,15 +139,21 @@ export function RepositoryToolbar({
                   {caseType}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <div className="flex flex-wrap gap-2">
             {CASE_FILTER_OPTIONS.map((filter) => (
-              <button
+              <Button
                 key={filter}
-                type="button"
                 onClick={() => onCaseFilterChange(filter)}
-                className={`tms-button ${
+                variant={
+                  caseFilter === filter
+                    ? filter === 'Archived'
+                      ? 'warning'
+                      : 'primary'
+                    : 'default'
+                }
+                className={`${
                   caseFilter === filter
                     ? filter === 'Archived'
                       ? 'tms-chip-warning'
@@ -151,11 +162,11 @@ export function RepositoryToolbar({
                 }`}
               >
                 {filter}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
       </div>
-    </div>
+    </PanelHeader>
   )
 }
