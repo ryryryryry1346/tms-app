@@ -1,6 +1,9 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { z } from 'zod'
+import { Button } from '../components/ui/Button'
+import { Input } from '../components/ui/Input'
+import { Panel } from '../components/ui/Panel'
 import { getCurrentUser } from '../features/auth/server'
 import { resetPassword } from '../lib/auth-client'
 
@@ -85,7 +88,7 @@ function ResetPasswordPage() {
 
   return (
     <main className="auth-page page-wrap px-4 py-8 sm:py-12">
-      <section className="auth-card rise-in mx-auto flex min-h-[32rem] w-full max-w-[35rem] flex-col rounded-[2rem] border border-[var(--auth-card-line)] bg-[var(--auth-card-bg)] p-8 shadow-[0_24px_70px_rgba(28,44,90,0.08)] sm:p-10">
+      <Panel className="auth-card rise-in mx-auto flex min-h-[32rem] w-full max-w-[35rem] flex-col p-8 sm:p-10">
         <div className="mb-8 text-center">
           <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--brand-strong)]">
             New password
@@ -97,13 +100,15 @@ function ResetPasswordPage() {
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-left text-sm text-emerald-950">
               Your password has been reset. You can log in with the new password.
             </div>
-            <button
+            <Button
               type="button"
               onClick={goToLogin}
-              className="rounded-2xl bg-[var(--brand)] px-5 py-4 text-lg font-bold text-white shadow-[0_16px_34px_rgba(34,145,233,0.24)]"
+              variant="primary"
+              size="lg"
+              className="rounded-2xl px-5 py-4 text-lg font-bold shadow-[0_16px_34px_rgba(34,145,233,0.24)]"
             >
               Go to login
-            </button>
+            </Button>
           </div>
         ) : (
           <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
@@ -111,12 +116,13 @@ function ResetPasswordPage() {
               <span className="text-lg font-medium text-[var(--auth-label)]">
                 New password
               </span>
-              <input
+              <Input
                 name="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 type="password"
-                className="auth-input rounded-2xl border border-[var(--auth-input-line)] bg-[var(--auth-input-bg)] px-5 py-4 text-lg outline-none transition focus:border-[var(--brand)]"
+                size="lg"
+                className="auth-input rounded-2xl px-5 py-4 text-lg"
                 placeholder="Create a new password"
                 autoComplete="new-password"
               />
@@ -126,12 +132,13 @@ function ResetPasswordPage() {
               <span className="text-lg font-medium text-[var(--auth-label)]">
                 Confirm password
               </span>
-              <input
+              <Input
                 name="confirmPassword"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 type="password"
-                className="auth-input rounded-2xl border border-[var(--auth-input-line)] bg-[var(--auth-input-bg)] px-5 py-4 text-lg outline-none transition focus:border-[var(--brand)]"
+                size="lg"
+                className="auth-input rounded-2xl px-5 py-4 text-lg"
                 placeholder="Repeat the new password"
                 autoComplete="new-password"
               />
@@ -143,13 +150,15 @@ function ResetPasswordPage() {
               </div>
             ) : null}
 
-            <button
+            <Button
               type="submit"
               disabled={isSubmitting || !token}
-              className="mt-auto rounded-2xl bg-[var(--brand)] px-5 py-4 text-lg font-bold text-white shadow-[0_16px_34px_rgba(34,145,233,0.24)] disabled:cursor-not-allowed disabled:opacity-55"
+              variant="primary"
+              size="lg"
+              className="mt-auto rounded-2xl px-5 py-4 text-lg font-bold shadow-[0_16px_34px_rgba(34,145,233,0.24)]"
             >
               {isSubmitting ? 'Saving password...' : 'Save new password'}
-            </button>
+            </Button>
 
             <p className="pt-2 text-center text-lg text-[var(--sea-ink-soft)]">
               Need a new link?{' '}
@@ -163,7 +172,7 @@ function ResetPasswordPage() {
             </p>
           </form>
         )}
-      </section>
+      </Panel>
     </main>
   )
 }

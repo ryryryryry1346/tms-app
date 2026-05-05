@@ -6,6 +6,9 @@ import {
 } from '@tanstack/react-router'
 import { useState } from 'react'
 import { z } from 'zod'
+import { Button } from '../components/ui/Button'
+import { Input } from '../components/ui/Input'
+import { Panel } from '../components/ui/Panel'
 import { getCurrentUser } from '../features/auth/server'
 import { sendVerificationEmail, signIn } from '../lib/auth-client'
 
@@ -122,7 +125,7 @@ function LoginPage() {
 
   return (
     <main className="auth-page page-wrap px-4 py-8 sm:py-12">
-      <section className="auth-card rise-in mx-auto flex min-h-[35rem] w-full max-w-[35rem] flex-col rounded-[2rem] border border-[var(--auth-card-line)] bg-[var(--auth-card-bg)] p-8 shadow-[0_24px_70px_rgba(28,44,90,0.08)] sm:p-10">
+      <Panel className="auth-card rise-in mx-auto flex min-h-[35rem] w-full max-w-[35rem] flex-col p-8 sm:p-10">
         <div className="mb-8 text-center">
           <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--brand-strong)]">
             Login
@@ -134,12 +137,13 @@ function LoginPage() {
             <span className="text-lg font-medium text-[var(--auth-label)]">
               Email
             </span>
-            <input
+            <Input
               name="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               type="email"
-              className="auth-input rounded-2xl border border-[var(--auth-input-line)] bg-[var(--auth-input-bg)] px-5 py-4 text-lg outline-none transition focus:border-[var(--brand)]"
+              size="lg"
+              className="auth-input rounded-2xl px-5 py-4 text-lg"
               placeholder="you@example.com"
               autoComplete="email"
             />
@@ -149,12 +153,13 @@ function LoginPage() {
             <span className="text-lg font-medium text-[var(--auth-label)]">
               Password
             </span>
-            <input
+            <Input
               name="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               type="password"
-              className="auth-input rounded-2xl border border-[var(--auth-input-line)] bg-[var(--auth-input-bg)] px-5 py-4 text-lg outline-none transition focus:border-[var(--brand)]"
+              size="lg"
+              className="auth-input rounded-2xl px-5 py-4 text-lg"
               placeholder="Enter your password"
               autoComplete="current-password"
             />
@@ -182,27 +187,29 @@ function LoginPage() {
                   expired or did not arrive, send a new one.
                 </p>
               </div>
-              <button
+              <Button
                 type="button"
                 onClick={handleResendVerification}
                 disabled={isResending}
-                className="w-fit rounded-xl border border-amber-300 bg-white px-4 py-2 font-semibold text-amber-950 shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-fit rounded-xl border-amber-300 bg-white px-4 py-2 font-semibold text-amber-950 shadow-sm"
               >
                 {isResending ? 'Sending...' : 'Send verification again'}
-              </button>
+              </Button>
               {resendMessage ? (
                 <p className="m-0 text-emerald-800">{resendMessage}</p>
               ) : null}
             </div>
           ) : null}
 
-          <button
+          <Button
             type="submit"
             disabled={isSubmitting}
-            className="mt-auto rounded-2xl bg-[var(--brand)] px-5 py-4 text-lg font-bold text-white shadow-[0_16px_34px_rgba(34,145,233,0.24)] disabled:cursor-not-allowed disabled:opacity-55"
+            variant="primary"
+            size="lg"
+            className="mt-auto rounded-2xl px-5 py-4 text-lg font-bold shadow-[0_16px_34px_rgba(34,145,233,0.24)]"
           >
             {isSubmitting ? 'Logging in...' : 'Log in'}
-          </button>
+          </Button>
 
           <p className="pt-2 text-center text-lg text-[var(--sea-ink-soft)]">
             <a
@@ -221,7 +228,7 @@ function LoginPage() {
             .
           </p>
         </form>
-      </section>
+      </Panel>
     </main>
   )
 }

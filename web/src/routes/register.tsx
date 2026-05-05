@@ -1,5 +1,8 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
+import { Button } from '../components/ui/Button'
+import { Input } from '../components/ui/Input'
+import { Panel } from '../components/ui/Panel'
 import { getCurrentUser } from '../features/auth/server'
 import { signUp } from '../lib/auth-client'
 
@@ -68,7 +71,7 @@ function RegisterPage() {
 
   return (
     <main className="auth-page page-wrap px-4 py-8 sm:py-12">
-      <section className="auth-card rise-in mx-auto flex min-h-[35rem] w-full max-w-[35rem] flex-col rounded-[2rem] border border-[var(--auth-card-line)] bg-[var(--auth-card-bg)] p-8 shadow-[0_24px_70px_rgba(28,44,90,0.08)] sm:p-10">
+      <Panel className="auth-card rise-in mx-auto flex min-h-[35rem] w-full max-w-[35rem] flex-col p-8 sm:p-10">
         <div className="mb-8 text-center">
           <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--brand-strong)]">
             {submittedEmail ? 'Check your email' : 'Register'}
@@ -84,7 +87,7 @@ function RegisterPage() {
             </div>
             <a
               href="/login"
-              className="rounded-2xl bg-[var(--brand)] px-5 py-4 text-lg font-bold text-white no-underline shadow-[0_16px_34px_rgba(34,145,233,0.24)]"
+              className="tms-button tms-button-primary justify-center rounded-2xl px-5 py-4 text-lg font-bold no-underline shadow-[0_16px_34px_rgba(34,145,233,0.24)]"
             >
               Go to login
             </a>
@@ -95,11 +98,12 @@ function RegisterPage() {
               <span className="text-lg font-medium text-[var(--auth-label)]">
                 Name
               </span>
-              <input
+              <Input
                 name="name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                className="auth-input rounded-2xl border border-[var(--auth-input-line)] bg-[var(--auth-input-bg)] px-5 py-4 text-lg outline-none transition focus:border-[var(--brand)]"
+                size="lg"
+                className="auth-input rounded-2xl px-5 py-4 text-lg"
                 placeholder="Your name"
                 autoComplete="name"
               />
@@ -109,12 +113,13 @@ function RegisterPage() {
               <span className="text-lg font-medium text-[var(--auth-label)]">
                 Email
               </span>
-              <input
+              <Input
                 name="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 type="email"
-                className="auth-input rounded-2xl border border-[var(--auth-input-line)] bg-[var(--auth-input-bg)] px-5 py-4 text-lg outline-none transition focus:border-[var(--brand)]"
+                size="lg"
+                className="auth-input rounded-2xl px-5 py-4 text-lg"
                 placeholder="you@example.com"
                 autoComplete="email"
               />
@@ -124,12 +129,13 @@ function RegisterPage() {
               <span className="text-lg font-medium text-[var(--auth-label)]">
                 Password
               </span>
-              <input
+              <Input
                 name="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 type="password"
-                className="auth-input rounded-2xl border border-[var(--auth-input-line)] bg-[var(--auth-input-bg)] px-5 py-4 text-lg outline-none transition focus:border-[var(--brand)]"
+                size="lg"
+                className="auth-input rounded-2xl px-5 py-4 text-lg"
                 placeholder="Create a password"
                 autoComplete="new-password"
               />
@@ -141,13 +147,15 @@ function RegisterPage() {
               </div>
             ) : null}
 
-            <button
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className="mt-auto rounded-2xl bg-[var(--brand)] px-5 py-4 text-lg font-bold text-white shadow-[0_16px_34px_rgba(34,145,233,0.24)] disabled:cursor-not-allowed disabled:opacity-55"
+              variant="primary"
+              size="lg"
+              className="mt-auto rounded-2xl px-5 py-4 text-lg font-bold shadow-[0_16px_34px_rgba(34,145,233,0.24)]"
             >
               {isSubmitting ? 'Sending verification...' : 'Create account'}
-            </button>
+            </Button>
 
             <p className="pt-2 text-center text-lg text-[var(--sea-ink-soft)]">
               Already have an account?{' '}
@@ -161,7 +169,7 @@ function RegisterPage() {
             </p>
           </form>
         )}
-      </section>
+      </Panel>
     </main>
   )
 }
