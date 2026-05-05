@@ -6,6 +6,11 @@ import {
 } from '@tanstack/react-router'
 import { useState } from 'react'
 import { RichTextEditor } from '../components/RichTextEditor'
+import { Badge } from '../components/ui/Badge'
+import { Button } from '../components/ui/Button'
+import { Input } from '../components/ui/Input'
+import { Panel } from '../components/ui/Panel'
+import { Select } from '../components/ui/Select'
 import { uploadTestMedia } from '../features/media/server'
 import {
   archiveTestCase,
@@ -73,32 +78,34 @@ function formatDetailDate(value: string | null | undefined): string {
   }).format(date)
 }
 
-function getStatusTone(status: string | null): string {
+function getStatusVariant(status: string | null): 'success' | 'warning' | 'draft' {
   if (status === 'Ready') {
-    return 'bg-emerald-50 text-emerald-700'
+    return 'success'
   }
 
   if (status === 'Archived') {
-    return 'bg-amber-50 text-amber-800'
+    return 'warning'
   }
 
-  return 'bg-slate-100 text-slate-700'
+  return 'draft'
 }
 
-function getPriorityTone(priority: string | null): string {
+function getPriorityVariant(
+  priority: string | null,
+): 'danger' | 'warning' | 'draft' | 'primary' {
   if (priority === 'Critical') {
-    return 'bg-rose-50 text-rose-700'
+    return 'danger'
   }
 
   if (priority === 'High') {
-    return 'bg-amber-50 text-amber-800'
+    return 'warning'
   }
 
   if (priority === 'Low') {
-    return 'bg-slate-100 text-slate-600'
+    return 'draft'
   }
 
-  return 'bg-[#eef6ff] text-[#506487]'
+  return 'primary'
 }
 
 function handleRichContentClick(event: React.MouseEvent<HTMLElement>): void {
@@ -465,21 +472,21 @@ function TestDetailPage() {
             <Link
               to={repositoryLink.to}
               params={repositoryLink.params}
-              className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#60718f] hover:text-[#2f6fe4]"
+              className="tms-button no-underline hover:text-[var(--tms-primary)]"
             >
               Back to repository
             </Link>
           ) : (
             <Link
               to="/"
-              className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#60718f] hover:text-[#2f6fe4]"
+              className="tms-button no-underline hover:text-[var(--tms-primary)]"
             >
               Back to workspace
             </Link>
           )}
         </div>
 
-        <section className="rounded-[2rem] border border-[#e6ecf8] bg-white shadow-[0_12px_36px_rgba(31,57,102,0.06)]">
+        <Panel className="overflow-hidden">
           <div className="border-b border-[#e9eef8] px-6 py-6">
             <div className="flex flex-wrap items-start justify-between gap-5">
               <div className="min-w-0">
@@ -488,7 +495,7 @@ function TestDetailPage() {
                 </p>
                 {isEditingTitle ? (
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <input
+                    <Input
                       value={titleValue}
                       onChange={(event) => setTitleValue(event.target.value)}
                       onKeyDown={(event) => {
@@ -504,56 +511,51 @@ function TestDetailPage() {
                       }}
                       disabled={pendingMetadataField === 'title'}
                       autoFocus
-                      className="min-w-[280px] flex-1 rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-3xl font-bold leading-tight text-[#1b2f5b] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+                      className="min-w-[280px] flex-1 rounded-xl border-[#9dbaf7] px-3 py-2 text-3xl font-bold leading-tight text-[#1b2f5b]"
                       aria-label="Edit test case title"
                     />
-                    <button
+                    <Button
                       type="button"
                       onClick={() => {
                         void saveTitleEdit()
                       }}
                       disabled={pendingMetadataField === 'title'}
-                      className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#3369d6] disabled:cursor-not-allowed disabled:opacity-55"
+                      variant="primary"
                     >
                       Save title
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
                       onClick={cancelTitleEdit}
                       disabled={pendingMetadataField === 'title'}
-                      className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 ) : (
                   <div className="mt-2 flex flex-wrap items-start gap-3">
                     <h1 className="m-0 text-4xl font-bold leading-tight text-[#1b2f5b]">
                       {test.title}
                     </h1>
-                    <button
+                    <Button
                       type="button"
                       onClick={startTitleEdit}
-                      className="mt-1 rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] hover:text-[#2f6fe4]"
+                      className="mt-1 hover:text-[var(--tms-primary)]"
                     >
                       Edit title
-                    </button>
+                    </Button>
                   </div>
                 )}
                 <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
-                  <span className={`rounded-full px-2.5 py-1 ${getStatusTone(test.status)}`}>
+                  <Badge variant={getStatusVariant(test.status)}>
                     {test.status ?? 'Draft'}
-                  </span>
-                  <span
-                    className={`rounded-full px-2.5 py-1 ${getPriorityTone(
-                      test.priority,
-                    )}`}
-                  >
+                  </Badge>
+                  <Badge variant={getPriorityVariant(test.priority)}>
                     {test.priority ?? 'Medium'}
-                  </span>
-                  <span className="rounded-full bg-[#f3f5f9] px-2.5 py-1 text-[#60718f]">
+                  </Badge>
+                  <Badge variant="draft">
                     {test.caseType ?? 'Functional'}
-                  </span>
+                  </Badge>
                 </div>
               </div>
 
@@ -561,72 +563,70 @@ function TestDetailPage() {
                 <Link
                   to="/edit-test/$testId"
                   params={{ testId: test.id.toString() }}
-                  className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#3369d6]"
+                  className="tms-button tms-button-primary no-underline"
                 >
                   Full editor
                 </Link>
                 {isEditingContent ? (
                   <>
-                    <button
+                    <Button
                       type="button"
                       onClick={() => {
                         void saveContentEdit()
                       }}
                       disabled={isSavingContent || isUploadingMedia}
-                      className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#3369d6] disabled:cursor-not-allowed disabled:opacity-55"
+                      variant="primary"
                     >
                       {isSavingContent ? 'Saving...' : 'Save content'}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
                       onClick={cancelContentEdit}
                       disabled={isSavingContent}
-                      className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </>
                 ) : (
-                  <button
+                  <Button
                     type="button"
                     onClick={startContentEdit}
-                    className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#3369d6]"
+                    variant="primary"
                   >
                     Edit content
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
                   type="button"
                   onClick={() => {
                     void handleDuplicate()
                   }}
                   disabled={isDuplicating || isDeleting}
-                  className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
                 >
                   {isDuplicating ? 'Duplicating...' : 'Duplicate'}
-                </button>
+                </Button>
                 {test.status === 'Archived' ? (
-                  <button
+                  <Button
                     type="button"
                     onClick={() => {
                       void handleRestore()
                     }}
                     disabled={isArchiving || isDeleting}
-                    className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-55"
+                    variant="success"
                   >
                     {isArchiving ? 'Restoring...' : 'Restore'}
-                  </button>
+                  </Button>
                 ) : (
-                  <button
+                  <Button
                     type="button"
                     onClick={() => {
                       void handleArchive()
                     }}
                     disabled={isArchiving || isDeleting}
-                    className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 disabled:cursor-not-allowed disabled:opacity-55"
+                    variant="warning"
                   >
                     {isArchiving ? 'Archiving...' : 'Archive'}
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -705,7 +705,7 @@ function TestDetailPage() {
                   <div>
                     <dt className="font-semibold text-[#7f8da9]">Suite</dt>
                     <dd className="m-0 mt-1">
-                      <select
+                      <Select
                         value={test.sectionId ?? ''}
                         onChange={(event) => {
                           const sectionId = Number(event.target.value)
@@ -718,7 +718,7 @@ function TestDetailPage() {
                           pendingMetadataField !== null ||
                           test.sections.length === 0
                         }
-                        className="w-full rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#1b2f5b] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+                        className="w-full text-sm font-semibold text-[#1b2f5b]"
                         aria-label="Change suite"
                       >
                         {test.sectionId === null ? (
@@ -729,13 +729,13 @@ function TestDetailPage() {
                             {section.name}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </dd>
                   </div>
                   <div>
                     <dt className="font-semibold text-[#7f8da9]">Status</dt>
                     <dd className="m-0 mt-1">
-                      <select
+                      <Select
                         value={test.status ?? 'Draft'}
                         onChange={(event) => {
                           void handleStatusChange(
@@ -743,7 +743,7 @@ function TestDetailPage() {
                           )
                         }}
                         disabled={pendingMetadataField !== null}
-                        className="w-full rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#1b2f5b] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+                        className="w-full text-sm font-semibold text-[#1b2f5b]"
                         aria-label="Change status"
                       >
                         {CASE_STATUS_OPTIONS.map((status) => (
@@ -751,13 +751,13 @@ function TestDetailPage() {
                             {status}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </dd>
                   </div>
                   <div>
                     <dt className="font-semibold text-[#7f8da9]">Priority</dt>
                     <dd className="m-0 mt-1">
-                      <select
+                      <Select
                         value={test.priority ?? 'Medium'}
                         onChange={(event) => {
                           void handlePriorityChange(
@@ -765,7 +765,7 @@ function TestDetailPage() {
                           )
                         }}
                         disabled={pendingMetadataField !== null}
-                        className="w-full rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#1b2f5b] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+                        className="w-full text-sm font-semibold text-[#1b2f5b]"
                         aria-label="Change priority"
                       >
                         {PRIORITY_OPTIONS.map((priority) => (
@@ -773,13 +773,13 @@ function TestDetailPage() {
                             {priority}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </dd>
                   </div>
                   <div>
                     <dt className="font-semibold text-[#7f8da9]">Type</dt>
                     <dd className="m-0 mt-1">
-                      <select
+                      <Select
                         value={test.caseType ?? 'Functional'}
                         onChange={(event) => {
                           void handleCaseTypeChange(
@@ -787,7 +787,7 @@ function TestDetailPage() {
                           )
                         }}
                         disabled={pendingMetadataField !== null}
-                        className="w-full rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#1b2f5b] outline-none disabled:cursor-not-allowed disabled:opacity-55"
+                        className="w-full text-sm font-semibold text-[#1b2f5b]"
                         aria-label="Change type"
                       >
                         {CASE_TYPE_OPTIONS.map((caseType) => (
@@ -795,7 +795,7 @@ function TestDetailPage() {
                             {caseType}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </dd>
                   </div>
                   <div>
@@ -852,41 +852,41 @@ function TestDetailPage() {
                         Delete this archived test case permanently?
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <button
+                        <Button
                           type="button"
                           onClick={() => {
                             void handleDeletePermanently()
                           }}
                           disabled={isDeleting}
-                          className="rounded-lg border border-rose-300 bg-rose-100 px-3 py-2 font-semibold text-rose-900 disabled:cursor-not-allowed disabled:opacity-55"
+                          variant="danger"
                         >
                           {isDeleting ? 'Deleting...' : 'Confirm delete'}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
                           onClick={() => setShowDeleteConfirm(false)}
                           disabled={isDeleting}
-                          className="rounded-lg border border-[#dbe4f4] bg-white px-3 py-2 font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
                         >
                           Cancel
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ) : (
-                    <button
+                    <Button
                       type="button"
                       onClick={() => setShowDeleteConfirm(true)}
                       disabled={isDeleting || isArchiving}
-                      className="w-full rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-55"
+                      variant="danger"
+                      className="w-full"
                     >
                       Delete permanently
-                    </button>
+                    </Button>
                   )}
                 </section>
               ) : null}
             </aside>
           </div>
-        </section>
+        </Panel>
       </div>
     </main>
   )
