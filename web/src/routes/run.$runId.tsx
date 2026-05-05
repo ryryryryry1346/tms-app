@@ -10,6 +10,10 @@ import {
   getRunDetail,
   saveRunItemComment,
 } from '../features/runs/server'
+import { Badge } from '../components/ui/Badge'
+import { Button } from '../components/ui/Button'
+import { Panel } from '../components/ui/Panel'
+import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 
 export const Route = createFileRoute('/run/$runId')({
   loader: async ({ params }) => {
@@ -37,22 +41,6 @@ const STATUS_ACTIONS: Array<Exclude<RunItemStatus, null>> = [
   'Failed',
   'Blocked',
 ]
-
-function getStatusClass(status: RunItemStatus): string {
-  if (status === 'Passed') {
-    return 'tms-chip-success'
-  }
-
-  if (status === 'Failed') {
-    return 'tms-chip-danger'
-  }
-
-  if (status === 'Blocked') {
-    return 'tms-chip-warning'
-  }
-
-  return 'tms-chip-draft'
-}
 
 function RunDetailPage() {
   const data = Route.useLoaderData()
@@ -296,7 +284,7 @@ function RunDetailPage() {
           ) : null}
         </section>
 
-        <section className="sticky top-3 z-20 mb-5 rounded-[var(--tms-radius-panel)] border border-[var(--tms-border)] bg-[var(--tms-surface)]/95 p-4 shadow-[var(--tms-shadow-panel)] backdrop-blur">
+        <Panel className="sticky top-3 z-20 mb-5 bg-[var(--tms-surface)]/95 p-4 backdrop-blur">
           <div className="grid gap-3 lg:grid-cols-[260px_minmax(0,1fr)]">
             <div>
               <div className="flex items-end justify-between gap-3">
@@ -327,9 +315,9 @@ function RunDetailPage() {
                 { label: 'Blocked', value: blockedCount, className: 'text-[var(--tms-warning)]' },
                 { label: 'Not run', value: notRunCount, className: 'text-[var(--tms-draft)]' },
               ].map((item) => (
-                <div
+                <Panel
                   key={item.label}
-                  className="rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-3"
+                  className="rounded-[var(--tms-radius-overlay)] border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-3 shadow-none"
                 >
                   <div className="tms-kicker">
                     {item.label}
@@ -337,7 +325,7 @@ function RunDetailPage() {
                   <div className={`mt-1 text-2xl font-bold ${item.className}`}>
                     {item.value}
                   </div>
-                </div>
+                </Panel>
               ))}
             </div>
           </div>
@@ -345,11 +333,11 @@ function RunDetailPage() {
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--tms-border-subtle)] pt-4">
             <div className="flex flex-wrap gap-2">
               {RUN_FILTERS.map((filter) => (
-                <button
+                <Button
                   key={filter}
-                  type="button"
                   onClick={() => setRunFilter(filter)}
-                  className={`tms-button transition ${
+                  variant={runFilter === filter ? 'primary' : 'default'}
+                  className={
                     runFilter === filter
                       ? filter === 'Passed'
                         ? 'tms-chip-success'
@@ -359,10 +347,10 @@ function RunDetailPage() {
                             ? 'tms-chip-warning'
                             : 'tms-chip-draft'
                       : ''
-                  }`}
+                  }
                 >
                   {filter}
-                </button>
+                </Button>
               ))}
             </div>
 
@@ -371,14 +359,20 @@ function RunDetailPage() {
                 {selectedTestIds.length} selected
               </span>
               {STATUS_ACTIONS.map((status) => (
-                <button
+                <Button
                   key={status}
-                  type="button"
                   onClick={() => {
                     void handleBulkStatus(status)
                   }}
                   disabled={selectedTestIds.length === 0 || isBulkUpdating}
-                  className={`tms-button disabled:cursor-not-allowed disabled:opacity-55 ${
+                  variant={
+                    status === 'Passed'
+                      ? 'success'
+                      : status === 'Failed'
+                        ? 'danger'
+                        : 'warning'
+                  }
+                  className={`${
                     status === 'Passed'
                       ? 'border-[var(--tms-success)] bg-[var(--tms-success-soft)] text-[var(--tms-success)]'
                       : status === 'Failed'
@@ -387,35 +381,32 @@ function RunDetailPage() {
                   }`}
                 >
                   {status}
-                </button>
+                </Button>
               ))}
-              <button
-                type="button"
+              <Button
                 onClick={() => {
                   void handleBulkStatus(null)
                 }}
                 disabled={selectedTestIds.length === 0 || isBulkUpdating}
-                className="tms-button disabled:cursor-not-allowed disabled:opacity-55"
               >
                 Clear
-              </button>
+              </Button>
               {nextNotRunTestId ? (
-                <button
-                  type="button"
+                <Button
                   onClick={() =>
                     testRowRefs.current[nextNotRunTestId]?.scrollIntoView({
                       behavior: 'smooth',
                       block: 'center',
                     })
                   }
-                  className="tms-button tms-button-primary"
+                  variant="primary"
                 >
                   Next not run
-                </button>
+                </Button>
               ) : null}
             </div>
           </div>
-        </section>
+        </Panel>
 
         {errorMessage ? (
           <div className="mb-5 rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border)] bg-[var(--tms-danger-soft)] px-4 py-3 text-sm text-[var(--tms-danger)]">
@@ -434,8 +425,11 @@ function RunDetailPage() {
               : `No test cases match the "${runFilter}" filter.`}
           </div>
         ) : (
-          <section className="tms-panel overflow-x-auto">
-            <div className="tms-table-head grid min-w-[1180px] grid-cols-[44px_80px_minmax(260px,1fr)_120px_250px_260px_92px] px-5 py-3">
+          <TableShell className="shadow-[var(--tms-shadow-panel)]">
+            <TableHead
+              columns="44px 80px minmax(260px,1fr) 120px 250px 260px 92px"
+              minWidth="1180px"
+            >
               <div>
                 <input
                   type="checkbox"
@@ -451,19 +445,20 @@ function RunDetailPage() {
               <div>Quick result</div>
               <div>Comment</div>
               <div className="text-right">Open</div>
-            </div>
+            </TableHead>
 
             {filteredTests.map((test) => {
               const isStatusPending = Boolean(pendingStatusByTestId[test.id])
               const isCommentPending = Boolean(pendingCommentByTestId[test.id])
 
               return (
-                <div
+                <TableRow
                   key={test.id}
                   ref={(node) => {
                     testRowRefs.current[test.id] = node
                   }}
-                  className="tms-table-row grid min-w-[1180px] grid-cols-[44px_80px_minmax(260px,1fr)_120px_250px_260px_92px] px-5 py-3"
+                  columns="44px 80px minmax(260px,1fr) 120px 250px 260px 92px"
+                  minWidth="1180px"
                 >
                   <div>
                     <input
@@ -487,23 +482,36 @@ function RunDetailPage() {
                     </div>
                   </div>
                   <div>
-                    <span
-                      className={`tms-chip ${getStatusClass(
-                        test.status,
-                      )}`}
+                    <Badge
+                      variant={
+                        test.status === 'Passed'
+                          ? 'success'
+                          : test.status === 'Failed'
+                            ? 'danger'
+                            : test.status === 'Blocked'
+                              ? 'warning'
+                              : 'draft'
+                      }
                     >
                       {test.status ?? 'Not run'}
-                    </span>
+                    </Badge>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {STATUS_ACTIONS.map((status) => (
-                      <button
+                      <Button
                         key={status}
-                        type="button"
                         disabled={isStatusPending}
                         onClick={() => {
                           void handleRunTest(test.id, status)
                         }}
+                        size="sm"
+                        variant={
+                          status === 'Passed'
+                            ? 'success'
+                            : status === 'Failed'
+                              ? 'danger'
+                              : 'warning'
+                        }
                         className={`rounded-lg border px-2.5 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-55 ${
                           status === 'Passed'
                             ? 'border-[var(--tms-success)] bg-[var(--tms-success-soft)] text-[var(--tms-success)]'
@@ -513,18 +521,18 @@ function RunDetailPage() {
                         }`}
                       >
                         {status}
-                      </button>
+                      </Button>
                     ))}
-                    <button
-                      type="button"
+                    <Button
                       disabled={isStatusPending}
                       onClick={() => {
                         void handleRunTest(test.id, null)
                       }}
-                      className="rounded-lg border border-[var(--tms-border)] bg-[var(--tms-surface)] px-2.5 py-1 text-xs font-semibold text-[var(--tms-text-muted)] disabled:cursor-not-allowed disabled:opacity-55"
+                      size="sm"
+                      className="rounded-lg border border-[var(--tms-border)] bg-[var(--tms-surface)] px-2.5 py-1 text-xs font-semibold text-[var(--tms-text-muted)]"
                     >
                       Clear
-                    </button>
+                    </Button>
                   </div>
                   <div className="flex items-center gap-2">
                     <textarea
@@ -539,16 +547,16 @@ function RunDetailPage() {
                       placeholder="Execution note"
                       className="tms-input min-h-10 w-full resize-y rounded-xl px-3 py-2 text-sm"
                     />
-                    <button
-                      type="button"
+                    <Button
                       disabled={isCommentPending}
                       onClick={() => {
                         void handleSaveComment(test.id)
                       }}
-                      className="rounded-lg border border-[var(--tms-border)] bg-[var(--tms-surface)] px-2.5 py-2 text-xs font-semibold text-[var(--tms-text-muted)] disabled:cursor-not-allowed disabled:opacity-55"
+                      size="sm"
+                      className="rounded-lg border border-[var(--tms-border)] bg-[var(--tms-surface)] px-2.5 py-2 text-xs font-semibold text-[var(--tms-text-muted)]"
                     >
                       {isCommentPending ? '...' : 'Save'}
-                    </button>
+                    </Button>
                   </div>
                   <div className="text-right">
                     <Link
@@ -559,10 +567,10 @@ function RunDetailPage() {
                       Open
                     </Link>
                   </div>
-                </div>
+                </TableRow>
               )
             })}
-          </section>
+          </TableShell>
         )}
       </div>
     </main>

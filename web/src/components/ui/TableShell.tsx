@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority'
-import type { HTMLAttributes, ReactNode } from 'react'
+import { forwardRef, type HTMLAttributes, type ReactNode } from 'react'
 import { cx } from './utils'
 
 const tableShellVariants = cva(
@@ -53,70 +53,80 @@ export type TableGridProps = HTMLAttributes<HTMLDivElement> &
     minWidth?: string
   }
 
-export function TableShell({
-  className,
-  surface,
-  children,
-  ...props
-}: TableShellProps) {
-  return (
-    <div
-      className={cx(tableShellVariants({ surface }), className)}
-      {...props}
-    >
-      {children}
-    </div>
-  )
-}
+export const TableShell = forwardRef<HTMLDivElement, TableShellProps>(
+  function TableShell({ className, surface, children, ...props }, ref) {
+    return (
+      <div
+        ref={ref}
+        className={cx(tableShellVariants({ surface }), className)}
+        {...props}
+      >
+        {children}
+      </div>
+    )
+  },
+)
 
-export function TableHead({
-  className,
-  children,
-  columns,
-  minWidth = '0',
-  padding,
-  style,
-  ...props
-}: TableGridProps) {
-  return (
-    <div
-      className={cx(tableHeadVariants({ padding }), className)}
-      style={{
-        display: 'grid',
-        gridTemplateColumns: columns,
-        minWidth,
-        ...style,
-      }}
-      {...props}
-    >
-      {children}
-    </div>
-  )
-}
+export const TableHead = forwardRef<HTMLDivElement, TableGridProps>(
+  function TableHead(
+    {
+      className,
+      children,
+      columns,
+      minWidth = '0',
+      padding,
+      style,
+      ...props
+    },
+    ref,
+  ) {
+    return (
+      <div
+        ref={ref}
+        className={cx(tableHeadVariants({ padding }), className)}
+        style={{
+          display: 'grid',
+          gridTemplateColumns: columns,
+          minWidth,
+          ...style,
+        }}
+        {...props}
+      >
+        {children}
+      </div>
+    )
+  },
+)
 
-export function TableRow({
-  className,
-  children,
-  columns,
-  minWidth = '0',
-  padding,
-  style,
-  ...props
-}: TableGridProps) {
-  return (
-    <div
-      className={cx(tableRowVariants({ padding }), className)}
-      style={{
-        display: 'grid',
-        gridTemplateColumns: columns,
-        minWidth,
-        ...style,
-      }}
-      {...props}
-    >
-      {children}
-    </div>
-  )
-}
+export const TableRow = forwardRef<HTMLDivElement, TableGridProps>(
+  function TableRow(
+    {
+      className,
+      children,
+      columns,
+      minWidth = '0',
+      padding,
+      style,
+      ...props
+    },
+    ref,
+  ) {
+    return (
+      <div
+        ref={ref}
+        className={cx(tableRowVariants({ padding }), className)}
+        style={{
+          display: 'grid',
+          gridTemplateColumns: columns,
+          minWidth,
+          ...style,
+        }}
+        {...props}
+      >
+        {children}
+      </div>
+    )
+  },
+)
 
 export { tableHeadVariants, tableRowVariants, tableShellVariants }

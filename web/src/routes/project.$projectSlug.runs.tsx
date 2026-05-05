@@ -6,6 +6,11 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
+import { Badge } from '../components/ui/Badge'
+import { Button } from '../components/ui/Button'
+import { Input } from '../components/ui/Input'
+import { Panel } from '../components/ui/Panel'
+import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import { getDashboardState } from '../features/tests/server'
 import {
   createRun,
@@ -299,13 +304,13 @@ function ProjectRunsPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
+            <Button
               onClick={() => setShowCreateRunForm((current) => !current)}
-              className="tms-button tms-button-primary px-6 py-3 text-base"
+              variant="primary"
+              size="lg"
             >
               + Run
-            </button>
+            </Button>
           </div>
         </section>
 
@@ -316,9 +321,9 @@ function ProjectRunsPage() {
             { label: 'Ready', value: readyCases },
             { label: 'Runs', value: runs.length },
           ].map((item) => (
-            <div
+            <Panel
               key={item.label}
-              className="tms-panel px-7 py-6"
+              className="px-7 py-6"
             >
               <div className="tms-kicker">
                 {item.label}
@@ -326,11 +331,11 @@ function ProjectRunsPage() {
               <div className="mt-3 text-4xl font-semibold text-[var(--tms-text)]">
                 {item.value}
               </div>
-            </div>
+            </Panel>
           ))}
         </section>
 
-        <section className="tms-panel px-6 py-6">
+        <Panel className="px-6 py-6">
           <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
             <div>
             <h2 className="m-0 text-2xl font-semibold text-[var(--tms-text)]">Runs</h2>
@@ -338,9 +343,9 @@ function ProjectRunsPage() {
                 Create, rename, and track execution progress for this project.
               </p>
             </div>
-            <div className="tms-chip">
+            <Badge>
               {runs.length} run{runs.length === 1 ? '' : 's'}
-            </div>
+            </Badge>
           </div>
 
           {showCreateRunForm ? (
@@ -351,23 +356,24 @@ function ProjectRunsPage() {
               <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
                 <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
                   Run name
-                  <input
+                  <Input
                     value={runName}
                     onChange={(event) => setRunName(event.target.value)}
                     placeholder="Week 13. Regression"
-                    className="tms-input min-w-0 px-4 py-3 text-base"
+                    size="lg"
+                    className="min-w-0"
                   />
                 </label>
                 <div className="flex items-end gap-2">
-                  <button
+                  <Button
                     type="submit"
                     disabled={isCreatingRun || selectedRunTestIds.length === 0}
-                    className="tms-button tms-button-primary whitespace-nowrap px-5 py-3 disabled:cursor-not-allowed disabled:opacity-55"
+                    variant="primary"
+                    className="whitespace-nowrap px-5 py-3"
                   >
                     {isCreatingRun ? 'Creating...' : 'Create run'}
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button
                     onClick={() => {
                       setShowCreateRunForm(false)
                       resetCreateRunForm()
@@ -375,7 +381,7 @@ function ProjectRunsPage() {
                     className="tms-button whitespace-nowrap px-5 py-3"
                   >
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -386,13 +392,13 @@ function ProjectRunsPage() {
                     { value: 'suites', label: 'Suites' },
                     { value: 'cases', label: 'Cases' },
                   ].map((option) => (
-                    <button
+                    <Button
                       key={option.value}
-                      type="button"
                       onClick={() => {
                         setRunScope(option.value as 'all' | 'suites' | 'cases')
                         setCreateRunErrorMessage(null)
                       }}
+                      variant={runScope === option.value ? 'primary' : 'default'}
                       className={`tms-button ${
                         runScope === option.value
                           ? 'tms-chip-primary'
@@ -400,13 +406,13 @@ function ProjectRunsPage() {
                       }`}
                     >
                       {option.label}
-                    </button>
+                    </Button>
                   ))}
                 </div>
-                <div className="tms-chip">
+                <Badge>
                   {selectedRunTestIds.length} case
                   {selectedRunTestIds.length === 1 ? '' : 's'} in run
-                </div>
+                </Badge>
               </div>
 
               {runScope === 'suites' ? (
@@ -503,8 +509,11 @@ function ProjectRunsPage() {
               No runs yet. Create the first run when you are ready to execute test cases.
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border-subtle)]">
-              <div className="tms-table-head grid min-w-[1180px] grid-cols-[minmax(300px,1fr)_190px_96px_96px_96px_110px_190px] px-5 py-3">
+            <TableShell>
+              <TableHead
+                columns="minmax(300px,1fr) 190px 96px 96px 96px 110px 190px"
+                minWidth="1180px"
+              >
                 <div>Run</div>
                 <div>Progress</div>
                 <div>Passed</div>
@@ -512,7 +521,7 @@ function ProjectRunsPage() {
                 <div>Blocked</div>
                 <div>Not run</div>
                 <div className="text-right">Actions</div>
-              </div>
+              </TableHead>
               {runs.map((run) => {
                 const isEditing = editingRunId === run.id
                 const isPending = pendingRunId === run.id
@@ -529,9 +538,11 @@ function ProjectRunsPage() {
                         : 'In progress'
 
                 return (
-                  <section
+                  <TableRow
                     key={run.id}
-                    className="tms-table-row grid min-w-[1180px] grid-cols-[minmax(300px,1fr)_190px_96px_96px_96px_110px_190px] px-5 py-4"
+                    columns="minmax(300px,1fr) 190px 96px 96px 96px 110px 190px"
+                    minWidth="1180px"
+                    className="py-4"
                   >
                     <div className="min-w-0 pr-4">
                       {isEditing ? (
@@ -539,31 +550,30 @@ function ProjectRunsPage() {
                             className="grid gap-2 xl:grid-cols-[minmax(240px,1fr)_auto_auto]"
                             onSubmit={(event) => handleRenameRun(event, run.id)}
                           >
-                            <input
+                            <Input
                               value={editingRunName}
                               onChange={(event) =>
                                 setEditingRunName(event.target.value)
                               }
-                              className="tms-input min-w-0 text-base"
+                              size="lg"
+                              className="min-w-0"
                             />
-                            <button
+                            <Button
                               type="submit"
                               disabled={isPending}
-                              className="tms-button tms-button-primary disabled:cursor-not-allowed disabled:opacity-55"
+                              variant="primary"
                             >
                               {isPending ? 'Saving...' : 'Save'}
-                            </button>
-                            <button
-                              type="button"
+                            </Button>
+                            <Button
                               onClick={() => {
                                 setEditingRunId(null)
                                 setEditingRunName('')
                                 setRunActionErrorMessage(null)
                               }}
-                              className="tms-button"
                             >
                               Cancel
-                            </button>
+                            </Button>
                           </form>
                         ) : (
                           <>
@@ -572,19 +582,20 @@ function ProjectRunsPage() {
                             </div>
                             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--tms-text-muted)]">
                               <span>#{run.id}</span>
-                              <span
-                                className={`rounded-full px-2 py-0.5 ${
+                              <Badge
+                                className="px-2 py-0.5"
+                                variant={
                                   stateLabel === 'Complete'
-                                    ? 'tms-chip-success'
+                                    ? 'success'
                                     : stateLabel === 'Needs review'
-                                      ? 'tms-chip-danger'
+                                      ? 'danger'
                                       : stateLabel === 'Empty'
-                                        ? 'tms-chip-draft'
-                                        : 'tms-chip-primary'
-                                }`}
+                                        ? 'draft'
+                                        : 'primary'
+                                }
                               >
                                 {stateLabel}
-                              </span>
+                              </Badge>
                             </div>
                           </>
                         )}
@@ -618,13 +629,11 @@ function ProjectRunsPage() {
                     <div className="flex justify-end gap-2 whitespace-nowrap">
                       {!isEditing ? (
                         <>
-                          <button
-                            type="button"
+                          <Button
                             onClick={() => startRenameRun(run.id, run.name)}
-                            className="tms-button"
                           >
                             Rename
-                          </button>
+                          </Button>
                           <Link
                             to="/run/$runId"
                             params={{ runId: run.id.toString() }}
@@ -635,12 +644,12 @@ function ProjectRunsPage() {
                         </>
                       ) : null}
                     </div>
-                  </section>
+                  </TableRow>
                 )
               })}
-            </div>
+            </TableShell>
           )}
-        </section>
+        </Panel>
       </div>
     </main>
   )
