@@ -72,6 +72,34 @@ function DragHandleIcon() {
   )
 }
 
+function getPriorityChipClass(priority: RepositoryCasePriority): string {
+  if (priority === 'Critical') {
+    return 'tms-chip-priority-critical'
+  }
+
+  if (priority === 'High') {
+    return 'tms-chip-priority-high'
+  }
+
+  if (priority === 'Low') {
+    return 'tms-chip-priority-low'
+  }
+
+  return 'tms-chip-priority-medium'
+}
+
+function getStatusChipClass(status: RepositoryCaseStatus): string {
+  if (status === 'Ready') {
+    return 'tms-chip-status-ready'
+  }
+
+  if (status === 'Archived') {
+    return 'tms-chip-status-archived'
+  }
+
+  return 'tms-chip-status-draft'
+}
+
 export function CaseRow({
   test,
   isSelected,
@@ -109,7 +137,6 @@ export function CaseRow({
   const status = (test.status ?? 'Draft') as RepositoryCaseStatus
   const priority = (test.priority ?? 'Medium') as RepositoryCasePriority
   const caseType = (test.caseType ?? 'Functional') as RepositoryCaseType
-  const isReady = status === 'Ready'
   const isArchived = status === 'Archived'
   const isDropTarget = dragOverDrop?.testId === test.id
 
@@ -210,15 +237,7 @@ export function CaseRow({
         onPointerDown={(event) => event.stopPropagation()}
         disabled={isPending}
         size="sm"
-        className={`tms-chip w-fit border-0 outline-none ${
-          priority === 'Critical'
-            ? 'tms-chip-danger'
-            : priority === 'High'
-              ? 'tms-chip-warning'
-            : priority === 'Low'
-                ? 'tms-chip-draft'
-                : 'tms-chip-primary'
-        }`}
+        className={`tms-chip w-fit border-0 outline-none ${getPriorityChipClass(priority)}`}
         aria-label={`Change priority for ${test.title}`}
       >
         {priorityOptions.map((option) => (
@@ -258,13 +277,7 @@ export function CaseRow({
         onPointerDown={(event) => event.stopPropagation()}
         disabled={isPending}
         size="sm"
-        className={`tms-chip w-fit border-0 outline-none ${
-          isReady
-            ? 'tms-chip-success'
-            : isArchived
-              ? 'tms-chip-warning'
-              : 'tms-chip-draft'
-        }`}
+        className={`tms-chip w-fit border-0 outline-none ${getStatusChipClass(status)}`}
         aria-label={`Change status for ${test.title}`}
       >
         {statusOptions.map((option) => (

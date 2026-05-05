@@ -49,6 +49,22 @@ const CASE_FILTER_OPTIONS: RepositoryCaseFilter[] = [
   'Archived',
 ]
 
+function getCaseFilterChipClass(filter: RepositoryCaseFilter): string {
+  if (filter === 'Ready') {
+    return 'tms-chip-status-ready'
+  }
+
+  if (filter === 'Draft') {
+    return 'tms-chip-status-draft'
+  }
+
+  if (filter === 'Archived') {
+    return 'tms-chip-status-archived'
+  }
+
+  return 'tms-chip-primary'
+}
+
 export function RepositoryToolbar({
   visibleCount,
   searchValue,
@@ -146,19 +162,9 @@ export function RepositoryToolbar({
               <Button
                 key={filter}
                 onClick={() => onCaseFilterChange(filter)}
-                variant={
-                  caseFilter === filter
-                    ? filter === 'Archived'
-                      ? 'warning'
-                      : 'primary'
-                    : 'default'
-                }
+                variant={caseFilter === filter ? 'primary' : 'default'}
                 className={`${
-                  caseFilter === filter
-                    ? filter === 'Archived'
-                      ? 'tms-chip-warning'
-                      : 'tms-chip-primary'
-                    : ''
+                  caseFilter === filter ? getCaseFilterChipClass(filter) : ''
                 }`}
               >
                 {filter}

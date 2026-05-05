@@ -132,6 +132,24 @@ function ProjectSubnav({
   )
 }
 
+function getRunStateBadgeVariant(
+  stateLabel: string,
+): 'runPassed' | 'runFailed' | 'runNotRun' | 'primary' {
+  if (stateLabel === 'Complete') {
+    return 'runPassed'
+  }
+
+  if (stateLabel === 'Needs review') {
+    return 'runFailed'
+  }
+
+  if (stateLabel === 'Empty') {
+    return 'runNotRun'
+  }
+
+  return 'primary'
+}
+
 function ProjectRunsPage() {
   const { project, dashboard, runs } = Route.useLoaderData()
   const router = useRouter()
@@ -584,15 +602,7 @@ function ProjectRunsPage() {
                               <span>#{run.id}</span>
                               <Badge
                                 className="px-2 py-0.5"
-                                variant={
-                                  stateLabel === 'Complete'
-                                    ? 'success'
-                                    : stateLabel === 'Needs review'
-                                      ? 'danger'
-                                      : stateLabel === 'Empty'
-                                        ? 'draft'
-                                        : 'primary'
-                                }
+                                variant={getRunStateBadgeVariant(stateLabel)}
                               >
                                 {stateLabel}
                               </Badge>
@@ -607,23 +617,23 @@ function ProjectRunsPage() {
                           {executed}/{run.total}
                         </span>
                       </div>
-                      <div className="mt-1 h-2 overflow-hidden rounded-full bg-[var(--tms-surface-muted)]">
+                      <div className="tms-run-progress-track mt-1 h-2 overflow-hidden rounded-full">
                         <div
-                          className="h-full rounded-full bg-[var(--tms-primary)]"
+                          className="tms-run-progress-fill h-full rounded-full"
                           style={{ width: `${progress}%` }}
                         />
                       </div>
                     </div>
-                    <div className="text-sm font-semibold text-[var(--tms-success)]">
+                    <div className="text-sm font-semibold text-[var(--run-passed-text)]">
                       {run.passed}
                     </div>
-                    <div className="text-sm font-semibold text-[var(--tms-danger)]">
+                    <div className="text-sm font-semibold text-[var(--run-failed-text)]">
                       {run.failed}
                     </div>
-                    <div className="text-sm font-semibold text-[var(--tms-warning)]">
+                    <div className="text-sm font-semibold text-[var(--run-blocked-text)]">
                       {run.blocked}
                     </div>
-                    <div className="text-sm font-semibold text-[var(--tms-draft)]">
+                    <div className="text-sm font-semibold text-[var(--run-not-run-text)]">
                       {run.notRun}
                     </div>
                     <div className="flex justify-end gap-2 whitespace-nowrap">

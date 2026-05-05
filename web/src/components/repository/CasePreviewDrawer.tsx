@@ -49,6 +49,42 @@ type CasePreviewDrawerProps = {
   formatDateTime: (value: string | null | undefined) => string
 }
 
+function getPreviewStatusVariant(
+  status: string | null,
+): 'statusReady' | 'statusArchived' | 'statusDraft' {
+  if (status === 'Ready') {
+    return 'statusReady'
+  }
+
+  if (status === 'Archived') {
+    return 'statusArchived'
+  }
+
+  return 'statusDraft'
+}
+
+function getPreviewPriorityVariant(
+  priority: string | null,
+):
+  | 'priorityLow'
+  | 'priorityMedium'
+  | 'priorityHigh'
+  | 'priorityCritical' {
+  if (priority === 'Critical') {
+    return 'priorityCritical'
+  }
+
+  if (priority === 'High') {
+    return 'priorityHigh'
+  }
+
+  if (priority === 'Low') {
+    return 'priorityLow'
+  }
+
+  return 'priorityMedium'
+}
+
 export function CasePreviewDrawer({
   test,
   suite,
@@ -101,18 +137,10 @@ export function CasePreviewDrawer({
             <Badge variant="primary">
               {suite?.name ?? 'No suite'}
             </Badge>
-            <Badge
-              variant={
-                test.status === 'Ready'
-                  ? 'success'
-                  : test.status === 'Archived'
-                    ? 'warning'
-                    : 'draft'
-              }
-            >
+            <Badge variant={getPreviewStatusVariant(test.status)}>
               {test.status ?? 'Draft'}
             </Badge>
-            <Badge>
+            <Badge variant={getPreviewPriorityVariant(test.priority)}>
               {test.priority ?? 'Medium'}
             </Badge>
             <Badge>

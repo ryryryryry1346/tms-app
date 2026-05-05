@@ -31,6 +31,41 @@
   --tms-warning-border: color-mix(in oklab, var(--tms-warning) 24%, var(--tms-border));
   --tms-draft: #334155;
   --tms-draft-soft: #f1f5f9;
+  --status-draft-text: #334155;
+  --status-draft-bg: #f1f5f9;
+  --status-draft-border: #e2e8f0;
+  --status-ready-text: #047857;
+  --status-ready-bg: #ecfdf5;
+  --status-ready-border: #a7f3d0;
+  --status-archived-text: #92400e;
+  --status-archived-bg: #fffbeb;
+  --status-archived-border: #fde68a;
+  --priority-low-text: #334155;
+  --priority-low-bg: #f8fafc;
+  --priority-low-border: #e2e8f0;
+  --priority-medium-text: #075985;
+  --priority-medium-bg: #f0f9ff;
+  --priority-medium-border: #bae6fd;
+  --priority-high-text: #92400e;
+  --priority-high-bg: #fffbeb;
+  --priority-high-border: #fde68a;
+  --priority-critical-text: #be123c;
+  --priority-critical-bg: #fff1f2;
+  --priority-critical-border: #fecdd3;
+  --run-passed-text: #047857;
+  --run-passed-bg: #ecfdf5;
+  --run-passed-border: #a7f3d0;
+  --run-failed-text: #be123c;
+  --run-failed-bg: #fff1f2;
+  --run-failed-border: #fecdd3;
+  --run-blocked-text: #92400e;
+  --run-blocked-bg: #fffbeb;
+  --run-blocked-border: #fde68a;
+  --run-not-run-text: #475569;
+  --run-not-run-bg: #f8fafc;
+  --run-not-run-border: #e2e8f0;
+  --run-progress-bg: #eef2f7;
+  --run-progress-fill: var(--tms-primary);
   --tms-skeleton: #e5e5e5;
   --tms-skeleton-soft: #f5f5f5;
   --tms-backdrop: rgba(23, 23, 23, 0.32);
@@ -294,6 +329,80 @@ pre code {
   border-color: transparent;
   background: var(--tms-draft-soft);
   color: var(--tms-draft);
+}
+
+.tms-chip-status-draft {
+  border-color: var(--status-draft-border);
+  background: var(--status-draft-bg);
+  color: var(--status-draft-text);
+}
+
+.tms-chip-status-ready {
+  border-color: var(--status-ready-border);
+  background: var(--status-ready-bg);
+  color: var(--status-ready-text);
+}
+
+.tms-chip-status-archived {
+  border-color: var(--status-archived-border);
+  background: var(--status-archived-bg);
+  color: var(--status-archived-text);
+}
+
+.tms-chip-priority-low {
+  border-color: var(--priority-low-border);
+  background: var(--priority-low-bg);
+  color: var(--priority-low-text);
+}
+
+.tms-chip-priority-medium {
+  border-color: var(--priority-medium-border);
+  background: var(--priority-medium-bg);
+  color: var(--priority-medium-text);
+}
+
+.tms-chip-priority-high {
+  border-color: var(--priority-high-border);
+  background: var(--priority-high-bg);
+  color: var(--priority-high-text);
+}
+
+.tms-chip-priority-critical {
+  border-color: var(--priority-critical-border);
+  background: var(--priority-critical-bg);
+  color: var(--priority-critical-text);
+}
+
+.tms-chip-run-passed {
+  border-color: var(--run-passed-border);
+  background: var(--run-passed-bg);
+  color: var(--run-passed-text);
+}
+
+.tms-chip-run-failed {
+  border-color: var(--run-failed-border);
+  background: var(--run-failed-bg);
+  color: var(--run-failed-text);
+}
+
+.tms-chip-run-blocked {
+  border-color: var(--run-blocked-border);
+  background: var(--run-blocked-bg);
+  color: var(--run-blocked-text);
+}
+
+.tms-chip-run-not-run {
+  border-color: var(--run-not-run-border);
+  background: var(--run-not-run-bg);
+  color: var(--run-not-run-text);
+}
+
+.tms-run-progress-track {
+  background: var(--run-progress-bg);
+}
+
+.tms-run-progress-fill {
+  background: var(--run-progress-fill);
 }
 
 .tms-popover {

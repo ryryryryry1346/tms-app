@@ -42,6 +42,44 @@ const STATUS_ACTIONS: Array<Exclude<RunItemStatus, null>> = [
   'Blocked',
 ]
 
+function getRunResultChipClass(status: RunFilter | RunItemStatus): string {
+  if (status === 'Passed') {
+    return 'tms-chip-run-passed'
+  }
+
+  if (status === 'Failed') {
+    return 'tms-chip-run-failed'
+  }
+
+  if (status === 'Blocked') {
+    return 'tms-chip-run-blocked'
+  }
+
+  if (status === 'Not run' || status === null) {
+    return 'tms-chip-run-not-run'
+  }
+
+  return 'tms-chip-primary'
+}
+
+function getRunResultBadgeVariant(
+  status: RunItemStatus,
+): 'runPassed' | 'runFailed' | 'runBlocked' | 'runNotRun' {
+  if (status === 'Passed') {
+    return 'runPassed'
+  }
+
+  if (status === 'Failed') {
+    return 'runFailed'
+  }
+
+  if (status === 'Blocked') {
+    return 'runBlocked'
+  }
+
+  return 'runNotRun'
+}
+
 function RunDetailPage() {
   const data = Route.useLoaderData()
   const router = useRouter()
@@ -300,9 +338,9 @@ function RunDetailPage() {
                   {executedCount}/{data.tests.length}
                 </div>
               </div>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--tms-surface-muted)]">
+              <div className="tms-run-progress-track mt-3 h-2 overflow-hidden rounded-full">
                 <div
-                  className="h-full rounded-full bg-[var(--tms-primary)]"
+                  className="tms-run-progress-fill h-full rounded-full"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -310,10 +348,10 @@ function RunDetailPage() {
 
             <div className="grid gap-3 sm:grid-cols-4">
               {[
-                { label: 'Passed', value: passedCount, className: 'text-[var(--tms-success)]' },
-                { label: 'Failed', value: failedCount, className: 'text-[var(--tms-danger)]' },
-                { label: 'Blocked', value: blockedCount, className: 'text-[var(--tms-warning)]' },
-                { label: 'Not run', value: notRunCount, className: 'text-[var(--tms-draft)]' },
+                { label: 'Passed', value: passedCount, className: 'text-[var(--run-passed-text)]' },
+                { label: 'Failed', value: failedCount, className: 'text-[var(--run-failed-text)]' },
+                { label: 'Blocked', value: blockedCount, className: 'text-[var(--run-blocked-text)]' },
+                { label: 'Not run', value: notRunCount, className: 'text-[var(--run-not-run-text)]' },
               ].map((item) => (
                 <Panel
                   key={item.label}
@@ -339,13 +377,7 @@ function RunDetailPage() {
                   variant={runFilter === filter ? 'primary' : 'default'}
                   className={
                     runFilter === filter
-                      ? filter === 'Passed'
-                        ? 'tms-chip-success'
-                        : filter === 'Failed'
-                          ? 'tms-chip-danger'
-                          : filter === 'Blocked'
-                            ? 'tms-chip-warning'
-                            : 'tms-chip-draft'
+                      ? getRunResultChipClass(filter)
                       : ''
                   }
                 >
@@ -365,20 +397,7 @@ function RunDetailPage() {
                     void handleBulkStatus(status)
                   }}
                   disabled={selectedTestIds.length === 0 || isBulkUpdating}
-                  variant={
-                    status === 'Passed'
-                      ? 'success'
-                      : status === 'Failed'
-                        ? 'danger'
-                        : 'warning'
-                  }
-                  className={`${
-                    status === 'Passed'
-                      ? 'border-[var(--tms-success)] bg-[var(--tms-success-soft)] text-[var(--tms-success)]'
-                      : status === 'Failed'
-                        ? 'border-[var(--tms-danger)] bg-[var(--tms-danger-soft)] text-[var(--tms-danger)]'
-                        : 'border-[var(--tms-warning)] bg-[var(--tms-warning-soft)] text-[var(--tms-warning)]'
-                  }`}
+                  className={getRunResultChipClass(status)}
                 >
                   {status}
                 </Button>
@@ -483,15 +502,7 @@ function RunDetailPage() {
                   </div>
                   <div>
                     <Badge
-                      variant={
-                        test.status === 'Passed'
-                          ? 'success'
-                          : test.status === 'Failed'
-                            ? 'danger'
-                            : test.status === 'Blocked'
-                              ? 'warning'
-                              : 'draft'
-                      }
+                      variant={getRunResultBadgeVariant(test.status)}
                     >
                       {test.status ?? 'Not run'}
                     </Badge>
@@ -505,20 +516,7 @@ function RunDetailPage() {
                           void handleRunTest(test.id, status)
                         }}
                         size="sm"
-                        variant={
-                          status === 'Passed'
-                            ? 'success'
-                            : status === 'Failed'
-                              ? 'danger'
-                              : 'warning'
-                        }
-                        className={`rounded-lg border px-2.5 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-55 ${
-                          status === 'Passed'
-                            ? 'border-[var(--tms-success)] bg-[var(--tms-success-soft)] text-[var(--tms-success)]'
-                            : status === 'Failed'
-                              ? 'border-[var(--tms-danger)] bg-[var(--tms-danger-soft)] text-[var(--tms-danger)]'
-                              : 'border-[var(--tms-warning)] bg-[var(--tms-warning-soft)] text-[var(--tms-warning)]'
-                        }`}
+                        className={`rounded-lg border px-2.5 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-55 ${getRunResultChipClass(status)}`}
                       >
                         {status}
                       </Button>

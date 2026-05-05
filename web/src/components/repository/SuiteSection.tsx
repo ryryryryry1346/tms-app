@@ -135,6 +135,32 @@ function ChevronDownIcon() {
   )
 }
 
+function getQuickCreatePriorityChipClass(priority: RepositoryCasePriority): string {
+  if (priority === 'Critical') {
+    return 'tms-chip-priority-critical'
+  }
+
+  if (priority === 'High') {
+    return 'tms-chip-priority-high'
+  }
+
+  if (priority === 'Low') {
+    return 'tms-chip-priority-low'
+  }
+
+  return 'tms-chip-priority-medium'
+}
+
+function getQuickCreateStatusChipClass(
+  status: RepositoryQuickCreateStatus,
+): string {
+  if (status === 'Ready') {
+    return 'tms-chip-status-ready'
+  }
+
+  return 'tms-chip-status-draft'
+}
+
 export function SuiteSection({
   section,
   sectionTests,
@@ -254,7 +280,7 @@ export function SuiteSection({
           }
           disabled={isPending}
           size="sm"
-          className="tms-chip tms-chip-primary w-fit border-0 outline-none"
+          className={`tms-chip w-fit border-0 outline-none ${getQuickCreatePriorityChipClass(quickCreatePriority)}`}
         >
           {priorityOptions.map((priority) => (
             <option key={priority} value={priority}>
@@ -288,7 +314,7 @@ export function SuiteSection({
           }
           disabled={isPending}
           size="sm"
-          className="tms-chip tms-chip-draft w-fit border-0 outline-none"
+          className={`tms-chip w-fit border-0 outline-none ${getQuickCreateStatusChipClass(quickCreateStatus)}`}
         >
           {quickCreateStatusOptions.map((status) => (
             <option key={status} value={status}>
@@ -372,10 +398,10 @@ export function SuiteSection({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="success">
+          <Badge variant="statusReady">
             Ready {readyCount}
           </Badge>
-          <Badge variant="draft">
+          <Badge variant="statusDraft">
             Draft {draftCount}
           </Badge>
           {dragOverSuiteId === section.id ? (

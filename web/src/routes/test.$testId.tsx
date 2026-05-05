@@ -79,34 +79,40 @@ function formatDetailDate(value: string | null | undefined): string {
   }).format(date)
 }
 
-function getStatusVariant(status: string | null): 'success' | 'warning' | 'draft' {
+function getStatusVariant(
+  status: string | null,
+): 'statusReady' | 'statusArchived' | 'statusDraft' {
   if (status === 'Ready') {
-    return 'success'
+    return 'statusReady'
   }
 
   if (status === 'Archived') {
-    return 'warning'
+    return 'statusArchived'
   }
 
-  return 'draft'
+  return 'statusDraft'
 }
 
 function getPriorityVariant(
   priority: string | null,
-): 'danger' | 'warning' | 'draft' | 'primary' {
+):
+  | 'priorityLow'
+  | 'priorityMedium'
+  | 'priorityHigh'
+  | 'priorityCritical' {
   if (priority === 'Critical') {
-    return 'danger'
+    return 'priorityCritical'
   }
 
   if (priority === 'High') {
-    return 'warning'
+    return 'priorityHigh'
   }
 
   if (priority === 'Low') {
-    return 'draft'
+    return 'priorityLow'
   }
 
-  return 'primary'
+  return 'priorityMedium'
 }
 
 function handleRichContentClick(event: React.MouseEvent<HTMLElement>): void {
