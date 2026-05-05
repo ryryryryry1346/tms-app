@@ -1,4 +1,6 @@
 import { Link, createFileRoute, notFound, redirect } from '@tanstack/react-router'
+import { Badge } from '../components/ui/Badge'
+import { Panel } from '../components/ui/Panel'
 import { getRunsForProject } from '../features/runs/server'
 import { getDashboardState } from '../features/tests/server'
 
@@ -169,9 +171,9 @@ function ProjectReportsPage() {
             { label: 'Archived', value: archivedCases, tone: 'text-[#9a6b3d]' },
             { label: 'Runs', value: runs.length, tone: 'text-[#d05656]' },
           ].map((item) => (
-            <div
+            <Panel
               key={item.label}
-              className="rounded-3xl border border-[#e6ecf8] bg-white px-6 py-5 shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
+              className="px-6 py-5"
             >
               <div className="text-sm font-semibold uppercase tracking-[0.08em] text-[#7686a7]">
                 {item.label}
@@ -179,12 +181,12 @@ function ProjectReportsPage() {
               <div className={`mt-3 text-4xl font-semibold ${item.tone}`}>
                 {item.value}
               </div>
-            </div>
+            </Panel>
           ))}
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.8fr)]">
-          <div className="rounded-3xl border border-[#e6ecf8] bg-white px-6 py-6 shadow-[0_10px_30px_rgba(31,57,102,0.05)]">
+          <Panel className="px-6 py-6">
             <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h2 className="m-0 text-2xl font-semibold text-[#1b2f5b]">
@@ -194,9 +196,9 @@ function ProjectReportsPage() {
                   This page is reserved for aggregated quality reporting.
                 </p>
               </div>
-              <span className="rounded-full border border-[#dbe4f4] bg-[#fbfcff] px-3 py-1 text-sm font-semibold text-[#60718f]">
+              <Badge variant="draft">
                 Coming soon
-              </span>
+              </Badge>
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
@@ -214,9 +216,9 @@ function ProjectReportsPage() {
                   text: 'A compact status view for go/no-go decisions.',
                 },
               ].map((item) => (
-                <div
+                <Panel
                   key={item.title}
-                  className="rounded-2xl border border-[#e6ecf8] bg-[#fbfcff] p-5"
+                  className="rounded-2xl border-[#e6ecf8] bg-[#fbfcff] p-5 shadow-none"
                 >
                   <h3 className="m-0 text-lg font-semibold text-[#1b2f5b]">
                     {item.title}
@@ -224,12 +226,12 @@ function ProjectReportsPage() {
                   <p className="mt-3 text-sm leading-6 text-[#63759a]">
                     {item.text}
                   </p>
-                </div>
+                </Panel>
               ))}
             </div>
-          </div>
+          </Panel>
 
-          <aside className="rounded-3xl border border-[#e6ecf8] bg-white px-6 py-6 shadow-[0_10px_30px_rgba(31,57,102,0.05)]">
+          <Panel className="px-6 py-6">
             <h2 className="m-0 text-2xl font-semibold text-[#1b2f5b]">
               Current snapshot
             </h2>
@@ -253,7 +255,7 @@ function ProjectReportsPage() {
                 </div>
               ))}
             </div>
-          </aside>
+          </Panel>
         </section>
       </div>
     </main>

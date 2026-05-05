@@ -6,6 +6,8 @@ import {
   redirect,
   useLocation,
 } from '@tanstack/react-router'
+import { Badge } from '../components/ui/Badge'
+import { Panel } from '../components/ui/Panel'
 import { getRunsForProject } from '../features/runs/server'
 import { getDashboardState } from '../features/tests/server'
 
@@ -174,14 +176,14 @@ function ProjectOverviewPage() {
             <Link
               to="/project/$projectSlug/repository"
               params={{ projectSlug: project.slug ?? project.id.toString() }}
-              className="rounded-2xl border border-[#9dbaf7] bg-white px-6 py-3 text-base font-semibold no-underline text-[#2f6fe4]"
+              className="tms-button no-underline"
             >
               Open repository
             </Link>
             <Link
               to="/project/$projectSlug/runs"
               params={{ projectSlug: project.slug ?? project.id.toString() }}
-              className="rounded-2xl border border-[#2f6fe4] bg-[#2f6fe4] px-6 py-3 text-base font-semibold no-underline text-white"
+              className="tms-button tms-button-primary no-underline"
             >
               Open runs
             </Link>
@@ -196,9 +198,9 @@ function ProjectOverviewPage() {
             { label: 'Draft', value: draftCases, tone: 'text-[#7b879f]' },
             { label: 'Runs', value: runs.length, tone: 'text-[#d05656]' },
           ].map((item) => (
-            <div
+            <Panel
               key={item.label}
-              className="rounded-3xl border border-[#e6ecf8] bg-white px-6 py-5 shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
+              className="px-6 py-5"
             >
               <div className="text-sm font-semibold uppercase tracking-[0.08em] text-[#7686a7]">
                 {item.label}
@@ -206,13 +208,13 @@ function ProjectOverviewPage() {
               <div className={`mt-3 text-4xl font-semibold ${item.tone}`}>
                 {item.value}
               </div>
-            </div>
+            </Panel>
           ))}
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
           <div className="grid gap-6">
-            <section className="rounded-3xl border border-[#e6ecf8] bg-white px-6 py-5 shadow-[0_10px_30px_rgba(31,57,102,0.05)]">
+            <Panel className="px-6 py-5">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
                   <h2 className="m-0 text-2xl font-semibold text-[#1b2f5b]">
@@ -225,7 +227,7 @@ function ProjectOverviewPage() {
                 <Link
                   to="/project/$projectSlug/repository"
                   params={{ projectSlug: project.slug ?? project.id.toString() }}
-                  className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-2 text-sm font-semibold no-underline text-[#60718f]"
+                  className="tms-button no-underline"
                 >
                   Open repository
                 </Link>
@@ -241,9 +243,9 @@ function ProjectOverviewPage() {
                   ).length
 
                   return (
-                    <div
+                    <Panel
                       key={section.id}
-                      className="rounded-2xl border border-[#e9eef8] bg-[#fbfcff] px-5 py-4"
+                      className="rounded-2xl border-[#e9eef8] bg-[#fbfcff] px-5 py-4 shadow-none"
                     >
                       <div className="text-lg font-semibold text-[#1b2f5b]">
                         {section.name}
@@ -253,13 +255,13 @@ function ProjectOverviewPage() {
                         <span>Ready {suiteReady}</span>
                         <span>Draft {suiteTests.length - suiteReady}</span>
                       </div>
-                    </div>
+                    </Panel>
                   )
                 })}
               </div>
-            </section>
+            </Panel>
 
-            <section className="rounded-3xl border border-[#e6ecf8] bg-white px-6 py-5 shadow-[0_10px_30px_rgba(31,57,102,0.05)]">
+            <Panel className="px-6 py-5">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
                   <h2 className="m-0 text-2xl font-semibold text-[#1b2f5b]">
@@ -269,9 +271,9 @@ function ProjectOverviewPage() {
                     Latest created cases across the project repository.
                   </p>
                 </div>
-                <div className="rounded-full border border-[#dbe4f4] bg-[#fbfcff] px-3 py-1 text-sm text-[#63759a]">
+                <Badge variant={archivedCases > 0 ? 'warning' : 'draft'}>
                   {archivedCases} archived
-                </div>
+                </Badge>
               </div>
 
               {recentCases.length === 0 ? (
@@ -298,7 +300,7 @@ function ProjectOverviewPage() {
                               #{test.id} {test.title}
                             </div>
                             <div className="mt-1 text-sm text-[#6d7d9e]">
-                              {suite?.name ?? 'No suite'} • {test.status ?? 'Draft'}
+                              {suite?.name ?? 'No suite'} / {test.status ?? 'Draft'}
                             </div>
                           </div>
                           <span className="text-sm font-semibold text-[#2f6fe4]">
@@ -310,11 +312,11 @@ function ProjectOverviewPage() {
                   })}
                 </div>
               )}
-            </section>
+            </Panel>
           </div>
 
           <div className="grid gap-6">
-            <section className="rounded-3xl border border-[#e6ecf8] bg-white px-6 py-5 shadow-[0_10px_30px_rgba(31,57,102,0.05)]">
+            <Panel className="px-6 py-5">
               <h2 className="m-0 text-2xl font-semibold text-[#1b2f5b]">
                 Recent runs
               </h2>
@@ -343,9 +345,9 @@ function ProjectOverviewPage() {
                   ))
                 )}
               </div>
-            </section>
+            </Panel>
 
-            <section className="rounded-3xl border border-[#e6ecf8] bg-white px-6 py-5 shadow-[0_10px_30px_rgba(31,57,102,0.05)]">
+            <Panel className="px-6 py-5">
               <h2 className="m-0 text-2xl font-semibold text-[#1b2f5b]">
                 Quick actions
               </h2>
@@ -357,26 +359,26 @@ function ProjectOverviewPage() {
                 <Link
                   to="/project/$projectSlug/repository"
                   params={{ projectSlug: project.slug ?? project.id.toString() }}
-                  className="rounded-2xl border border-[#dbe4f4] bg-white px-4 py-3 text-sm font-semibold no-underline text-[#60718f]"
+                  className="tms-button no-underline"
                 >
                   Manage suites and cases
                 </Link>
                 <Link
                   to="/create-test"
                   search={{ projectId: project.id }}
-                  className="rounded-2xl border border-[#9dbaf7] bg-white px-4 py-3 text-sm font-semibold no-underline text-[#2f6fe4]"
+                  className="tms-button no-underline"
                 >
                   Create test case
                 </Link>
                 <Link
                   to="/project/$projectSlug/runs"
                   params={{ projectSlug: project.slug ?? project.id.toString() }}
-                  className="rounded-2xl border border-[#2f6fe4] bg-[#2f6fe4] px-4 py-3 text-sm font-semibold no-underline text-white"
+                  className="tms-button tms-button-primary no-underline"
                 >
                   Start or continue runs
                 </Link>
               </div>
-            </section>
+            </Panel>
           </div>
         </section>
       </div>
