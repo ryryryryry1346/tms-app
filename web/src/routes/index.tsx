@@ -1,5 +1,9 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
+import { Badge } from '../components/ui/Badge'
+import { Button } from '../components/ui/Button'
+import { Input } from '../components/ui/Input'
+import { Panel } from '../components/ui/Panel'
 import {
   archiveProject,
   createProject,
@@ -142,7 +146,7 @@ function WorkspacePage() {
       </section>
 
       <section>
-        <article className="island-shell rounded-[1.5rem] p-6">
+        <Panel className="island-shell rounded-[1.5rem] p-6">
           <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="island-kicker mb-2">Projects</p>
@@ -151,24 +155,26 @@ function WorkspacePage() {
               </h2>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1 text-sm text-[var(--sea-ink-soft)]">
+              <Badge>
                 {visibleProjects.length} project
                 {visibleProjects.length === 1 ? '' : 's'}
-              </div>
+              </Badge>
               <div className="flex rounded-full border border-[var(--line)] bg-white/75 p-1">
                 {(['Active', 'Archived'] as const).map((filterValue) => (
-                  <button
+                  <Button
                     key={filterValue}
                     type="button"
                     onClick={() => setProjectFilter(filterValue)}
-                    className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                    size="sm"
+                    variant={projectFilter === filterValue ? 'primary' : 'default'}
+                    className={`rounded-full border-0 shadow-none ${
                       projectFilter === filterValue
-                        ? 'bg-[var(--chip-bg-strong)] text-[var(--lagoon-deep)]'
+                        ? ''
                         : 'text-[var(--sea-ink-soft)]'
                     }`}
                   >
                     {filterValue}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -178,19 +184,21 @@ function WorkspacePage() {
             className="mb-5 flex flex-col gap-3 sm:flex-row"
             onSubmit={handleProjectSubmit}
           >
-            <input
+            <Input
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className="min-w-0 flex-1 rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none ring-0 transition focus:border-[var(--lagoon-deep)]"
+              size="lg"
+              className="min-w-0 flex-1"
               placeholder="New project"
             />
-            <button
+            <Button
               type="submit"
               disabled={isSubmittingProject || !dashboard.databaseConfigured}
-              className="rounded-xl border border-[rgba(50,143,151,0.3)] bg-[rgba(79,184,178,0.18)] px-4 py-3 text-sm font-semibold text-[var(--lagoon-deep)] disabled:cursor-not-allowed disabled:opacity-55 sm:min-w-[148px]"
+              variant="primary"
+              className="sm:min-w-[148px]"
             >
               {isSubmittingProject ? 'Creating...' : 'Create project'}
-            </button>
+            </Button>
           </form>
 
           {projectErrorMessage ? (
@@ -215,9 +223,9 @@ function WorkspacePage() {
           ) : (
             <div className="grid gap-4">
               {visibleProjects.map((project) => (
-                <div
+                <Panel
                   key={project.id}
-                  className="rounded-2xl border border-[var(--line)] bg-white/70 p-5 shadow-[0_12px_28px_rgba(23,58,64,0.06)]"
+                  className="rounded-2xl border-[var(--line)] bg-white/70 p-5 shadow-[0_12px_28px_rgba(23,58,64,0.06)]"
                 >
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--sea-ink-soft)]">
@@ -225,17 +233,19 @@ function WorkspacePage() {
                     </div>
                     {project.status === 'Archived' ? (
                       <div className="flex flex-wrap gap-2">
-                        <button
+                        <Button
                           type="button"
                           onClick={() => handleProjectRestore(project.id)}
                           disabled={restoringProjectId === project.id}
-                          className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-55"
+                          variant="success"
+                          size="sm"
+                          className="rounded-full"
                         >
                           {restoringProjectId === project.id
                             ? 'Restoring...'
                             : 'Restore'}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
                           onClick={() => {
                             setDeleteConfirmProjectId((current) =>
@@ -244,37 +254,39 @@ function WorkspacePage() {
                             setDeleteConfirmName('')
                           }}
                           disabled={deletingProjectId === project.id}
-                          className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-55"
+                          variant="danger"
+                          size="sm"
+                          className="rounded-full"
                         >
                           {deletingProjectId === project.id ? 'Deleting...' : 'Delete permanently'}
-                        </button>
+                        </Button>
                       </div>
                     ) : (
-                      <button
+                      <Button
                         type="button"
                         onClick={() => handleProjectArchive(project.id)}
                         disabled={archivingProjectId === project.id}
-                        className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 transition hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-55"
+                        variant="warning"
+                        size="sm"
+                        className="rounded-full"
                       >
                         {archivingProjectId === project.id
                           ? 'Archiving...'
                           : 'Archive'}
-                      </button>
+                      </Button>
                     )}
                   </div>
                   <h3 className="mt-2 text-xl font-semibold text-[var(--sea-ink)]">
                     {project.name}
                   </h3>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        project.status === 'Archived'
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-emerald-100 text-emerald-800'
-                      }`}
+                    <Badge
+                      variant={
+                        project.status === 'Archived' ? 'warning' : 'success'
+                      }
                     >
                       {project.status === 'Archived' ? 'Archived' : 'Active'}
-                    </span>
+                    </Badge>
                   </div>
                   <Link
                     to="/project/$projectSlug"
@@ -299,49 +311,48 @@ function WorkspacePage() {
                           <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-rose-800">
                             Type the project name to confirm
                           </span>
-                          <input
+                          <Input
                             value={deleteConfirmName}
                             onChange={(event) =>
                               setDeleteConfirmName(event.target.value)
                             }
                             placeholder={project.name}
-                            className="w-full rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm text-[var(--sea-ink)] outline-none transition focus:border-rose-400"
+                            className="w-full border-rose-200 text-sm text-[var(--sea-ink)] focus:border-rose-400"
                           />
                         </label>
                         <div className="flex flex-wrap gap-2">
-                          <button
+                          <Button
                             type="button"
                             onClick={() => handleProjectDelete(project.id)}
                             disabled={
                               deletingProjectId === project.id ||
                               deleteConfirmName.trim() !== project.name
                             }
-                            className="rounded-xl border border-rose-300 bg-rose-100 px-4 py-2 font-semibold text-rose-900 disabled:cursor-not-allowed disabled:opacity-55"
+                            variant="danger"
                           >
                             {deletingProjectId === project.id
                               ? 'Deleting...'
                               : 'Confirm delete'}
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             type="button"
                             onClick={() => {
                               setDeleteConfirmProjectId(null)
                               setDeleteConfirmName('')
                             }}
                             disabled={deletingProjectId === project.id}
-                            className="rounded-xl border border-[var(--line)] bg-white px-4 py-2 font-semibold text-[var(--sea-ink)] disabled:cursor-not-allowed disabled:opacity-55"
                           >
                             Cancel
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     </div>
                   ) : null}
-                </div>
+                </Panel>
               ))}
             </div>
           )}
-        </article>
+        </Panel>
       </section>
     </main>
   )
