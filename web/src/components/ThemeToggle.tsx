@@ -1,72 +1,36 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Button } from './ui/Button'
 
-type ThemeMode = 'light' | 'dark' | 'auto'
+type ThemeMode = 'light'
 
 function getInitialMode(): ThemeMode {
   if (typeof window === 'undefined') {
-    return 'auto'
+    return 'light'
   }
 
-  const stored = window.localStorage.getItem('theme')
-  if (stored === 'light' || stored === 'dark' || stored === 'auto') {
-    return stored
-  }
-
-  return 'auto'
+  window.localStorage.setItem('theme', 'light')
+  return 'light'
 }
 
 function applyThemeMode(mode: ThemeMode) {
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-  const resolved = mode === 'auto' ? (prefersDark ? 'dark' : 'light') : mode
-
-  document.documentElement.classList.remove('light', 'dark')
-  document.documentElement.classList.add(resolved)
-
-  if (mode === 'auto') {
-    document.documentElement.removeAttribute('data-theme')
-  } else {
-    document.documentElement.setAttribute('data-theme', mode)
-  }
-
-  document.documentElement.style.colorScheme = resolved
+  document.documentElement.classList.remove('dark')
+  document.documentElement.classList.add(mode)
+  document.documentElement.setAttribute('data-theme', mode)
+  document.documentElement.style.colorScheme = mode
 }
 
 export default function ThemeToggle() {
-  const [mode, setMode] = useState<ThemeMode>('auto')
-
   useEffect(() => {
     const initialMode = getInitialMode()
-    setMode(initialMode)
     applyThemeMode(initialMode)
   }, [])
 
-  useEffect(() => {
-    if (mode !== 'auto') {
-      return
-    }
-
-    const media = window.matchMedia('(prefers-color-scheme: dark)')
-    const onChange = () => applyThemeMode('auto')
-
-    media.addEventListener('change', onChange)
-    return () => {
-      media.removeEventListener('change', onChange)
-    }
-  }, [mode])
-
   function toggleMode() {
-    const nextMode: ThemeMode =
-      mode === 'light' ? 'dark' : mode === 'dark' ? 'auto' : 'light'
-    setMode(nextMode)
-    applyThemeMode(nextMode)
-    window.localStorage.setItem('theme', nextMode)
+    applyThemeMode('light')
+    window.localStorage.setItem('theme', 'light')
   }
 
-  const label =
-    mode === 'auto'
-      ? 'Theme mode: auto (system). Click to switch to light mode.'
-      : `Theme mode: ${mode}. Click to switch mode.`
+  const label = 'Theme mode: light.'
 
   return (
     <Button
@@ -77,7 +41,7 @@ export default function ThemeToggle() {
       size="sm"
       className="rounded-full border-[var(--chip-line)] bg-[var(--chip-bg)] px-3 py-1.5 text-sm font-semibold text-[var(--sea-ink)] shadow-[0_8px_22px_rgba(30,90,72,0.08)] transition hover:-translate-y-0.5"
     >
-      {mode === 'auto' ? 'Auto' : mode === 'dark' ? 'Dark' : 'Light'}
+      Light
     </Button>
   )
 }
