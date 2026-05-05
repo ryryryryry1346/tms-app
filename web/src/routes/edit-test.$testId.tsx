@@ -1,6 +1,9 @@
 import { Link, createFileRoute, notFound, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { RichTextEditor } from '../components/RichTextEditor'
+import { Button } from '../components/ui/Button'
+import { Input } from '../components/ui/Input'
+import { Select } from '../components/ui/Select'
 import { uploadTestMedia } from '../features/media/server'
 import { getEditTestFormState, updateTestCase } from '../features/tests/server'
 
@@ -142,7 +145,7 @@ function EditTestPage() {
               <Link
                 to="/project/$projectSlug/repository"
                 params={{ projectSlug: selectedProjectSlug }}
-                className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#60718f] hover:text-[#2f6fe4]"
+                className="tms-button no-underline hover:text-[var(--tms-primary)]"
               >
                 Repository
               </Link>
@@ -150,7 +153,7 @@ function EditTestPage() {
             <Link
               to="/test/$testId"
               params={{ testId: formState.test.id.toString() }}
-              className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#60718f] hover:text-[#2f6fe4]"
+              className="tms-button no-underline hover:text-[var(--tms-primary)]"
             >
               View case
             </Link>
@@ -159,15 +162,15 @@ function EditTestPage() {
 
         <section>
           <form
-            className="rounded-[1.5rem] border border-[#e6ecf8] bg-white p-6 shadow-[0_12px_36px_rgba(31,57,102,0.06)]"
+            className="tms-panel p-6"
             onSubmit={handleSubmit}
           >
             <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
               Test case title
-              <input
+              <Input
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
+                size="lg"
                 placeholder="Verify order cancellation"
               />
             </label>
@@ -175,10 +178,10 @@ function EditTestPage() {
             <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px_180px_190px]">
               <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
                 Test suite
-                <select
+                <Select
                   value={sectionId}
                   onChange={(event) => setSectionId(event.target.value)}
-                  className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
+                  size="lg"
                 >
                   {formState.sections.map((section) => (
                     <option key={section.id} value={section.id}>
@@ -187,12 +190,12 @@ function EditTestPage() {
                         : section.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
 
               <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
                 Status
-                <select
+                <Select
                   value={status}
                   onChange={(event) =>
                     setStatus(
@@ -203,17 +206,17 @@ function EditTestPage() {
                           : 'Draft',
                     )
                   }
-                  className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
+                  size="lg"
                 >
                   <option value="Draft">Draft</option>
                   <option value="Ready">Ready</option>
                   <option value="Archived">Archived</option>
-                </select>
+                </Select>
               </label>
 
               <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
                 Priority
-                <select
+                <Select
                   value={priority}
                   onChange={(event) =>
                     setPriority(
@@ -226,18 +229,18 @@ function EditTestPage() {
                             : 'Medium',
                     )
                   }
-                  className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
+                  size="lg"
                 >
                   <option value="Low">Low</option>
                   <option value="Medium">Medium</option>
                   <option value="High">High</option>
                   <option value="Critical">Critical</option>
-                </select>
+                </Select>
               </label>
 
               <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
                 Type
-                <select
+                <Select
                   value={caseType}
                   onChange={(event) =>
                     setCaseType(
@@ -254,7 +257,7 @@ function EditTestPage() {
                                 : 'Functional',
                     )
                   }
-                  className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
+                  size="lg"
                 >
                   <option value="Functional">Functional</option>
                   <option value="Regression">Regression</option>
@@ -262,7 +265,7 @@ function EditTestPage() {
                   <option value="E2E">E2E</option>
                   <option value="UI">UI</option>
                   <option value="API">API</option>
-                </select>
+                </Select>
               </label>
             </div>
 
@@ -302,11 +305,11 @@ function EditTestPage() {
                 <Link
                   to="/test/$testId"
                   params={{ testId: formState.test.id.toString() }}
-                  className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-3 text-sm font-semibold no-underline text-[#60718f]"
+                  className="tms-button no-underline"
                 >
                   Cancel
                 </Link>
-                <button
+                <Button
                   type="submit"
                   disabled={
                     isSubmitting ||
@@ -314,14 +317,14 @@ function EditTestPage() {
                     !formState.databaseConfigured ||
                     formState.sections.length === 0
                   }
-                  className="rounded-xl border border-[#2f6fe4] bg-[#2f6fe4] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
+                  variant="primary"
                 >
                   {isUploading
                     ? 'Uploading media...'
                     : isSubmitting
                       ? 'Saving...'
                       : 'Save changes'}
-                </button>
+                </Button>
               </div>
             </div>
           </form>

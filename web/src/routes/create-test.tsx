@@ -2,6 +2,10 @@ import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { z } from 'zod'
 import { RichTextEditor } from '../components/RichTextEditor'
+import { Button } from '../components/ui/Button'
+import { Input } from '../components/ui/Input'
+import { Panel } from '../components/ui/Panel'
+import { Select } from '../components/ui/Select'
 import { uploadTestMedia } from '../features/media/server'
 import {
   createTestCase,
@@ -144,7 +148,7 @@ function CreateTestPage() {
           <Link
             to="/project/$projectSlug/repository"
             params={{ projectSlug: selectedProjectSlug }}
-            className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#60718f] hover:text-[#2f6fe4]"
+            className="tms-button no-underline hover:text-[var(--tms-primary)]"
           >
             Back to repository
           </Link>
@@ -153,15 +157,15 @@ function CreateTestPage() {
 
       <section>
         <form
-          className="rounded-[1.5rem] border border-[#e6ecf8] bg-white p-6 shadow-[0_12px_36px_rgba(31,57,102,0.06)]"
+          className="tms-panel p-6"
           onSubmit={handleSubmit}
         >
           <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
             Test case title
-            <input
+            <Input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
+              size="lg"
               placeholder="Verify order cancellation"
             />
           </label>
@@ -169,38 +173,38 @@ function CreateTestPage() {
           <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px_180px_190px]">
             <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
               Test suite
-              <select
+              <Select
                 value={sectionId}
                 onChange={(event) => setSectionId(event.target.value)}
-                className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
+                size="lg"
               >
                 {formState.sections.map((section) => (
                   <option key={section.id} value={section.id}>
                     {section.projectName
                       ? `${section.projectName} / ${section.name}`
-                      : section.name}
+                    : section.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
 
             <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
               Status
-              <select
+              <Select
                 value={status}
                 onChange={(event) =>
                   setStatus(event.target.value === 'Ready' ? 'Ready' : 'Draft')
                 }
-                className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
+                size="lg"
               >
                 <option value="Draft">Draft</option>
                 <option value="Ready">Ready</option>
-              </select>
+              </Select>
             </label>
 
             <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
               Priority
-              <select
+              <Select
                 value={priority}
                 onChange={(event) =>
                   setPriority(
@@ -213,18 +217,18 @@ function CreateTestPage() {
                           : 'Medium',
                   )
                 }
-                className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
+                size="lg"
               >
                 <option value="Low">Low</option>
                 <option value="Medium">Medium</option>
                 <option value="High">High</option>
                 <option value="Critical">Critical</option>
-              </select>
+              </Select>
             </label>
 
             <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
               Type
-              <select
+              <Select
                 value={caseType}
                 onChange={(event) =>
                   setCaseType(
@@ -241,7 +245,7 @@ function CreateTestPage() {
                               : 'Functional',
                   )
                 }
-                className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-3 text-base outline-none transition focus:border-[#2f6fe4]"
+                size="lg"
               >
                 <option value="Functional">Functional</option>
                 <option value="Regression">Regression</option>
@@ -249,7 +253,7 @@ function CreateTestPage() {
                 <option value="E2E">E2E</option>
                 <option value="UI">UI</option>
                 <option value="API">API</option>
-              </select>
+              </Select>
             </label>
           </div>
 
@@ -290,12 +294,12 @@ function CreateTestPage() {
                 <Link
                   to="/project/$projectSlug/repository"
                   params={{ projectSlug: selectedProjectSlug }}
-                  className="rounded-xl border border-[#dbe4f4] bg-white px-4 py-3 text-sm font-semibold no-underline text-[#60718f]"
+                  className="tms-button no-underline"
                 >
                   Cancel
                 </Link>
               ) : null}
-              <button
+              <Button
                 type="submit"
                 disabled={
                   isSubmitting ||
@@ -303,30 +307,30 @@ function CreateTestPage() {
                   !formState.databaseConfigured ||
                   formState.sections.length === 0
                 }
-                className="rounded-xl border border-[#2f6fe4] bg-[#2f6fe4] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
+                variant="primary"
               >
                 {isUploading
                   ? 'Uploading media...'
                   : isSubmitting
                     ? 'Saving...'
                     : 'Create test case'}
-              </button>
+              </Button>
             </div>
           </div>
         </form>
       </section>
 
       {!formState.databaseConfigured ? (
-        <section className="mx-auto mt-5 max-w-5xl island-shell rounded-[1.5rem] border border-amber-300/60 bg-amber-100/70 p-6 text-sm text-amber-950">
+        <Panel className="mx-auto mt-5 max-w-5xl border-amber-300/60 bg-amber-100/70 p-6 text-sm text-amber-950">
           <strong>Database is not configured yet.</strong> Set
           <code> MYSQL_DATABASE_URL </code>
           and run the Drizzle migration first.
-        </section>
+        </Panel>
       ) : formState.sections.length === 0 ? (
-        <section className="mx-auto mt-5 max-w-5xl island-shell rounded-[1.5rem] p-6 text-sm text-[var(--sea-ink-soft)]">
+        <Panel className="mx-auto mt-5 max-w-5xl p-6 text-sm text-[var(--sea-ink-soft)]">
           There are no suites in MySQL yet, so test case creation is blocked
           until suite management is added.
-        </section>
+        </Panel>
       ) : null}
       </div>
     </main>
