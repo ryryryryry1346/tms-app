@@ -5,6 +5,8 @@ import {
   useRouterState,
 } from '@tanstack/react-router'
 import { useState } from 'react'
+import { Badge } from './ui/Badge'
+import { Button } from './ui/Button'
 import { logoutUser, type SessionUser } from '../features/auth/server'
 
 type HeaderProps = {
@@ -43,9 +45,9 @@ export default function Header({ user }: HeaderProps) {
         >
           {user ? (
             <>
-              <div className="hidden rounded-full border border-[var(--chip-line)] bg-white/86 px-3 py-1 text-xs text-[var(--sea-ink-soft)] sm:block">
+              <Badge className="hidden sm:block">
                 {user.displayName}
-              </div>
+              </Badge>
               <Link
                 to="/"
                 className="nav-link"
@@ -53,14 +55,15 @@ export default function Header({ user }: HeaderProps) {
               >
                 Workspace
               </Link>
-              <button
+              <Button
                 type="button"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="nav-link cursor-pointer border-0 bg-transparent p-0 disabled:opacity-60"
+                size="sm"
+                className="nav-link min-h-0 cursor-pointer border-0 bg-transparent p-0 shadow-none disabled:opacity-60"
               >
                 {isLoggingOut ? 'Logging out...' : 'Logout'}
-              </button>
+              </Button>
             </>
           ) : (
             <>

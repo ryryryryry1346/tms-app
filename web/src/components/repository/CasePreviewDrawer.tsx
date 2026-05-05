@@ -1,5 +1,8 @@
 import { Link } from '@tanstack/react-router'
 import { RichTextEditor } from '../RichTextEditor'
+import { Badge } from '../ui/Badge'
+import { Button } from '../ui/Button'
+import { Panel } from '../ui/Panel'
 
 type PreviewCase = {
   id: number
@@ -87,35 +90,34 @@ export function CasePreviewDrawer({
                 {test.title}
               </h2>
             </div>
-            <button
+            <Button
               type="button"
               onClick={onClose}
-              className="tms-button"
             >
               Close
-            </button>
+            </Button>
           </div>
           <div className="flex flex-wrap gap-2 text-xs font-semibold">
-            <span className="tms-chip tms-chip-primary">
+            <Badge variant="primary">
               {suite?.name ?? 'No suite'}
-            </span>
-            <span
-              className={`tms-chip ${
+            </Badge>
+            <Badge
+              variant={
                 test.status === 'Ready'
-                  ? 'tms-chip-success'
+                  ? 'success'
                   : test.status === 'Archived'
-                    ? 'tms-chip-warning'
-                    : 'tms-chip-draft'
-              }`}
+                    ? 'warning'
+                    : 'draft'
+              }
             >
               {test.status ?? 'Draft'}
-            </span>
-            <span className="tms-chip">
+            </Badge>
+            <Badge>
               {test.priority ?? 'Medium'}
-            </span>
-            <span className="tms-chip">
+            </Badge>
+            <Badge>
               {test.caseType ?? 'Functional'}
-            </span>
+            </Badge>
           </div>
         </div>
 
@@ -174,9 +176,9 @@ export function CasePreviewDrawer({
                 ) : (
                   <div className="mt-3 grid gap-3">
                     {activities.map((activity) => (
-                      <div
+                      <Panel
                         key={activity.id}
-                        className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-3 py-2"
+                        className="rounded-xl border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-3 py-2 shadow-none"
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span className="text-sm font-semibold text-[var(--tms-text)]">
@@ -190,7 +192,7 @@ export function CasePreviewDrawer({
                           {activity.actorName ?? 'system'} ·{' '}
                           {activity.action.replaceAll('_', ' ')}
                         </div>
-                      </div>
+                      </Panel>
                     ))}
                   </div>
                 )}
@@ -202,31 +204,30 @@ export function CasePreviewDrawer({
         <div className="flex flex-wrap items-center gap-2 border-t border-[var(--tms-border-subtle)] px-6 py-4">
           {isEditingContent ? (
             <>
-              <button
+              <Button
                 type="button"
                 disabled={isSavingContent || isUploadingMedia}
                 onClick={onSaveContent}
-                className="tms-button tms-button-primary disabled:cursor-not-allowed disabled:opacity-55"
+                variant="primary"
               >
                 {isSavingContent ? 'Saving...' : 'Save content'}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 disabled={isSavingContent}
                 onClick={onCancelEdit}
-                className="tms-button disabled:cursor-not-allowed disabled:opacity-55"
               >
                 Cancel
-              </button>
+              </Button>
             </>
           ) : (
-            <button
+            <Button
               type="button"
               onClick={onStartEdit}
-              className="tms-button tms-button-primary"
+              variant="primary"
             >
               Edit content
-            </button>
+            </Button>
           )}
           <Link
             to="/edit-test/$testId"
@@ -243,23 +244,23 @@ export function CasePreviewDrawer({
             Open full page
           </Link>
           {test.status === 'Archived' ? (
-            <button
+            <Button
               type="button"
               disabled={isPendingAction}
               onClick={onRestore}
-              className="tms-button border-[var(--tms-success)] bg-[var(--tms-success-soft)] text-[var(--tms-success)] disabled:cursor-not-allowed disabled:opacity-55"
+              variant="success"
             >
               Restore
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
               type="button"
               disabled={isPendingAction}
               onClick={onArchive}
-              className="tms-button border-[var(--tms-warning)] bg-[var(--tms-warning-soft)] text-[var(--tms-warning)] disabled:cursor-not-allowed disabled:opacity-55"
+              variant="warning"
             >
               Archive
-            </button>
+            </Button>
           )}
         </div>
       </aside>
