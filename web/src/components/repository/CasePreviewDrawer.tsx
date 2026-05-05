@@ -77,9 +77,9 @@ export function CasePreviewDrawer({
         type="button"
         aria-label="Close case preview"
         onClick={onClose}
-        className="absolute inset-0 bg-[#16233f]/30"
+        className="absolute inset-0 bg-[var(--tms-backdrop)]"
       />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[560px] flex-col border-l border-[var(--tms-border)] bg-[var(--tms-surface)] shadow-[0_24px_80px_rgba(31,57,102,0.22)]">
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[560px] flex-col border-l border-[var(--tms-border)] bg-[var(--tms-surface)] shadow-[var(--tms-shadow-drawer)]">
         <div className="border-b border-[var(--tms-border-subtle)] px-6 py-5">
           <div className="mb-4 flex items-start justify-between gap-4">
             <div className="min-w-0">

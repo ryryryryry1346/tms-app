@@ -120,12 +120,12 @@ function EditTestPage() {
   }
 
   return (
-    <main className="min-h-[calc(100vh-65px)] bg-[#f7f9fe]">
+    <main className="min-h-[calc(100vh-65px)] bg-[var(--tms-bg)]">
       <div className="mx-auto max-w-[1180px] px-6 py-8">
         <section className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div className="max-w-3xl">
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-sm font-semibold text-[#60718f]">
-              <Link to="/" className="no-underline text-[#2f6fe4]">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-sm font-semibold text-[var(--tms-text-muted)]">
+              <Link to="/" className="no-underline text-[var(--tms-primary)]">
                 Workspace
               </Link>
               <span>/</span>
@@ -135,7 +135,7 @@ function EditTestPage() {
               <span>/</span>
               <span>Case #{formState.test.id}</span>
             </div>
-            <h1 className="m-0 text-4xl font-bold tracking-tight text-[#1b2f5b]">
+            <h1 className="m-0 text-4xl font-bold tracking-tight text-[var(--tms-text)]">
               Edit Test Case
             </h1>
           </div>
@@ -165,7 +165,7 @@ function EditTestPage() {
             className="tms-panel p-6"
             onSubmit={handleSubmit}
           >
-            <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
+            <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
               Test case title
               <Input
                 value={title}
@@ -176,7 +176,7 @@ function EditTestPage() {
             </label>
 
             <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px_180px_190px]">
-              <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
+              <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
                 Test suite
                 <Select
                   value={sectionId}
@@ -193,7 +193,7 @@ function EditTestPage() {
                 </Select>
               </label>
 
-              <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
+              <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
                 Status
                 <Select
                   value={status}
@@ -214,7 +214,7 @@ function EditTestPage() {
                 </Select>
               </label>
 
-              <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
+              <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
                 Priority
                 <Select
                   value={priority}
@@ -238,7 +238,7 @@ function EditTestPage() {
                 </Select>
               </label>
 
-              <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
+              <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
                 Type
                 <Select
                   value={caseType}
@@ -295,8 +295,8 @@ function EditTestPage() {
               </div>
             ) : null}
 
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#e9eef8] pt-5">
-              <div className="text-sm font-semibold text-[#60718f]">
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--tms-border-subtle)] pt-5">
+              <div className="text-sm font-semibold text-[var(--tms-text-muted)]">
                 {selectedSection
                   ? `${selectedSection.projectName ?? 'Project'} / ${selectedSection.name}`
                   : 'Choose a suite for this case.'}

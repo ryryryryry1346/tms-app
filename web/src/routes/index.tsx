@@ -140,7 +140,7 @@ function WorkspacePage() {
     <main className="page-wrap px-4 pb-8 pt-8">
       <section className="mb-5">
         <p className="island-kicker mb-2">Workspace</p>
-        <h1 className="m-0 text-3xl font-bold tracking-tight text-[var(--sea-ink)] sm:text-4xl">
+        <h1 className="m-0 text-3xl font-bold tracking-tight text-[var(--tms-text)] sm:text-4xl">
           Projects
         </h1>
       </section>
@@ -150,7 +150,7 @@ function WorkspacePage() {
           <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="island-kicker mb-2">Projects</p>
-              <h2 className="m-0 text-xl font-semibold text-[var(--sea-ink)]">
+              <h2 className="m-0 text-xl font-semibold text-[var(--tms-text)]">
                 Workspace projects
               </h2>
             </div>
@@ -159,7 +159,7 @@ function WorkspacePage() {
                 {visibleProjects.length} project
                 {visibleProjects.length === 1 ? '' : 's'}
               </Badge>
-              <div className="flex rounded-full border border-[var(--line)] bg-white/75 p-1">
+              <div className="flex rounded-full border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] p-1">
                 {(['Active', 'Archived'] as const).map((filterValue) => (
                   <Button
                     key={filterValue}
@@ -170,7 +170,7 @@ function WorkspacePage() {
                     className={`rounded-full border-0 shadow-none ${
                       projectFilter === filterValue
                         ? ''
-                        : 'text-[var(--sea-ink-soft)]'
+                        : 'text-[var(--tms-text-muted)]'
                     }`}
                   >
                     {filterValue}
@@ -215,7 +215,7 @@ function WorkspacePage() {
               MySQL.
             </div>
           ) : visibleProjects.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-[var(--line)] bg-white/40 p-6 text-sm text-[var(--sea-ink-soft)]">
+            <div className="rounded-2xl border border-dashed border-[var(--tms-border)] bg-[var(--tms-surface-soft)] p-6 text-sm text-[var(--tms-text-muted)]">
               {projectFilter === 'Archived'
                 ? 'No archived projects yet.'
                 : 'No active projects yet. Create the first one to start structuring suites, cases, and runs.'}
@@ -225,10 +225,10 @@ function WorkspacePage() {
               {visibleProjects.map((project) => (
                 <Panel
                   key={project.id}
-                  className="rounded-2xl border-[var(--line)] bg-white/70 p-5 shadow-[0_12px_28px_rgba(23,58,64,0.06)]"
+                  className="rounded-2xl border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] p-5 shadow-[var(--tms-shadow-subtle)]"
                 >
                   <div className="mb-3 flex items-start justify-between gap-3">
-                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--sea-ink-soft)]">
+                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--tms-text-soft)]">
                       Project
                     </div>
                     {project.status === 'Archived' ? (
@@ -276,7 +276,7 @@ function WorkspacePage() {
                       </Button>
                     )}
                   </div>
-                  <h3 className="mt-2 text-xl font-semibold text-[var(--sea-ink)]">
+                  <h3 className="mt-2 text-xl font-semibold text-[var(--tms-text)]">
                     {project.name}
                   </h3>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -296,7 +296,7 @@ function WorkspacePage() {
                           ? project.slug
                           : project.id.toString(),
                     }}
-                    className="mt-3 inline-flex text-sm font-semibold text-[var(--lagoon-deep)] no-underline"
+                    className="mt-3 inline-flex text-sm font-semibold text-[var(--tms-primary)] no-underline"
                   >
                     Open project workspace
                   </Link>
@@ -317,7 +317,7 @@ function WorkspacePage() {
                               setDeleteConfirmName(event.target.value)
                             }
                             placeholder={project.name}
-                            className="w-full border-rose-200 text-sm text-[var(--sea-ink)] focus:border-rose-400"
+                            className="w-full border-[var(--tms-danger-border)] text-sm text-[var(--tms-text)] focus:border-[var(--tms-danger)]"
                           />
                         </label>
                         <div className="flex flex-wrap gap-2">

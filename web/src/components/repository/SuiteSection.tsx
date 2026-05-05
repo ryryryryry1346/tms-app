@@ -316,7 +316,7 @@ export function SuiteSection({
       onDragLeave={() => onSuiteDragLeave(section.id)}
       className={`overflow-visible rounded-[var(--tms-radius-panel)] border transition ${
         dragOverSuiteId === section.id
-          ? 'border-[var(--tms-primary)] bg-[var(--tms-surface-muted)] shadow-[0_0_0_3px_rgba(47,111,228,0.12)]'
+          ? 'border-[var(--tms-primary)] bg-[var(--tms-surface-muted)] shadow-[var(--tms-focus-ring)]'
           : 'border-[var(--tms-border)]'
       }`}
     >

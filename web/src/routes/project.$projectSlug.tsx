@@ -87,8 +87,8 @@ function ProjectSubnav({
   const tabClass = (isActive: boolean): string =>
     `rounded-full px-4 py-2 text-sm font-semibold no-underline ${
       isActive
-        ? 'bg-[#ecf2ff] text-[#2f6fe4]'
-        : 'text-[#60718f] hover:bg-[#f5f8ff]'
+        ? 'bg-[var(--tms-primary-soft)] text-[var(--tms-primary)]'
+        : 'text-[var(--tms-text-muted)] hover:bg-[var(--tms-surface-muted)]'
     }`
 
   return (
@@ -147,21 +147,21 @@ function ProjectOverviewPage() {
   const recentCases = [...dashboard.tests].sort((a, b) => b.id - a.id).slice(0, 5)
 
   return (
-    <main className="min-h-[calc(100vh-65px)] bg-[#f7f9fe]">
+    <main className="min-h-[calc(100vh-65px)] bg-[var(--tms-bg)]">
       <div className="mx-auto max-w-[1600px] px-6 py-6 lg:px-10">
         <section className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-3xl">
-            <div className="mb-2 flex items-center gap-3 text-sm text-[#6d7d9e]">
-              <Link to="/" className="no-underline text-[#6d7d9e]">
+            <div className="mb-2 flex items-center gap-3 text-sm text-[var(--tms-text-muted)]">
+              <Link to="/" className="no-underline text-[var(--tms-text-muted)]">
                 Workspace
               </Link>
               <span>/</span>
               <span>Project</span>
             </div>
-            <h1 className="m-0 text-4xl font-bold tracking-tight text-[#1b2f5b] md:text-5xl">
+            <h1 className="m-0 text-4xl font-bold tracking-tight text-[var(--tms-text)] md:text-5xl">
               {project.name}
             </h1>
-            <p className="mt-2 text-base text-[#63759a] md:text-lg">
+            <p className="mt-2 text-base text-[var(--tms-text-muted)] md:text-lg">
               Project dashboard with repository health, recent activity, and execution summary.
             </p>
             <div className="mt-4">
@@ -192,17 +192,17 @@ function ProjectOverviewPage() {
 
         <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           {[
-            { label: 'Suites', value: dashboard.sections.length, tone: 'text-[#2f6fe4]' },
-            { label: 'Cases', value: activeTests.length, tone: 'text-[#2f6fe4]' },
-            { label: 'Ready', value: readyCases, tone: 'text-[#2ea66b]' },
-            { label: 'Draft', value: draftCases, tone: 'text-[#7b879f]' },
-            { label: 'Runs', value: runs.length, tone: 'text-[#d05656]' },
+            { label: 'Suites', value: dashboard.sections.length, tone: 'text-[var(--tms-primary)]' },
+            { label: 'Cases', value: activeTests.length, tone: 'text-[var(--tms-primary)]' },
+            { label: 'Ready', value: readyCases, tone: 'text-[var(--tms-success)]' },
+            { label: 'Draft', value: draftCases, tone: 'text-[var(--tms-text-soft)]' },
+            { label: 'Runs', value: runs.length, tone: 'text-[var(--tms-danger)]' },
           ].map((item) => (
             <Panel
               key={item.label}
               className="px-6 py-5"
             >
-              <div className="text-sm font-semibold uppercase tracking-[0.08em] text-[#7686a7]">
+              <div className="text-sm font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-soft)]">
                 {item.label}
               </div>
               <div className={`mt-3 text-4xl font-semibold ${item.tone}`}>
@@ -217,10 +217,10 @@ function ProjectOverviewPage() {
             <Panel className="px-6 py-5">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="m-0 text-2xl font-semibold text-[#1b2f5b]">
+                  <h2 className="m-0 text-2xl font-semibold text-[var(--tms-text)]">
                     Repository health
                   </h2>
-                  <p className="mt-2 text-sm text-[#63759a]">
+                  <p className="mt-2 text-sm text-[var(--tms-text-muted)]">
                     Snapshot of suite structure and test case readiness.
                   </p>
                 </div>
@@ -245,12 +245,12 @@ function ProjectOverviewPage() {
                   return (
                     <Panel
                       key={section.id}
-                      className="rounded-2xl border-[#e9eef8] bg-[#fbfcff] px-5 py-4 shadow-none"
+                      className="rounded-2xl border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-5 py-4 shadow-none"
                     >
-                      <div className="text-lg font-semibold text-[#1b2f5b]">
+                      <div className="text-lg font-semibold text-[var(--tms-text)]">
                         {section.name}
                       </div>
-                      <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-[#6d7d9e]">
+                      <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-[var(--tms-text-muted)]">
                         <span>{suiteTests.length} cases</span>
                         <span>Ready {suiteReady}</span>
                         <span>Draft {suiteTests.length - suiteReady}</span>
@@ -264,10 +264,10 @@ function ProjectOverviewPage() {
             <Panel className="px-6 py-5">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="m-0 text-2xl font-semibold text-[#1b2f5b]">
+                  <h2 className="m-0 text-2xl font-semibold text-[var(--tms-text)]">
                     Recent test cases
                   </h2>
-                  <p className="mt-2 text-sm text-[#63759a]">
+                  <p className="mt-2 text-sm text-[var(--tms-text-muted)]">
                     Latest created cases across the project repository.
                   </p>
                 </div>
@@ -277,7 +277,7 @@ function ProjectOverviewPage() {
               </div>
 
               {recentCases.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-5 text-sm text-[#63759a]">
+                <div className="rounded-2xl border border-dashed border-[var(--tms-border)] bg-[var(--tms-surface-soft)] p-5 text-sm text-[var(--tms-text-muted)]">
                   No test cases yet.
                 </div>
               ) : (
@@ -292,18 +292,18 @@ function ProjectOverviewPage() {
                         key={test.id}
                         to="/test/$testId"
                         params={{ testId: test.id.toString() }}
-                        className="rounded-2xl border border-[#e9eef8] bg-[#fbfcff] px-5 py-4 no-underline transition hover:border-[#cddaf3]"
+                        className="rounded-2xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-5 py-4 no-underline transition hover:border-[var(--tms-primary-border)]"
                       >
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div className="min-w-0">
-                            <div className="text-lg font-semibold text-[#1b2f5b]">
+                            <div className="text-lg font-semibold text-[var(--tms-text)]">
                               #{test.id} {test.title}
                             </div>
-                            <div className="mt-1 text-sm text-[#6d7d9e]">
+                            <div className="mt-1 text-sm text-[var(--tms-text-muted)]">
                               {suite?.name ?? 'No suite'} / {test.status ?? 'Draft'}
                             </div>
                           </div>
-                          <span className="text-sm font-semibold text-[#2f6fe4]">
+                          <span className="text-sm font-semibold text-[var(--tms-primary)]">
                             Open
                           </span>
                         </div>
@@ -317,16 +317,16 @@ function ProjectOverviewPage() {
 
           <div className="grid gap-6">
             <Panel className="px-6 py-5">
-              <h2 className="m-0 text-2xl font-semibold text-[#1b2f5b]">
+              <h2 className="m-0 text-2xl font-semibold text-[var(--tms-text)]">
                 Recent runs
               </h2>
-              <p className="mt-2 text-sm text-[#63759a]">
+              <p className="mt-2 text-sm text-[var(--tms-text-muted)]">
                 Latest execution activity for this project.
               </p>
 
               <div className="mt-5 grid gap-3">
                 {recentRuns.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-5 text-sm text-[#63759a]">
+                  <div className="rounded-2xl border border-dashed border-[var(--tms-border)] bg-[var(--tms-surface-soft)] p-5 text-sm text-[var(--tms-text-muted)]">
                     No runs yet.
                   </div>
                 ) : (
@@ -335,12 +335,12 @@ function ProjectOverviewPage() {
                       key={run.id}
                       to="/run/$runId"
                       params={{ runId: run.id.toString() }}
-                      className="rounded-2xl border border-[#e9eef8] bg-[#fbfcff] px-5 py-4 no-underline transition hover:border-[#cddaf3]"
+                      className="rounded-2xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-5 py-4 no-underline transition hover:border-[var(--tms-primary-border)]"
                     >
-                      <div className="text-lg font-semibold text-[#1b2f5b]">
+                      <div className="text-lg font-semibold text-[var(--tms-text)]">
                         {run.name}
                       </div>
-                      <div className="mt-1 text-sm text-[#6d7d9e]">Run ID: {run.id}</div>
+                      <div className="mt-1 text-sm text-[var(--tms-text-muted)]">Run ID: {run.id}</div>
                     </Link>
                   ))
                 )}
@@ -348,10 +348,10 @@ function ProjectOverviewPage() {
             </Panel>
 
             <Panel className="px-6 py-5">
-              <h2 className="m-0 text-2xl font-semibold text-[#1b2f5b]">
+              <h2 className="m-0 text-2xl font-semibold text-[var(--tms-text)]">
                 Quick actions
               </h2>
-              <p className="mt-2 text-sm text-[#63759a]">
+              <p className="mt-2 text-sm text-[var(--tms-text-muted)]">
                 Jump straight into the most common project workflows.
               </p>
 

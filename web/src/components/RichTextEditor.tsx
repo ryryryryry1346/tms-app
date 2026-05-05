@@ -178,7 +178,7 @@ export function RichTextEditor({
     editorProps: {
       attributes: {
         class:
-          'editor-surface min-h-36 rounded-xl border border-[var(--line)] bg-white/85 px-4 py-3 text-base outline-none transition focus-within:border-[var(--lagoon-deep)]',
+          'editor-surface min-h-36 rounded-xl border border-[var(--tms-border)] bg-[var(--tms-surface)] px-4 py-3 text-base outline-none transition focus-within:border-[var(--tms-primary)]',
       },
     },
     onUpdate: ({ editor: nextEditor }) => {
@@ -295,7 +295,7 @@ export function RichTextEditor({
   }
 
   return (
-    <div className="grid gap-2 text-sm font-semibold text-[var(--sea-ink)]">
+    <div className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
       <div>{label}</div>
       <div
         className="editor-shell"

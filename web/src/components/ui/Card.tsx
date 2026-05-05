@@ -14,7 +14,7 @@ const cardVariants = cva(
       },
       shadow: {
         none: 'shadow-none',
-        sm: 'shadow-[0_10px_30px_rgba(31,57,102,0.05)]',
+        sm: 'shadow-[var(--tms-shadow-subtle)]',
         panel: 'shadow-[var(--tms-shadow-panel)]',
       },
       tone: {

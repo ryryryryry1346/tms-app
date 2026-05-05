@@ -127,14 +127,14 @@ function LoginPage() {
     <main className="auth-page page-wrap px-4 py-8 sm:py-12">
       <Panel className="auth-card rise-in mx-auto flex min-h-[35rem] w-full max-w-[35rem] flex-col p-8 sm:p-10">
         <div className="mb-8 text-center">
-          <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--brand-strong)]">
+          <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--tms-text)]">
             Login
           </h1>
         </div>
 
         <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
           <label className="grid gap-2 text-left">
-            <span className="text-lg font-medium text-[var(--auth-label)]">
+            <span className="text-lg font-medium text-[var(--tms-text-muted)]">
               Email
             </span>
             <Input
@@ -150,7 +150,7 @@ function LoginPage() {
           </label>
 
           <label className="grid gap-2 text-left">
-            <span className="text-lg font-medium text-[var(--auth-label)]">
+            <span className="text-lg font-medium text-[var(--tms-text-muted)]">
               Password
             </span>
             <Input
@@ -206,23 +206,23 @@ function LoginPage() {
             disabled={isSubmitting}
             variant="primary"
             size="lg"
-            className="mt-auto rounded-2xl px-5 py-4 text-lg font-bold shadow-[0_16px_34px_rgba(34,145,233,0.24)]"
+            className="mt-auto rounded-2xl px-5 py-4 text-lg font-bold shadow-[var(--tms-shadow-subtle)]"
           >
             {isSubmitting ? 'Logging in...' : 'Log in'}
           </Button>
 
-          <p className="pt-2 text-center text-lg text-[var(--sea-ink-soft)]">
+          <p className="pt-2 text-center text-lg text-[var(--tms-text-muted)]">
             <a
               href="/forgot-password"
-              className="font-semibold text-[var(--brand)] no-underline"
+              className="font-semibold text-[var(--tms-primary)] no-underline"
             >
               Forgot password?
             </a>
           </p>
 
-          <p className="text-center text-lg text-[var(--sea-ink-soft)]">
+          <p className="text-center text-lg text-[var(--tms-text-muted)]">
             Don&apos;t have an account?{' '}
-            <a href="/register" className="font-semibold text-[var(--brand)] no-underline">
+            <a href="/register" className="font-semibold text-[var(--tms-primary)] no-underline">
               Create one now
             </a>
             .

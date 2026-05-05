@@ -446,8 +446,8 @@ function TestDetailPage() {
     <main className="page-wrap px-4 py-10">
       <div className="mx-auto max-w-[1240px]">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[#60718f]">
-            <Link to="/" className="no-underline text-[#2f6fe4]">
+          <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[var(--tms-text-muted)]">
+            <Link to="/" className="no-underline text-[var(--tms-primary)]">
               Workspace
             </Link>
             <span>/</span>
@@ -455,7 +455,7 @@ function TestDetailPage() {
               <Link
                 to="/project/$projectSlug"
                 params={{ projectSlug: test.projectSlug }}
-                className="no-underline text-[#2f6fe4]"
+                className="no-underline text-[var(--tms-primary)]"
               >
                 {test.projectName ?? 'Project'}
               </Link>
@@ -487,10 +487,10 @@ function TestDetailPage() {
         </div>
 
         <Panel className="overflow-hidden">
-          <div className="border-b border-[#e9eef8] px-6 py-6">
+          <div className="border-b border-[var(--tms-border-subtle)] px-6 py-6">
             <div className="flex flex-wrap items-start justify-between gap-5">
               <div className="min-w-0">
-                <p className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-[#7f8da9]">
+                <p className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--tms-text-soft)]">
                   Test case
                 </p>
                 {isEditingTitle ? (
@@ -511,7 +511,7 @@ function TestDetailPage() {
                       }}
                       disabled={pendingMetadataField === 'title'}
                       autoFocus
-                      className="min-w-[280px] flex-1 rounded-xl border-[#9dbaf7] px-3 py-2 text-3xl font-bold leading-tight text-[#1b2f5b]"
+                      className="min-w-[280px] flex-1 rounded-xl border-[var(--tms-primary-border)] px-3 py-2 text-3xl font-bold leading-tight text-[var(--tms-text)]"
                       aria-label="Edit test case title"
                     />
                     <Button
@@ -534,7 +534,7 @@ function TestDetailPage() {
                   </div>
                 ) : (
                   <div className="mt-2 flex flex-wrap items-start gap-3">
-                    <h1 className="m-0 text-4xl font-bold leading-tight text-[#1b2f5b]">
+                    <h1 className="m-0 text-4xl font-bold leading-tight text-[var(--tms-text)]">
                       {test.title}
                     </h1>
                     <Button
@@ -662,11 +662,11 @@ function TestDetailPage() {
               ) : (
                 <>
                   <section>
-                    <h2 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[#7f8da9]">
+                    <h2 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[var(--tms-text-soft)]">
                       Steps
                     </h2>
                     <div
-                      className="rich-output prose prose-sm mt-3 max-w-none rounded-2xl border border-[#e9eef8] bg-[#fbfcff] px-4 py-4 text-[#1b2f5b]"
+                      className="rich-output prose prose-sm mt-3 max-w-none rounded-2xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-4 text-[var(--tms-text)]"
                       onClick={handleRichContentClick}
                       dangerouslySetInnerHTML={{
                         __html: test.steps || '<p>-</p>',
@@ -675,11 +675,11 @@ function TestDetailPage() {
                   </section>
 
                   <section>
-                    <h2 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[#7f8da9]">
+                    <h2 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[var(--tms-text-soft)]">
                       Expected result
                     </h2>
                     <div
-                      className="rich-output prose prose-sm mt-3 max-w-none rounded-2xl border border-[#e9eef8] bg-[#fbfcff] px-4 py-4 text-[#1b2f5b]"
+                      className="rich-output prose prose-sm mt-3 max-w-none rounded-2xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-4 text-[var(--tms-text)]"
                       onClick={handleRichContentClick}
                       dangerouslySetInnerHTML={{
                         __html: test.expected || '<p>-</p>',
@@ -690,20 +690,20 @@ function TestDetailPage() {
               )}
             </div>
 
-            <aside className="border-t border-[#e9eef8] bg-[#fbfcff] px-6 py-6 lg:border-l lg:border-t-0">
+            <aside className="border-t border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-6 py-6 lg:border-l lg:border-t-0">
               <section>
-                <h2 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[#7f8da9]">
+                <h2 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[var(--tms-text-soft)]">
                   Metadata
                 </h2>
                 <dl className="mt-4 grid gap-3 text-sm">
                   <div>
-                    <dt className="font-semibold text-[#7f8da9]">Project</dt>
-                    <dd className="m-0 mt-1 font-semibold text-[#1b2f5b]">
+                    <dt className="font-semibold text-[var(--tms-text-soft)]">Project</dt>
+                    <dd className="m-0 mt-1 font-semibold text-[var(--tms-text)]">
                       {test.projectName ?? '-'}
                     </dd>
                   </div>
                   <div>
-                    <dt className="font-semibold text-[#7f8da9]">Suite</dt>
+                    <dt className="font-semibold text-[var(--tms-text-soft)]">Suite</dt>
                     <dd className="m-0 mt-1">
                       <Select
                         value={test.sectionId ?? ''}
@@ -718,7 +718,7 @@ function TestDetailPage() {
                           pendingMetadataField !== null ||
                           test.sections.length === 0
                         }
-                        className="w-full text-sm font-semibold text-[#1b2f5b]"
+                        className="w-full text-sm font-semibold text-[var(--tms-text)]"
                         aria-label="Change suite"
                       >
                         {test.sectionId === null ? (
@@ -733,7 +733,7 @@ function TestDetailPage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="font-semibold text-[#7f8da9]">Status</dt>
+                    <dt className="font-semibold text-[var(--tms-text-soft)]">Status</dt>
                     <dd className="m-0 mt-1">
                       <Select
                         value={test.status ?? 'Draft'}
@@ -743,7 +743,7 @@ function TestDetailPage() {
                           )
                         }}
                         disabled={pendingMetadataField !== null}
-                        className="w-full text-sm font-semibold text-[#1b2f5b]"
+                        className="w-full text-sm font-semibold text-[var(--tms-text)]"
                         aria-label="Change status"
                       >
                         {CASE_STATUS_OPTIONS.map((status) => (
@@ -755,7 +755,7 @@ function TestDetailPage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="font-semibold text-[#7f8da9]">Priority</dt>
+                    <dt className="font-semibold text-[var(--tms-text-soft)]">Priority</dt>
                     <dd className="m-0 mt-1">
                       <Select
                         value={test.priority ?? 'Medium'}
@@ -765,7 +765,7 @@ function TestDetailPage() {
                           )
                         }}
                         disabled={pendingMetadataField !== null}
-                        className="w-full text-sm font-semibold text-[#1b2f5b]"
+                        className="w-full text-sm font-semibold text-[var(--tms-text)]"
                         aria-label="Change priority"
                       >
                         {PRIORITY_OPTIONS.map((priority) => (
@@ -777,7 +777,7 @@ function TestDetailPage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="font-semibold text-[#7f8da9]">Type</dt>
+                    <dt className="font-semibold text-[var(--tms-text-soft)]">Type</dt>
                     <dd className="m-0 mt-1">
                       <Select
                         value={test.caseType ?? 'Functional'}
@@ -787,7 +787,7 @@ function TestDetailPage() {
                           )
                         }}
                         disabled={pendingMetadataField !== null}
-                        className="w-full text-sm font-semibold text-[#1b2f5b]"
+                        className="w-full text-sm font-semibold text-[var(--tms-text)]"
                         aria-label="Change type"
                       >
                         {CASE_TYPE_OPTIONS.map((caseType) => (
@@ -799,26 +799,26 @@ function TestDetailPage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="font-semibold text-[#7f8da9]">Created</dt>
-                    <dd className="m-0 mt-1 font-semibold text-[#1b2f5b]">
+                    <dt className="font-semibold text-[var(--tms-text-soft)]">Created</dt>
+                    <dd className="m-0 mt-1 font-semibold text-[var(--tms-text)]">
                       {formatDetailDate(test.createdAt)}
                     </dd>
                   </div>
                   <div>
-                    <dt className="font-semibold text-[#7f8da9]">Updated</dt>
-                    <dd className="m-0 mt-1 font-semibold text-[#1b2f5b]">
+                    <dt className="font-semibold text-[var(--tms-text-soft)]">Updated</dt>
+                    <dd className="m-0 mt-1 font-semibold text-[var(--tms-text)]">
                       {formatDetailDate(test.updatedAt ?? test.createdAt)}
                     </dd>
                   </div>
                 </dl>
               </section>
 
-              <section className="mt-6 border-t border-[#e9eef8] pt-5">
-                <h2 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[#7f8da9]">
+              <section className="mt-6 border-t border-[var(--tms-border-subtle)] pt-5">
+                <h2 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[var(--tms-text-soft)]">
                   Activity
                 </h2>
                 {test.activities.length === 0 ? (
-                  <p className="m-0 mt-3 text-sm text-[#60718f]">
+                  <p className="m-0 mt-3 text-sm text-[var(--tms-text-muted)]">
                     No activity recorded yet.
                   </p>
                 ) : (
@@ -826,16 +826,16 @@ function TestDetailPage() {
                     {test.activities.map((activity) => (
                       <div
                         key={activity.id}
-                        className="rounded-xl border border-[#e9eef8] bg-white px-3 py-2"
+                        className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] px-3 py-2"
                       >
-                        <div className="text-sm font-semibold text-[#1b2f5b]">
+                        <div className="text-sm font-semibold text-[var(--tms-text)]">
                           {activity.summary}
                         </div>
-                        <div className="mt-1 text-xs font-semibold text-[#60718f]">
+                        <div className="mt-1 text-xs font-semibold text-[var(--tms-text-muted)]">
                           {activity.actorName ?? 'system'} -{' '}
                           {activity.action.replaceAll('_', ' ')}
                         </div>
-                        <div className="mt-1 text-xs text-[#7f8da9]">
+                        <div className="mt-1 text-xs text-[var(--tms-text-soft)]">
                           {formatDetailDate(activity.createdAt)}
                         </div>
                       </div>
@@ -845,7 +845,7 @@ function TestDetailPage() {
               </section>
 
               {test.status === 'Archived' ? (
-                <section className="mt-6 border-t border-[#e9eef8] pt-5">
+                <section className="mt-6 border-t border-[var(--tms-border-subtle)] pt-5">
                   {showDeleteConfirm ? (
                     <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-950">
                       <p className="m-0 font-semibold">

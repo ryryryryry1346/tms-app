@@ -38,7 +38,7 @@ export default function Header({ user }: HeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--line)] bg-[var(--header-bg)] px-4 backdrop-blur-lg">
+    <header className="sticky top-0 z-50 border-b border-[var(--tms-border-subtle)] bg-[var(--tms-surface)]/90 px-4 backdrop-blur-lg">
       <nav className="page-wrap flex flex-wrap items-center justify-end gap-x-5 gap-y-2 py-2.5">
         <div
           className={`${isAuthPage ? 'w-auto' : 'w-full justify-between sm:w-auto sm:justify-end'} flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-semibold`}
