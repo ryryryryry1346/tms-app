@@ -220,7 +220,7 @@ export function SuiteSection({
     const isPending = pendingQuickCreateSuiteId === section.id
 
     return (
-      <div className="tms-table-row grid grid-cols-[44px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] px-5 py-2.5">
+      <div className="tms-table-row grid grid-cols-[72px_82px_minmax(220px,1fr)_110px_132px_120px_120px_116px_96px] px-5 py-2.5">
         <div />
         <div className="tms-kicker">
           New
@@ -485,7 +485,7 @@ export function SuiteSection({
         </div>
       ) : (
         <div className="bg-[var(--tms-surface)]">
-          <div className="tms-table-head grid grid-cols-[64px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] px-5 py-2">
+          <div className="tms-table-head grid grid-cols-[72px_82px_minmax(220px,1fr)_110px_132px_120px_120px_116px_96px] px-5 py-2">
             <div />
             <div>ID</div>
             <div>Title</div>

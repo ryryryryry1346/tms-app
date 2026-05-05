@@ -1,6 +1,5 @@
 import { Link } from '@tanstack/react-router'
 import type { DragEvent } from 'react'
-import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
 import { CaseActionsMenu } from './CaseActionsMenu'
@@ -132,7 +131,7 @@ export function CaseRow({
       }}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
-      className={`tms-table-row grid grid-cols-[64px_82px_minmax(220px,1fr)_110px_110px_110px_110px_110px_96px] px-5 py-2.5 transition ${
+      className={`tms-table-row grid grid-cols-[72px_82px_minmax(220px,1fr)_110px_132px_120px_120px_116px_96px] px-5 py-2.5 transition ${
         draggedTestIds.includes(test.id)
           ? 'bg-[var(--tms-surface-muted)] opacity-70'
           : isDropTarget
@@ -142,23 +141,23 @@ export function CaseRow({
             : ''
       }`}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <input
           type="checkbox"
           checked={isSelected}
           onChange={onToggleSelection}
           className="h-4 w-4 rounded border-[var(--tms-border)] text-[var(--tms-primary)] focus:ring-[var(--tms-primary)]"
         />
-        <Button
-          size="sm"
+        <button
+          type="button"
           draggable
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
-          className="cursor-grab border-0 bg-transparent p-1 text-[var(--tms-text-soft)] shadow-none hover:bg-[var(--tms-surface-muted)] hover:text-[var(--tms-text-muted)] active:cursor-grabbing"
+          className="inline-flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded-md border border-transparent bg-transparent p-0 text-[var(--tms-text-soft)] hover:border-[var(--tms-border-subtle)] hover:bg-[var(--tms-surface-muted)] hover:text-[var(--tms-text-muted)] active:cursor-grabbing"
           aria-label={`Drag test case ${test.id}`}
         >
           <DragHandleIcon />
-        </Button>
+        </button>
       </div>
       <Link
         to="/test/$testId"
