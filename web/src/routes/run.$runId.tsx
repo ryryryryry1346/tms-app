@@ -40,18 +40,18 @@ const STATUS_ACTIONS: Array<Exclude<RunItemStatus, null>> = [
 
 function getStatusClass(status: RunItemStatus): string {
   if (status === 'Passed') {
-    return 'bg-emerald-50 text-emerald-700'
+    return 'tms-chip-success'
   }
 
   if (status === 'Failed') {
-    return 'bg-rose-50 text-rose-700'
+    return 'tms-chip-danger'
   }
 
   if (status === 'Blocked') {
-    return 'bg-amber-50 text-amber-800'
+    return 'tms-chip-warning'
   }
 
-  return 'bg-slate-100 text-slate-700'
+  return 'tms-chip-draft'
 }
 
 function RunDetailPage() {
@@ -257,12 +257,12 @@ function RunDetailPage() {
   }
 
   return (
-    <main className="min-h-[calc(100vh-65px)] bg-[#f7f9fe]">
+    <main className="tms-page">
       <div className="mx-auto max-w-[1600px] px-6 py-8 lg:px-10">
         <section className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className="mb-3 flex flex-wrap items-center gap-2 text-sm font-semibold text-[#60718f]">
-              <Link to="/" className="no-underline text-[#2f6fe4]">
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-sm font-semibold text-[var(--tms-text-muted)]">
+              <Link to="/" className="no-underline text-[var(--tms-primary)]">
                 Workspace
               </Link>
               <span>/</span>
@@ -270,7 +270,7 @@ function RunDetailPage() {
                 <Link
                   to="/project/$projectSlug/runs"
                   params={{ projectSlug: data.run.projectSlug }}
-                  className="no-underline text-[#2f6fe4]"
+                  className="no-underline text-[var(--tms-primary)]"
                 >
                   {data.run.projectName ?? 'Project'}
                 </Link>
@@ -280,7 +280,7 @@ function RunDetailPage() {
               <span>/</span>
               <span>Run #{data.run.id}</span>
             </div>
-            <h1 className="m-0 text-4xl font-bold tracking-tight text-[#1b2f5b]">
+            <h1 className="m-0 text-4xl font-bold tracking-tight text-[var(--tms-text)]">
               {data.run.name}
             </h1>
           </div>
@@ -289,32 +289,32 @@ function RunDetailPage() {
             <Link
               to="/project/$projectSlug/runs"
               params={{ projectSlug: data.run.projectSlug }}
-              className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#60718f] hover:text-[#2f6fe4]"
+              className="tms-button no-underline hover:text-[var(--tms-primary)]"
             >
               Back to runs
             </Link>
           ) : null}
         </section>
 
-        <section className="sticky top-3 z-20 mb-5 rounded-3xl border border-[#dfe6f4] bg-white/95 p-4 shadow-[0_10px_25px_rgba(31,57,102,0.08)] backdrop-blur">
+        <section className="sticky top-3 z-20 mb-5 rounded-[var(--tms-radius-panel)] border border-[var(--tms-border)] bg-[var(--tms-surface)]/95 p-4 shadow-[var(--tms-shadow-panel)] backdrop-blur">
           <div className="grid gap-3 lg:grid-cols-[260px_minmax(0,1fr)]">
             <div>
               <div className="flex items-end justify-between gap-3">
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
+                  <div className="tms-kicker">
                     Progress
                   </div>
-                  <div className="mt-1 text-3xl font-bold text-[#1b2f5b]">
+                  <div className="mt-1 text-3xl font-bold text-[var(--tms-text)]">
                     {progress}%
                   </div>
                 </div>
-                <div className="text-sm font-semibold text-[#60718f]">
+                <div className="text-sm font-semibold text-[var(--tms-text-muted)]">
                   {executedCount}/{data.tests.length}
                 </div>
               </div>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#edf2fa]">
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--tms-surface-muted)]">
                 <div
-                  className="h-full rounded-full bg-[#2f6fe4]"
+                  className="h-full rounded-full bg-[var(--tms-primary)]"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -322,16 +322,16 @@ function RunDetailPage() {
 
             <div className="grid gap-3 sm:grid-cols-4">
               {[
-                { label: 'Passed', value: passedCount, className: 'text-emerald-700' },
-                { label: 'Failed', value: failedCount, className: 'text-rose-700' },
-                { label: 'Blocked', value: blockedCount, className: 'text-amber-700' },
-                { label: 'Not run', value: notRunCount, className: 'text-slate-700' },
+                { label: 'Passed', value: passedCount, className: 'text-[var(--tms-success)]' },
+                { label: 'Failed', value: failedCount, className: 'text-[var(--tms-danger)]' },
+                { label: 'Blocked', value: blockedCount, className: 'text-[var(--tms-warning)]' },
+                { label: 'Not run', value: notRunCount, className: 'text-[var(--tms-draft)]' },
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="rounded-2xl border border-[#e9eef8] bg-[#fbfcff] px-4 py-3"
+                  className="rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-3"
                 >
-                  <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
+                  <div className="tms-kicker">
                     {item.label}
                   </div>
                   <div className={`mt-1 text-2xl font-bold ${item.className}`}>
@@ -342,23 +342,23 @@ function RunDetailPage() {
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#e9eef8] pt-4">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--tms-border-subtle)] pt-4">
             <div className="flex flex-wrap gap-2">
               {RUN_FILTERS.map((filter) => (
                 <button
                   key={filter}
                   type="button"
                   onClick={() => setRunFilter(filter)}
-                  className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                  className={`tms-button transition ${
                     runFilter === filter
                       ? filter === 'Passed'
-                        ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
+                        ? 'tms-chip-success'
                         : filter === 'Failed'
-                          ? 'border-rose-300 bg-rose-50 text-rose-900'
+                          ? 'tms-chip-danger'
                           : filter === 'Blocked'
-                            ? 'border-amber-300 bg-amber-50 text-amber-900'
-                            : 'border-slate-300 bg-slate-100 text-slate-900'
-                      : 'border-[#dbe4f4] bg-white text-[#60718f]'
+                            ? 'tms-chip-warning'
+                            : 'tms-chip-draft'
+                      : ''
                   }`}
                 >
                   {filter}
@@ -367,7 +367,7 @@ function RunDetailPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold text-[#60718f]">
+              <span className="text-sm font-semibold text-[var(--tms-text-muted)]">
                 {selectedTestIds.length} selected
               </span>
               {STATUS_ACTIONS.map((status) => (
@@ -378,12 +378,12 @@ function RunDetailPage() {
                     void handleBulkStatus(status)
                   }}
                   disabled={selectedTestIds.length === 0 || isBulkUpdating}
-                  className={`rounded-xl border px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-55 ${
+                  className={`tms-button disabled:cursor-not-allowed disabled:opacity-55 ${
                     status === 'Passed'
-                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                      ? 'border-[var(--tms-success)] bg-[var(--tms-success-soft)] text-[var(--tms-success)]'
                       : status === 'Failed'
-                        ? 'border-rose-200 bg-rose-50 text-rose-700'
-                        : 'border-amber-200 bg-amber-50 text-amber-800'
+                        ? 'border-[var(--tms-danger)] bg-[var(--tms-danger-soft)] text-[var(--tms-danger)]'
+                        : 'border-[var(--tms-warning)] bg-[var(--tms-warning-soft)] text-[var(--tms-warning)]'
                   }`}
                 >
                   {status}
@@ -395,7 +395,7 @@ function RunDetailPage() {
                   void handleBulkStatus(null)
                 }}
                 disabled={selectedTestIds.length === 0 || isBulkUpdating}
-                className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
+                className="tms-button disabled:cursor-not-allowed disabled:opacity-55"
               >
                 Clear
               </button>
@@ -408,7 +408,7 @@ function RunDetailPage() {
                       block: 'center',
                     })
                   }
-                  className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold text-[#2f6fe4]"
+                  className="tms-button tms-button-primary"
                 >
                   Next not run
                 </button>
@@ -418,30 +418,30 @@ function RunDetailPage() {
         </section>
 
         {errorMessage ? (
-          <div className="mb-5 rounded-2xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+          <div className="mb-5 rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border)] bg-[var(--tms-danger-soft)] px-4 py-3 text-sm text-[var(--tms-danger)]">
             {errorMessage}
           </div>
         ) : null}
 
         {data.tests.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-white p-5 text-sm text-[#60718f]">
+          <div className="rounded-[var(--tms-radius-overlay)] border border-dashed border-[var(--tms-border)] bg-[var(--tms-surface)] p-5 text-sm text-[var(--tms-text-muted)]">
             This test run currently has no linked test cases.
           </div>
         ) : filteredTests.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-white p-5 text-sm text-[#60718f]">
+          <div className="rounded-[var(--tms-radius-overlay)] border border-dashed border-[var(--tms-border)] bg-[var(--tms-surface)] p-5 text-sm text-[var(--tms-text-muted)]">
             {runFilter === 'All'
               ? 'No test cases found in this run.'
               : `No test cases match the "${runFilter}" filter.`}
           </div>
         ) : (
-          <section className="overflow-x-auto rounded-3xl border border-[#dfe6f4] bg-white shadow-[0_10px_30px_rgba(31,57,102,0.05)]">
-            <div className="grid min-w-[1180px] grid-cols-[44px_80px_minmax(260px,1fr)_120px_250px_260px_92px] items-center bg-[#fbfcff] px-5 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
+          <section className="tms-panel overflow-x-auto">
+            <div className="tms-table-head grid min-w-[1180px] grid-cols-[44px_80px_minmax(260px,1fr)_120px_250px_260px_92px] px-5 py-3">
               <div>
                 <input
                   type="checkbox"
                   checked={allVisibleSelected}
                   onChange={toggleVisibleSelection}
-                  className="h-4 w-4 rounded border-[#c7d5ee] text-[#2f6fe4] focus:ring-[#2f6fe4]"
+                  className="h-4 w-4 rounded border-[var(--tms-border)] text-[var(--tms-primary)] focus:ring-[var(--tms-primary)]"
                   aria-label="Select visible tests"
                 />
               </div>
@@ -463,32 +463,32 @@ function RunDetailPage() {
                   ref={(node) => {
                     testRowRefs.current[test.id] = node
                   }}
-                  className="grid min-w-[1180px] grid-cols-[44px_80px_minmax(260px,1fr)_120px_250px_260px_92px] items-center border-t border-[#e9eef8] px-5 py-3 hover:bg-[#f8fbff]"
+                  className="tms-table-row grid min-w-[1180px] grid-cols-[44px_80px_minmax(260px,1fr)_120px_250px_260px_92px] px-5 py-3"
                 >
                   <div>
                     <input
                       type="checkbox"
                       checked={selectedTestIdSet.has(test.id)}
                       onChange={() => toggleTestSelection(test.id)}
-                      className="h-4 w-4 rounded border-[#c7d5ee] text-[#2f6fe4] focus:ring-[#2f6fe4]"
+                      className="h-4 w-4 rounded border-[var(--tms-border)] text-[var(--tms-primary)] focus:ring-[var(--tms-primary)]"
                       aria-label={`Select test ${test.id}`}
                     />
                   </div>
                   <Link
                     to="/test/$testId"
                     params={{ testId: test.id.toString() }}
-                    className="text-sm font-semibold no-underline text-[#2f6fe4]"
+                    className="text-sm font-semibold no-underline text-[var(--tms-primary)]"
                   >
                     #{test.id}
                   </Link>
                   <div className="min-w-0 pr-4">
-                    <div className="truncate text-sm font-semibold text-[#1b2f5b]">
+                    <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
                       {test.title}
                     </div>
                   </div>
                   <div>
                     <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusClass(
+                      className={`tms-chip ${getStatusClass(
                         test.status,
                       )}`}
                     >
@@ -506,10 +506,10 @@ function RunDetailPage() {
                         }}
                         className={`rounded-lg border px-2.5 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-55 ${
                           status === 'Passed'
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            ? 'border-[var(--tms-success)] bg-[var(--tms-success-soft)] text-[var(--tms-success)]'
                             : status === 'Failed'
-                              ? 'border-rose-200 bg-rose-50 text-rose-700'
-                              : 'border-amber-200 bg-amber-50 text-amber-800'
+                              ? 'border-[var(--tms-danger)] bg-[var(--tms-danger-soft)] text-[var(--tms-danger)]'
+                              : 'border-[var(--tms-warning)] bg-[var(--tms-warning-soft)] text-[var(--tms-warning)]'
                         }`}
                       >
                         {status}
@@ -521,7 +521,7 @@ function RunDetailPage() {
                       onClick={() => {
                         void handleRunTest(test.id, null)
                       }}
-                      className="rounded-lg border border-[#dbe4f4] bg-white px-2.5 py-1 text-xs font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
+                      className="rounded-lg border border-[var(--tms-border)] bg-[var(--tms-surface)] px-2.5 py-1 text-xs font-semibold text-[var(--tms-text-muted)] disabled:cursor-not-allowed disabled:opacity-55"
                     >
                       Clear
                     </button>
@@ -537,7 +537,7 @@ function RunDetailPage() {
                       }
                       rows={2}
                       placeholder="Execution note"
-                      className="min-h-10 w-full resize-y rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm text-[#1b2f5b] outline-none focus:border-[#2f6fe4]"
+                      className="tms-input min-h-10 w-full resize-y rounded-xl px-3 py-2 text-sm"
                     />
                     <button
                       type="button"
@@ -545,7 +545,7 @@ function RunDetailPage() {
                       onClick={() => {
                         void handleSaveComment(test.id)
                       }}
-                      className="rounded-lg border border-[#dbe4f4] bg-white px-2.5 py-2 text-xs font-semibold text-[#60718f] disabled:cursor-not-allowed disabled:opacity-55"
+                      className="rounded-lg border border-[var(--tms-border)] bg-[var(--tms-surface)] px-2.5 py-2 text-xs font-semibold text-[var(--tms-text-muted)] disabled:cursor-not-allowed disabled:opacity-55"
                     >
                       {isCommentPending ? '...' : 'Save'}
                     </button>
@@ -554,7 +554,7 @@ function RunDetailPage() {
                     <Link
                       to="/test/$testId"
                       params={{ testId: test.id.toString() }}
-                      className="text-sm font-semibold no-underline text-[#2f6fe4]"
+                      className="text-sm font-semibold no-underline text-[var(--tms-primary)]"
                     >
                       Open
                     </Link>

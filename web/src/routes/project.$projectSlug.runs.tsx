@@ -89,8 +89,8 @@ function ProjectSubnav({
   const tabClass = (isActive: boolean): string =>
     `rounded-full px-4 py-2 text-sm font-semibold no-underline ${
       isActive
-        ? 'bg-[#ecf2ff] text-[#2f6fe4]'
-        : 'text-[#60718f] hover:bg-[#f5f8ff]'
+        ? 'bg-[var(--tms-primary-soft)] text-[var(--tms-primary)]'
+        : 'text-[var(--tms-text-muted)] hover:bg-[var(--tms-surface-muted)]'
     }`
 
   return (
@@ -265,29 +265,29 @@ function ProjectRunsPage() {
   }
 
   return (
-    <main className="min-h-[calc(100vh-65px)] bg-[#f7f9fe]">
+    <main className="tms-page">
       <div className="mx-auto max-w-[1600px] px-6 py-8 lg:px-10">
         <section className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-3xl">
-            <div className="mb-3 flex items-center gap-3 text-sm text-[#6d7d9e]">
-              <Link to="/" className="no-underline text-[#6d7d9e]">
+            <div className="mb-3 flex items-center gap-3 text-sm text-[var(--tms-text-muted)]">
+              <Link to="/" className="no-underline text-[var(--tms-primary)]">
                 Workspace
               </Link>
               <span>/</span>
               <Link
                 to="/project/$projectSlug"
                 params={{ projectSlug: project.slug ?? project.id.toString() }}
-                className="no-underline text-[#6d7d9e]"
+                className="no-underline text-[var(--tms-primary)]"
               >
                 Project
               </Link>
               <span>/</span>
               <span>Runs</span>
             </div>
-            <h1 className="m-0 text-5xl font-bold tracking-tight text-[#1b2f5b]">
+            <h1 className="m-0 text-5xl font-bold tracking-tight text-[var(--tms-text)]">
               {project.name}
             </h1>
-            <p className="mt-3 text-lg text-[#63759a]">
+            <p className="mt-3 text-lg text-[var(--tms-text-muted)]">
               Manage execution runs for this project.
             </p>
             <div className="mt-4">
@@ -302,7 +302,7 @@ function ProjectRunsPage() {
             <button
               type="button"
               onClick={() => setShowCreateRunForm((current) => !current)}
-              className="rounded-2xl border border-[#2f6fe4] bg-[#2f6fe4] px-6 py-3 text-base font-semibold text-white"
+              className="tms-button tms-button-primary px-6 py-3 text-base"
             >
               + Run
             </button>
@@ -318,51 +318,51 @@ function ProjectRunsPage() {
           ].map((item) => (
             <div
               key={item.label}
-              className="rounded-3xl border border-[#e6ecf8] bg-white px-7 py-6 shadow-[0_10px_30px_rgba(31,57,102,0.05)]"
+              className="tms-panel px-7 py-6"
             >
-              <div className="text-sm font-semibold uppercase tracking-[0.08em] text-[#7686a7]">
+              <div className="tms-kicker">
                 {item.label}
               </div>
-              <div className="mt-3 text-4xl font-semibold text-[#1b2f5b]">
+              <div className="mt-3 text-4xl font-semibold text-[var(--tms-text)]">
                 {item.value}
               </div>
             </div>
           ))}
         </section>
 
-        <section className="rounded-3xl border border-[#dfe6f4] bg-white px-6 py-6 shadow-[0_10px_30px_rgba(31,57,102,0.05)]">
+        <section className="tms-panel px-6 py-6">
           <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
             <div>
-            <h2 className="m-0 text-2xl font-semibold text-[#1b2f5b]">Runs</h2>
-              <p className="mt-2 text-sm text-[#63759a]">
+            <h2 className="m-0 text-2xl font-semibold text-[var(--tms-text)]">Runs</h2>
+              <p className="mt-2 text-sm text-[var(--tms-text-muted)]">
                 Create, rename, and track execution progress for this project.
               </p>
             </div>
-            <div className="rounded-full border border-[#dbe4f4] bg-[#fbfcff] px-3 py-1 text-sm text-[#63759a]">
+            <div className="tms-chip">
               {runs.length} run{runs.length === 1 ? '' : 's'}
             </div>
           </div>
 
           {showCreateRunForm ? (
             <form
-              className="mb-6 rounded-2xl border border-[#dbe4f4] bg-[#fbfcff] p-4"
+              className="mb-6 rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border)] bg-[var(--tms-surface-muted)] p-4"
               onSubmit={handleCreateRun}
             >
               <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
-                <label className="grid gap-2 text-sm font-semibold text-[#1b2f5b]">
+                <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
                   Run name
                   <input
                     value={runName}
                     onChange={(event) => setRunName(event.target.value)}
                     placeholder="Week 13. Regression"
-                    className="min-w-0 rounded-2xl border border-[#dbe4f4] bg-white px-4 py-3 text-base text-[#1b2f5b] outline-none transition focus:border-[#2f6fe4]"
+                    className="tms-input min-w-0 px-4 py-3 text-base"
                   />
                 </label>
                 <div className="flex items-end gap-2">
                   <button
                     type="submit"
                     disabled={isCreatingRun || selectedRunTestIds.length === 0}
-                    className="whitespace-nowrap rounded-2xl border border-[#2f6fe4] bg-[#2f6fe4] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
+                    className="tms-button tms-button-primary whitespace-nowrap px-5 py-3 disabled:cursor-not-allowed disabled:opacity-55"
                   >
                     {isCreatingRun ? 'Creating...' : 'Create run'}
                   </button>
@@ -372,7 +372,7 @@ function ProjectRunsPage() {
                       setShowCreateRunForm(false)
                       resetCreateRunForm()
                     }}
-                    className="whitespace-nowrap rounded-2xl border border-[#dbe4f4] bg-white px-5 py-3 text-sm font-semibold text-[#60718f]"
+                    className="tms-button whitespace-nowrap px-5 py-3"
                   >
                     Cancel
                   </button>
@@ -393,17 +393,17 @@ function ProjectRunsPage() {
                         setRunScope(option.value as 'all' | 'suites' | 'cases')
                         setCreateRunErrorMessage(null)
                       }}
-                      className={`rounded-xl border px-3 py-2 text-sm font-semibold ${
+                      className={`tms-button ${
                         runScope === option.value
-                          ? 'border-[#9dbaf7] bg-[#ecf2ff] text-[#2f6fe4]'
-                          : 'border-[#dbe4f4] bg-white text-[#60718f]'
+                          ? 'tms-chip-primary'
+                          : ''
                       }`}
                     >
                       {option.label}
                     </button>
                   ))}
                 </div>
-                <div className="rounded-full border border-[#dbe4f4] bg-white px-3 py-1 text-sm font-semibold text-[#60718f]">
+                <div className="tms-chip">
                   {selectedRunTestIds.length} case
                   {selectedRunTestIds.length === 1 ? '' : 's'} in run
                 </div>
@@ -422,20 +422,20 @@ function ProjectRunsPage() {
                         key={section.id}
                         className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 text-sm font-semibold ${
                           isSelected
-                            ? 'border-[#9dbaf7] bg-[#ecf2ff] text-[#1b2f5b]'
-                            : 'border-[#dbe4f4] bg-white text-[#60718f]'
+                            ? 'border-[var(--tms-primary-border)] bg-[var(--tms-primary-soft)] text-[var(--tms-text)]'
+                            : 'border-[var(--tms-border)] bg-[var(--tms-surface)] text-[var(--tms-text-muted)]'
                         }`}
                       >
                         <span className="min-w-0 truncate">{section.name}</span>
                         <span className="flex shrink-0 items-center gap-2">
-                          <span className="text-xs text-[#7f8da9]">
+                          <span className="text-xs text-[var(--tms-text-soft)]">
                             {sectionCaseCount}
                           </span>
                           <input
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleRunSuiteSelection(section.id)}
-                            className="h-4 w-4 rounded border-[#c7d5ee] text-[#2f6fe4] focus:ring-[#2f6fe4]"
+                            className="h-4 w-4 rounded border-[var(--tms-border)] text-[var(--tms-primary)] focus:ring-[var(--tms-primary)]"
                           />
                         </span>
                       </label>
@@ -445,9 +445,9 @@ function ProjectRunsPage() {
               ) : null}
 
               {runScope === 'cases' ? (
-                <div className="mt-4 max-h-[260px] overflow-y-auto rounded-2xl border border-[#e9eef8] bg-white">
+                <div className="mt-4 max-h-[260px] overflow-y-auto rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)]">
                   {activeTests.length === 0 ? (
-                    <div className="px-4 py-3 text-sm text-[#63759a]">
+                    <div className="px-4 py-3 text-sm text-[var(--tms-text-muted)]">
                       No active cases are available for this run.
                     </div>
                   ) : (
@@ -459,13 +459,13 @@ function ProjectRunsPage() {
                       return (
                         <label
                           key={test.id}
-                          className="flex items-center justify-between gap-4 border-t border-[#eef2f8] px-4 py-2.5 first:border-t-0"
+                          className="flex items-center justify-between gap-4 border-t border-[var(--tms-border-subtle)] px-4 py-2.5 first:border-t-0"
                         >
                           <span className="min-w-0">
-                            <span className="block truncate text-sm font-semibold text-[#1b2f5b]">
+                            <span className="block truncate text-sm font-semibold text-[var(--tms-text)]">
                               #{test.id} {test.title}
                             </span>
-                            <span className="text-xs font-semibold text-[#7f8da9]">
+                            <span className="text-xs font-semibold text-[var(--tms-text-soft)]">
                               {section?.name ?? 'No suite'} ·{' '}
                               {test.priority ?? 'Medium'} ·{' '}
                               {test.caseType ?? 'Functional'}
@@ -475,7 +475,7 @@ function ProjectRunsPage() {
                             type="checkbox"
                             checked={selectedRunTestIdSet.has(test.id)}
                             onChange={() => toggleRunCaseSelection(test.id)}
-                            className="h-4 w-4 shrink-0 rounded border-[#c7d5ee] text-[#2f6fe4] focus:ring-[#2f6fe4]"
+                            className="h-4 w-4 shrink-0 rounded border-[var(--tms-border)] text-[var(--tms-primary)] focus:ring-[var(--tms-primary)]"
                           />
                         </label>
                       )
@@ -487,24 +487,24 @@ function ProjectRunsPage() {
           ) : null}
 
           {createRunErrorMessage ? (
-            <div className="mb-5 rounded-xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+            <div className="mb-5 rounded-xl border border-[var(--tms-border)] bg-[var(--tms-danger-soft)] px-4 py-3 text-sm text-[var(--tms-danger)]">
               {createRunErrorMessage}
             </div>
           ) : null}
 
           {runActionErrorMessage ? (
-            <div className="mb-5 rounded-xl border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+            <div className="mb-5 rounded-xl border border-[var(--tms-border)] bg-[var(--tms-danger-soft)] px-4 py-3 text-sm text-[var(--tms-danger)]">
               {runActionErrorMessage}
             </div>
           ) : null}
 
           {runs.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-[#dbe4f4] bg-[#f8faff] p-6 text-sm text-[#63759a]">
+            <div className="rounded-[var(--tms-radius-overlay)] border border-dashed border-[var(--tms-border)] bg-[var(--tms-surface-muted)] p-6 text-sm text-[var(--tms-text-muted)]">
               No runs yet. Create the first run when you are ready to execute test cases.
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-[#e9eef8]">
-              <div className="grid min-w-[1180px] grid-cols-[minmax(300px,1fr)_190px_96px_96px_96px_110px_190px] items-center bg-[#fbfcff] px-5 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-[#7f8da9]">
+            <div className="overflow-x-auto rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border-subtle)]">
+              <div className="tms-table-head grid min-w-[1180px] grid-cols-[minmax(300px,1fr)_190px_96px_96px_96px_110px_190px] px-5 py-3">
                 <div>Run</div>
                 <div>Progress</div>
                 <div>Passed</div>
@@ -531,7 +531,7 @@ function ProjectRunsPage() {
                 return (
                   <section
                     key={run.id}
-                    className="grid min-w-[1180px] grid-cols-[minmax(300px,1fr)_190px_96px_96px_96px_110px_190px] items-center border-t border-[#e9eef8] bg-white px-5 py-4"
+                    className="tms-table-row grid min-w-[1180px] grid-cols-[minmax(300px,1fr)_190px_96px_96px_96px_110px_190px] px-5 py-4"
                   >
                     <div className="min-w-0 pr-4">
                       {isEditing ? (
@@ -544,12 +544,12 @@ function ProjectRunsPage() {
                               onChange={(event) =>
                                 setEditingRunName(event.target.value)
                               }
-                              className="min-w-0 rounded-xl border border-[#d9e2f2] bg-white px-3 py-2 text-base font-semibold text-[#1b2f5b] outline-none transition focus:border-[#2f6fe4]"
+                              className="tms-input min-w-0 text-base"
                             />
                             <button
                               type="submit"
                               disabled={isPending}
-                              className="rounded-xl border border-[#2f6fe4] bg-[#2f6fe4] px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-55"
+                              className="tms-button tms-button-primary disabled:cursor-not-allowed disabled:opacity-55"
                             >
                               {isPending ? 'Saving...' : 'Save'}
                             </button>
@@ -560,27 +560,27 @@ function ProjectRunsPage() {
                                 setEditingRunName('')
                                 setRunActionErrorMessage(null)
                               }}
-                              className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]"
+                              className="tms-button"
                             >
                               Cancel
                             </button>
                           </form>
                         ) : (
                           <>
-                            <div className="truncate text-base font-semibold text-[#1b2f5b]">
+                            <div className="truncate text-base font-semibold text-[var(--tms-text)]">
                               {run.name}
                             </div>
-                            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs font-semibold text-[#63759a]">
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--tms-text-muted)]">
                               <span>#{run.id}</span>
                               <span
                                 className={`rounded-full px-2 py-0.5 ${
                                   stateLabel === 'Complete'
-                                    ? 'bg-emerald-50 text-emerald-700'
+                                    ? 'tms-chip-success'
                                     : stateLabel === 'Needs review'
-                                      ? 'bg-rose-50 text-rose-700'
+                                      ? 'tms-chip-danger'
                                       : stateLabel === 'Empty'
-                                        ? 'bg-slate-100 text-slate-600'
-                                        : 'bg-[#eef6ff] text-[#506487]'
+                                        ? 'tms-chip-draft'
+                                        : 'tms-chip-primary'
                                 }`}
                               >
                                 {stateLabel}
@@ -590,29 +590,29 @@ function ProjectRunsPage() {
                         )}
                     </div>
                     <div className="pr-6">
-                      <div className="flex items-center justify-between gap-3 text-sm font-semibold text-[#1b2f5b]">
+                      <div className="flex items-center justify-between gap-3 text-sm font-semibold text-[var(--tms-text)]">
                         <span>{progress}%</span>
-                        <span className="text-xs text-[#7f8da9]">
+                        <span className="text-xs text-[var(--tms-text-soft)]">
                           {executed}/{run.total}
                         </span>
                       </div>
-                      <div className="mt-1 h-2 overflow-hidden rounded-full bg-[#edf2fa]">
+                      <div className="mt-1 h-2 overflow-hidden rounded-full bg-[var(--tms-surface-muted)]">
                         <div
-                          className="h-full rounded-full bg-[#2f6fe4]"
+                          className="h-full rounded-full bg-[var(--tms-primary)]"
                           style={{ width: `${progress}%` }}
                         />
                       </div>
                     </div>
-                    <div className="text-sm font-semibold text-emerald-700">
+                    <div className="text-sm font-semibold text-[var(--tms-success)]">
                       {run.passed}
                     </div>
-                    <div className="text-sm font-semibold text-rose-700">
+                    <div className="text-sm font-semibold text-[var(--tms-danger)]">
                       {run.failed}
                     </div>
-                    <div className="text-sm font-semibold text-amber-700">
+                    <div className="text-sm font-semibold text-[var(--tms-warning)]">
                       {run.blocked}
                     </div>
-                    <div className="text-sm font-semibold text-slate-600">
+                    <div className="text-sm font-semibold text-[var(--tms-draft)]">
                       {run.notRun}
                     </div>
                     <div className="flex justify-end gap-2 whitespace-nowrap">
@@ -621,14 +621,14 @@ function ProjectRunsPage() {
                           <button
                             type="button"
                             onClick={() => startRenameRun(run.id, run.name)}
-                            className="rounded-xl border border-[#dbe4f4] bg-white px-3 py-2 text-sm font-semibold text-[#60718f]"
+                            className="tms-button"
                           >
                             Rename
                           </button>
                           <Link
                             to="/run/$runId"
                             params={{ runId: run.id.toString() }}
-                            className="rounded-xl border border-[#9dbaf7] bg-white px-3 py-2 text-sm font-semibold no-underline text-[#3369d6]"
+                            className="tms-button tms-button-primary no-underline"
                           >
                             Open run
                           </Link>
