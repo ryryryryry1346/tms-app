@@ -3,7 +3,7 @@ import type { HTMLAttributes, ReactNode } from 'react'
 import { cx } from './utils'
 
 const cardVariants = cva(
-  'rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)]',
+  'tms-card',
   {
     variants: {
       padding: {
@@ -14,13 +14,13 @@ const cardVariants = cva(
       },
       shadow: {
         none: 'shadow-none',
-        sm: 'shadow-[var(--tms-shadow-subtle)]',
-        panel: 'shadow-[var(--tms-shadow-panel)]',
+        sm: '',
+        panel: 'tms-panel',
       },
       tone: {
         default: '',
-        muted: 'bg-[var(--tms-surface-muted)]',
-        soft: 'bg-[var(--tms-surface-soft)]',
+        muted: 'tms-card-muted',
+        soft: 'tms-card-soft',
       },
     },
     defaultVariants: {

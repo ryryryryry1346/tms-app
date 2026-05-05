@@ -39,7 +39,7 @@ export default function ThemeToggle() {
       aria-label={label}
       title={label}
       size="sm"
-      className="rounded-full border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] px-3 py-1.5 text-sm font-semibold text-[var(--tms-text)] shadow-[var(--tms-shadow-subtle)] transition hover:-translate-y-0.5"
+      className="rounded-full px-3 py-1.5 text-sm font-semibold"
     >
       Light
     </Button>
