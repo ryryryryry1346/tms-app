@@ -1,5 +1,7 @@
 # Render Staging Service Checklist
 
+> Current note: the Flask/Jinja source has been removed from the repository. This checklist now applies to the TypeScript app in `web/`.
+
 Use this checklist when creating the first Render staging service for the migrated TypeScript app in `C:\myapp\web`.
 
 ## 1. Service Creation
@@ -44,11 +46,9 @@ Optional if you do not want to use `CLOUDINARY_URL`:
 
 ## 6. After Deploy
 - Run the checklist in [STAGING_SMOKE_TESTS.md](</C:/myapp/docs/STAGING_SMOKE_TESTS.md:1>).
-- Compare row counts between PostgreSQL and staging MySQL.
-- Keep the current Flask production service unchanged.
+- Confirm staging data and migrations match the active MySQL schema.
 
 ## 7. Do Not Do Yet
 - Do not repoint the production custom domain.
 - Do not reuse the production PostgreSQL connection string in the TypeScript app.
-- Do not delete the Flask service.
 - Do not enable auto deploy before a clean staging validation cycle.

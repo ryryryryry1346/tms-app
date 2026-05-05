@@ -1,5 +1,0 @@
-flask
-gunicorn
-cloudinary
-werkzeug
-psycopg2-binary

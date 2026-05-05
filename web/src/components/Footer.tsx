@@ -17,7 +17,7 @@ export default function Footer() {
         <p className="m-0 text-sm">
           &copy; {year} TMS workspace.
         </p>
-        <p className="island-kicker m-0">TypeScript app active, Flask archived as legacy</p>
+        <p className="island-kicker m-0">TypeScript app active</p>
       </div>
     </footer>
   )

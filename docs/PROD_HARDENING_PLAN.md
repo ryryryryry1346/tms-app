@@ -1,16 +1,18 @@
 # Prod Hardening Plan
 
+> Historical note: this document was written during the Flask-to-TypeScript migration. The Flask/Jinja source has since been removed from the repository, and `web/` is the active application.
+
 ## Scope
 This document prepares the migrated TypeScript application in `C:\myapp\web` for a safe staging rollout and a later production cutover.
 
-It does not replace the old Flask app yet. The Flask/PostgreSQL app remains the source of truth until staging validation and data migration checks pass.
+The active app is now the TypeScript app in `web/`.
 
 ## 1. Current Source and Target
 
-### Source application
+### Historical source application
 - Runtime: Flask + Jinja
 - Database: PostgreSQL via `DATABASE_URL`
-- Current schema confirmed in `C:\myapp\models.py`:
+- Historical schema used during migration assessment:
   - `projects(id, name)`
   - `sections(id, name, project_id)`
   - `tests(id, title, steps, expected, status, section_id, project_id)`

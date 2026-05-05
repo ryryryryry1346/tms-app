@@ -1,5 +1,7 @@
 # Migration Assessment
 
+> Historical note: this assessment was written before the Flask/Jinja source was removed. The active application now lives in `web/`; keep this document only as migration background.
+
 ## 1. Current Python Stack
 
 - Runtime: Python
