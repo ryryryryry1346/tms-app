@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
+import { Button } from '../ui/Button'
+import { PopoverMenu, PopoverMenuItem } from '../ui/PopoverMenu'
 
 export type RepositoryBulkStatus = 'Draft' | 'Ready' | 'Archived'
 export type RepositoryBulkPriority = 'Low' | 'Medium' | 'High' | 'Critical'
@@ -44,22 +46,7 @@ type BulkCaseBarProps = {
 type OpenMenu = 'move' | 'status' | 'more' | null
 
 function menuButtonClass(isActive: boolean): string {
-  return `tms-button disabled:cursor-not-allowed disabled:opacity-55 ${
-    isActive ? 'tms-chip-primary' : ''
-  }`
-}
-
-function menuItemClass(tone: 'default' | 'success' | 'danger' | 'warning' = 'default'): string {
-  const toneClass =
-    tone === 'success'
-      ? 'text-[var(--tms-success)] hover:bg-[var(--tms-success-soft)]'
-      : tone === 'danger'
-        ? 'tms-menu-item-danger'
-      : tone === 'warning'
-          ? 'text-[var(--tms-warning)] hover:bg-[var(--tms-warning-soft)]'
-          : ''
-
-  return `tms-menu-item disabled:cursor-not-allowed disabled:opacity-55 ${toneClass}`
+  return isActive ? 'tms-chip-primary' : ''
 }
 
 export function BulkCaseBar({
@@ -87,219 +74,172 @@ export function BulkCaseBar({
   onConfirmDeleteArchived,
   onClearSelection,
 }: BulkCaseBarProps) {
-  const menuRef = useRef<HTMLDivElement>(null)
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null)
 
   function closeMenu(): void {
     setOpenMenu(null)
   }
 
-  useEffect(() => {
-    if (!openMenu) {
-      return
-    }
-
-    function handlePointerDown(event: PointerEvent): void {
-      const target = event.target
-
-      if (target instanceof Node && menuRef.current?.contains(target)) {
-        return
-      }
-
-      closeMenu()
-    }
-
-    function handleKeyDown(event: KeyboardEvent): void {
-      if (event.key === 'Escape') {
-        closeMenu()
-      }
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [openMenu])
-
   return (
-    <div
-      ref={menuRef}
-      className="mx-5 mt-4 rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border)] bg-[var(--tms-surface-muted)] px-4 py-3"
-    >
+    <div className="mx-5 mt-4 rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border)] bg-[var(--tms-surface-muted)] px-4 py-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm font-semibold text-[var(--tms-text)]">
           {selectedCount} selected
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <button
-              type="button"
-              disabled={isApplying || suites.length === 0}
-              onClick={() =>
-                setOpenMenu((current) => (current === 'move' ? null : 'move'))
-              }
-              className={menuButtonClass(openMenu === 'move')}
-              aria-haspopup="menu"
-              aria-expanded={openMenu === 'move'}
-            >
-              Move to...
-            </button>
-            {openMenu === 'move' ? (
-              <div className="tms-popover absolute left-0 top-full mt-2 max-h-[280px] min-w-[220px] overflow-y-auto">
-                {suites.map((suite) => (
-                  <button
-                    key={suite.id}
-                    type="button"
-                    disabled={isApplying}
-                    onClick={() => {
-                      closeMenu()
-                      onMoveToSuite(suite.id.toString())
-                    }}
-                    className={menuItemClass()}
-                  >
-                    {suite.name}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
+          <PopoverMenu
+            isOpen={openMenu === 'move'}
+            onClose={closeMenu}
+            onOpenChange={(nextOpen) => setOpenMenu(nextOpen ? 'move' : null)}
+            align="left"
+            className="max-h-[280px] min-w-[220px] overflow-y-auto"
+            trigger={
+              <Button
+                disabled={isApplying || suites.length === 0}
+                className={menuButtonClass(openMenu === 'move')}
+                aria-haspopup="menu"
+                aria-expanded={openMenu === 'move'}
+              >
+                Move to...
+              </Button>
+            }
+          >
+            {suites.map((suite) => (
+              <PopoverMenuItem
+                key={suite.id}
+                disabled={isApplying}
+                onClick={() => {
+                  closeMenu()
+                  onMoveToSuite(suite.id.toString())
+                }}
+              >
+                {suite.name}
+              </PopoverMenuItem>
+            ))}
+          </PopoverMenu>
 
-          <div className="relative">
-            <button
-              type="button"
+          <PopoverMenu
+            isOpen={openMenu === 'status'}
+            onClose={closeMenu}
+            onOpenChange={(nextOpen) => setOpenMenu(nextOpen ? 'status' : null)}
+            align="left"
+            className="min-w-[180px]"
+            trigger={
+              <Button
+                disabled={isApplying}
+                className={menuButtonClass(openMenu === 'status')}
+                aria-haspopup="menu"
+                aria-expanded={openMenu === 'status'}
+              >
+                Status...
+              </Button>
+            }
+          >
+            <PopoverMenuItem
               disabled={isApplying}
-              onClick={() =>
-                setOpenMenu((current) => (current === 'status' ? null : 'status'))
-              }
-              className={menuButtonClass(openMenu === 'status')}
-              aria-haspopup="menu"
-              aria-expanded={openMenu === 'status'}
+              onClick={() => {
+                closeMenu()
+                onStatusChange('Ready')
+              }}
+              tone="success"
             >
-              Status...
-            </button>
-            {openMenu === 'status' ? (
-              <div className="tms-popover absolute left-0 top-full mt-2 min-w-[180px]">
-                <button
-                  type="button"
-                  disabled={isApplying}
-                  onClick={() => {
-                    closeMenu()
-                    onStatusChange('Ready')
-                  }}
-                  className={menuItemClass('success')}
-                >
-                  Mark Ready
-                </button>
-                <button
-                  type="button"
-                  disabled={isApplying}
-                  onClick={() => {
-                    closeMenu()
-                    onStatusChange('Draft')
-                  }}
-                  className={menuItemClass()}
-                >
-                  Mark Draft
-                </button>
-                <button
-                  type="button"
-                  disabled={isApplying || selectedArchivableCount === 0}
-                  onClick={() => {
-                    closeMenu()
-                    onRequestArchive()
-                  }}
-                  className={menuItemClass('warning')}
-                >
-                  Archive
-                </button>
-              </div>
-            ) : null}
-          </div>
+              Mark Ready
+            </PopoverMenuItem>
+            <PopoverMenuItem
+              disabled={isApplying}
+              onClick={() => {
+                closeMenu()
+                onStatusChange('Draft')
+              }}
+            >
+              Mark Draft
+            </PopoverMenuItem>
+            <PopoverMenuItem
+              disabled={isApplying || selectedArchivableCount === 0}
+              onClick={() => {
+                closeMenu()
+                onRequestArchive()
+              }}
+              tone="warning"
+            >
+              Archive
+            </PopoverMenuItem>
+          </PopoverMenu>
 
-          <div className="relative">
-            <button
-              type="button"
-              disabled={isApplying}
-              onClick={() =>
-                setOpenMenu((current) => (current === 'more' ? null : 'more'))
-              }
-              className={menuButtonClass(openMenu === 'more')}
-              aria-haspopup="menu"
-              aria-expanded={openMenu === 'more'}
-            >
-              More...
-            </button>
-            {openMenu === 'more' ? (
-              <div className="tms-popover absolute right-0 top-full mt-2 min-w-[230px]">
-                <div className="tms-kicker px-3 pb-1 pt-2">
-                  Priority
-                </div>
-                {priorities.map((priority) => (
-                  <button
-                    key={priority}
-                    type="button"
-                    disabled={isApplying}
-                    onClick={() => {
-                      closeMenu()
-                      onPriorityChange(priority)
-                    }}
-                    className={menuItemClass()}
-                  >
-                    {priority}
-                  </button>
-                ))}
+          <PopoverMenu
+            isOpen={openMenu === 'more'}
+            onClose={closeMenu}
+            onOpenChange={(nextOpen) => setOpenMenu(nextOpen ? 'more' : null)}
+            className="min-w-[230px]"
+            trigger={
+              <Button
+                disabled={isApplying}
+                className={menuButtonClass(openMenu === 'more')}
+                aria-haspopup="menu"
+                aria-expanded={openMenu === 'more'}
+              >
+                More...
+              </Button>
+            }
+          >
+            <div className="tms-kicker px-3 pb-1 pt-2">
+              Priority
+            </div>
+            {priorities.map((priority) => (
+              <PopoverMenuItem
+                key={priority}
+                disabled={isApplying}
+                onClick={() => {
+                  closeMenu()
+                  onPriorityChange(priority)
+                }}
+              >
+                {priority}
+              </PopoverMenuItem>
+            ))}
+            <div className="tms-kicker mt-2 border-t border-[var(--tms-border-subtle)] px-3 pb-1 pt-3">
+              Type
+            </div>
+            {caseTypes.map((caseType) => (
+              <PopoverMenuItem
+                key={caseType}
+                disabled={isApplying}
+                onClick={() => {
+                  closeMenu()
+                  onCaseTypeChange(caseType)
+                }}
+              >
+                {caseType}
+              </PopoverMenuItem>
+            ))}
+            {isArchivedView ? (
+              <>
                 <div className="tms-kicker mt-2 border-t border-[var(--tms-border-subtle)] px-3 pb-1 pt-3">
-                  Type
+                  Archived
                 </div>
-                {caseTypes.map((caseType) => (
-                  <button
-                    key={caseType}
-                    type="button"
-                    disabled={isApplying}
-                    onClick={() => {
-                      closeMenu()
-                      onCaseTypeChange(caseType)
-                    }}
-                    className={menuItemClass()}
-                  >
-                    {caseType}
-                  </button>
-                ))}
-                {isArchivedView ? (
-                  <>
-                    <div className="tms-kicker mt-2 border-t border-[var(--tms-border-subtle)] px-3 pb-1 pt-3">
-                      Archived
-                    </div>
-                    <button
-                      type="button"
-                      disabled={isApplying}
-                      onClick={() => {
-                        closeMenu()
-                        onRestoreArchived()
-                      }}
-                      className={menuItemClass('success')}
-                    >
-                      Restore
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isApplying || selectedArchivedCount === 0}
-                      onClick={() => {
-                        closeMenu()
-                        onRequestDeleteArchived()
-                      }}
-                      className={menuItemClass('danger')}
-                    >
-                      Delete permanently
-                    </button>
-                  </>
-                ) : null}
-              </div>
+                <PopoverMenuItem
+                  disabled={isApplying}
+                  onClick={() => {
+                    closeMenu()
+                    onRestoreArchived()
+                  }}
+                  tone="success"
+                >
+                  Restore
+                </PopoverMenuItem>
+                <PopoverMenuItem
+                  disabled={isApplying || selectedArchivedCount === 0}
+                  onClick={() => {
+                    closeMenu()
+                    onRequestDeleteArchived()
+                  }}
+                  tone="danger"
+                >
+                  Delete permanently
+                </PopoverMenuItem>
+              </>
             ) : null}
-          </div>
+          </PopoverMenu>
 
           <button
             type="button"

@@ -1,4 +1,6 @@
-import { useEffect, useRef, type DragEvent, type FormEvent } from 'react'
+import { type DragEvent, type FormEvent } from 'react'
+import { Button } from '../ui/Button'
+import { PopoverMenu, PopoverMenuItem } from '../ui/PopoverMenu'
 import {
   CaseRow,
   type RepositoryCasePriority,
@@ -207,40 +209,9 @@ export function SuiteSection({
   onDeleteCasePermanently,
   onArchiveCase,
 }: SuiteSectionProps) {
-  const suiteMenuRef = useRef<HTMLDivElement>(null)
   const readyCount = sectionTests.filter((test) => test.status === 'Ready').length
   const draftCount = sectionTests.length - readyCount
   const isQuickCreateOpen = quickCreateSuiteId === section.id
-
-  useEffect(() => {
-    if (!isMenuOpen) {
-      return
-    }
-
-    function handlePointerDown(event: PointerEvent): void {
-      const target = event.target
-
-      if (target instanceof Node && suiteMenuRef.current?.contains(target)) {
-        return
-      }
-
-      onCloseSuiteMenu()
-    }
-
-    function handleKeyDown(event: KeyboardEvent): void {
-      if (event.key === 'Escape') {
-        onCloseSuiteMenu()
-      }
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isMenuOpen, onCloseSuiteMenu])
 
   function renderQuickCreateCaseRow() {
     const isPending = pendingQuickCreateSuiteId === section.id
@@ -422,46 +393,41 @@ export function SuiteSection({
             + Case
           </button>
           {!isEditingSuite ? (
-            <div
-              ref={suiteMenuRef}
-              className="relative"
-              onPointerDown={(event) => event.stopPropagation()}
+            <PopoverMenu
+              isOpen={isMenuOpen}
+              onClose={onCloseSuiteMenu}
+              onOpenChange={(nextOpen) => {
+                if (nextOpen) {
+                  onToggleSuiteMenu(section.id)
+                }
+              }}
+              className="min-w-[190px]"
+              trigger={
+                <Button
+                  disabled={isPendingSuiteAction}
+                  aria-label="Open suite actions"
+                  aria-haspopup="menu"
+                  aria-expanded={isMenuOpen}
+                >
+                  ...
+                </Button>
+              }
             >
-              <button
-                type="button"
-                disabled={isPendingSuiteAction}
-                onClick={() => onToggleSuiteMenu(section.id)}
-                className="tms-button"
-                aria-label="Open suite actions"
+              <PopoverMenuItem
+                onClick={() => onStartRenameSuite(section.id, section.name)}
               >
-                ...
-              </button>
-              {isMenuOpen ? (
-                <div className="tms-popover absolute right-0 top-full mt-2 min-w-[190px]">
-                  <button
-                    type="button"
-                    onClick={() => onStartRenameSuite(section.id, section.name)}
-                    className="tms-menu-item"
-                  >
-                    Rename
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onToggleCollapsed(section.id)}
-                    className="tms-menu-item"
-                  >
-                    {isCollapsed ? 'Expand' : 'Collapse'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onRequestDeleteSuite(section.id)}
-                    className="tms-menu-item tms-menu-item-danger"
-                  >
-                    Delete empty suite
-                  </button>
-                </div>
-              ) : null}
-            </div>
+                Rename
+              </PopoverMenuItem>
+              <PopoverMenuItem onClick={() => onToggleCollapsed(section.id)}>
+                {isCollapsed ? 'Expand' : 'Collapse'}
+              </PopoverMenuItem>
+              <PopoverMenuItem
+                onClick={() => onRequestDeleteSuite(section.id)}
+                tone="danger"
+              >
+                Delete empty suite
+              </PopoverMenuItem>
+            </PopoverMenu>
           ) : null}
         </div>
       </div>
