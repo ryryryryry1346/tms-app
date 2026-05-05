@@ -6,9 +6,11 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
+import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Checkbox } from '../components/ui/Checkbox'
+import { EmptyState } from '../components/ui/EmptyState'
 import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
@@ -508,21 +510,22 @@ function ProjectRunsPage() {
           ) : null}
 
           {createRunErrorMessage ? (
-            <div className="mb-5 rounded-xl border border-[var(--tms-border)] bg-[var(--tms-danger-soft)] px-4 py-3 text-sm text-[var(--tms-danger)]">
+            <Alert variant="danger" className="mb-5">
               {createRunErrorMessage}
-            </div>
+            </Alert>
           ) : null}
 
           {runActionErrorMessage ? (
-            <div className="mb-5 rounded-xl border border-[var(--tms-border)] bg-[var(--tms-danger-soft)] px-4 py-3 text-sm text-[var(--tms-danger)]">
+            <Alert variant="danger" className="mb-5">
               {runActionErrorMessage}
-            </div>
+            </Alert>
           ) : null}
 
           {runs.length === 0 ? (
-            <div className="rounded-[var(--tms-radius-overlay)] border border-dashed border-[var(--tms-border)] bg-[var(--tms-surface-muted)] p-6 text-sm text-[var(--tms-text-muted)]">
-              No runs yet. Create the first run when you are ready to execute test cases.
-            </div>
+            <EmptyState
+              title="No runs yet"
+              description="Create the first run when you are ready to execute test cases."
+            />
           ) : (
             <TableShell>
               <TableHead

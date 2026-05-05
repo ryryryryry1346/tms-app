@@ -7,6 +7,7 @@ import {
   useLocation,
 } from '@tanstack/react-router'
 import { Badge } from '../components/ui/Badge'
+import { EmptyState } from '../components/ui/EmptyState'
 import { Panel } from '../components/ui/Panel'
 import { getRunsForProject } from '../features/runs/server'
 import { getDashboardState } from '../features/tests/server'
@@ -277,9 +278,10 @@ function ProjectOverviewPage() {
               </div>
 
               {recentCases.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[var(--tms-border)] bg-[var(--tms-surface-soft)] p-5 text-sm text-[var(--tms-text-muted)]">
-                  No test cases yet.
-                </div>
+                <EmptyState
+                  title="No test cases yet"
+                  description="Newly created test cases will appear here."
+                />
               ) : (
                 <div className="grid gap-3">
                   {recentCases.map((test) => {
@@ -326,9 +328,10 @@ function ProjectOverviewPage() {
 
               <div className="mt-5 grid gap-3">
                 {recentRuns.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-[var(--tms-border)] bg-[var(--tms-surface-soft)] p-5 text-sm text-[var(--tms-text-muted)]">
-                    No runs yet.
-                  </div>
+                  <EmptyState
+                    title="No runs yet"
+                    description="Execution runs will appear here once created."
+                  />
                 ) : (
                   recentRuns.map((run) => (
                     <Link

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
 import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
 import {
@@ -216,11 +217,18 @@ function WorkspacePage() {
               MySQL.
             </Alert>
           ) : visibleProjects.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-[var(--tms-border)] bg-[var(--tms-surface-soft)] p-6 text-sm text-[var(--tms-text-muted)]">
-              {projectFilter === 'Archived'
-                ? 'No archived projects yet.'
-                : 'No active projects yet. Create the first one to start structuring suites, cases, and runs.'}
-            </div>
+            <EmptyState
+              title={
+                projectFilter === 'Archived'
+                  ? 'No archived projects yet'
+                  : 'No active projects yet'
+              }
+              description={
+                projectFilter === 'Archived'
+                  ? 'Archived projects will appear here.'
+                  : 'Create the first one to start structuring suites, cases, and runs.'
+              }
+            />
           ) : (
             <div className="grid gap-4">
               {visibleProjects.map((project) => (

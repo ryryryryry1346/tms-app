@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
 import { Panel } from '../ui/Panel'
 import { PopoverMenu, PopoverMenuItem } from '../ui/PopoverMenu'
@@ -255,18 +256,14 @@ export function BulkCaseBar({
       </div>
 
       {isArchiveConfirming ? (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--tms-border)] bg-[var(--tms-warning-soft)] px-4 py-3">
-          <div>
-            <p className="m-0 text-sm font-semibold text-[var(--tms-warning)]">
-              Archive {selectedArchivableCount} selected case
-              {selectedArchivableCount === 1 ? '' : 's'}?
-            </p>
-            <p className="m-0 mt-1 text-sm text-[var(--tms-warning)]">
-              Archived cases leave the active repository and can be restored from
-              the Archived filter.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+        <Alert
+          variant="warning"
+          className="mt-3"
+          title={`Archive ${selectedArchivableCount} selected case${
+            selectedArchivableCount === 1 ? '' : 's'
+          }?`}
+          action={
+            <>
             <Button
               onClick={onCancelArchive}
               disabled={isApplying}
@@ -281,23 +278,23 @@ export function BulkCaseBar({
             >
               {isApplying ? 'Archiving...' : 'Confirm archive'}
             </Button>
-          </div>
-        </div>
+            </>
+          }
+        >
+          Archived cases leave the active repository and can be restored from
+          the Archived filter.
+        </Alert>
       ) : null}
 
       {isDeleteConfirming ? (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--tms-border)] bg-[var(--tms-danger-soft)] px-4 py-3">
-          <div>
-            <p className="m-0 text-sm font-semibold text-[var(--tms-danger)]">
-              Permanently delete {selectedArchivedCount} archived case
-              {selectedArchivedCount === 1 ? '' : 's'}?
-            </p>
-            <p className="m-0 mt-1 text-sm text-[var(--tms-danger)]">
-              This action cannot be undone. Deleted test cases will be removed
-              from the repository.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+        <Alert
+          variant="danger"
+          className="mt-3"
+          title={`Permanently delete ${selectedArchivedCount} archived case${
+            selectedArchivedCount === 1 ? '' : 's'
+          }?`}
+          action={
+            <>
             <Button
               onClick={onCancelDeleteArchived}
               disabled={isApplying}
@@ -312,14 +309,18 @@ export function BulkCaseBar({
             >
               {isApplying ? 'Deleting...' : 'Confirm delete'}
             </Button>
-          </div>
-        </div>
+            </>
+          }
+        >
+          This action cannot be undone. Deleted test cases will be removed
+          from the repository.
+        </Alert>
       ) : null}
 
       {errorMessage ? (
-        <div className="mt-3 rounded-xl border border-[var(--tms-border)] bg-[var(--tms-danger-soft)] px-4 py-3 text-sm text-[var(--tms-danger)]">
+        <Alert variant="danger" className="mt-3">
           {errorMessage}
-        </div>
+        </Alert>
       ) : null}
     </Panel>
   )

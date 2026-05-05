@@ -10,9 +10,11 @@ import {
   getRunDetail,
   saveRunItemComment,
 } from '../features/runs/server'
+import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Checkbox } from '../components/ui/Checkbox'
+import { EmptyState } from '../components/ui/EmptyState'
 import { Panel } from '../components/ui/Panel'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import { Textarea } from '../components/ui/Textarea'
@@ -430,21 +432,25 @@ function RunDetailPage() {
         </Panel>
 
         {errorMessage ? (
-          <div className="mb-5 rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border)] bg-[var(--tms-danger-soft)] px-4 py-3 text-sm text-[var(--tms-danger)]">
+          <Alert variant="danger" className="mb-5">
             {errorMessage}
-          </div>
+          </Alert>
         ) : null}
 
         {data.tests.length === 0 ? (
-          <div className="rounded-[var(--tms-radius-overlay)] border border-dashed border-[var(--tms-border)] bg-[var(--tms-surface)] p-5 text-sm text-[var(--tms-text-muted)]">
-            This test run currently has no linked test cases.
-          </div>
+          <EmptyState
+            title="No linked test cases"
+            description="This test run currently has no linked test cases."
+          />
         ) : filteredTests.length === 0 ? (
-          <div className="rounded-[var(--tms-radius-overlay)] border border-dashed border-[var(--tms-border)] bg-[var(--tms-surface)] p-5 text-sm text-[var(--tms-text-muted)]">
-            {runFilter === 'All'
-              ? 'No test cases found in this run.'
-              : `No test cases match the "${runFilter}" filter.`}
-          </div>
+          <EmptyState
+            title="No matching test cases"
+            description={
+              runFilter === 'All'
+                ? 'No test cases found in this run.'
+                : `No test cases match the "${runFilter}" filter.`
+            }
+          />
         ) : (
           <TableShell className="shadow-[var(--tms-shadow-panel)]">
             <TableHead

@@ -13,6 +13,7 @@ import { RepositoryErrorBanner } from '../components/repository/RepositoryErrorB
 import { RepositoryPanel } from '../components/repository/RepositoryPanel'
 import { RepositoryToolbar } from '../components/repository/RepositoryToolbar'
 import { SuiteSection } from '../components/repository/SuiteSection'
+import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { uploadTestMedia } from '../features/media/server'
@@ -1439,9 +1440,9 @@ function ProjectRepositoryPage() {
                   {isSubmittingSuite ? 'Creating...' : 'Create suite'}
                 </Button>
                 {suiteErrorMessage ? (
-                  <div className="md:col-span-2 rounded-2xl border border-[var(--tms-border)] bg-[var(--tms-danger-soft)] px-4 py-3 text-sm text-[var(--tms-danger)]">
+                  <Alert variant="danger" className="md:col-span-2">
                     {suiteErrorMessage}
-                  </div>
+                  </Alert>
                 ) : null}
               </form>
             </section>

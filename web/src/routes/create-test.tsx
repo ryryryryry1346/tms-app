@@ -4,8 +4,8 @@ import { z } from 'zod'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
 import { Input } from '../components/ui/Input'
-import { Panel } from '../components/ui/Panel'
 import { SelectMenu } from '../components/ui/SelectMenu'
 import { uploadTestMedia } from '../features/media/server'
 import {
@@ -333,10 +333,11 @@ function CreateTestPage() {
           and run the Drizzle migration first.
         </Alert>
       ) : formState.sections.length === 0 ? (
-        <Panel className="mx-auto mt-5 max-w-5xl p-6 text-sm text-[var(--tms-text-muted)]">
-          There are no suites in MySQL yet, so test case creation is blocked
-          until suite management is added.
-        </Panel>
+        <EmptyState
+          className="mx-auto mt-5 max-w-5xl"
+          title="No suites available"
+          description="There are no suites in MySQL yet, so test case creation is blocked until suite management is added."
+        />
       ) : null}
       </div>
     </main>

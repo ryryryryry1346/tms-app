@@ -1,6 +1,8 @@
 import { type DragEvent, type FormEvent } from 'react'
+import { Alert } from '../ui/Alert'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
+import { EmptyState } from '../ui/EmptyState'
 import { Input } from '../ui/Input'
 import { PopoverMenu, PopoverMenuItem } from '../ui/PopoverMenu'
 import { SelectMenu } from '../ui/SelectMenu'
@@ -450,12 +452,12 @@ export function SuiteSection({
       </div>
 
       {isDeleteConfirming ? (
-        <div className="border-b border-[var(--tms-border-subtle)] bg-[var(--tms-warning-soft)] px-5 py-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="text-sm text-[var(--tms-warning)]">
-              Delete this suite? This only works when the suite has no test cases.
-            </div>
-            <div className="flex flex-wrap gap-2">
+        <div className="border-b border-[var(--tms-border-subtle)] px-5 py-4">
+          <Alert
+            variant="warning"
+            title="Delete this suite?"
+            action={
+              <>
               <Button
                 disabled={isPendingSuiteAction}
                 onClick={() => onConfirmDeleteSuite(section.id)}
@@ -469,31 +471,37 @@ export function SuiteSection({
               >
                 Cancel
               </Button>
-            </div>
-          </div>
+              </>
+            }
+          >
+            This only works when the suite has no test cases.
+          </Alert>
         </div>
       ) : null}
 
       {suiteActionErrorMessage && showSuiteActionError ? (
-        <div className="border-b border-[var(--tms-border-subtle)] bg-[var(--tms-danger-soft)] px-5 py-3 text-sm text-[var(--tms-danger)]">
-          {suiteActionErrorMessage}
+        <div className="border-b border-[var(--tms-border-subtle)] px-5 py-3">
+          <Alert variant="danger" density="compact">
+            {suiteActionErrorMessage}
+          </Alert>
         </div>
       ) : null}
 
       {isCollapsed ? null : visibleTests.length === 0 ? (
         <div className="bg-[var(--tms-surface)]">
           <div className="px-5 py-4 text-sm text-[var(--tms-text-muted)]">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span>No test cases in this suite yet.</span>
-              <div className="flex flex-wrap gap-2">
+            <EmptyState
+              title="No test cases in this suite yet"
+              description="Create a case directly in this suite to start building coverage."
+              action={
                 <Button
                   onClick={() => onStartQuickCreateCase(section.id)}
                   variant="primary"
                 >
                   + Case
                 </Button>
-              </div>
-            </div>
+              }
+            />
           </div>
           {isQuickCreateOpen ? renderQuickCreateCaseRow() : null}
         </div>

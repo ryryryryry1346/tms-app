@@ -1,4 +1,4 @@
-import { Panel } from '../ui/Panel'
+import { EmptyState } from '../ui/EmptyState'
 
 type RepositoryEmptyReason = 'no-suites' | 'no-matching-cases'
 type RepositoryCaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
@@ -29,8 +29,10 @@ function getEmptyMessage({
 
 export function RepositoryEmptyState(props: RepositoryEmptyStateProps) {
   return (
-    <Panel className="m-5 border-dashed bg-[var(--tms-surface-muted)] p-6 text-sm text-[var(--tms-text-muted)] shadow-none">
-      {getEmptyMessage(props)}
-    </Panel>
+    <EmptyState
+      className="m-5"
+      title="No cases to show"
+      description={getEmptyMessage(props)}
+    />
   )
 }
