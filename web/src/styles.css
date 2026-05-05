@@ -275,6 +275,41 @@ pre code {
   outline: none;
 }
 
+.tms-select-menu-trigger {
+  display: inline-flex;
+  min-height: var(--tms-control-height);
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  border: 1px solid var(--tms-border);
+  border-radius: var(--tms-radius-control);
+  background: var(--tms-surface);
+  color: var(--tms-text);
+  padding: 0.55rem 0.8rem;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  outline: none;
+  cursor: pointer;
+}
+
+.tms-select-menu-trigger:hover {
+  border-color: var(--tms-primary-border);
+}
+
+.tms-select-menu-trigger:disabled,
+.tms-select-menu-trigger[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.tms-select-menu-trigger:focus-visible,
+.tms-select-menu-trigger[data-popup-open] {
+  border-color: var(--tms-primary-border);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--tms-primary) 16%, transparent);
+}
+
 .tms-input::placeholder {
   color: var(--tms-text-soft);
 }
@@ -443,6 +478,31 @@ pre code {
 .tms-menu-item-danger:hover {
   background: var(--tms-danger-soft);
   color: var(--tms-danger);
+}
+
+.tms-select-menu-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.65rem;
+  color: var(--tms-text-muted);
+  padding: 0.55rem 0.7rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+}
+
+.tms-select-menu-item:hover,
+.tms-select-menu-item[data-highlighted] {
+  background: var(--tms-surface-muted);
+  color: var(--tms-primary);
+}
+
+.tms-select-menu-item[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .tms-table-head,

@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import type { DragEvent } from 'react'
 import { Input } from '../ui/Input'
-import { Select } from '../ui/Select'
+import { SelectMenu } from '../ui/SelectMenu'
 import { CaseActionsMenu } from './CaseActionsMenu'
 
 export type RepositoryCaseStatus = 'Draft' | 'Ready' | 'Archived'
@@ -229,63 +229,50 @@ export function CaseRow({
           {test.title}
         </Link>
       )}
-      <Select
+      <SelectMenu
         value={priority}
-        onChange={(event) =>
-          onPriorityChange(event.target.value as RepositoryCasePriority)
+        onValueChange={(value) =>
+          onPriorityChange(value as RepositoryCasePriority)
         }
+        options={priorityOptions.map((option) => ({
+          value: option,
+          label: option,
+        }))}
         onPointerDown={(event) => event.stopPropagation()}
         disabled={isPending}
-        size="sm"
         className={`tms-chip w-fit border-0 outline-none ${getPriorityChipClass(priority)}`}
         aria-label={`Change priority for ${test.title}`}
-      >
-        {priorityOptions.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </Select>
-      <Select
+      />
+      <SelectMenu
         value={caseType}
-        onChange={(event) =>
-          onCaseTypeChange(event.target.value as RepositoryCaseType)
-        }
+        onValueChange={(value) => onCaseTypeChange(value as RepositoryCaseType)}
+        options={caseTypeOptions.map((option) => ({
+          value: option,
+          label: option,
+        }))}
         onPointerDown={(event) => event.stopPropagation()}
         disabled={isPending}
-        size="sm"
         className="tms-chip w-fit border-0 outline-none"
         aria-label={`Change type for ${test.title}`}
-      >
-        {caseTypeOptions.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </Select>
+      />
       <span className="text-sm font-semibold text-[var(--tms-text-muted)]">
         {formatDate(test.createdAt)}
       </span>
       <span className="text-sm font-semibold text-[var(--tms-text-muted)]">
         {formatDate(test.updatedAt ?? test.createdAt)}
       </span>
-      <Select
+      <SelectMenu
         value={status}
-        onChange={(event) =>
-          onStatusChange(event.target.value as RepositoryCaseStatus)
-        }
+        onValueChange={(value) => onStatusChange(value as RepositoryCaseStatus)}
+        options={statusOptions.map((option) => ({
+          value: option,
+          label: option,
+        }))}
         onPointerDown={(event) => event.stopPropagation()}
         disabled={isPending}
-        size="sm"
         className={`tms-chip w-fit border-0 outline-none ${getStatusChipClass(status)}`}
         aria-label={`Change status for ${test.title}`}
-      >
-        {statusOptions.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </Select>
+      />
       <CaseActionsMenu
         testId={test.id}
         isOpen={isMenuOpen}

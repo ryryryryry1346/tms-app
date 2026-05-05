@@ -1,7 +1,7 @@
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { PanelHeader } from '../ui/Panel'
-import { Select } from '../ui/Select'
+import { SelectMenu } from '../ui/SelectMenu'
 
 export type RepositoryCaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
 export type RepositoryPriorityFilter =
@@ -106,56 +106,55 @@ export function RepositoryToolbar({
           </label>
           <label className="flex items-center gap-2">
             <span className="font-semibold">Suite</span>
-            <Select
+            <SelectMenu
               value={suiteFilterId}
-              onChange={(event) => onSuiteFilterChange(event.target.value)}
+              onValueChange={onSuiteFilterChange}
+              options={[
+                { value: allSuitesFilter, label: 'All suites' },
+                ...suites.map((section) => ({
+                  value: section.id.toString(),
+                  label: section.name,
+                })),
+              ]}
               className="min-w-[160px]"
-            >
-              <option value={allSuitesFilter}>All suites</option>
-              {suites.map((section) => (
-                <option key={section.id} value={section.id.toString()}>
-                  {section.name}
-                </option>
-              ))}
-            </Select>
+              aria-label="Filter by suite"
+            />
           </label>
           <label className="flex items-center gap-2">
             <span className="font-semibold">Priority</span>
-            <Select
+            <SelectMenu
               value={priorityFilter}
-              onChange={(event) =>
-                onPriorityFilterChange(
-                  event.target.value as RepositoryPriorityFilter,
-                )
+              onValueChange={(value) =>
+                onPriorityFilterChange(value as RepositoryPriorityFilter)
               }
+              options={[
+                { value: 'All', label: 'All' },
+                ...priorityOptions.map((priority) => ({
+                  value: priority,
+                  label: priority,
+                })),
+              ]}
               className="min-w-[110px]"
-            >
-              <option value="All">All</option>
-              {priorityOptions.map((priority) => (
-                <option key={priority} value={priority}>
-                  {priority}
-                </option>
-              ))}
-            </Select>
+              aria-label="Filter by priority"
+            />
           </label>
           <label className="flex items-center gap-2">
             <span className="font-semibold">Type</span>
-            <Select
+            <SelectMenu
               value={caseTypeFilter}
-              onChange={(event) =>
-                onCaseTypeFilterChange(
-                  event.target.value as RepositoryCaseTypeFilter,
-                )
+              onValueChange={(value) =>
+                onCaseTypeFilterChange(value as RepositoryCaseTypeFilter)
               }
+              options={[
+                { value: 'All', label: 'All' },
+                ...caseTypeOptions.map((caseType) => ({
+                  value: caseType,
+                  label: caseType,
+                })),
+              ]}
               className="min-w-[120px]"
-            >
-              <option value="All">All</option>
-              {caseTypeOptions.map((caseType) => (
-                <option key={caseType} value={caseType}>
-                  {caseType}
-                </option>
-              ))}
-            </Select>
+              aria-label="Filter by type"
+            />
           </label>
           <div className="flex flex-wrap gap-2">
             {CASE_FILTER_OPTIONS.map((filter) => (

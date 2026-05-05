@@ -16,7 +16,7 @@ import {
   Upload,
 } from 'lucide-react'
 import { Button } from './ui/Button'
-import { Select } from './ui/Select'
+import { SelectMenu } from './ui/SelectMenu'
 
 type FontSize = 'small' | 'normal' | 'large'
 
@@ -379,19 +379,20 @@ export function RichTextEditor({
           <div className="editor-tool-group">
             <label className="editor-select-label">
               <Type size={15} strokeWidth={2.1} />
-              <Select
+              <SelectMenu
                 value={currentFontSize}
-                onChange={(event) => {
-                  const size = event.target.value as FontSize
+                onValueChange={(value) => {
+                  const size = value as FontSize
                   editor?.chain().focus().setFontSize(fontSizeMap[size]).run()
                 }}
-                size="sm"
+                options={[
+                  { value: 'small', label: 'Small' },
+                  { value: 'normal', label: 'Normal' },
+                  { value: 'large', label: 'Large' },
+                ]}
                 className="editor-tool-select"
-              >
-                <option value="small">Small</option>
-                <option value="normal">Normal</option>
-                <option value="large">Large</option>
-              </Select>
+                aria-label="Text size"
+              />
             </label>
           </div>
 

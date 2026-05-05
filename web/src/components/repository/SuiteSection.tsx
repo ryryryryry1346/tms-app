@@ -3,7 +3,7 @@ import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { PopoverMenu, PopoverMenuItem } from '../ui/PopoverMenu'
-import { Select } from '../ui/Select'
+import { SelectMenu } from '../ui/SelectMenu'
 import {
   CaseRow,
   type RepositoryCasePriority,
@@ -271,57 +271,45 @@ export function SuiteSection({
           size="sm"
           className="min-w-0 rounded-lg"
         />
-        <Select
+        <SelectMenu
           value={quickCreatePriority}
-          onChange={(event) =>
-            onQuickCreatePriorityChange(
-              event.target.value as RepositoryCasePriority,
-            )
+          onValueChange={(value) =>
+            onQuickCreatePriorityChange(value as RepositoryCasePriority)
           }
+          options={priorityOptions.map((priority) => ({
+            value: priority,
+            label: priority,
+          }))}
           disabled={isPending}
-          size="sm"
           className={`tms-chip w-fit border-0 outline-none ${getQuickCreatePriorityChipClass(quickCreatePriority)}`}
-        >
-          {priorityOptions.map((priority) => (
-            <option key={priority} value={priority}>
-              {priority}
-            </option>
-          ))}
-        </Select>
-        <Select
+          aria-label="Choose new case priority"
+        />
+        <SelectMenu
           value={quickCreateType}
-          onChange={(event) =>
-            onQuickCreateTypeChange(event.target.value as RepositoryCaseType)
-          }
+          onValueChange={(value) => onQuickCreateTypeChange(value as RepositoryCaseType)}
+          options={caseTypeOptions.map((caseType) => ({
+            value: caseType,
+            label: caseType,
+          }))}
           disabled={isPending}
-          size="sm"
           className="tms-chip w-fit border-0 outline-none"
-        >
-          {caseTypeOptions.map((caseType) => (
-            <option key={caseType} value={caseType}>
-              {caseType}
-            </option>
-          ))}
-        </Select>
+          aria-label="Choose new case type"
+        />
         <span className="text-sm font-semibold text-[var(--tms-text-soft)]">-</span>
         <span className="text-sm font-semibold text-[var(--tms-text-soft)]">-</span>
-        <Select
+        <SelectMenu
           value={quickCreateStatus}
-          onChange={(event) =>
-            onQuickCreateStatusChange(
-              event.target.value as RepositoryQuickCreateStatus,
-            )
+          onValueChange={(value) =>
+            onQuickCreateStatusChange(value as RepositoryQuickCreateStatus)
           }
+          options={quickCreateStatusOptions.map((status) => ({
+            value: status,
+            label: status,
+          }))}
           disabled={isPending}
-          size="sm"
           className={`tms-chip w-fit border-0 outline-none ${getQuickCreateStatusChipClass(quickCreateStatus)}`}
-        >
-          {quickCreateStatusOptions.map((status) => (
-            <option key={status} value={status}>
-              {status}
-            </option>
-          ))}
-        </Select>
+          aria-label="Choose new case status"
+        />
         <div className="flex justify-end gap-2">
           <Button
             size="sm"

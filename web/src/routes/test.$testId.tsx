@@ -11,7 +11,7 @@ import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
-import { Select } from '../components/ui/Select'
+import { SelectMenu } from '../components/ui/SelectMenu'
 import { uploadTestMedia } from '../features/media/server'
 import {
   archiveTestCase,
@@ -712,97 +712,85 @@ function TestDetailPage() {
                   <div>
                     <dt className="font-semibold text-[var(--tms-text-soft)]">Suite</dt>
                     <dd className="m-0 mt-1">
-                      <Select
-                        value={test.sectionId ?? ''}
-                        onChange={(event) => {
-                          const sectionId = Number(event.target.value)
+                      <SelectMenu
+                        value={test.sectionId?.toString() ?? ''}
+                        onValueChange={(value) => {
+                          const sectionId = Number(value)
 
                           if (Number.isInteger(sectionId) && sectionId > 0) {
                             void handleSuiteChange(sectionId)
                           }
                         }}
+                        options={[
+                          ...(test.sectionId === null
+                            ? [{ value: '', label: 'No suite' }]
+                            : []),
+                          ...test.sections.map((section) => ({
+                            value: section.id.toString(),
+                            label: section.name,
+                          })),
+                        ]}
                         disabled={
                           pendingMetadataField !== null ||
                           test.sections.length === 0
                         }
                         className="w-full text-sm font-semibold text-[var(--tms-text)]"
                         aria-label="Change suite"
-                      >
-                        {test.sectionId === null ? (
-                          <option value="">No suite</option>
-                        ) : null}
-                        {test.sections.map((section) => (
-                          <option key={section.id} value={section.id}>
-                            {section.name}
-                          </option>
-                        ))}
-                      </Select>
+                      />
                     </dd>
                   </div>
                   <div>
                     <dt className="font-semibold text-[var(--tms-text-soft)]">Status</dt>
                     <dd className="m-0 mt-1">
-                      <Select
+                      <SelectMenu
                         value={test.status ?? 'Draft'}
-                        onChange={(event) => {
-                          void handleStatusChange(
-                            event.target.value as CaseStatusValue,
-                          )
+                        onValueChange={(value) => {
+                          void handleStatusChange(value as CaseStatusValue)
                         }}
+                        options={CASE_STATUS_OPTIONS.map((status) => ({
+                          value: status,
+                          label: status,
+                        }))}
                         disabled={pendingMetadataField !== null}
                         className="w-full text-sm font-semibold text-[var(--tms-text)]"
                         aria-label="Change status"
-                      >
-                        {CASE_STATUS_OPTIONS.map((status) => (
-                          <option key={status} value={status}>
-                            {status}
-                          </option>
-                        ))}
-                      </Select>
+                      />
                     </dd>
                   </div>
                   <div>
                     <dt className="font-semibold text-[var(--tms-text-soft)]">Priority</dt>
                     <dd className="m-0 mt-1">
-                      <Select
+                      <SelectMenu
                         value={test.priority ?? 'Medium'}
-                        onChange={(event) => {
-                          void handlePriorityChange(
-                            event.target.value as PriorityValue,
-                          )
+                        onValueChange={(value) => {
+                          void handlePriorityChange(value as PriorityValue)
                         }}
+                        options={PRIORITY_OPTIONS.map((priority) => ({
+                          value: priority,
+                          label: priority,
+                        }))}
                         disabled={pendingMetadataField !== null}
                         className="w-full text-sm font-semibold text-[var(--tms-text)]"
                         aria-label="Change priority"
-                      >
-                        {PRIORITY_OPTIONS.map((priority) => (
-                          <option key={priority} value={priority}>
-                            {priority}
-                          </option>
-                        ))}
-                      </Select>
+                      />
                     </dd>
                   </div>
                   <div>
                     <dt className="font-semibold text-[var(--tms-text-soft)]">Type</dt>
                     <dd className="m-0 mt-1">
-                      <Select
+                      <SelectMenu
                         value={test.caseType ?? 'Functional'}
-                        onChange={(event) => {
-                          void handleCaseTypeChange(
-                            event.target.value as CaseTypeValue,
-                          )
+                        onValueChange={(value) => {
+                          void handleCaseTypeChange(value as CaseTypeValue)
                         }}
+                        options={CASE_TYPE_OPTIONS.map((caseType) => ({
+                          value: caseType,
+                          label: caseType,
+                        }))}
                         disabled={pendingMetadataField !== null}
                         className="w-full text-sm font-semibold text-[var(--tms-text)]"
                         aria-label="Change type"
-                      >
-                        {CASE_TYPE_OPTIONS.map((caseType) => (
-                          <option key={caseType} value={caseType}>
-                            {caseType}
-                          </option>
-                        ))}
-                      </Select>
+                      />
                     </dd>
                   </div>
                   <div>

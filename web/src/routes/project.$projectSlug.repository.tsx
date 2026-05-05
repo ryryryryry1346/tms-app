@@ -13,6 +13,8 @@ import { RepositoryErrorBanner } from '../components/repository/RepositoryErrorB
 import { RepositoryPanel } from '../components/repository/RepositoryPanel'
 import { RepositoryToolbar } from '../components/repository/RepositoryToolbar'
 import { SuiteSection } from '../components/repository/SuiteSection'
+import { Button } from '../components/ui/Button'
+import { Input } from '../components/ui/Input'
 import { uploadTestMedia } from '../features/media/server'
 import {
   createSuite,
@@ -1379,15 +1381,15 @@ function ProjectRepositoryPage() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
+              <Button
                 onClick={() =>
                   setActiveComposer((current) => (current === 'suite' ? null : 'suite'))
                 }
-                className="tms-button tms-button-primary px-7 py-3 text-base"
+                variant="primary"
+                className="px-7 py-3 text-base"
               >
                 + Suite
-              </button>
+              </Button>
               <Link
                 to="/create-test"
                 search={{ projectId: project.id }}
@@ -1423,19 +1425,19 @@ function ProjectRepositoryPage() {
                 <div className="md:col-span-2 text-xl font-semibold text-[var(--tms-text)]">
                   Create suite
                 </div>
-                <input
+                <Input
                   value={suiteName}
                   onChange={(event) => setSuiteName(event.target.value)}
-                  className="tms-input px-4 py-3 text-base"
+                  className="px-4 py-3 text-base"
                   placeholder="Checkout smoke"
                 />
-                <button
+                <Button
                   type="submit"
                   disabled={isSubmittingSuite || !dashboard.databaseConfigured}
-                  className="tms-button border-[var(--tms-success)] bg-[var(--tms-success-soft)] px-4 py-3 text-sm text-[var(--tms-success)] disabled:cursor-not-allowed disabled:opacity-55"
+                  className="border-[var(--status-ready-border)] bg-[var(--status-ready-bg)] px-4 py-3 text-sm text-[var(--status-ready-text)]"
                 >
                   {isSubmittingSuite ? 'Creating...' : 'Create suite'}
-                </button>
+                </Button>
                 {suiteErrorMessage ? (
                   <div className="md:col-span-2 rounded-2xl border border-[var(--tms-border)] bg-[var(--tms-danger-soft)] px-4 py-3 text-sm text-[var(--tms-danger)]">
                     {suiteErrorMessage}

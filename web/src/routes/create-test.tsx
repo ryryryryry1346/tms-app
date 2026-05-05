@@ -6,7 +6,7 @@ import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
-import { Select } from '../components/ui/Select'
+import { SelectMenu } from '../components/ui/SelectMenu'
 import { uploadTestMedia } from '../features/media/server'
 import {
   createTestCase,
@@ -174,87 +174,92 @@ function CreateTestPage() {
           <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px_180px_190px]">
             <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
               Test suite
-              <Select
+              <SelectMenu
                 value={sectionId}
-                onChange={(event) => setSectionId(event.target.value)}
-                size="lg"
-              >
-                {formState.sections.map((section) => (
-                  <option key={section.id} value={section.id}>
-                    {section.projectName
+                onValueChange={setSectionId}
+                options={formState.sections.map((section) => ({
+                  value: section.id.toString(),
+                  label: section.projectName
                       ? `${section.projectName} / ${section.name}`
-                    : section.name}
-                  </option>
-                ))}
-              </Select>
+                      : section.name,
+                }))}
+                className="w-full px-4 py-3 text-base"
+                aria-label="Choose test suite"
+              />
             </label>
 
             <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
               Status
-              <Select
+              <SelectMenu
                 value={status}
-                onChange={(event) =>
-                  setStatus(event.target.value === 'Ready' ? 'Ready' : 'Draft')
+                onValueChange={(value) =>
+                  setStatus(value === 'Ready' ? 'Ready' : 'Draft')
                 }
-                size="lg"
-              >
-                <option value="Draft">Draft</option>
-                <option value="Ready">Ready</option>
-              </Select>
+                options={[
+                  { value: 'Draft', label: 'Draft' },
+                  { value: 'Ready', label: 'Ready' },
+                ]}
+                className="w-full px-4 py-3 text-base"
+                aria-label="Choose case status"
+              />
             </label>
 
             <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
               Priority
-              <Select
+              <SelectMenu
                 value={priority}
-                onChange={(event) =>
+                onValueChange={(value) =>
                   setPriority(
-                    event.target.value === 'Low'
+                    value === 'Low'
                       ? 'Low'
-                      : event.target.value === 'High'
+                      : value === 'High'
                         ? 'High'
-                        : event.target.value === 'Critical'
+                        : value === 'Critical'
                           ? 'Critical'
                           : 'Medium',
                   )
                 }
-                size="lg"
-              >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-                <option value="Critical">Critical</option>
-              </Select>
+                options={[
+                  { value: 'Low', label: 'Low' },
+                  { value: 'Medium', label: 'Medium' },
+                  { value: 'High', label: 'High' },
+                  { value: 'Critical', label: 'Critical' },
+                ]}
+                className="w-full px-4 py-3 text-base"
+                aria-label="Choose case priority"
+              />
             </label>
 
             <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
               Type
-              <Select
+              <SelectMenu
                 value={caseType}
-                onChange={(event) =>
+                onValueChange={(value) =>
                   setCaseType(
-                    event.target.value === 'Regression'
+                    value === 'Regression'
                       ? 'Regression'
-                      : event.target.value === 'Smoke'
+                      : value === 'Smoke'
                         ? 'Smoke'
-                        : event.target.value === 'E2E'
+                        : value === 'E2E'
                           ? 'E2E'
-                          : event.target.value === 'UI'
+                          : value === 'UI'
                             ? 'UI'
-                            : event.target.value === 'API'
+                            : value === 'API'
                               ? 'API'
                               : 'Functional',
                   )
                 }
-                size="lg"
-              >
-                <option value="Functional">Functional</option>
-                <option value="Regression">Regression</option>
-                <option value="Smoke">Smoke</option>
-                <option value="E2E">E2E</option>
-                <option value="UI">UI</option>
-                <option value="API">API</option>
-              </Select>
+                options={[
+                  { value: 'Functional', label: 'Functional' },
+                  { value: 'Regression', label: 'Regression' },
+                  { value: 'Smoke', label: 'Smoke' },
+                  { value: 'E2E', label: 'E2E' },
+                  { value: 'UI', label: 'UI' },
+                  { value: 'API', label: 'API' },
+                ]}
+                className="w-full px-4 py-3 text-base"
+                aria-label="Choose case type"
+              />
             </label>
           </div>
 
