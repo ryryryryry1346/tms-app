@@ -16,6 +16,7 @@ import {
   Upload,
 } from 'lucide-react'
 import { Button } from './ui/Button'
+import { FileInput } from './ui/FileInput'
 import { SelectMenu } from './ui/SelectMenu'
 
 type FontSize = 'small' | 'normal' | 'large'
@@ -429,11 +430,9 @@ export function RichTextEditor({
         <EditorContent editor={editor} />
       </div>
 
-      <input
+      <FileInput
         ref={fileInputRef}
-        type="file"
         accept="image/*,video/*"
-        className="hidden"
         onChange={(event) => {
           void handleFiles(event.target.files)
           event.target.value = ''

@@ -8,6 +8,7 @@ import {
 import { useMemo, useState } from 'react'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
+import { Checkbox } from '../components/ui/Checkbox'
 import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
@@ -455,11 +456,9 @@ function ProjectRunsPage() {
                           <span className="text-xs text-[var(--tms-text-soft)]">
                             {sectionCaseCount}
                           </span>
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={isSelected}
                             onChange={() => toggleRunSuiteSelection(section.id)}
-                            className="h-4 w-4 rounded border-[var(--tms-border)] text-[var(--tms-primary)] focus:ring-[var(--tms-primary)]"
                           />
                         </span>
                       </label>
@@ -495,11 +494,9 @@ function ProjectRunsPage() {
                               {test.caseType ?? 'Functional'}
                             </span>
                           </span>
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={selectedRunTestIdSet.has(test.id)}
                             onChange={() => toggleRunCaseSelection(test.id)}
-                            className="h-4 w-4 shrink-0 rounded border-[var(--tms-border)] text-[var(--tms-primary)] focus:ring-[var(--tms-primary)]"
                           />
                         </label>
                       )

@@ -12,8 +12,10 @@ import {
 } from '../features/runs/server'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
+import { Checkbox } from '../components/ui/Checkbox'
 import { Panel } from '../components/ui/Panel'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
+import { Textarea } from '../components/ui/Textarea'
 
 export const Route = createFileRoute('/run/$runId')({
   loader: async ({ params }) => {
@@ -450,11 +452,9 @@ function RunDetailPage() {
               minWidth="1180px"
             >
               <div>
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={allVisibleSelected}
                   onChange={toggleVisibleSelection}
-                  className="h-4 w-4 rounded border-[var(--tms-border)] text-[var(--tms-primary)] focus:ring-[var(--tms-primary)]"
                   aria-label="Select visible tests"
                 />
               </div>
@@ -480,11 +480,9 @@ function RunDetailPage() {
                   minWidth="1180px"
                 >
                   <div>
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={selectedTestIdSet.has(test.id)}
                       onChange={() => toggleTestSelection(test.id)}
-                      className="h-4 w-4 rounded border-[var(--tms-border)] text-[var(--tms-primary)] focus:ring-[var(--tms-primary)]"
                       aria-label={`Select test ${test.id}`}
                     />
                   </div>
@@ -533,7 +531,7 @@ function RunDetailPage() {
                     </Button>
                   </div>
                   <div className="flex items-center gap-2">
-                    <textarea
+                    <Textarea
                       value={commentByTestId[test.id] ?? ''}
                       onChange={(event) =>
                         setCommentByTestId((current) => ({
@@ -543,7 +541,8 @@ function RunDetailPage() {
                       }
                       rows={2}
                       placeholder="Execution note"
-                      className="tms-input min-h-10 w-full resize-y rounded-xl px-3 py-2 text-sm"
+                      size="sm"
+                      className="w-full rounded-xl"
                     />
                     <Button
                       disabled={isCommentPending}

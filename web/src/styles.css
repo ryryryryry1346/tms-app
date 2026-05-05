@@ -262,6 +262,7 @@ pre code {
 }
 
 .tms-input,
+.tms-textarea,
 .tms-select {
   min-height: var(--tms-control-height);
   border: 1px solid var(--tms-border);
@@ -310,15 +311,69 @@ pre code {
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--tms-primary) 16%, transparent);
 }
 
-.tms-input::placeholder {
+.tms-textarea {
+  resize: vertical;
+}
+
+.tms-input::placeholder,
+.tms-textarea::placeholder {
   color: var(--tms-text-soft);
 }
 
 .tms-input:focus,
+.tms-textarea:focus,
 .tms-select:focus,
 .tms-button:focus-visible {
   border-color: var(--tms-primary-border);
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--tms-primary) 16%, transparent);
+}
+
+.tms-checkbox {
+  display: inline-grid;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  appearance: none;
+  place-content: center;
+  border: 1px solid var(--tms-border);
+  border-radius: 0.25rem;
+  background: var(--tms-surface);
+  color: var(--tms-primary);
+  cursor: pointer;
+}
+
+.tms-checkbox::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  clip-path: polygon(14% 44%, 0 58%, 38% 96%, 100% 22%, 86% 8%, 36% 68%);
+  transform: scale(0);
+  transform-origin: center;
+  background: white;
+}
+
+.tms-checkbox:checked {
+  border-color: var(--tms-primary);
+  background: var(--tms-primary);
+}
+
+.tms-checkbox:checked::before {
+  transform: scale(1);
+}
+
+.tms-checkbox:focus-visible {
+  border-color: var(--tms-primary-border);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--tms-primary) 16%, transparent);
+  outline: none;
+}
+
+.tms-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.tms-file-input {
+  display: none;
 }
 
 .tms-chip {

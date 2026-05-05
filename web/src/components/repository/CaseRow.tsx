@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import type { DragEvent } from 'react'
+import { Checkbox } from '../ui/Checkbox'
 import { Input } from '../ui/Input'
 import { SelectMenu } from '../ui/SelectMenu'
 import { CaseActionsMenu } from './CaseActionsMenu'
@@ -169,11 +170,9 @@ export function CaseRow({
       }`}
     >
       <div className="flex items-center gap-3">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={isSelected}
           onChange={onToggleSelection}
-          className="h-4 w-4 rounded border-[var(--tms-border)] text-[var(--tms-primary)] focus:ring-[var(--tms-primary)]"
         />
         <button
           type="button"
