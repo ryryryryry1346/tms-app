@@ -158,8 +158,13 @@ body,
   min-height: 100%;
 }
 
+#app {
+  isolation: isolate;
+}
+
 body {
   margin: 0;
+  position: relative;
   color: var(--sea-ink);
   font-family: var(--font-sans);
   background-color: var(--bg-base);

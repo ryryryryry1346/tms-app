@@ -1,7 +1,7 @@
+import { Popover } from '@base-ui/react/popover'
 import {
-  useEffect,
-  useRef,
-  type HTMLAttributes,
+  type ButtonHTMLAttributes,
+  type ReactElement,
   type ReactNode,
 } from 'react'
 import { cx } from './utils'
@@ -11,13 +11,15 @@ type PopoverMenuAlign = 'left' | 'right'
 type PopoverMenuProps = {
   isOpen: boolean
   onClose: () => void
-  trigger: ReactNode
+  onOpenChange?: (isOpen: boolean) => void
+  trigger: ReactElement
   children: ReactNode
   align?: PopoverMenuAlign
+  sideOffset?: number
   className?: string
 }
 
-type PopoverMenuItemProps = HTMLAttributes<HTMLButtonElement> & {
+type PopoverMenuItemProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   tone?: 'default' | 'success' | 'warning' | 'danger'
 }
 
@@ -40,59 +42,41 @@ function getItemToneClass(tone: NonNullable<PopoverMenuItemProps['tone']>): stri
 export function PopoverMenu({
   isOpen,
   onClose,
+  onOpenChange,
   trigger,
   children,
   align = 'right',
+  sideOffset = 8,
   className,
 }: PopoverMenuProps) {
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!isOpen) {
-      return
-    }
-
-    function handlePointerDown(event: PointerEvent): void {
-      const target = event.target
-
-      if (target instanceof Node && menuRef.current?.contains(target)) {
-        return
-      }
-
-      onClose()
-    }
-
-    function handleKeyDown(event: KeyboardEvent): void {
-      if (event.key === 'Escape') {
-        onClose()
-      }
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isOpen, onClose])
-
   return (
-    <div ref={menuRef} className="relative" onPointerDown={(event) => event.stopPropagation()}>
-      {trigger}
+    <Popover.Root
+      open={isOpen}
+      onOpenChange={(nextOpen) => {
+        onOpenChange?.(nextOpen)
+
+        if (!nextOpen) {
+          onClose()
+        }
+      }}
+    >
+      <Popover.Trigger render={trigger} />
       {isOpen ? (
-        <div
-          role="menu"
-          className={cx(
-            'tms-popover absolute top-full mt-2',
-            align === 'right' ? 'right-0' : 'left-0',
-            className,
-          )}
-        >
-          {children}
-        </div>
+        <Popover.Portal>
+          <Popover.Positioner
+            align={align === 'right' ? 'end' : 'start'}
+            sideOffset={sideOffset}
+          >
+            <Popover.Popup
+              role="menu"
+              className={cx('tms-popover min-w-[11rem]', className)}
+            >
+              {children}
+            </Popover.Popup>
+          </Popover.Positioner>
+        </Popover.Portal>
       ) : null}
-    </div>
+    </Popover.Root>
   )
 }
 

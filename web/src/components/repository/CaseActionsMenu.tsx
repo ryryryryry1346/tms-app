@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
-import { useEffect, useRef } from 'react'
+import { Button } from '../ui/Button'
+import { PopoverMenu, PopoverMenuItem } from '../ui/PopoverMenu'
 
 type CaseActionsMenuProps = {
   testId: number
@@ -15,19 +16,6 @@ type CaseActionsMenuProps = {
   onArchive: () => void
 }
 
-function itemClass(tone: 'default' | 'success' | 'danger' | 'warning' = 'default'): string {
-  const toneClass =
-    tone === 'success'
-      ? 'text-[var(--tms-success)] hover:bg-[var(--tms-success-soft)]'
-      : tone === 'danger'
-        ? 'tms-menu-item-danger'
-        : tone === 'warning'
-          ? 'text-[var(--tms-warning)] hover:bg-[var(--tms-warning-soft)]'
-          : ''
-
-  return `tms-menu-item disabled:cursor-not-allowed disabled:opacity-55 ${toneClass}`
-}
-
 export function CaseActionsMenu({
   testId,
   isOpen,
@@ -41,119 +29,79 @@ export function CaseActionsMenu({
   onDeletePermanently,
   onArchive,
 }: CaseActionsMenuProps) {
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!isOpen) {
-      return
-    }
-
-    function handlePointerDown(event: PointerEvent): void {
-      const target = event.target
-
-      if (target instanceof Node && menuRef.current?.contains(target)) {
-        return
-      }
-
-      onClose()
-    }
-
-    function handleKeyDown(event: KeyboardEvent): void {
-      if (event.key === 'Escape') {
-        onClose()
-      }
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isOpen, onClose])
-
   return (
-    <div
-      ref={menuRef}
-      className="relative flex justify-end"
-      onPointerDown={(event) => event.stopPropagation()}
-    >
-      <button
-        type="button"
-        disabled={isPending}
-        onClick={(event) => {
-          event.stopPropagation()
-          onToggle()
+    <div className="flex justify-end">
+      <PopoverMenu
+        isOpen={isOpen}
+        onClose={onClose}
+        onOpenChange={(nextOpen) => {
+          if (nextOpen) {
+            onToggle()
+          }
         }}
-        className="tms-button min-h-0 px-2.5 py-1 disabled:cursor-not-allowed disabled:opacity-55"
-        aria-label="Open test case actions"
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
+        className="min-w-[170px] text-left"
+        trigger={
+          <Button
+            size="sm"
+            disabled={isPending}
+            aria-label="Open test case actions"
+            aria-haspopup="menu"
+            aria-expanded={isOpen}
+          >
+            ...
+          </Button>
+        }
       >
-        ...
-      </button>
-      {isOpen ? (
-        <div
-          className="tms-popover absolute right-0 top-full mt-2 min-w-[170px] text-left"
-          onClick={(event) => event.stopPropagation()}
-        >
           <Link
             to="/test/$testId"
             params={{ testId: testId.toString() }}
-            className={itemClass()}
+            className="tms-menu-item"
           >
             Open
           </Link>
-          <button type="button" onClick={onPreview} className={itemClass()}>
+          <PopoverMenuItem onClick={onPreview}>
             Preview
-          </button>
+          </PopoverMenuItem>
           <Link
             to="/edit-test/$testId"
             params={{ testId: testId.toString() }}
-            className={itemClass()}
+            className="tms-menu-item"
           >
             Edit
           </Link>
-          <button
-            type="button"
+          <PopoverMenuItem
             disabled={isPending}
             onClick={onDuplicate}
-            className={itemClass()}
           >
             Duplicate
-          </button>
+          </PopoverMenuItem>
           {isArchived ? (
             <>
-              <button
-                type="button"
+              <PopoverMenuItem
                 disabled={isPending}
                 onClick={onRestore}
-                className={itemClass('success')}
+                tone="success"
               >
                 Restore
-              </button>
-              <button
-                type="button"
+              </PopoverMenuItem>
+              <PopoverMenuItem
                 disabled={isPending}
                 onClick={onDeletePermanently}
-                className={itemClass('danger')}
+                tone="danger"
               >
                 Delete permanently
-              </button>
+              </PopoverMenuItem>
             </>
           ) : (
-            <button
-              type="button"
+            <PopoverMenuItem
               disabled={isPending}
               onClick={onArchive}
-              className={itemClass('warning')}
+              tone="warning"
             >
               Archive
-            </button>
+            </PopoverMenuItem>
           )}
-        </div>
-      ) : null}
+      </PopoverMenu>
     </div>
   )
 }
