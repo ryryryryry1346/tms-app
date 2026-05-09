@@ -409,8 +409,6 @@ export default function AppShell({ user, children }: AppShellProps) {
   const isDeepFlow = isDeepShellPath(pathname)
   const isWorkspaceHome = pathname === '/'
   const showSidebar = !isWorkspaceHome
-  const showWorkingContext = isDeepFlow && contextRows.length > 0
-  const contextActions = getContextActions(pathname, shellContext)
   const headerCopy = getHeaderCopy(pathname)
 
   useEffect(() => {
@@ -523,6 +521,8 @@ export default function AppShell({ user, children }: AppShellProps) {
         }
       : null,
   ].filter(Boolean) as ContextRow[]
+  const showWorkingContext = isDeepFlow && contextRows.length > 0
+  const contextActions = getContextActions(pathname, shellContext)
 
   async function handleLogout(): Promise<void> {
     setIsLoggingOut(true)
