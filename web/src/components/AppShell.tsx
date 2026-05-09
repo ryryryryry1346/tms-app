@@ -557,7 +557,7 @@ export default function AppShell({ user, children }: AppShellProps) {
           {user ? (
             <div className="app-shell__topbar-right app-shell__topbar-right--user">
               <ThemeToggle compact />
-              <Badge>{user.displayName}</Badge>
+              <Badge className="app-shell__user-badge">{user.displayName}</Badge>
               <Button
                 type="button"
                 size="sm"

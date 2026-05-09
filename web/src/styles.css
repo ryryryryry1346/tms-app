@@ -1395,6 +1395,23 @@ a {
 
 .app-shell__topbar-logout {
   flex-shrink: 0;
+  min-height: 2rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.app-shell__topbar-logout:hover {
+  color: var(--text-primary);
+}
+
+.app-shell__user-badge {
+  min-height: 2rem;
+  padding: 0.35rem 0.75rem;
+  color: var(--text-secondary);
+  background: color-mix(in oklab, var(--surface) 88%, var(--muted-surface));
+  box-shadow: var(--tms-shadow-subtle);
 }
 
 .app-shell__user-meta {
@@ -1560,6 +1577,10 @@ a {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+.app-shell__topbar-right--user {
+  gap: 0.5rem;
 }
 
 .app-shell__topbar-brand {
@@ -2113,17 +2134,26 @@ a {
 
 .app-theme-switcher.is-compact .app-theme-switcher__segmented {
   display: inline-grid;
-  min-width: 8.75rem;
+  min-width: 7.25rem;
+  gap: 0.25rem;
 }
 
 .app-theme-switcher.is-compact .app-theme-switcher__button {
   min-height: 2rem;
-  padding: 0.35rem 0.55rem;
+  padding: 0.3rem 0.45rem;
   font-size: 0.75rem;
+  color: var(--text-muted);
+  box-shadow: none;
 }
 
 .app-theme-switcher.is-compact .app-theme-switcher__option {
   justify-content: center;
+  gap: 0.35rem;
+}
+
+.app-theme-switcher.is-compact .app-theme-switcher__icon {
+  width: 0.875rem;
+  height: 0.875rem;
 }
 
 .app-theme-switcher__button:hover {
@@ -2134,7 +2164,7 @@ a {
 .app-theme-switcher__button.is-active {
   background: var(--state-selected);
   color: var(--text-primary);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--border-focus) 18%, var(--border-default));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--border-focus) 14%, var(--border-default));
 }
 
 @media (min-width: 768px) {
