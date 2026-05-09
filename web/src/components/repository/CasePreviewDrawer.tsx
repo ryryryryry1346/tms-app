@@ -119,8 +119,8 @@ export function CasePreviewDrawer({
         onClick={onClose}
         className="absolute inset-0 bg-[var(--tms-backdrop)]"
       />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[560px] flex-col border-l border-[var(--tms-border)] bg-[var(--tms-surface)] shadow-[var(--tms-shadow-drawer)]">
-        <div className="border-b border-[var(--tms-border-subtle)] px-6 py-5">
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-full flex-col border-l border-[var(--tms-border)] bg-[var(--tms-surface)] shadow-[var(--tms-shadow-drawer)] sm:max-w-[560px]">
+        <div className="border-b border-[var(--tms-border-subtle)] px-4 py-4 sm:px-6 sm:py-5">
           <div className="tms-transient-header">
             <div className="tms-transient-header__copy">
               <p className="tms-transient-header__eyebrow">
@@ -156,7 +156,7 @@ export function CasePreviewDrawer({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {isEditingContent ? (
             <div className="grid gap-5">
               <RichTextEditor
@@ -240,7 +240,7 @@ export function CasePreviewDrawer({
           )}
         </div>
 
-        <div className="border-t border-[var(--tms-border-subtle)] px-6 py-4">
+        <div className="border-t border-[var(--tms-border-subtle)] px-4 py-4 sm:px-6">
           {showArchiveConfirm ? (
             <ConfirmActionAlert
               className="mb-3"

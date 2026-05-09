@@ -130,7 +130,7 @@ function CreateTestPage() {
 
   return (
     <main className="min-h-[calc(100vh-65px)] bg-[var(--tms-bg)]">
-      <div className="mx-auto max-w-[1180px] px-6 py-8">
+      <div className="mx-auto max-w-[1180px] px-4 py-6 sm:px-6 sm:py-8">
       <section className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-2xl">
           <div className="mb-2 flex flex-wrap items-center gap-2 text-sm font-semibold text-[var(--tms-text-muted)]">
@@ -142,7 +142,7 @@ function CreateTestPage() {
             <span>/</span>
             <span>{selectedSection?.name ?? 'Suite'}</span>
           </div>
-          <h1 className="m-0 text-4xl font-bold tracking-tight text-[var(--tms-text)]">
+          <h1 className="m-0 text-3xl font-bold tracking-tight text-[var(--tms-text)] sm:text-4xl">
             Create Test Case
           </h1>
         </div>
@@ -159,7 +159,7 @@ function CreateTestPage() {
 
       <section>
         <form
-          className="tms-panel p-6"
+          className="tms-panel p-4 sm:p-6"
           onSubmit={handleSubmit}
         >
           <EditingSurfaceSection
@@ -301,7 +301,7 @@ function CreateTestPage() {
                 ? `${selectedSection.projectName ?? 'Project'} / ${selectedSection.name}`
                 : 'Choose a suite to create this case.'}
             </div>
-            <div className="workspace-secondary-actions">
+            <div className="workspace-secondary-actions create-edit-actions">
               {selectedProjectSlug ? (
                 <Link
                   to="/project/$projectSlug/repository"

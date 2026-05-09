@@ -326,7 +326,7 @@ export default function AppShell({ user, children }: AppShellProps) {
           </div>
 
           {user ? (
-            <div className="app-shell__topbar-right">
+            <div className="app-shell__topbar-right app-shell__topbar-right--user">
               <Badge>{user.displayName}</Badge>
             </div>
           ) : null}

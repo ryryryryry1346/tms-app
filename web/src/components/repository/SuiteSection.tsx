@@ -254,7 +254,7 @@ export function SuiteSection({
     const isPending = pendingQuickCreateSuiteId === section.id
 
     return (
-      <div className="tms-table-row grid grid-cols-[72px_82px_minmax(220px,1fr)_110px_132px_120px_120px_116px_96px] px-5 py-2.5">
+      <div className="tms-table-row repository-case-grid px-4 py-2.5 sm:px-5">
         <div />
         <div className="tms-kicker">
           New
@@ -342,7 +342,7 @@ export function SuiteSection({
           : 'border-[var(--tms-border)]'
       }`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-4 sm:px-5">
         <div className="flex min-w-0 items-center gap-4">
           <button
             type="button"
@@ -355,7 +355,7 @@ export function SuiteSection({
           <div className="min-w-0">
             {isEditingSuite ? (
               <form
-                className="flex flex-wrap items-center gap-2"
+                className="repository-suite-rename-form"
                 onSubmit={(event) => onRenameSuite(event, section.id)}
               >
                 <Input
@@ -393,7 +393,7 @@ export function SuiteSection({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="repository-suite-header__actions">
           <Badge variant="statusReady">
             Ready {readyCount}
           </Badge>
@@ -462,7 +462,7 @@ export function SuiteSection({
       </div>
 
       {isDeleteConfirming ? (
-        <div className="border-b border-[var(--tms-border-subtle)] px-5 py-4">
+        <div className="border-b border-[var(--tms-border-subtle)] px-4 py-4 sm:px-5">
           <ConfirmActionAlert
             title="Delete this suite?"
             description="This only works when the suite has no test cases."
@@ -477,7 +477,7 @@ export function SuiteSection({
       ) : null}
 
       {suiteActionErrorMessage && showSuiteActionError ? (
-        <div className="border-b border-[var(--tms-border-subtle)] px-5 py-3">
+        <div className="border-b border-[var(--tms-border-subtle)] px-4 py-3 sm:px-5">
           <Alert variant="danger" density="compact">
             {suiteActionErrorMessage}
           </Alert>
@@ -486,7 +486,7 @@ export function SuiteSection({
 
       {isCollapsed ? null : visibleTests.length === 0 ? (
         <div className="bg-[var(--tms-surface)]">
-          <div className="px-5 py-4 text-sm text-[var(--tms-text-muted)]">
+          <div className="px-4 py-4 text-sm text-[var(--tms-text-muted)] sm:px-5">
             <EmptyState
               title="No test cases in this suite yet"
               description="Create a case directly in this suite to start building coverage."
@@ -504,76 +504,80 @@ export function SuiteSection({
         </div>
       ) : (
         <div className="bg-[var(--tms-surface)]">
-          <div className="tms-table-head grid grid-cols-[72px_82px_minmax(220px,1fr)_110px_132px_120px_120px_116px_96px] px-5 py-2">
-            <div />
-            <div>ID</div>
-            <div>Title</div>
-            <div>Priority</div>
-            <div>Type</div>
-            <div>Created</div>
-            <div>Updated</div>
-            <div>Status</div>
-            <div className="text-right">Actions</div>
-          </div>
-          {isQuickCreateOpen ? renderQuickCreateCaseRow() : null}
-          {visibleTests.map((test) => (
-            <CaseRow
-              key={test.id}
-              test={test}
-              isSelected={selectedTestIdSet.has(test.id)}
-              isMenuOpen={openCaseMenuId === test.id}
-              isPending={pendingCaseActionId === test.id}
-              isEditingTitle={editingCaseTitleId === test.id}
-              editingTitleValue={editingCaseTitleValue}
-              draggedTestIds={draggedTestIds}
-              dragOverDrop={dragOverTestDrop}
-              priorityOptions={priorityOptions}
-              caseTypeOptions={caseTypeOptions}
-              statusOptions={statusOptions}
-              formatDate={formatDate}
-              onToggleSelection={() => onToggleTestSelection(test.id)}
-              onDragStart={(event) => onCaseDragStart(event, test.id)}
-              onDragEnd={onCaseDragEnd}
-              onDragOver={(event, position) =>
-                onCaseDragOver(event, test.id, position)
-              }
-              onDragLeave={() => onCaseDragLeave(test.id)}
-              onDrop={(event) => onCaseDrop(event, test.id)}
-              onTitleEditChange={onCaseTitleEditChange}
-              onStartTitleEdit={() => onStartCaseTitleEdit(test.id, test.title)}
-              onSaveTitleEdit={() => onSaveCaseTitleEdit(test.id, test.title)}
-              onCancelTitleEdit={onCancelCaseTitleEdit}
-              onPriorityChange={(priority) => onCasePriorityChange(test.id, priority)}
-              onCaseTypeChange={(caseType) => onCaseTypeChange(test.id, caseType)}
-              onStatusChange={(status) => onCaseStatusChange(test.id, status)}
-              onToggleMenu={() => onToggleCaseMenu(test.id)}
-              onCloseMenu={onCloseCaseMenu}
-              onPreview={() => onPreviewCase(test.id)}
-              onDuplicate={() => onDuplicateCase(test.id)}
-              onRestore={() => onRestoreCase(test.id)}
-              onDeletePermanently={() => onDeleteCasePermanently(test.id)}
-              onArchive={() => onArchiveCase(test.id)}
-            />
-          ))}
-          <div
-            onDragOver={(event) => {
-              if (draggedTestIds.length === 0) {
-                return
-              }
+          <div className="overflow-x-auto">
+            <div className="min-w-[940px]">
+              <div className="tms-table-head repository-case-grid px-4 py-2 sm:px-5">
+                <div />
+                <div>ID</div>
+                <div>Title</div>
+                <div>Priority</div>
+                <div>Type</div>
+                <div>Created</div>
+                <div>Updated</div>
+                <div>Status</div>
+                <div className="text-right">Actions</div>
+              </div>
+              {isQuickCreateOpen ? renderQuickCreateCaseRow() : null}
+              {visibleTests.map((test) => (
+                <CaseRow
+                  key={test.id}
+                  test={test}
+                  isSelected={selectedTestIdSet.has(test.id)}
+                  isMenuOpen={openCaseMenuId === test.id}
+                  isPending={pendingCaseActionId === test.id}
+                  isEditingTitle={editingCaseTitleId === test.id}
+                  editingTitleValue={editingCaseTitleValue}
+                  draggedTestIds={draggedTestIds}
+                  dragOverDrop={dragOverTestDrop}
+                  priorityOptions={priorityOptions}
+                  caseTypeOptions={caseTypeOptions}
+                  statusOptions={statusOptions}
+                  formatDate={formatDate}
+                  onToggleSelection={() => onToggleTestSelection(test.id)}
+                  onDragStart={(event) => onCaseDragStart(event, test.id)}
+                  onDragEnd={onCaseDragEnd}
+                  onDragOver={(event, position) =>
+                    onCaseDragOver(event, test.id, position)
+                  }
+                  onDragLeave={() => onCaseDragLeave(test.id)}
+                  onDrop={(event) => onCaseDrop(event, test.id)}
+                  onTitleEditChange={onCaseTitleEditChange}
+                  onStartTitleEdit={() => onStartCaseTitleEdit(test.id, test.title)}
+                  onSaveTitleEdit={() => onSaveCaseTitleEdit(test.id, test.title)}
+                  onCancelTitleEdit={onCancelCaseTitleEdit}
+                  onPriorityChange={(priority) => onCasePriorityChange(test.id, priority)}
+                  onCaseTypeChange={(caseType) => onCaseTypeChange(test.id, caseType)}
+                  onStatusChange={(status) => onCaseStatusChange(test.id, status)}
+                  onToggleMenu={() => onToggleCaseMenu(test.id)}
+                  onCloseMenu={onCloseCaseMenu}
+                  onPreview={() => onPreviewCase(test.id)}
+                  onDuplicate={() => onDuplicateCase(test.id)}
+                  onRestore={() => onRestoreCase(test.id)}
+                  onDeletePermanently={() => onDeletePermanently(test.id)}
+                  onArchive={() => onArchiveCase(test.id)}
+                />
+              ))}
+              <div
+                onDragOver={(event) => {
+                  if (draggedTestIds.length === 0) {
+                    return
+                  }
 
-              event.preventDefault()
-              event.stopPropagation()
-              event.dataTransfer.dropEffect = 'move'
-              onSuiteDragOver(event, section.id)
-            }}
-            onDrop={(event) => onSuiteAppendDrop(event, section.id)}
-            className={`border-t border-dashed px-5 py-3 text-center text-xs font-semibold uppercase tracking-[0.08em] transition ${
-              dragOverSuiteId === section.id && !dragOverTestDrop
-                ? 'border-[var(--tms-primary-border)] bg-[var(--tms-primary-soft)] text-[var(--tms-primary)]'
-                : 'border-[var(--tms-border-subtle)] text-[var(--tms-text-soft)]'
-            }`}
-          >
-            Drop here to move to the end
+                  event.preventDefault()
+                  event.stopPropagation()
+                  event.dataTransfer.dropEffect = 'move'
+                  onSuiteDragOver(event, section.id)
+                }}
+                onDrop={(event) => onSuiteAppendDrop(event, section.id)}
+                className={`border-t border-dashed px-4 py-3 text-center text-xs font-semibold uppercase tracking-[0.08em] transition sm:px-5 ${
+                  dragOverSuiteId === section.id && !dragOverTestDrop
+                    ? 'border-[var(--tms-primary-border)] bg-[var(--tms-primary-soft)] text-[var(--tms-primary)]'
+                    : 'border-[var(--tms-border-subtle)] text-[var(--tms-text-soft)]'
+                }`}
+              >
+                Drop here to move to the end
+              </div>
+            </div>
           </div>
         </div>
       )}

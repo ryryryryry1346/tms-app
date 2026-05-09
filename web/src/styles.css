@@ -268,6 +268,27 @@ pre code {
   gap: 0.5rem;
 }
 
+.repository-toolbar__controls {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.repository-toolbar__field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.repository-toolbar__input {
+  width: 100%;
+}
+
+.repository-toolbar__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .tms-button {
   display: inline-flex;
   min-height: var(--tms-control-height);
@@ -1600,6 +1621,22 @@ a {
   gap: 0.5rem;
 }
 
+.repository-case-grid {
+  grid-template-columns: 72px 82px minmax(220px, 1fr) 110px 132px 120px 120px 116px 96px;
+}
+
+.repository-suite-header__actions,
+.repository-suite-rename-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.create-edit-actions {
+  justify-content: flex-end;
+}
+
 .workspace-dense-table-header {
   display: flex;
   flex-wrap: wrap;
@@ -1751,6 +1788,91 @@ a {
 
   .app-shell__topbar {
     padding: 0.75rem 1.5rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .app-shell__topbar {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .app-shell__topbar-right--user {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .workspace-page-header__actions {
+    width: 100%;
+  }
+
+  .workspace-page-header__actions > * {
+    flex: 1 1 180px;
+  }
+
+  .workspace-subnav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+  }
+
+  .workspace-toolbar-surface {
+    align-items: flex-start;
+  }
+
+  .workspace-section-header__actions,
+  .workspace-toolbar-surface__actions {
+    width: 100%;
+  }
+
+  .repository-toolbar__field {
+    width: 100%;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .repository-toolbar__field > span:first-child {
+    width: 100%;
+  }
+
+  .repository-toolbar__field .tms-input,
+  .repository-toolbar__field .tms-select-menu-trigger,
+  .repository-toolbar__field .tms-select {
+    width: 100%;
+  }
+
+  .repository-toolbar__chips {
+    width: 100%;
+  }
+
+  .repository-toolbar__chips > * {
+    flex: 1 1 calc(50% - 0.25rem);
+  }
+
+  .repository-suite-header__actions,
+  .repository-suite-rename-form,
+  .create-edit-actions,
+  .tms-transient-footer {
+    width: 100%;
+  }
+
+  .repository-suite-header__actions > *,
+  .repository-suite-rename-form > *,
+  .create-edit-actions > *,
+  .tms-transient-footer > * {
+    flex: 1 1 100%;
+  }
+
+  .repository-case-grid {
+    grid-template-columns: 64px 76px minmax(220px, 1fr) 108px 128px 112px 112px 112px 84px;
+  }
+
+  .editor-toolbar {
+    padding-inline: 0.75rem;
+  }
+
+  .editor-tool-group {
+    padding-right: 0.5rem;
   }
 }
 

@@ -90,18 +90,18 @@ export function RepositoryToolbar({
         title="Test suites and cases"
         meta={`${visibleCount} visible cases`}
         actions={
-          <div className="tms-toolbar justify-end">
-          <label className="flex items-center gap-2">
+          <div className="tms-toolbar repository-toolbar__controls justify-end">
+          <label className="repository-toolbar__field">
             <span className="shrink-0 whitespace-nowrap font-semibold">
               Search
             </span>
             <Input
               value={searchValue}
               onChange={(event) => onSearchChange(event.target.value)}
-              className="w-[260px]"
+              className="repository-toolbar__input"
             />
           </label>
-          <label className="flex items-center gap-2">
+          <label className="repository-toolbar__field">
             <span className="font-semibold">Suite</span>
             <SelectMenu
               value={suiteFilterId}
@@ -117,7 +117,7 @@ export function RepositoryToolbar({
               aria-label="Filter by suite"
             />
           </label>
-          <label className="flex items-center gap-2">
+          <label className="repository-toolbar__field">
             <span className="font-semibold">Priority</span>
             <SelectMenu
               value={priorityFilter}
@@ -135,7 +135,7 @@ export function RepositoryToolbar({
               aria-label="Filter by priority"
             />
           </label>
-          <label className="flex items-center gap-2">
+          <label className="repository-toolbar__field">
             <span className="font-semibold">Type</span>
             <SelectMenu
               value={caseTypeFilter}
@@ -153,7 +153,7 @@ export function RepositoryToolbar({
               aria-label="Filter by type"
             />
           </label>
-          <div className="flex flex-wrap gap-2">
+          <div className="repository-toolbar__chips">
             {CASE_FILTER_OPTIONS.map((filter) => (
               <Button
                 key={filter}

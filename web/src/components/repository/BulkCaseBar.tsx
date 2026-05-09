@@ -84,12 +84,12 @@ export function BulkCaseBar({
   }
 
   return (
-    <Panel className="mx-5 mt-4 rounded-[var(--tms-radius-overlay)] bg-[var(--tms-surface-muted)] px-4 py-3 shadow-none">
+    <Panel className="mx-4 mt-4 rounded-[var(--tms-radius-overlay)] bg-[var(--tms-surface-muted)] px-4 py-3 shadow-none sm:mx-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm font-semibold text-[var(--tms-text)]">
           {selectedCount} selected
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="repository-suite-header__actions">
           <PopoverMenu
             isOpen={openMenu === 'move'}
             onClose={closeMenu}

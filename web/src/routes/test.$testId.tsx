@@ -454,7 +454,7 @@ function TestDetailPage() {
   }
 
   return (
-    <main className="page-wrap px-4 py-10">
+    <main className="page-wrap px-4 py-6 sm:py-10">
       <div className="mx-auto max-w-[1240px]">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[var(--tms-text-muted)]">
@@ -498,7 +498,7 @@ function TestDetailPage() {
         </div>
 
         <Panel className="overflow-hidden">
-          <div className="border-b border-[var(--tms-border-subtle)] px-6 py-6">
+          <div className="border-b border-[var(--tms-border-subtle)] px-4 py-5 sm:px-6 sm:py-6">
             <div className="flex flex-wrap items-start justify-between gap-5">
               <div className="min-w-0">
                 <p className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--tms-text-soft)]">
@@ -522,7 +522,7 @@ function TestDetailPage() {
                       }}
                       disabled={pendingMetadataField === 'title'}
                       autoFocus
-                      className="min-w-[280px] flex-1 rounded-xl border-[var(--tms-primary-border)] px-3 py-2 text-3xl font-bold leading-tight text-[var(--tms-text)]"
+                      className="min-w-[220px] flex-1 rounded-xl border-[var(--tms-primary-border)] px-3 py-2 text-2xl font-bold leading-tight text-[var(--tms-text)] sm:min-w-[280px] sm:text-3xl"
                       aria-label="Edit test case title"
                     />
                     <Button
@@ -545,7 +545,7 @@ function TestDetailPage() {
                   </div>
                 ) : (
                   <div className="mt-2 flex flex-wrap items-start gap-3">
-                    <h1 className="m-0 text-4xl font-bold leading-tight text-[var(--tms-text)]">
+                    <h1 className="m-0 text-3xl font-bold leading-tight text-[var(--tms-text)] sm:text-4xl">
                       {test.title}
                     </h1>
                     <Button
@@ -669,7 +669,7 @@ function TestDetailPage() {
           </div>
 
           <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="grid gap-6 px-6 py-6">
+            <div className="grid gap-6 px-4 py-5 sm:px-6 sm:py-6">
               <EditingSurfaceSection
                 title="Content"
                 description="Maintain the executable steps and expected outcome for this test case."
@@ -730,7 +730,7 @@ function TestDetailPage() {
               </EditingSurfaceSection>
             </div>
 
-            <aside className="border-t border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-6 py-6 lg:border-l lg:border-t-0">
+            <aside className="border-t border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-5 sm:px-6 sm:py-6 lg:border-l lg:border-t-0">
               <EditingSurfaceSection
                 dense
                 title="Metadata"

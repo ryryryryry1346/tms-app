@@ -289,7 +289,7 @@ function RunDetailPage() {
 
   return (
     <main className="tms-page">
-      <div className="mx-auto max-w-[1600px] px-6 py-8 lg:px-10">
+      <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
         <section className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="mb-3 flex flex-wrap items-center gap-2 text-sm font-semibold text-[var(--tms-text-muted)]">
@@ -351,7 +351,7 @@ function RunDetailPage() {
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {[
                 { label: 'Passed', value: passedCount, className: 'text-[var(--run-passed-text)]' },
                 { label: 'Failed', value: failedCount, className: 'text-[var(--run-failed-text)]' },
@@ -552,7 +552,7 @@ function RunDetailPage() {
                       Clear
                     </Button>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-start gap-2">
                     <Textarea
                       value={commentByTestId[test.id] ?? ''}
                       onChange={(event) =>
@@ -564,7 +564,7 @@ function RunDetailPage() {
                       rows={2}
                       placeholder="Execution note"
                       size="sm"
-                      className="w-full rounded-xl"
+                      className="min-w-[180px] flex-1 rounded-xl"
                     />
                     <Button
                       disabled={isCommentPending}

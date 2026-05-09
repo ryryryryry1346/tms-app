@@ -159,7 +159,7 @@ export function CaseRow({
       }}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
-      className={`tms-table-row grid grid-cols-[72px_82px_minmax(220px,1fr)_110px_132px_120px_120px_116px_96px] px-5 py-2.5 transition ${
+      className={`tms-table-row repository-case-grid px-4 py-2.5 transition sm:px-5 ${
         draggedTestIds.includes(test.id)
           ? 'bg-[var(--tms-surface-muted)] opacity-70'
           : isDropTarget

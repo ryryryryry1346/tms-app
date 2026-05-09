@@ -282,7 +282,7 @@ function ProjectRunsPage() {
           ))}
           </section>
 
-          <Panel className="px-6 py-6">
+          <Panel className="px-4 py-4 sm:px-6 sm:py-6">
           <WorkspaceSectionHeader
             title="Runs"
             description="Create, rename, and track execution progress for this project."
@@ -305,7 +305,7 @@ function ProjectRunsPage() {
                 description="Choose scope and create a focused execution batch from active repository cases."
                 className="mb-4"
               />
-              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
                 <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
                   Run name
                   <Input
@@ -316,7 +316,7 @@ function ProjectRunsPage() {
                     className="min-w-0"
                   />
                 </label>
-                <div className="flex items-end gap-2">
+                <div className="flex flex-wrap items-end gap-2 xl:justify-end">
                   <Button
                     type="submit"
                     disabled={isCreatingRun || selectedRunTestIds.length === 0}
@@ -368,7 +368,7 @@ function ProjectRunsPage() {
               </div>
 
               {runScope === 'suites' ? (
-                <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                   {dashboard.sections.map((section) => {
                     const sectionCaseCount = activeTests.filter(
                       (test) => test.sectionId === section.id,
