@@ -272,6 +272,12 @@ type ContextRow = {
   href?: string
 }
 
+type ContextAction = {
+  label: string
+  href: string
+  tone?: 'default' | 'primary'
+}
+
 function ShellNavLink({
   item,
   pathname,
@@ -300,6 +306,102 @@ function ShellNavLink({
   )
 }
 
+function getContextActions(
+  pathname: string,
+  context: ShellContext | null,
+): ContextAction[] {
+  const projectSlug = context?.projectSlug
+  const caseId = context?.caseId
+
+  if (pathname.startsWith('/create-test')) {
+    return projectSlug
+      ? [
+          {
+            label: 'Back to repository',
+            href: `/project/${projectSlug}/repository`,
+            tone: 'primary',
+          },
+        ]
+      : []
+  }
+
+  if (pathname.startsWith('/edit-test/')) {
+    return [
+      ...(caseId
+        ? [
+            {
+              label: 'Open case',
+              href: `/test/${caseId}`,
+              tone: 'primary' as const,
+            },
+          ]
+        : []),
+      ...(projectSlug
+        ? [
+            {
+              label: 'Open repository',
+              href: `/project/${projectSlug}/repository`,
+            },
+          ]
+        : []),
+    ]
+  }
+
+  if (pathname.startsWith('/test/')) {
+    return [
+      ...(caseId
+        ? [
+            {
+              label: 'Open full editor',
+              href: `/edit-test/${caseId}`,
+              tone: 'primary' as const,
+            },
+          ]
+        : []),
+      ...(projectSlug
+        ? [
+            {
+              label: 'Open repository',
+              href: `/project/${projectSlug}/repository`,
+            },
+          ]
+        : []),
+    ]
+  }
+
+  if (pathname.startsWith('/run/')) {
+    return projectSlug
+      ? [
+          {
+            label: 'Back to runs',
+            href: `/project/${projectSlug}/runs`,
+            tone: 'primary',
+          },
+          {
+            label: 'Open repository',
+            href: `/project/${projectSlug}/repository`,
+          },
+        ]
+      : []
+  }
+
+  if (pathname.startsWith('/project/') && projectSlug) {
+    return [
+      {
+        label: 'Open repository',
+        href: `/project/${projectSlug}/repository`,
+      },
+      {
+        label: 'Create case',
+        href: `/create-test?projectId=${encodeURIComponent(projectSlug)}`,
+        tone: 'primary',
+      },
+    ]
+  }
+
+  return []
+}
+
 export default function AppShell({ user, children }: AppShellProps) {
   const location = useLocation()
   const navigate = useNavigate()
@@ -313,6 +415,7 @@ export default function AppShell({ user, children }: AppShellProps) {
   const shellContext = deriveShellContext(pathname, matches)
   const projectSlug = shellContext?.projectSlug ?? getProjectSlug(pathname)
   const isDeepFlow = isDeepShellPath(pathname)
+  const contextActions = getContextActions(pathname, shellContext)
   const headerCopy = getHeaderCopy(pathname)
 
   useEffect(() => {
@@ -544,6 +647,22 @@ export default function AppShell({ user, children }: AppShellProps) {
                     </div>
                   )
                 ))}
+                {contextActions.length > 0 ? (
+                  <div className="app-shell__context-actions">
+                    {contextActions.map((action) => (
+                      <a
+                        key={`${action.label}-${action.href}`}
+                        href={action.href}
+                        className={`app-shell__context-action ${
+                          action.tone === 'primary' ? 'is-primary' : ''
+                        }`}
+                        onClick={closeSidebar}
+                      >
+                        {action.label}
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </section>
           ) : null}

@@ -1454,6 +1454,44 @@ a {
   font-weight: 600;
 }
 
+.app-shell__context-actions {
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.app-shell__context-action {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-secondary);
+  padding: 0.45rem 0.7rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  box-shadow: var(--tms-shadow-subtle);
+}
+
+.app-shell__context-action:hover {
+  color: var(--text-primary);
+  background: var(--state-hover);
+}
+
+.app-shell__context-action.is-primary {
+  background: var(--text-primary);
+  color: var(--text-inverse);
+}
+
+.app-shell__context-action.is-primary:hover {
+  color: var(--text-inverse);
+  background: color-mix(in oklab, var(--text-primary) 92%, transparent);
+}
+
 .app-shell__workspace {
   min-height: 100vh;
 }
