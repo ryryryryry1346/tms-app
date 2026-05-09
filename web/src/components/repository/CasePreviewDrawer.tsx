@@ -32,6 +32,8 @@ type CasePreviewDrawerProps = {
   test: PreviewCase
   suite: PreviewSuite
   activities: PreviewActivity[]
+  isLoadingContent: boolean
+  errorMessage: string | null
   isEditingContent: boolean
   stepsValue: string
   expectedValue: string
@@ -91,6 +93,8 @@ export function CasePreviewDrawer({
   test,
   suite,
   activities,
+  isLoadingContent,
+  errorMessage,
   isEditingContent,
   stepsValue,
   expectedValue,
@@ -176,6 +180,18 @@ export function CasePreviewDrawer({
                 isUploading={isUploadingMedia}
               />
             </div>
+          ) : isLoadingContent ? (
+            <Panel className="rounded-xl border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-4 shadow-none">
+              <p className="m-0 text-sm font-semibold text-[var(--tms-text-muted)]">
+                Loading test case content...
+              </p>
+            </Panel>
+          ) : errorMessage ? (
+            <Panel className="rounded-xl border-[var(--tms-danger-border)] bg-[var(--tms-danger-soft)] px-4 py-4 shadow-none">
+              <p className="m-0 text-sm font-semibold text-[var(--tms-danger)]">
+                {errorMessage}
+              </p>
+            </Panel>
           ) : (
             <>
               <section className="editing-rich-block mb-5">
@@ -281,6 +297,7 @@ export function CasePreviewDrawer({
             <Button
               type="button"
               onClick={onStartEdit}
+              disabled={isLoadingContent || Boolean(errorMessage)}
               variant="primary"
             >
               Edit content

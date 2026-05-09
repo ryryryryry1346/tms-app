@@ -35,11 +35,13 @@ import {
   deleteArchivedTestCase,
   duplicateTestCase,
   getDashboardState,
+  getTestDetail,
   moveAndReorderTestCases,
   restoreTestCase,
   updateTestContent,
   updateTestTitle,
 } from '../features/tests/server'
+import type { TestDetail } from '../features/tests/server'
 
 export const Route = createFileRoute('/project/$projectSlug/repository')({
   loader: async ({ params }) => {
@@ -213,6 +215,13 @@ function ProjectRepositoryPage() {
   )
   const [editingCaseTitleValue, setEditingCaseTitleValue] = useState('')
   const [previewTestId, setPreviewTestId] = useState<number | null>(null)
+  const [previewDetailsById, setPreviewDetailsById] = useState<
+    Record<number, TestDetail>
+  >({})
+  const [isLoadingPreviewDetail, setIsLoadingPreviewDetail] = useState(false)
+  const [previewDetailErrorMessage, setPreviewDetailErrorMessage] = useState<
+    string | null
+  >(null)
   const [quickCreateSuiteId, setQuickCreateSuiteId] = useState<number | null>(
     null,
   )
@@ -356,16 +365,25 @@ function ProjectRepositoryPage() {
     previewTestId === null
       ? null
       : dashboard.tests.find((test) => test.id === previewTestId) ?? null
+  const previewTestDetail =
+    previewTestId === null ? null : previewDetailsById[previewTestId] ?? null
+  const previewDrawerTest =
+    previewTestDetail ??
+    (previewTest
+      ? {
+          ...previewTest,
+          steps: null,
+          expected: null,
+        }
+      : null)
   const previewSuite =
-    previewTest?.sectionId == null
+    previewTestDetail?.sectionName
+      ? { name: previewTestDetail.sectionName }
+      : previewTest?.sectionId == null
       ? null
       : dashboard.sections.find((section) => section.id === previewTest.sectionId) ??
         null
-  const previewActivities = previewTest
-    ? dashboard.activities
-        .filter((activity) => activity.testId === previewTest.id)
-        .slice(0, 12)
-    : []
+  const previewActivities = previewTestDetail?.activities.slice(0, 12) ?? []
 
   useEffect(() => {
     if (!previewTest) {
@@ -384,7 +402,62 @@ function ProjectRepositoryPage() {
   }, [previewTest])
 
   useEffect(() => {
-    if (!previewTest) {
+    let isCancelled = false
+
+    if (previewTestId === null) {
+      setIsLoadingPreviewDetail(false)
+      setPreviewDetailErrorMessage(null)
+      return
+    }
+
+    if (previewDetailsById[previewTestId]) {
+      setIsLoadingPreviewDetail(false)
+      setPreviewDetailErrorMessage(null)
+      return
+    }
+
+    setIsLoadingPreviewDetail(true)
+    setPreviewDetailErrorMessage(null)
+
+    getTestDetail({
+      data: {
+        id: previewTestId,
+      },
+    })
+      .then((detail) => {
+        if (isCancelled) {
+          return
+        }
+
+        setPreviewDetailsById((current) => ({
+          ...current,
+          [detail.id]: detail,
+        }))
+      })
+      .catch((error) => {
+        if (isCancelled) {
+          return
+        }
+
+        setPreviewDetailErrorMessage(
+          error instanceof Error
+            ? error.message
+            : 'Failed to load test case content.',
+        )
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsLoadingPreviewDetail(false)
+        }
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [previewDetailsById, previewTestId])
+
+  useEffect(() => {
+    if (!previewTestDetail) {
       setIsEditingPreviewContent(false)
       setPreviewStepsValue('')
       setPreviewExpectedValue('')
@@ -392,10 +465,10 @@ function ProjectRepositoryPage() {
     }
 
     if (!isEditingPreviewContent) {
-      setPreviewStepsValue(previewTest.steps ?? '')
-      setPreviewExpectedValue(previewTest.expected ?? '')
+      setPreviewStepsValue(previewTestDetail.steps ?? '')
+      setPreviewExpectedValue(previewTestDetail.expected ?? '')
     }
-  }, [isEditingPreviewContent, previewTest])
+  }, [isEditingPreviewContent, previewTestDetail])
 
   function clearBulkConfirmations(): void {
     setIsBulkArchiveConfirming(false)
@@ -457,20 +530,20 @@ function ProjectRepositoryPage() {
   }
 
   function startPreviewContentEdit(): void {
-    if (!previewTest) {
+    if (!previewTestDetail) {
       return
     }
 
     setCaseActionErrorMessage(null)
-    setPreviewStepsValue(previewTest.steps ?? '')
-    setPreviewExpectedValue(previewTest.expected ?? '')
+    setPreviewStepsValue(previewTestDetail.steps ?? '')
+    setPreviewExpectedValue(previewTestDetail.expected ?? '')
     setIsEditingPreviewContent(true)
   }
 
   function cancelPreviewContentEdit(): void {
     setIsEditingPreviewContent(false)
-    setPreviewStepsValue(previewTest?.steps ?? '')
-    setPreviewExpectedValue(previewTest?.expected ?? '')
+    setPreviewStepsValue(previewTestDetail?.steps ?? '')
+    setPreviewExpectedValue(previewTestDetail?.expected ?? '')
   }
 
   async function uploadPreviewMedia(file: File): Promise<string> {
@@ -490,7 +563,7 @@ function ProjectRepositoryPage() {
   }
 
   async function savePreviewContent(): Promise<void> {
-    if (!previewTest) {
+    if (!previewTestDetail) {
       return
     }
 
@@ -500,12 +573,21 @@ function ProjectRepositoryPage() {
     try {
       await updateTestContent({
         data: {
-          id: previewTest.id,
+          id: previewTestDetail.id,
           steps: previewStepsValue,
           expected: previewExpectedValue,
         },
       })
 
+      setPreviewDetailsById((current) => ({
+        ...current,
+        [previewTestDetail.id]: {
+          ...previewTestDetail,
+          steps: previewStepsValue,
+          expected: previewExpectedValue,
+          updatedAt: new Date().toISOString(),
+        },
+      }))
       setIsEditingPreviewContent(false)
       await router.invalidate()
     } catch (error) {
@@ -1679,11 +1761,13 @@ function ProjectRepositoryPage() {
             )}
           </RepositoryPanel>
 
-          {previewTest ? (
+          {previewDrawerTest ? (
             <CasePreviewDrawer
-              test={previewTest}
+              test={previewDrawerTest}
               suite={previewSuite}
               activities={previewActivities}
+              isLoadingContent={isLoadingPreviewDetail}
+              errorMessage={previewDetailErrorMessage}
               isEditingContent={isEditingPreviewContent}
               stepsValue={previewStepsValue}
               expectedValue={previewExpectedValue}
@@ -1701,10 +1785,10 @@ function ProjectRepositoryPage() {
               onUploadMedia={uploadPreviewMedia}
               onRichContentClick={handleRichContentClick}
               onRestore={() => {
-                void handleCaseRestore(previewTest.id)
+                void handleCaseRestore(previewDrawerTest.id)
               }}
               onArchive={() => {
-                void handleCaseArchive(previewTest.id)
+                void handleCaseArchive(previewDrawerTest.id)
               }}
               formatDateTime={formatRepositoryDateTime}
             />

@@ -167,8 +167,6 @@ const updateTestInput = z.object({
 export type DashboardTest = {
   id: number
   title: string
-  steps: string | null
-  expected: string | null
   status: string | null
   priority: string | null
   caseType: string | null
@@ -314,8 +312,6 @@ export const getDashboardState = createServerFn({ method: 'POST' })
       .select({
         id: tests.id,
         title: tests.title,
-        steps: tests.steps,
-        expected: tests.expected,
         status: tests.status,
         priority: tests.priority,
         caseType: tests.caseType,
@@ -330,26 +326,13 @@ export const getDashboardState = createServerFn({ method: 'POST' })
       .where(eq(tests.projectId, selectedProjectId))
       .orderBy(asc(tests.sectionId), asc(tests.sortOrder), asc(tests.id))
 
-    let activityRows: DashboardActivity[] = []
-
-    try {
-      const { getProjectTestCaseActivities } = await import('./activity.server')
-      activityRows = await getProjectTestCaseActivities({
-        db,
-        projectId: selectedProjectId,
-        limit: 200,
-      })
-    } catch (error) {
-      console.error('Failed to load test case activity', error)
-    }
-
     return {
       databaseConfigured: true,
       projects: projectRows,
       selectedProjectId,
       sections: sectionRows,
       tests: testRows,
-      activities: activityRows,
+      activities: [],
     }
   })
 
