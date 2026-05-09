@@ -192,7 +192,7 @@ function ProjectRepositoryPage() {
     null,
   )
   const [openSuiteMenuId, setOpenSuiteMenuId] = useState<number | null>(null)
-  const [collapsedSuiteById, setCollapsedSuiteById] = useState<
+  const [expandedSuiteById, setExpandedSuiteById] = useState<
     Record<number, boolean>
   >({})
   const [activeComposer, setActiveComposer] = useState<ComposerKind>(null)
@@ -1311,7 +1311,7 @@ function ProjectRepositoryPage() {
   }
 
   function toggleSuiteCollapsed(suiteId: number): void {
-    setCollapsedSuiteById((current) => ({
+    setExpandedSuiteById((current) => ({
       ...current,
       [suiteId]: !current[suiteId],
     }))
@@ -1561,7 +1561,7 @@ function ProjectRepositoryPage() {
                 {filteredSections.map(({ section, sectionTests, visibleTests }) => {
                   const isEditingSuite = editingSuiteId === section.id
                   const isDeleteConfirming = deleteConfirmSuiteId === section.id
-                  const isCollapsed = Boolean(collapsedSuiteById[section.id])
+                  const isCollapsed = !expandedSuiteById[section.id]
                   const isPendingSuiteAction = Boolean(
                     pendingSuiteActionById[section.id],
                   )
