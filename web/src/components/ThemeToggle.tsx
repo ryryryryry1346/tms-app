@@ -1,47 +1,68 @@
-import { useEffect } from 'react'
+import { LaptopMinimal, MoonStar, SunMedium } from 'lucide-react'
+import { useTheme } from './ThemeProvider'
 import { Button } from './ui/Button'
-
-type ThemeMode = 'light'
-
-function getInitialMode(): ThemeMode {
-  if (typeof window === 'undefined') {
-    return 'light'
-  }
-
-  window.localStorage.setItem('theme', 'light')
-  return 'light'
-}
-
-function applyThemeMode(mode: ThemeMode) {
-  document.documentElement.classList.remove('dark')
-  document.documentElement.classList.add(mode)
-  document.documentElement.setAttribute('data-theme', mode)
-  document.documentElement.style.colorScheme = mode
-}
+import { SelectMenu } from './ui/SelectMenu'
 
 export default function ThemeToggle() {
-  useEffect(() => {
-    const initialMode = getInitialMode()
-    applyThemeMode(initialMode)
-  }, [])
-
-  function toggleMode() {
-    applyThemeMode('light')
-    window.localStorage.setItem('theme', 'light')
-  }
-
-  const label = 'Theme mode: light.'
+  const { preference, resolvedTheme, setPreference } = useTheme()
 
   return (
-    <Button
-      type="button"
-      onClick={toggleMode}
-      aria-label={label}
-      title={label}
-      size="sm"
-      className="rounded-full px-3 py-1.5 text-sm font-semibold"
-    >
-      Light
-    </Button>
+    <div className="app-theme-switcher">
+      <div className="app-theme-switcher__status">
+        <span className="app-theme-switcher__icon">
+          {resolvedTheme === 'dark' ? (
+            <MoonStar size={14} strokeWidth={2} />
+          ) : (
+            <SunMedium size={14} strokeWidth={2} />
+          )}
+        </span>
+        <span>{resolvedTheme === 'dark' ? 'Dark mode' : 'Light mode'}</span>
+      </div>
+      <SelectMenu
+        value={preference}
+        onValueChange={(value) =>
+          setPreference(value as 'system' | 'light' | 'dark')
+        }
+        options={[
+          {
+            value: 'system',
+            label: (
+              <span className="app-theme-switcher__option">
+                <LaptopMinimal size={14} strokeWidth={2} />
+                <span>System</span>
+              </span>
+            ),
+          },
+          {
+            value: 'light',
+            label: (
+              <span className="app-theme-switcher__option">
+                <SunMedium size={14} strokeWidth={2} />
+                <span>Light</span>
+              </span>
+            ),
+          },
+          {
+            value: 'dark',
+            label: (
+              <span className="app-theme-switcher__option">
+                <MoonStar size={14} strokeWidth={2} />
+                <span>Dark</span>
+              </span>
+            ),
+          },
+        ]}
+        aria-label="Theme preference"
+        className="app-theme-switcher__select"
+      />
+      <Button
+        type="button"
+        size="sm"
+        className="app-theme-switcher__toggle"
+        onClick={() => setPreference(resolvedTheme === 'dark' ? 'light' : 'dark')}
+      >
+        {resolvedTheme === 'dark' ? 'Use light' : 'Use dark'}
+      </Button>
+    </div>
   )
 }

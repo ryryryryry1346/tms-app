@@ -1,7 +1,28 @@
-# UI Design System Rule
+## UI Design Rules
 
-Before any UI work in this repository, every UI agent must read `DESIGN.md` from the repository root.
+Before any UI change, read `./DESIGN.md`.
 
-All UI work must strictly follow `DESIGN.md`.
+`DESIGN.md` is the source of truth for:
+- layout
+- spacing
+- colors
+- typography
+- surfaces
+- borders
+- component patterns
+- interaction behavior
+- dark/light theming
 
-Do not invent new colors, visual patterns, typography, spacing, border radius, shadows, components, or interaction styles outside `DESIGN.md`. If a needed token is missing, use the closest existing token from `DESIGN.md` and leave a short code comment explaining the mapping.
+Design sources:
+- Linear: https://github.com/VoltAgent/awesome-design-md/tree/main/design-md/linear.app
+- Vercel: https://github.com/VoltAgent/awesome-design-md/tree/main/design-md/vercel
+
+Future agents must not:
+- invent visual styles
+- add random colors
+- change spacing systems
+- introduce new border radius systems
+- create inconsistent components
+- implement UI outside `./DESIGN.md`
+
+All UI work must strictly follow `./DESIGN.md`.

@@ -1,13 +1,12 @@
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
-import Footer from '../components/Footer'
-import Header from '../components/Header'
+import AppShell from '../components/AppShell'
+import { ThemeProvider } from '../components/ThemeProvider'
 import { getCurrentUser } from '../features/auth/server'
+import { THEME_INIT_SCRIPT } from '../lib/theme'
 
 import appCss from '../styles.css?url'
-
-const THEME_INIT_SCRIPT = `(function(){try{var root=document.documentElement;window.localStorage.setItem('theme','light');root.classList.remove('dark');root.classList.add('light');root.setAttribute('data-theme','light');root.style.colorScheme='light';}catch(e){}})();`
 
 export const Route = createRootRoute({
   beforeLoad: async () => {
@@ -63,9 +62,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[var(--tms-selection)]">
-        <Header user={context.user ?? null} />
-        {children}
-        <Footer />
+        <ThemeProvider>
+          <AppShell user={context.user ?? null}>{children}</AppShell>
+        </ThemeProvider>
         <TanStackDevtools
           config={{
             position: 'bottom-right',
