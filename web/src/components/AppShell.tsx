@@ -264,6 +264,14 @@ function deriveShellContext(
   return null
 }
 
+type ContextRow = {
+  label: string
+  value: string
+  meta?: string
+  icon: ReactNode
+  href?: string
+}
+
 function ShellNavLink({
   item,
   pathname,
@@ -362,10 +370,24 @@ export default function AppShell({ user, children }: AppShellProps) {
 
   const contextRows = [
     shellContext?.projectName
-      ? { label: 'Project', value: shellContext.projectName, icon: <PanelsTopLeft size={14} strokeWidth={2} /> }
+      ? {
+          label: 'Project',
+          value: shellContext.projectName,
+          icon: <PanelsTopLeft size={14} strokeWidth={2} />,
+          href: shellContext.projectSlug
+            ? `/project/${shellContext.projectSlug}`
+            : undefined,
+        }
       : null,
     shellContext?.suiteName
-      ? { label: 'Suite', value: shellContext.suiteName, icon: <FolderKanban size={14} strokeWidth={2} /> }
+      ? {
+          label: 'Suite',
+          value: shellContext.suiteName,
+          icon: <FolderKanban size={14} strokeWidth={2} />,
+          href: shellContext.projectSlug
+            ? `/project/${shellContext.projectSlug}/repository`
+            : undefined,
+        }
       : null,
     shellContext?.caseTitle
       ? {
@@ -373,6 +395,7 @@ export default function AppShell({ user, children }: AppShellProps) {
           value: shellContext.caseTitle,
           meta: shellContext.caseId ? `#${shellContext.caseId}` : undefined,
           icon: <FilePenLine size={14} strokeWidth={2} />,
+          href: shellContext.caseId ? `/test/${shellContext.caseId}` : undefined,
         }
       : null,
     shellContext?.runName
@@ -381,6 +404,7 @@ export default function AppShell({ user, children }: AppShellProps) {
           value: shellContext.runName,
           meta: shellContext.runId ? `#${shellContext.runId}` : undefined,
           icon: <PlayCircle size={14} strokeWidth={2} />,
+          href: shellContext.runId ? `/run/${shellContext.runId}` : undefined,
         }
       : null,
     !shellContext?.caseTitle && !shellContext?.runName && shellContext?.modeLabel
@@ -390,12 +414,7 @@ export default function AppShell({ user, children }: AppShellProps) {
           icon: <CircleDot size={14} strokeWidth={2} />,
         }
       : null,
-  ].filter(Boolean) as Array<{
-    label: string
-    value: string
-    meta?: string
-    icon: ReactNode
-  }>
+  ].filter(Boolean) as ContextRow[]
 
   async function handleLogout(): Promise<void> {
     setIsLoggingOut(true)
@@ -496,16 +515,34 @@ export default function AppShell({ user, children }: AppShellProps) {
               </div>
               <div className="app-shell__context-card">
                 {contextRows.map((row) => (
-                  <div key={`${row.label}-${row.value}`} className="app-shell__context-row">
-                    <span className="app-shell__context-icon">{row.icon}</span>
-                    <div className="app-shell__context-copy">
-                      <span className="app-shell__context-label">{row.label}</span>
-                      <span className="app-shell__context-value">{row.value}</span>
+                  row.href ? (
+                    <a
+                      key={`${row.label}-${row.value}`}
+                      href={row.href}
+                      className="app-shell__context-row app-shell__context-row--link"
+                      onClick={closeSidebar}
+                    >
+                      <span className="app-shell__context-icon">{row.icon}</span>
+                      <div className="app-shell__context-copy">
+                        <span className="app-shell__context-label">{row.label}</span>
+                        <span className="app-shell__context-value">{row.value}</span>
+                      </div>
+                      {row.meta ? (
+                        <span className="app-shell__context-meta">{row.meta}</span>
+                      ) : null}
+                    </a>
+                  ) : (
+                    <div key={`${row.label}-${row.value}`} className="app-shell__context-row">
+                      <span className="app-shell__context-icon">{row.icon}</span>
+                      <div className="app-shell__context-copy">
+                        <span className="app-shell__context-label">{row.label}</span>
+                        <span className="app-shell__context-value">{row.value}</span>
+                      </div>
+                      {row.meta ? (
+                        <span className="app-shell__context-meta">{row.meta}</span>
+                      ) : null}
                     </div>
-                    {row.meta ? (
-                      <span className="app-shell__context-meta">{row.meta}</span>
-                    ) : null}
-                  </div>
+                  )
                 ))}
               </div>
             </section>

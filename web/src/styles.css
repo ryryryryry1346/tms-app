@@ -1402,6 +1402,20 @@ a {
   padding: 0.35rem 0.4rem;
 }
 
+.app-shell__context-row--link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.app-shell__context-row--link:hover {
+  background: var(--state-hover);
+  color: inherit;
+}
+
+.app-shell__context-row--link:hover .app-shell__context-value {
+  color: var(--tms-primary);
+}
+
 .app-shell__context-icon {
   display: inline-flex;
   width: 1rem;
