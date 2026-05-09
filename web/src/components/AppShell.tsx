@@ -415,6 +415,8 @@ export default function AppShell({ user, children }: AppShellProps) {
   const shellContext = deriveShellContext(pathname, matches)
   const projectSlug = shellContext?.projectSlug ?? getProjectSlug(pathname)
   const isDeepFlow = isDeepShellPath(pathname)
+  const isWorkspaceHome = pathname === '/'
+  const showSidebar = !isWorkspaceHome
   const contextActions = getContextActions(pathname, shellContext)
   const headerCopy = getHeaderCopy(pathname)
 
@@ -539,163 +541,175 @@ export default function AppShell({ user, children }: AppShellProps) {
   }
 
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell ${
+        showSidebar ? 'app-shell--with-sidebar' : 'app-shell--workspace-home'
+      }`}
+    >
       <div
         className={`app-shell__backdrop ${isMobileSidebarOpen ? 'is-open' : ''}`}
         onClick={closeSidebar}
       />
 
-      <aside
-        className={`app-shell__sidebar ${isMobileSidebarOpen ? 'is-open' : ''}`}
-      >
-        <div className="app-shell__brand">
-          <div className="app-shell__brand-mark">T</div>
-          <div className="app-shell__brand-copy">
-            <span className="app-shell__eyebrow">Workspace</span>
-            <strong>TMS</strong>
+      {showSidebar ? (
+        <aside
+          className={`app-shell__sidebar ${isMobileSidebarOpen ? 'is-open' : ''}`}
+        >
+          <div className="app-shell__brand">
+            <div className="app-shell__brand-mark">T</div>
+            <div className="app-shell__brand-copy">
+              <span className="app-shell__eyebrow">Workspace</span>
+              <strong>TMS</strong>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              className="app-shell__close-button md:hidden"
+              onClick={closeSidebar}
+              aria-label="Close navigation"
+            >
+              <X size={16} strokeWidth={2} />
+            </Button>
           </div>
-          <Button
-            type="button"
-            size="sm"
-            className="app-shell__close-button md:hidden"
-            onClick={closeSidebar}
-            aria-label="Close navigation"
-          >
-            <X size={16} strokeWidth={2} />
-          </Button>
-        </div>
 
-        <div className="app-shell__scroll">
-          {!isDeepFlow ? (
-            <section className="app-shell__group">
-              <div className="app-shell__group-title">Workspace</div>
-              <div className="app-shell__nav-list">
-                {workspaceItems.map((item) => (
-                  <ShellNavLink
-                    key={item.to}
-                    item={item}
-                    pathname={pathname}
-                    onNavigate={closeSidebar}
-                  />
-                ))}
-              </div>
-            </section>
-          ) : (
-            <section className="app-shell__group">
-              <div className="app-shell__group-title">Workspace</div>
-              <Link
-                to="/"
-                onClick={closeSidebar}
-                className="app-shell__utility-link"
-              >
-                Back to projects
-              </Link>
-            </section>
-          )}
+          <div className="app-shell__scroll">
+            {!isDeepFlow ? (
+              <section className="app-shell__group">
+                <div className="app-shell__group-title">Workspace</div>
+                <div className="app-shell__nav-list">
+                  {workspaceItems.map((item) => (
+                    <ShellNavLink
+                      key={item.to}
+                      item={item}
+                      pathname={pathname}
+                      onNavigate={closeSidebar}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <section className="app-shell__group">
+                <div className="app-shell__group-title">Workspace</div>
+                <Link
+                  to="/"
+                  onClick={closeSidebar}
+                  className="app-shell__utility-link"
+                >
+                  Back to projects
+                </Link>
+              </section>
+            )}
 
-          {projectItems.length > 0 ? (
-            <section className="app-shell__group">
-              <div className="app-shell__group-title">
-                {shellContext?.projectName ?? 'Current project'}
-              </div>
-              <div className="app-shell__nav-list">
-                {projectItems.map((item) => (
-                  <ShellNavLink
-                    key={item.to}
-                    item={item}
-                    pathname={pathname}
-                    onNavigate={closeSidebar}
-                  />
-                ))}
-              </div>
-            </section>
-          ) : null}
+            {projectItems.length > 0 ? (
+              <section className="app-shell__group">
+                <div className="app-shell__group-title">
+                  {shellContext?.projectName ?? 'Current project'}
+                </div>
+                <div className="app-shell__nav-list">
+                  {projectItems.map((item) => (
+                    <ShellNavLink
+                      key={item.to}
+                      item={item}
+                      pathname={pathname}
+                      onNavigate={closeSidebar}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
-          {contextRows.length > 0 ? (
-            <section className="app-shell__group">
-              <div className="app-shell__group-title">
-                {isDeepFlow ? 'Working on' : 'Current context'}
-              </div>
-              <div className="app-shell__context-card">
-                {contextRows.map((row) => (
-                  row.href ? (
-                    <a
-                      key={`${row.label}-${row.value}`}
-                      href={row.href}
-                      className="app-shell__context-row app-shell__context-row--link"
-                      onClick={closeSidebar}
-                    >
-                      <span className="app-shell__context-icon">{row.icon}</span>
-                      <div className="app-shell__context-copy">
-                        <span className="app-shell__context-label">{row.label}</span>
-                        <span className="app-shell__context-value">{row.value}</span>
-                      </div>
-                      {row.meta ? (
-                        <span className="app-shell__context-meta">{row.meta}</span>
-                      ) : null}
-                    </a>
-                  ) : (
-                    <div key={`${row.label}-${row.value}`} className="app-shell__context-row">
-                      <span className="app-shell__context-icon">{row.icon}</span>
-                      <div className="app-shell__context-copy">
-                        <span className="app-shell__context-label">{row.label}</span>
-                        <span className="app-shell__context-value">{row.value}</span>
-                      </div>
-                      {row.meta ? (
-                        <span className="app-shell__context-meta">{row.meta}</span>
-                      ) : null}
-                    </div>
-                  )
-                ))}
-                {contextActions.length > 0 ? (
-                  <div className="app-shell__context-actions">
-                    {contextActions.map((action) => (
+            {contextRows.length > 0 ? (
+              <section className="app-shell__group">
+                <div className="app-shell__group-title">
+                  {isDeepFlow ? 'Working on' : 'Current context'}
+                </div>
+                <div className="app-shell__context-card">
+                  {contextRows.map((row) => (
+                    row.href ? (
                       <a
-                        key={`${action.label}-${action.href}`}
-                        href={action.href}
-                        className={`app-shell__context-action ${
-                          action.tone === 'primary' ? 'is-primary' : ''
-                        }`}
+                        key={`${row.label}-${row.value}`}
+                        href={row.href}
+                        className="app-shell__context-row app-shell__context-row--link"
                         onClick={closeSidebar}
                       >
-                        {action.label}
+                        <span className="app-shell__context-icon">{row.icon}</span>
+                        <div className="app-shell__context-copy">
+                          <span className="app-shell__context-label">{row.label}</span>
+                          <span className="app-shell__context-value">{row.value}</span>
+                        </div>
+                        {row.meta ? (
+                          <span className="app-shell__context-meta">{row.meta}</span>
+                        ) : null}
                       </a>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            </section>
-          ) : null}
-        </div>
-
-        <div className="app-shell__bottom">
-          <div className="app-shell__theme-block">
-            <div className="app-shell__group-title">Theme</div>
-            <ThemeToggle />
+                    ) : (
+                      <div key={`${row.label}-${row.value}`} className="app-shell__context-row">
+                        <span className="app-shell__context-icon">{row.icon}</span>
+                        <div className="app-shell__context-copy">
+                          <span className="app-shell__context-label">{row.label}</span>
+                          <span className="app-shell__context-value">{row.value}</span>
+                        </div>
+                        {row.meta ? (
+                          <span className="app-shell__context-meta">{row.meta}</span>
+                        ) : null}
+                      </div>
+                    )
+                  ))}
+                  {contextActions.length > 0 ? (
+                    <div className="app-shell__context-actions">
+                      {contextActions.map((action) => (
+                        <a
+                          key={`${action.label}-${action.href}`}
+                          href={action.href}
+                          className={`app-shell__context-action ${
+                            action.tone === 'primary' ? 'is-primary' : ''
+                          }`}
+                          onClick={closeSidebar}
+                        >
+                          {action.label}
+                        </a>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
           </div>
-        </div>
-      </aside>
+        </aside>
+      ) : null}
 
       <div className="app-shell__workspace">
         <header className="app-shell__topbar">
           <div className="app-shell__topbar-left">
-            <Button
-              type="button"
-              size="sm"
-              className="app-shell__menu-button md:hidden"
-              onClick={() => setIsMobileSidebarOpen(true)}
-              aria-label="Open navigation"
-            >
-              <Menu size={16} strokeWidth={2} />
-            </Button>
-            <div>
-              <div className="app-shell__eyebrow">{headerCopy.label}</div>
-              <div className="app-shell__topbar-title">{headerCopy.title}</div>
-            </div>
+            {showSidebar ? (
+              <>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="app-shell__menu-button md:hidden"
+                  onClick={() => setIsMobileSidebarOpen(true)}
+                  aria-label="Open navigation"
+                >
+                  <Menu size={16} strokeWidth={2} />
+                </Button>
+                <div>
+                  <div className="app-shell__eyebrow">{headerCopy.label}</div>
+                  <div className="app-shell__topbar-title">{headerCopy.title}</div>
+                </div>
+              </>
+            ) : (
+              <Link to="/" className="app-shell__topbar-brand">
+                <span className="app-shell__brand-mark app-shell__brand-mark--small">T</span>
+                <span className="app-shell__topbar-brand-copy">
+                  <span className="app-shell__eyebrow">Workspace</span>
+                  <span className="app-shell__topbar-title">TMS</span>
+                </span>
+              </Link>
+            )}
           </div>
 
           {user ? (
             <div className="app-shell__topbar-right app-shell__topbar-right--user">
+              <ThemeToggle compact />
               <Badge>{user.displayName}</Badge>
               <Button
                 type="button"

@@ -1,12 +1,16 @@
-import { LaptopMinimal, MoonStar, SunMedium } from 'lucide-react'
+import { MoonStar, SunMedium } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTheme } from './ThemeProvider'
 
-export default function ThemeToggle() {
+type ThemeToggleProps = {
+  compact?: boolean
+}
+
+export default function ThemeToggle({ compact = false }: ThemeToggleProps) {
   const { preference, resolvedTheme, setPreference } = useTheme()
 
   const options: Array<{
-    value: 'light' | 'dark' | 'system'
+    value: 'light' | 'dark'
     label: string
     icon: ReactNode
   }> = [
@@ -20,31 +24,22 @@ export default function ThemeToggle() {
       label: 'Dark',
       icon: <MoonStar size={14} strokeWidth={2} />,
     },
-    {
-      value: 'system',
-      label: 'Auto',
-      icon: <LaptopMinimal size={14} strokeWidth={2} />,
-    },
   ]
 
   return (
-    <div className="app-theme-switcher">
-      <div className="app-theme-switcher__status">
-        <span className="app-theme-switcher__icon">
-          {resolvedTheme === 'dark' ? (
-            <MoonStar size={14} strokeWidth={2} />
-          ) : (
-            <SunMedium size={14} strokeWidth={2} />
-          )}
-        </span>
-        <span>
-          {preference === 'system'
-            ? `Auto follows ${resolvedTheme === 'dark' ? 'dark' : 'light'}`
-            : resolvedTheme === 'dark'
-              ? 'Dark appearance'
-              : 'Light appearance'}
-        </span>
-      </div>
+    <div className={`app-theme-switcher ${compact ? 'is-compact' : ''}`}>
+      {!compact ? (
+        <div className="app-theme-switcher__status">
+          <span className="app-theme-switcher__icon">
+            {resolvedTheme === 'dark' ? (
+              <MoonStar size={14} strokeWidth={2} />
+            ) : (
+              <SunMedium size={14} strokeWidth={2} />
+            )}
+          </span>
+          <span>{resolvedTheme === 'dark' ? 'Dark appearance' : 'Light appearance'}</span>
+        </div>
+      ) : null}
       <div
         className="app-theme-switcher__segmented"
         role="tablist"

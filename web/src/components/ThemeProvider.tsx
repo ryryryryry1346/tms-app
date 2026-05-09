@@ -8,7 +8,6 @@ import {
 import {
   THEME_STORAGE_KEY,
   applyResolvedTheme,
-  getSystemTheme,
   readStoredThemePreference,
   resolveTheme,
   type ResolvedTheme,
@@ -25,13 +24,11 @@ const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 function getInitialPreference(): ThemePreference {
   if (typeof document === 'undefined') {
-    return 'system'
+    return 'light'
   }
 
   const attribute = document.documentElement.getAttribute('data-theme-preference')
-  return attribute === 'light' || attribute === 'dark' || attribute === 'system'
-    ? attribute
-    : 'system'
+  return attribute === 'light' || attribute === 'dark' ? attribute : 'light'
 }
 
 function getInitialResolvedTheme(): ResolvedTheme {
@@ -60,26 +57,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setResolvedTheme(nextResolvedTheme)
     applyResolvedTheme(document.documentElement, nextPreference, nextResolvedTheme)
   }, [])
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-
-    function syncSystemTheme(): void {
-      setResolvedTheme((currentResolvedTheme) => {
-        if (preference !== 'system') {
-          return currentResolvedTheme
-        }
-
-        const nextResolvedTheme = getSystemTheme()
-        applyResolvedTheme(document.documentElement, preference, nextResolvedTheme)
-        return nextResolvedTheme
-      })
-    }
-
-    syncSystemTheme()
-    mediaQuery.addEventListener('change', syncSystemTheme)
-    return () => mediaQuery.removeEventListener('change', syncSystemTheme)
-  }, [preference])
 
   function setPreference(nextPreference: ThemePreference): void {
     const nextResolvedTheme = resolveTheme(nextPreference)
