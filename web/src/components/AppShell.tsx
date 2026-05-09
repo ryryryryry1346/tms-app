@@ -272,20 +272,6 @@ function deriveShellContext(
   return null
 }
 
-type ContextRow = {
-  label: string
-  value: string
-  meta?: string
-  icon: ReactNode
-  href?: string
-}
-
-type ContextAction = {
-  label: string
-  href: string
-  tone?: 'default' | 'primary'
-}
-
 function ShellNavLink({
   item,
   pathname,
@@ -313,88 +299,6 @@ function ShellNavLink({
       <span>{item.label}</span>
     </Link>
   )
-}
-
-function getContextActions(
-  pathname: string,
-  context: ShellContext | null,
-): ContextAction[] {
-  const projectSlug = context?.projectSlug
-  const caseId = context?.caseId
-
-  if (pathname.startsWith('/create-test')) {
-    return projectSlug
-      ? [
-          {
-            label: 'Back to repository',
-            href: `/project/${projectSlug}/repository`,
-            tone: 'primary',
-          },
-        ]
-      : []
-  }
-
-  if (pathname.startsWith('/edit-test/')) {
-    return [
-      ...(caseId
-        ? [
-            {
-              label: 'Open case',
-              href: `/test/${caseId}`,
-              tone: 'primary' as const,
-            },
-          ]
-        : []),
-      ...(projectSlug
-        ? [
-            {
-              label: 'Open repository',
-              href: `/project/${projectSlug}/repository`,
-            },
-          ]
-        : []),
-    ]
-  }
-
-  if (pathname.startsWith('/test/')) {
-    return [
-      ...(caseId
-        ? [
-            {
-              label: 'Open full editor',
-              href: `/edit-test/${caseId}`,
-              tone: 'primary' as const,
-            },
-          ]
-        : []),
-      ...(projectSlug
-        ? [
-            {
-              label: 'Open repository',
-              href: `/project/${projectSlug}/repository`,
-            },
-          ]
-        : []),
-    ]
-  }
-
-  if (pathname.startsWith('/run/')) {
-    return projectSlug
-      ? [
-          {
-            label: 'Back to runs',
-            href: `/project/${projectSlug}/runs`,
-            tone: 'primary',
-          },
-          {
-            label: 'Open repository',
-            href: `/project/${projectSlug}/repository`,
-          },
-        ]
-      : []
-  }
-
-  return []
 }
 
 export default function AppShell({ user, children }: AppShellProps) {
@@ -477,57 +381,6 @@ export default function AppShell({ user, children }: AppShellProps) {
         },
       ]
     : []
-
-  const contextRows = [
-    shellContext?.projectName
-      ? {
-          label: 'Project',
-          value: shellContext.projectName,
-          icon: <PanelsTopLeft size={14} strokeWidth={2} />,
-          href: shellContext.projectSlug
-            ? `/project/${shellContext.projectSlug}`
-            : undefined,
-        }
-      : null,
-    shellContext?.suiteName
-      ? {
-          label: 'Suite',
-          value: shellContext.suiteName,
-          icon: <FolderKanban size={14} strokeWidth={2} />,
-          href: shellContext.projectSlug
-            ? `/project/${shellContext.projectSlug}/repository`
-            : undefined,
-        }
-      : null,
-    shellContext?.caseTitle
-      ? {
-          label: shellContext.modeLabel ?? 'Case',
-          value: shellContext.caseTitle,
-          meta: shellContext.caseId ? `#${shellContext.caseId}` : undefined,
-          icon: <FilePenLine size={14} strokeWidth={2} />,
-          href: shellContext.caseId ? `/test/${shellContext.caseId}` : undefined,
-        }
-      : null,
-    shellContext?.runName
-      ? {
-          label: shellContext.modeLabel ?? 'Run',
-          value: shellContext.runName,
-          meta: shellContext.runId ? `#${shellContext.runId}` : undefined,
-          icon: <PlayCircle size={14} strokeWidth={2} />,
-          href: shellContext.runId ? `/run/${shellContext.runId}` : undefined,
-        }
-      : null,
-    !shellContext?.caseTitle && !shellContext?.runName && shellContext?.modeLabel
-      ? {
-          label: 'Mode',
-          value: shellContext.modeLabel,
-          icon: <CircleDot size={14} strokeWidth={2} />,
-        }
-      : null,
-  ].filter(Boolean) as ContextRow[]
-  const showWorkingContext =
-    isDeepFlow && shouldShowWorkingContext(pathname) && contextRows.length > 0
-  const contextActions = getContextActions(pathname, shellContext)
 
   async function handleLogout(): Promise<void> {
     setIsLoggingOut(true)
@@ -654,59 +507,6 @@ export default function AppShell({ user, children }: AppShellProps) {
               </section>
             ) : null}
 
-            {showWorkingContext ? (
-              <section className="app-shell__group">
-                <div className="app-shell__group-title">Working on</div>
-                <div className="app-shell__context-card">
-                  {contextRows.map((row) => (
-                    row.href ? (
-                      <a
-                        key={`${row.label}-${row.value}`}
-                        href={row.href}
-                        className="app-shell__context-row app-shell__context-row--link"
-                        onClick={closeSidebar}
-                      >
-                        <span className="app-shell__context-icon">{row.icon}</span>
-                        <div className="app-shell__context-copy">
-                          <span className="app-shell__context-label">{row.label}</span>
-                          <span className="app-shell__context-value">{row.value}</span>
-                        </div>
-                        {row.meta ? (
-                          <span className="app-shell__context-meta">{row.meta}</span>
-                        ) : null}
-                      </a>
-                    ) : (
-                      <div key={`${row.label}-${row.value}`} className="app-shell__context-row">
-                        <span className="app-shell__context-icon">{row.icon}</span>
-                        <div className="app-shell__context-copy">
-                          <span className="app-shell__context-label">{row.label}</span>
-                          <span className="app-shell__context-value">{row.value}</span>
-                        </div>
-                        {row.meta ? (
-                          <span className="app-shell__context-meta">{row.meta}</span>
-                        ) : null}
-                      </div>
-                    )
-                  ))}
-                  {contextActions.length > 0 ? (
-                    <div className="app-shell__context-actions">
-                      {contextActions.map((action) => (
-                        <a
-                          key={`${action.label}-${action.href}`}
-                          href={action.href}
-                          className={`app-shell__context-action ${
-                            action.tone === 'primary' ? 'is-primary' : ''
-                          }`}
-                          onClick={closeSidebar}
-                        >
-                          {action.label}
-                        </a>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              </section>
-            ) : null}
           </div>
         </aside>
       ) : null}
