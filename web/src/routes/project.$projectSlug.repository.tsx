@@ -34,7 +34,7 @@ import {
   createTestCase,
   deleteArchivedTestCase,
   duplicateTestCase,
-  getDashboardState,
+  getRepositoryState,
   getTestDetail,
   moveAndReorderTestCases,
   restoreTestCase,
@@ -54,7 +54,7 @@ export const Route = createFileRoute('/project/$projectSlug/repository')({
     const numericProjectId = Number(projectSlug)
 
     if (Number.isInteger(numericProjectId) && numericProjectId > 0) {
-      const legacyDashboard = await getDashboardState({
+      const legacyDashboard = await getRepositoryState({
         data: {
           projectId: numericProjectId,
         },
@@ -79,7 +79,7 @@ export const Route = createFileRoute('/project/$projectSlug/repository')({
       }
     }
 
-    const dashboard = await getDashboardState({
+    const dashboard = await getRepositoryState({
       data: {
         projectSlug,
       },

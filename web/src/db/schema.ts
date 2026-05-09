@@ -9,12 +9,18 @@ import {
   varchar,
 } from 'drizzle-orm/mysql-core'
 
-export const projects = mysqlTable('projects', {
-  id: int('id').autoincrement().primaryKey(),
-  name: text('name').notNull(),
-  slug: varchar('slug', { length: 255 }),
-  status: varchar('status', { length: 64 }),
-})
+export const projects = mysqlTable(
+  'projects',
+  {
+    id: int('id').autoincrement().primaryKey(),
+    name: text('name').notNull(),
+    slug: varchar('slug', { length: 255 }),
+    status: varchar('status', { length: 64 }),
+  },
+  (table) => ({
+    slugIndex: index('projects_slug_idx').on(table.slug),
+  }),
+)
 
 export const user = mysqlTable(
   'user',
@@ -116,11 +122,17 @@ export const tests = mysqlTable(
     createdAt: varchar('created_at', { length: 32 }),
     updatedAt: varchar('updated_at', { length: 32 }),
   },
-  (table) => ({
-    sectionIdIndex: index('tests_section_id_idx').on(table.sectionId),
-    projectIdIndex: index('tests_project_id_idx').on(table.projectId),
-  }),
-)
+    (table) => ({
+      sectionIdIndex: index('tests_section_id_idx').on(table.sectionId),
+      projectIdIndex: index('tests_project_id_idx').on(table.projectId),
+      repositoryOrderIndex: index('tests_repository_order_idx').on(
+        table.projectId,
+        table.sectionId,
+        table.sortOrder,
+        table.id,
+      ),
+    }),
+  )
 
 export const testCaseActivity = mysqlTable(
   'test_case_activity',

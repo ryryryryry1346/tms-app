@@ -213,6 +213,8 @@ export type DashboardState = {
   activities: DashboardActivity[]
 }
 
+export type RepositoryState = DashboardState
+
 export type CreateTestFormState = {
   databaseConfigured: boolean
   sections: DashboardSection[]
@@ -330,6 +332,101 @@ export const getDashboardState = createServerFn({ method: 'POST' })
       databaseConfigured: true,
       projects: projectRows,
       selectedProjectId,
+      sections: sectionRows,
+      tests: testRows,
+      activities: [],
+    }
+  })
+
+export const getRepositoryState = createServerFn({ method: 'POST' })
+  .inputValidator(dashboardInput)
+  .handler(async ({ data }): Promise<RepositoryState> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+    await ensureTestServerDeps()
+
+    if (!isDatabaseConfigured()) {
+      return {
+        databaseConfigured: false,
+        projects: [],
+        selectedProjectId: data.projectId,
+        sections: [],
+        tests: [],
+        activities: [],
+      }
+    }
+
+    const db = getDb()
+
+    async function loadProject(): Promise<DashboardProject | null> {
+      const rows = await db
+        .select({
+          id: projects.id,
+          name: projects.name,
+          slug: projects.slug,
+          status: projects.status,
+        })
+        .from(projects)
+        .where(
+          data.projectId
+            ? eq(projects.id, data.projectId)
+            : eq(projects.slug, data.projectSlug ?? ''),
+        )
+        .limit(1)
+
+      return rows[0] ?? null
+    }
+
+    let project = await loadProject()
+
+    if (!project && data.projectSlug) {
+      await ensureProjectSlugs()
+      project = await loadProject()
+    }
+
+    if (!project) {
+      return {
+        databaseConfigured: true,
+        projects: [],
+        sections: [],
+        tests: [],
+        activities: [],
+      }
+    }
+
+    const [sectionRows, testRows] = await Promise.all([
+      db
+        .select({
+          id: sections.id,
+          name: sections.name,
+          projectId: sections.projectId,
+        })
+        .from(sections)
+        .where(eq(sections.projectId, project.id))
+        .orderBy(asc(sections.id)),
+      db
+        .select({
+          id: tests.id,
+          title: tests.title,
+          status: tests.status,
+          priority: tests.priority,
+          caseType: tests.caseType,
+          archivedFromStatus: tests.archivedFromStatus,
+          sectionId: tests.sectionId,
+          projectId: tests.projectId,
+          sortOrder: tests.sortOrder,
+          createdAt: tests.createdAt,
+          updatedAt: tests.updatedAt,
+        })
+        .from(tests)
+        .where(eq(tests.projectId, project.id))
+        .orderBy(asc(tests.sectionId), asc(tests.sortOrder), asc(tests.id)),
+    ])
+
+    return {
+      databaseConfigured: true,
+      projects: [project],
+      selectedProjectId: project.id,
       sections: sectionRows,
       tests: testRows,
       activities: [],
