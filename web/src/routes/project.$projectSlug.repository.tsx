@@ -3,9 +3,11 @@ import {
   createFileRoute,
   notFound,
   redirect,
+  useNavigate,
   useRouter,
 } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
+import { z } from 'zod'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { BulkCaseBar } from '../components/repository/BulkCaseBar'
 import { CasePreviewDrawer } from '../components/repository/CasePreviewDrawer'
@@ -44,7 +46,23 @@ import {
 import type { DashboardTest, TestDetail } from '../features/tests/server'
 
 export const Route = createFileRoute('/project/$projectSlug/repository')({
-  loader: async ({ params }) => {
+  validateSearch: z.object({
+    q: z.string().optional().catch(''),
+    suiteId: z.coerce.number().int().positive().optional().catch(undefined),
+    status: z.enum(['All', 'Draft', 'Ready', 'Archived']).optional().catch('All'),
+    priority: z
+      .enum(['All', 'Low', 'Medium', 'High', 'Critical'])
+      .optional()
+      .catch('All'),
+    type: z
+      .enum(['All', 'Functional', 'Regression', 'Smoke', 'E2E', 'UI', 'API'])
+      .optional()
+      .catch('All'),
+    page: z.coerce.number().int().positive().optional().catch(1),
+    pageSize: z.coerce.number().int().min(25).max(200).optional().catch(100),
+  }),
+  loaderDeps: ({ search }) => search,
+  loader: async ({ params, deps }) => {
     const projectSlug = params.projectSlug.trim()
 
     if (!projectSlug) {
@@ -57,6 +75,8 @@ export const Route = createFileRoute('/project/$projectSlug/repository')({
       const legacyDashboard = await getRepositoryState({
         data: {
           projectId: numericProjectId,
+          page: deps.page,
+          pageSize: deps.pageSize,
         },
       })
 
@@ -82,6 +102,13 @@ export const Route = createFileRoute('/project/$projectSlug/repository')({
     const dashboard = await getRepositoryState({
       data: {
         projectSlug,
+        search: deps.q,
+        suiteId: deps.suiteId,
+        status: deps.status,
+        priority: deps.priority,
+        caseType: deps.type,
+        page: deps.page,
+        pageSize: deps.pageSize,
       },
     })
 
@@ -170,8 +197,10 @@ function formatRepositoryDateTime(value: string | null | undefined): string {
 
 function ProjectRepositoryPage() {
   const loaderData = Route.useLoaderData()
+  const search = Route.useSearch()
   const { project, dashboard: loaderDashboard } = loaderData
   const router = useRouter()
+  const navigate = useNavigate()
   const [dashboard, setDashboard] = useState(loaderDashboard)
 
   const [suiteName, setSuiteName] = useState('')
@@ -197,11 +226,11 @@ function ProjectRepositoryPage() {
     Record<number, boolean>
   >({})
   const [activeComposer, setActiveComposer] = useState<ComposerKind>(null)
-  const [searchValue, setSearchValue] = useState('')
-  const [caseFilter, setCaseFilter] = useState<CaseFilter>('All')
-  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('All')
-  const [caseTypeFilter, setCaseTypeFilter] = useState<CaseTypeFilter>('All')
-  const [suiteFilterId, setSuiteFilterId] = useState<string>(ALL_SUITES_FILTER)
+  const [searchValue, setSearchValue] = useState(search.q ?? '')
+  const caseFilter = search.status ?? 'All'
+  const priorityFilter = search.priority ?? 'All'
+  const caseTypeFilter = search.type ?? 'All'
+  const suiteFilterId = search.suiteId?.toString() ?? ALL_SUITES_FILTER
   const [selectedTestIds, setSelectedTestIds] = useState<number[]>([])
   const [isApplyingBulkAction, setIsApplyingBulkAction] = useState(false)
   const [isBulkArchiveConfirming, setIsBulkArchiveConfirming] = useState(false)
@@ -254,6 +283,48 @@ function ProjectRepositoryPage() {
   useEffect(() => {
     setDashboard(loaderDashboard)
   }, [loaderDashboard])
+
+  useEffect(() => {
+    setSearchValue(search.q ?? '')
+  }, [search.q])
+
+  useEffect(() => {
+    const nextSearch = searchValue.trim()
+
+    if (nextSearch === (search.q ?? '')) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      updateRepositorySearch({
+        q: nextSearch || undefined,
+      })
+    }, 300)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [search.q, searchValue])
+
+  function updateRepositorySearch(
+    nextSearch: Partial<{
+      q: string
+      suiteId: number | undefined
+      status: CaseFilter
+      priority: PriorityFilter
+      type: CaseTypeFilter
+      page: number
+      pageSize: number
+    }>,
+  ): void {
+    void navigate({
+      to: '.',
+      search: (current) => ({
+        ...current,
+        ...nextSearch,
+        page: nextSearch.page ?? 1,
+      }),
+      replace: true,
+    })
+  }
 
   function updateRepositoryTests(
     testIds: number[],
@@ -1565,9 +1636,9 @@ function ProjectRepositoryPage() {
             <div className="workspace-toolbar-surface__copy">
             {[
               { label: 'Suites', value: totalSuites },
-              { label: 'Cases', value: activeTests.length },
-              { label: 'Ready', value: readyCases },
-              { label: 'Archived', value: archivedCases },
+              { label: 'Cases', value: dashboard.stats.activeCases },
+              { label: 'Ready', value: dashboard.stats.readyCases },
+              { label: 'Archived', value: dashboard.stats.archivedCases },
             ].map((item) => (
               <div key={item.label} className="tms-chip repository-summary-strip__chip">
                 <span className="text-[var(--tms-text)]">{item.value}</span> {item.label}
@@ -1609,7 +1680,7 @@ function ProjectRepositoryPage() {
 
           <RepositoryPanel>
             <RepositoryToolbar
-              visibleCount={filteredLifecycleTests.length}
+              visibleCount={dashboard.pagination.totalCases}
               searchValue={searchValue}
               suiteFilterId={suiteFilterId}
               priorityFilter={priorityFilter}
@@ -1625,19 +1696,27 @@ function ProjectRepositoryPage() {
               }}
               onSuiteFilterChange={(value) => {
                 clearBulkConfirmations()
-                setSuiteFilterId(value)
+                updateRepositorySearch({
+                  suiteId: value === ALL_SUITES_FILTER ? undefined : Number(value),
+                })
               }}
               onPriorityFilterChange={(value) => {
                 clearBulkConfirmations()
-                setPriorityFilter(value)
+                updateRepositorySearch({
+                  priority: value,
+                })
               }}
               onCaseTypeFilterChange={(value) => {
                 clearBulkConfirmations()
-                setCaseTypeFilter(value)
+                updateRepositorySearch({
+                  type: value,
+                })
               }}
               onCaseFilterChange={(value) => {
                 clearBulkConfirmations()
-                setCaseFilter(value)
+                updateRepositorySearch({
+                  status: value,
+                })
               }}
             />
 
@@ -1901,6 +1980,46 @@ function ProjectRepositoryPage() {
               </div>
             )}
           </RepositoryPanel>
+
+          {dashboard.pagination.totalPages > 1 ? (
+            <section className="workspace-toolbar-surface repository-pagination">
+              <div className="workspace-toolbar-surface__copy text-sm text-[var(--tms-text-muted)]">
+                Page {dashboard.pagination.page} of {dashboard.pagination.totalPages}
+                <span className="text-[var(--tms-text-soft)]">
+                  {dashboard.tests.length} shown of {dashboard.pagination.totalCases}
+                </span>
+              </div>
+              <div className="workspace-secondary-actions">
+                <Button
+                  variant="secondary"
+                  disabled={dashboard.pagination.page <= 1}
+                  onClick={() =>
+                    updateRepositorySearch({
+                      page: Math.max(1, dashboard.pagination.page - 1),
+                    })
+                  }
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={
+                    dashboard.pagination.page >= dashboard.pagination.totalPages
+                  }
+                  onClick={() =>
+                    updateRepositorySearch({
+                      page: Math.min(
+                        dashboard.pagination.totalPages,
+                        dashboard.pagination.page + 1,
+                      ),
+                    })
+                  }
+                >
+                  Next
+                </Button>
+              </div>
+            </section>
+          ) : null}
 
           {previewDrawerTest ? (
             <CasePreviewDrawer

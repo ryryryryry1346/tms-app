@@ -4,8 +4,12 @@ import { z } from 'zod'
 
 let and: typeof import('drizzle-orm')['and']
 let asc: typeof import('drizzle-orm')['asc']
+let count: typeof import('drizzle-orm')['count']
 let eq: typeof import('drizzle-orm')['eq']
 let inArray: typeof import('drizzle-orm')['inArray']
+let like: typeof import('drizzle-orm')['like']
+let or: typeof import('drizzle-orm')['or']
+let sql: typeof import('drizzle-orm')['sql']
 let getDb: typeof import('../../db/client')['getDb']
 let isDatabaseConfigured: typeof import('../../db/client')['isDatabaseConfigured']
 let projects: typeof import('../../db/schema')['projects']
@@ -28,8 +32,12 @@ async function ensureTestServerDeps(): Promise<void> {
 
   and = drizzle.and
   asc = drizzle.asc
+  count = drizzle.count
   eq = drizzle.eq
   inArray = drizzle.inArray
+  like = drizzle.like
+  or = drizzle.or
+  sql = drizzle.sql
   getDb = dbClient.getDb
   isDatabaseConfigured = dbClient.isDatabaseConfigured
   projects = schema.projects
@@ -42,6 +50,15 @@ async function ensureTestServerDeps(): Promise<void> {
 const dashboardInput = z.object({
   projectId: z.number().int().positive().optional(),
   projectSlug: z.string().trim().min(1).optional(),
+  search: z.string().trim().optional(),
+  suiteId: z.number().int().positive().optional(),
+  status: z.enum(['All', 'Draft', 'Ready', 'Archived']).optional(),
+  priority: z.enum(['All', 'Low', 'Medium', 'High', 'Critical']).optional(),
+  caseType: z
+    .enum(['All', 'Functional', 'Regression', 'Smoke', 'E2E', 'UI', 'API'])
+    .optional(),
+  page: z.number().int().positive().optional(),
+  pageSize: z.number().int().min(25).max(200).optional(),
 })
 
 type ActivityDb = ReturnType<typeof import('../../db/client')['getDb']>
@@ -213,7 +230,20 @@ export type DashboardState = {
   activities: DashboardActivity[]
 }
 
-export type RepositoryState = DashboardState
+export type RepositoryState = DashboardState & {
+  pagination: {
+    page: number
+    pageSize: number
+    totalCases: number
+    totalPages: number
+  }
+  stats: {
+    totalCases: number
+    activeCases: number
+    readyCases: number
+    archivedCases: number
+  }
+}
 
 export type CreateTestFormState = {
   databaseConfigured: boolean
@@ -271,6 +301,18 @@ export const getDashboardState = createServerFn({ method: 'POST' })
         sections: [],
         tests: [],
         activities: [],
+        pagination: {
+          page: data.page ?? 1,
+          pageSize: data.pageSize ?? 100,
+          totalCases: 0,
+          totalPages: 1,
+        },
+        stats: {
+          totalCases: 0,
+          activeCases: 0,
+          readyCases: 0,
+          archivedCases: 0,
+        },
       }
     }
 
@@ -391,10 +433,56 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
         sections: [],
         tests: [],
         activities: [],
+        pagination: {
+          page: data.page ?? 1,
+          pageSize: data.pageSize ?? 100,
+          totalCases: 0,
+          totalPages: 1,
+        },
+        stats: {
+          totalCases: 0,
+          activeCases: 0,
+          readyCases: 0,
+          archivedCases: 0,
+        },
       }
     }
 
-    const [sectionRows, testRows] = await Promise.all([
+    const pageSize = data.pageSize ?? 100
+    const page = data.page ?? 1
+    const offset = (page - 1) * pageSize
+    const statusFilter = data.status ?? 'All'
+    const priorityFilter = data.priority ?? 'All'
+    const caseTypeFilter = data.caseType ?? 'All'
+    const search = data.search?.trim() ?? ''
+    const searchPattern = `%${search}%`
+    const filteredTestConditions = [
+      eq(tests.projectId, project.id),
+      statusFilter === 'All'
+        ? sql`${tests.status} <> 'Archived'`
+        : eq(tests.status, statusFilter),
+      data.suiteId ? eq(tests.sectionId, data.suiteId) : undefined,
+      priorityFilter !== 'All' ? eq(tests.priority, priorityFilter) : undefined,
+      caseTypeFilter !== 'All' ? eq(tests.caseType, caseTypeFilter) : undefined,
+      search
+        ? or(like(tests.title, searchPattern), sql`${tests.id} like ${searchPattern}`)
+        : undefined,
+    ].filter(
+      (
+        condition,
+      ): condition is Exclude<typeof condition, undefined> =>
+        condition !== undefined,
+    )
+
+    const [
+      sectionRows,
+      testRows,
+      filteredCountRows,
+      totalCountRows,
+      activeCountRows,
+      readyCountRows,
+      archivedCountRows,
+    ] = await Promise.all([
       db
         .select({
           id: sections.id,
@@ -419,9 +507,42 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
           updatedAt: tests.updatedAt,
         })
         .from(tests)
-        .where(eq(tests.projectId, project.id))
-        .orderBy(asc(tests.sectionId), asc(tests.sortOrder), asc(tests.id)),
+        .where(and(...filteredTestConditions))
+        .orderBy(asc(tests.sectionId), asc(tests.sortOrder), asc(tests.id))
+        .limit(pageSize)
+        .offset(offset),
+      db
+        .select({
+          value: count(),
+        })
+        .from(tests)
+        .where(and(...filteredTestConditions)),
+      db
+        .select({
+          value: count(),
+        })
+        .from(tests)
+        .where(eq(tests.projectId, project.id)),
+      db
+        .select({
+          value: count(),
+        })
+        .from(tests)
+        .where(and(eq(tests.projectId, project.id), sql`${tests.status} <> 'Archived'`)),
+      db
+        .select({
+          value: count(),
+        })
+        .from(tests)
+        .where(and(eq(tests.projectId, project.id), eq(tests.status, 'Ready'))),
+      db
+        .select({
+          value: count(),
+        })
+        .from(tests)
+        .where(and(eq(tests.projectId, project.id), eq(tests.status, 'Archived'))),
     ])
+    const totalFilteredCases = filteredCountRows[0]?.value ?? 0
 
     return {
       databaseConfigured: true,
@@ -430,6 +551,18 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
       sections: sectionRows,
       tests: testRows,
       activities: [],
+      pagination: {
+        page,
+        pageSize,
+        totalCases: totalFilteredCases,
+        totalPages: Math.max(1, Math.ceil(totalFilteredCases / pageSize)),
+      },
+      stats: {
+        totalCases: totalCountRows[0]?.value ?? 0,
+        activeCases: activeCountRows[0]?.value ?? 0,
+        readyCases: readyCountRows[0]?.value ?? 0,
+        archivedCases: archivedCountRows[0]?.value ?? 0,
+      },
     }
   })
 
