@@ -1338,15 +1338,6 @@ a {
   gap: 0.5rem;
 }
 
-.app-shell__user-card {
-  display: grid;
-  gap: 0.625rem;
-  border-radius: var(--radius-panel);
-  background: var(--surface);
-  padding: 0.875rem;
-  box-shadow: var(--tms-shadow-subtle);
-}
-
 .app-shell__user-meta {
   display: grid;
   gap: 0.2rem;
@@ -1358,16 +1349,80 @@ a {
   line-height: 1.2;
 }
 
-.app-shell__utility-link {
-  color: var(--text-secondary);
-  font-size: 0.8125rem;
+.app-shell__user-email {
+  color: var(--text-muted);
+  font-size: 0.75rem;
   font-weight: 500;
-  line-height: 1.2;
-  text-decoration: none;
+  line-height: 1.25;
 }
 
-.app-shell__utility-link:hover {
+.app-shell__user-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 0.875rem;
+}
+
+.app-shell__logout-button {
+  flex-shrink: 0;
+}
+
+.app-shell__context-card {
+  display: grid;
+  gap: 0.4rem;
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  padding: 0.625rem;
+  box-shadow: var(--tms-shadow-subtle);
+}
+
+.app-shell__context-row {
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr) auto;
+  gap: 0.625rem;
+  align-items: start;
+  border-radius: var(--radius-control);
+  padding: 0.35rem 0.4rem;
+}
+
+.app-shell__context-icon {
+  display: inline-flex;
+  width: 1rem;
+  height: 1rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.app-shell__context-copy {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.app-shell__context-label {
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.app-shell__context-value {
   color: var(--text-primary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-shell__context-meta {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .app-shell__workspace {
@@ -1754,14 +1809,38 @@ a {
   justify-content: center;
 }
 
-.app-theme-switcher__select {
-  width: 100%;
-  justify-content: space-between;
+.app-theme-switcher__segmented {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.375rem;
 }
 
-.app-theme-switcher__toggle {
-  width: 100%;
+.app-theme-switcher__button {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
   justify-content: center;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-secondary);
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  box-shadow: var(--tms-shadow-subtle);
+  cursor: pointer;
+}
+
+.app-theme-switcher__button:hover {
+  background: var(--state-hover);
+  color: var(--text-primary);
+}
+
+.app-theme-switcher__button.is-active {
+  background: var(--state-selected);
+  color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--border-focus) 18%, var(--border-default));
 }
 
 @media (min-width: 768px) {
@@ -1789,6 +1868,11 @@ a {
   .app-shell__topbar {
     padding: 0.75rem 1.5rem;
   }
+
+  .app-shell__close-button,
+  .app-shell__menu-button {
+    display: none !important;
+  }
 }
 
 @media (max-width: 767px) {
@@ -1800,6 +1884,16 @@ a {
   .app-shell__topbar-right--user {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .app-shell__user-strip {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .app-shell__logout-button {
+    width: 100%;
+    justify-content: center;
   }
 
   .workspace-page-header__actions {

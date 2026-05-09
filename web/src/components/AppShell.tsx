@@ -6,7 +6,8 @@ import {
 } from '@tanstack/react-router'
 import {
   BarChart3,
-  FileText,
+  CircleDot,
+  FilePenLine,
   FolderKanban,
   LayoutGrid,
   Menu,
@@ -19,6 +20,7 @@ import { logoutUser, type SessionUser } from '../features/auth/server'
 import ThemeToggle from './ThemeToggle'
 import { Badge } from './ui/Badge'
 import { Button } from './ui/Button'
+import { useRouterState } from '@tanstack/react-router'
 
 type AppShellProps = {
   user: SessionUser | null
@@ -29,7 +31,6 @@ type NavItem = {
   label: string
   to:
     | '/'
-    | '/about'
     | '/project/$projectSlug'
     | '/project/$projectSlug/repository'
     | '/project/$projectSlug/runs'
@@ -69,10 +70,6 @@ function getHeaderCopy(pathname: string): { label: string; title: string } {
     return { label: 'Workspace', title: 'Projects' }
   }
 
-  if (pathname === '/about') {
-    return { label: 'Workspace', title: 'About' }
-  }
-
   if (pathname.startsWith('/project/') && pathname.endsWith('/repository')) {
     return { label: 'Project', title: 'Repository' }
   }
@@ -108,6 +105,155 @@ function getHeaderCopy(pathname: string): { label: string; title: string } {
   return { label: 'Workspace', title: 'TMS' }
 }
 
+type ShellContext = {
+  projectSlug: string | null
+  projectName: string | null
+  suiteName?: string | null
+  caseId?: number | null
+  caseTitle?: string | null
+  runId?: number | null
+  runName?: string | null
+  modeLabel?: string | null
+}
+
+function deriveShellContext(
+  pathname: string,
+  matches: Array<Record<string, unknown>>,
+): ShellContext | null {
+  const projectMatch = matches.find(
+    (match) =>
+      typeof match.routeId === 'string' &&
+      match.routeId.startsWith('/project/$projectSlug'),
+  )
+  const projectData = projectMatch?.loaderData as
+    | { project?: { slug?: string | null; id?: number; name?: string | null } }
+    | undefined
+
+  const testMatch = matches.find((match) => match.routeId === '/test/$testId')
+  const testData = testMatch?.loaderData as
+    | {
+        id: number
+        title: string
+        projectSlug?: string | null
+        projectName?: string | null
+        sectionName?: string | null
+      }
+    | undefined
+
+  if (testData) {
+    return {
+      projectSlug: testData.projectSlug ?? null,
+      projectName: testData.projectName ?? null,
+      suiteName: testData.sectionName ?? null,
+      caseId: testData.id,
+      caseTitle: testData.title,
+      modeLabel: 'Case detail',
+    }
+  }
+
+  const editMatch = matches.find((match) => match.routeId === '/edit-test/$testId')
+  const editData = editMatch?.loaderData as
+    | {
+        test: { id: number; title: string; sectionId: number }
+        sections: Array<{
+          id: number
+          name: string
+          projectName?: string | null
+          projectSlug?: string | null
+        }>
+      }
+    | undefined
+
+  if (editData) {
+    const activeSection =
+      editData.sections.find((section) => section.id === editData.test.sectionId) ??
+      null
+
+    return {
+      projectSlug: activeSection?.projectSlug ?? null,
+      projectName: activeSection?.projectName ?? null,
+      suiteName: activeSection?.name ?? null,
+      caseId: editData.test.id,
+      caseTitle: editData.test.title,
+      modeLabel: 'Edit case',
+    }
+  }
+
+  const createMatch = matches.find((match) => match.routeId === '/create-test')
+  const createData = createMatch?.loaderData as
+    | {
+        sections: Array<{
+          id: number
+          name: string
+          projectId?: number | null
+          projectName?: string | null
+          projectSlug?: string | null
+        }>
+      }
+    | undefined
+
+  if (createData) {
+    const params = new URLSearchParams(
+      typeof window === 'undefined' ? '' : window.location.search,
+    )
+    const suiteId = Number(params.get('suiteId'))
+    const projectId = Number(params.get('projectId'))
+    const activeSection =
+      createData.sections.find((section) => section.id === suiteId) ??
+      createData.sections.find((section) => section.projectId === projectId) ??
+      createData.sections[0] ??
+      null
+
+    return {
+      projectSlug: activeSection?.projectSlug ?? null,
+      projectName: activeSection?.projectName ?? null,
+      suiteName: activeSection?.name ?? null,
+      modeLabel: 'Create case',
+    }
+  }
+
+  const runMatch = matches.find((match) => match.routeId === '/run/$runId')
+  const runData = runMatch?.loaderData as
+    | {
+        run: {
+          id: number
+          name: string
+          projectSlug?: string | null
+          projectName?: string | null
+        }
+      }
+    | undefined
+
+  if (runData?.run) {
+    return {
+      projectSlug: runData.run.projectSlug ?? null,
+      projectName: runData.run.projectName ?? null,
+      runId: runData.run.id,
+      runName: runData.run.name,
+      modeLabel: 'Run detail',
+    }
+  }
+
+  if (projectData?.project) {
+    return {
+      projectSlug:
+        projectData.project.slug ?? getProjectSlug(pathname) ?? null,
+      projectName: projectData.project.name ?? null,
+    }
+  }
+
+  const regexSlug = getProjectSlug(pathname)
+
+  if (regexSlug) {
+    return {
+      projectSlug: regexSlug,
+      projectName: null,
+    }
+  }
+
+  return null
+}
+
 function ShellNavLink({
   item,
   pathname,
@@ -136,10 +282,14 @@ export default function AppShell({ user, children }: AppShellProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const router = useRouter()
+  const matches = useRouterState({
+    select: (state) => state.matches as Array<Record<string, unknown>>,
+  })
   const pathname = location.pathname
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const projectSlug = getProjectSlug(pathname)
+  const shellContext = deriveShellContext(pathname, matches)
+  const projectSlug = shellContext?.projectSlug ?? getProjectSlug(pathname)
   const headerCopy = getHeaderCopy(pathname)
 
   useEffect(() => {
@@ -155,12 +305,6 @@ export default function AppShell({ user, children }: AppShellProps) {
       label: 'Projects',
       to: '/',
       icon: <PanelsTopLeft size={16} strokeWidth={2} />,
-      exact: true,
-    },
-    {
-      label: 'About',
-      to: '/about',
-      icon: <FileText size={16} strokeWidth={2} />,
       exact: true,
     },
   ]
@@ -198,6 +342,43 @@ export default function AppShell({ user, children }: AppShellProps) {
         },
       ]
     : []
+
+  const contextRows = [
+    shellContext?.projectName
+      ? { label: 'Project', value: shellContext.projectName, icon: <PanelsTopLeft size={14} strokeWidth={2} /> }
+      : null,
+    shellContext?.suiteName
+      ? { label: 'Suite', value: shellContext.suiteName, icon: <FolderKanban size={14} strokeWidth={2} /> }
+      : null,
+    shellContext?.caseTitle
+      ? {
+          label: shellContext.modeLabel ?? 'Case',
+          value: shellContext.caseTitle,
+          meta: shellContext.caseId ? `#${shellContext.caseId}` : undefined,
+          icon: <FilePenLine size={14} strokeWidth={2} />,
+        }
+      : null,
+    shellContext?.runName
+      ? {
+          label: shellContext.modeLabel ?? 'Run',
+          value: shellContext.runName,
+          meta: shellContext.runId ? `#${shellContext.runId}` : undefined,
+          icon: <PlayCircle size={14} strokeWidth={2} />,
+        }
+      : null,
+    !shellContext?.caseTitle && !shellContext?.runName && shellContext?.modeLabel
+      ? {
+          label: 'Mode',
+          value: shellContext.modeLabel,
+          icon: <CircleDot size={14} strokeWidth={2} />,
+        }
+      : null,
+  ].filter(Boolean) as Array<{
+    label: string
+    value: string
+    meta?: string
+    icon: ReactNode
+  }>
 
   async function handleLogout(): Promise<void> {
     setIsLoggingOut(true)
@@ -275,6 +456,26 @@ export default function AppShell({ user, children }: AppShellProps) {
               </div>
             </section>
           ) : null}
+
+          {contextRows.length > 0 ? (
+            <section className="app-shell__group">
+              <div className="app-shell__group-title">Current context</div>
+              <div className="app-shell__context-card">
+                {contextRows.map((row) => (
+                  <div key={`${row.label}-${row.value}`} className="app-shell__context-row">
+                    <span className="app-shell__context-icon">{row.icon}</span>
+                    <div className="app-shell__context-copy">
+                      <span className="app-shell__context-label">{row.label}</span>
+                      <span className="app-shell__context-value">{row.value}</span>
+                    </div>
+                    {row.meta ? (
+                      <span className="app-shell__context-meta">{row.meta}</span>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
         </div>
 
         <div className="app-shell__bottom">
@@ -283,20 +484,19 @@ export default function AppShell({ user, children }: AppShellProps) {
             <ThemeToggle />
           </div>
 
-          <div className="app-shell__user-card">
+          <div className="app-shell__user-strip">
             <div className="app-shell__user-meta">
-              <span className="app-shell__eyebrow">Signed in</span>
-              <strong>{user?.displayName ?? 'Guest'}</strong>
+              <strong>{user?.displayName ?? user?.email ?? 'Guest'}</strong>
+              {user?.email && user.displayName !== user.email ? (
+                <span className="app-shell__user-email">{user.email}</span>
+              ) : null}
             </div>
-            {user ? <Badge>{user.email}</Badge> : null}
-            <Link to="/about" className="app-shell__utility-link">
-              Product status
-            </Link>
             {user ? (
               <Button
                 type="button"
                 size="sm"
-                className="w-full justify-center"
+                variant="secondary"
+                className="app-shell__logout-button"
                 onClick={() => void handleLogout()}
                 disabled={isLoggingOut}
               >
