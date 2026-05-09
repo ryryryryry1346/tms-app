@@ -139,230 +139,253 @@ function WorkspacePage() {
   })
 
   return (
-    <main className="page-wrap px-4 pb-8 pt-8">
-      <section className="mb-5">
-        <p className="island-kicker mb-2">Workspace</p>
-        <h1 className="m-0 text-3xl font-bold tracking-tight text-[var(--tms-text)] sm:text-4xl">
-          Projects
-        </h1>
-      </section>
-
-      <section>
-        <Panel className="island-shell rounded-[1.5rem] p-6">
-          <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="island-kicker mb-2">Projects</p>
-              <h2 className="m-0 text-xl font-semibold text-[var(--tms-text)]">
-                Workspace projects
-              </h2>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge>
-                {visibleProjects.length} project
-                {visibleProjects.length === 1 ? '' : 's'}
-              </Badge>
-              <div className="flex rounded-full border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] p-1">
-                {(['Active', 'Archived'] as const).map((filterValue) => (
-                  <Button
-                    key={filterValue}
-                    type="button"
-                    onClick={() => setProjectFilter(filterValue)}
-                    size="sm"
-                    variant={projectFilter === filterValue ? 'primary' : 'default'}
-                    className={`rounded-full border-0 shadow-none ${
-                      projectFilter === filterValue
-                        ? ''
-                        : 'text-[var(--tms-text-muted)]'
-                    }`}
-                  >
-                    {filterValue}
-                  </Button>
-                ))}
+    <main className="workspace-view">
+      <div className="workspace-view__inner">
+        <div className="workspace-view__stack workspace-home">
+          <header className="workspace-page-header">
+            <div className="workspace-page-header__body">
+              <div className="workspace-page-header__copy">
+                <p className="workspace-page-header__eyebrow">Workspace</p>
+                <h1 className="workspace-page-header__title">Projects</h1>
+                <p className="workspace-page-header__description">
+                  Create and manage TMS workspaces without extra chrome or dead-end
+                  controls.
+                </p>
+              </div>
+              <div className="workspace-home__metrics">
+                <Badge className="workspace-home__metric">
+                  {dashboard.projects.filter((project) => project.status !== 'Archived')
+                    .length}{' '}
+                  active
+                </Badge>
+                <Badge className="workspace-home__metric">
+                  {dashboard.projects.filter((project) => project.status === 'Archived')
+                    .length}{' '}
+                  archived
+                </Badge>
               </div>
             </div>
-          </div>
+          </header>
 
-          <form
-            className="mb-5 flex flex-col gap-3 sm:flex-row"
-            onSubmit={handleProjectSubmit}
-          >
-            <Input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              size="lg"
-              className="min-w-0 flex-1"
-              placeholder="New project"
-            />
-            <Button
-              type="submit"
-              disabled={isSubmittingProject || !dashboard.databaseConfigured}
-              variant="primary"
-              className="sm:min-w-[148px]"
-            >
-              {isSubmittingProject ? 'Creating...' : 'Create project'}
-            </Button>
-          </form>
-
-          {projectErrorMessage ? (
-            <Alert variant="danger" className="mb-5">
-              {projectErrorMessage}
-            </Alert>
-          ) : null}
-
-          {!dashboard.databaseConfigured ? (
-            <Alert variant="warning" className="p-4">
-              <strong>Database is not configured yet.</strong> Set
-              <code> MYSQL_DATABASE_URL </code>
-              and run the Drizzle migration before using the workspace against
-              MySQL.
-            </Alert>
-          ) : visibleProjects.length === 0 ? (
-            <EmptyState
-              title={
-                projectFilter === 'Archived'
-                  ? 'No archived projects yet'
-                  : 'No active projects yet'
-              }
-              description={
-                projectFilter === 'Archived'
-                  ? 'Archived projects will appear here.'
-                  : 'Create the first one to start structuring suites, cases, and runs.'
-              }
-            />
-          ) : (
-            <div className="grid gap-4">
-              {visibleProjects.map((project) => (
-                <Panel
-                  key={project.id}
-                  className="rounded-2xl border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] p-5 shadow-[var(--tms-shadow-subtle)]"
-                >
-                  <div className="mb-3 flex items-start justify-between gap-3">
-                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--tms-text-soft)]">
-                      Project
-                    </div>
-                    {project.status === 'Archived' ? (
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          onClick={() => handleProjectRestore(project.id)}
-                          disabled={restoringProjectId === project.id}
-                          variant="success"
-                          size="sm"
-                          className="rounded-full"
-                        >
-                          {restoringProjectId === project.id
-                            ? 'Restoring...'
-                            : 'Restore'}
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={() => {
-                            setDeleteConfirmProjectId((current) =>
-                              current === project.id ? null : project.id,
-                            )
-                            setDeleteConfirmName('')
-                          }}
-                          disabled={deletingProjectId === project.id}
-                          variant="danger"
-                          size="sm"
-                          className="rounded-full"
-                        >
-                          {deletingProjectId === project.id ? 'Deleting...' : 'Delete permanently'}
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        type="button"
-                        onClick={() => handleProjectArchive(project.id)}
-                        disabled={archivingProjectId === project.id}
-                        variant="warning"
-                        size="sm"
-                        className="rounded-full"
-                      >
-                        {archivingProjectId === project.id
-                          ? 'Archiving...'
-                          : 'Archive'}
-                      </Button>
-                    )}
-                  </div>
-                  <h3 className="mt-2 text-xl font-semibold text-[var(--tms-text)]">
-                    {project.name}
-                  </h3>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <Badge
-                      variant={
-                        project.status === 'Archived' ? 'warning' : 'success'
-                      }
+          <Panel className="workspace-home__panel">
+            <div className="workspace-home__panel-header">
+              <div className="workspace-home__panel-copy">
+                <p className="workspace-section-header__eyebrow">Projects</p>
+                <h2 className="workspace-home__panel-title">Workspace projects</h2>
+                <p className="workspace-home__panel-description">
+                  Keep the project list compact and focused on the workspaces your
+                  team actually uses.
+                </p>
+              </div>
+              <div className="workspace-home__panel-meta">
+                <Badge>
+                  {visibleProjects.length} project
+                  {visibleProjects.length === 1 ? '' : 's'}
+                </Badge>
+                <div className="workspace-home__filter-switch">
+                  {(['Active', 'Archived'] as const).map((filterValue) => (
+                    <Button
+                      key={filterValue}
+                      type="button"
+                      size="sm"
+                      variant={projectFilter === filterValue ? 'primary' : 'secondary'}
+                      className="workspace-home__filter-button"
+                      onClick={() => setProjectFilter(filterValue)}
                     >
-                      {project.status === 'Archived' ? 'Archived' : 'Active'}
-                    </Badge>
-                  </div>
-                  <Link
-                    to="/project/$projectSlug"
-                    params={{
-                      projectSlug:
-                        project.slug && project.slug.trim().length > 0
-                          ? project.slug
-                          : project.id.toString(),
-                    }}
-                    className="mt-3 inline-flex text-sm font-semibold text-[var(--tms-primary)] no-underline"
-                  >
-                    Open project workspace
-                  </Link>
-                  {deleteConfirmProjectId === project.id ? (
-                    <Alert variant="danger" className="mt-4 px-4 py-4">
-                      <div className="space-y-3">
-                        <p className="m-0">
-                          Delete project <strong>{project.name}</strong> permanently?
-                          This also removes its suites, test cases, and runs.
-                        </p>
-                        <label className="block">
-                          <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--tms-danger)]">
-                            Type the project name to confirm
-                          </span>
-                          <Input
-                            value={deleteConfirmName}
-                            onChange={(event) =>
-                              setDeleteConfirmName(event.target.value)
-                            }
-                            placeholder={project.name}
-                            className="w-full border-[var(--tms-danger-border)] text-sm text-[var(--tms-text)] focus:border-[var(--tms-danger)]"
-                          />
-                        </label>
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            onClick={() => handleProjectDelete(project.id)}
-                            disabled={
-                              deletingProjectId === project.id ||
-                              deleteConfirmName.trim() !== project.name
-                            }
-                            variant="danger"
+                      {filterValue}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <form className="workspace-home__create-row" onSubmit={handleProjectSubmit}>
+              <Input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                size="lg"
+                className="min-w-0 flex-1"
+                placeholder="New project"
+              />
+              <Button
+                type="submit"
+                disabled={isSubmittingProject || !dashboard.databaseConfigured}
+                variant="primary"
+                className="workspace-home__create-button"
+              >
+                {isSubmittingProject ? 'Creating...' : 'Create project'}
+              </Button>
+            </form>
+
+            {projectErrorMessage ? (
+              <Alert variant="danger" className="workspace-home__alert">
+                {projectErrorMessage}
+              </Alert>
+            ) : null}
+
+            {!dashboard.databaseConfigured ? (
+              <Alert variant="warning" className="workspace-home__alert">
+                <strong>Database is not configured yet.</strong> Set
+                <code> MYSQL_DATABASE_URL </code>
+                and run the Drizzle migration before using the workspace against
+                MySQL.
+              </Alert>
+            ) : visibleProjects.length === 0 ? (
+              <div className="workspace-home__empty">
+                <EmptyState
+                  title={
+                    projectFilter === 'Archived'
+                      ? 'No archived projects yet'
+                      : 'No active projects yet'
+                  }
+                  description={
+                    projectFilter === 'Archived'
+                      ? 'Archived projects will appear here.'
+                      : 'Create the first one to start structuring suites, cases, and runs.'
+                  }
+                />
+              </div>
+            ) : (
+              <div className="workspace-home__project-list">
+                {visibleProjects.map((project) => {
+                  const projectSlug =
+                    project.slug && project.slug.trim().length > 0
+                      ? project.slug
+                      : project.id.toString()
+
+                  return (
+                    <div key={project.id} className="workspace-home__project-row">
+                      <div className="workspace-home__project-main">
+                        <div className="workspace-home__project-copy">
+                          <div className="workspace-home__project-topline">
+                            <h3 className="workspace-home__project-name">
+                              {project.name}
+                            </h3>
+                            <Badge
+                              variant={
+                                project.status === 'Archived'
+                                  ? 'statusArchived'
+                                  : 'statusReady'
+                              }
+                            >
+                              {project.status === 'Archived' ? 'Archived' : 'Active'}
+                            </Badge>
+                          </div>
+                          <p className="workspace-home__project-subtitle">
+                            Open the project workspace to manage repository, runs,
+                            and reports.
+                          </p>
+                        </div>
+                        <div className="workspace-home__project-actions">
+                          <Link
+                            to="/project/$projectSlug"
+                            params={{ projectSlug }}
+                            className="tms-button tms-button-secondary no-underline"
                           >
-                            {deletingProjectId === project.id
-                              ? 'Deleting...'
-                              : 'Confirm delete'}
-                          </Button>
-                          <Button
-                            type="button"
-                            onClick={() => {
-                              setDeleteConfirmProjectId(null)
-                              setDeleteConfirmName('')
-                            }}
-                            disabled={deletingProjectId === project.id}
-                          >
-                            Cancel
-                          </Button>
+                            Open workspace
+                          </Link>
+                          {project.status === 'Archived' ? (
+                            <>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleProjectRestore(project.id)}
+                                disabled={restoringProjectId === project.id}
+                              >
+                                {restoringProjectId === project.id
+                                  ? 'Restoring...'
+                                  : 'Restore'}
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="danger"
+                                onClick={() => {
+                                  setDeleteConfirmProjectId((current) =>
+                                    current === project.id ? null : project.id,
+                                  )
+                                  setDeleteConfirmName('')
+                                }}
+                                disabled={deletingProjectId === project.id}
+                              >
+                                {deletingProjectId === project.id
+                                  ? 'Deleting...'
+                                  : 'Delete'}
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => handleProjectArchive(project.id)}
+                              disabled={archivingProjectId === project.id}
+                            >
+                              {archivingProjectId === project.id
+                                ? 'Archiving...'
+                                : 'Archive'}
+                            </Button>
+                          )}
                         </div>
                       </div>
-                    </Alert>
-                  ) : null}
-                </Panel>
-              ))}
-            </div>
-          )}
-        </Panel>
-      </section>
+
+                      {deleteConfirmProjectId === project.id ? (
+                        <Alert variant="danger" className="workspace-home__delete-alert">
+                          <div className="workspace-home__delete-stack">
+                            <p className="m-0">
+                              Delete project <strong>{project.name}</strong> permanently?
+                              This also removes its suites, test cases, and runs.
+                            </p>
+                            <label className="workspace-home__delete-field">
+                              <span className="workspace-home__delete-label">
+                                Type the project name to confirm
+                              </span>
+                              <Input
+                                value={deleteConfirmName}
+                                onChange={(event) =>
+                                  setDeleteConfirmName(event.target.value)
+                                }
+                                placeholder={project.name}
+                              />
+                            </label>
+                            <div className="workspace-home__delete-actions">
+                              <Button
+                                type="button"
+                                onClick={() => handleProjectDelete(project.id)}
+                                disabled={
+                                  deletingProjectId === project.id ||
+                                  deleteConfirmName.trim() !== project.name
+                                }
+                                variant="danger"
+                              >
+                                {deletingProjectId === project.id
+                                  ? 'Deleting...'
+                                  : 'Confirm delete'}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => {
+                                  setDeleteConfirmProjectId(null)
+                                  setDeleteConfirmName('')
+                                }}
+                                disabled={deletingProjectId === project.id}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        </Alert>
+                      ) : null}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </Panel>
+        </div>
+      </div>
     </main>
   )
 }

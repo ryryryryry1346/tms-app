@@ -673,27 +673,6 @@ export default function AppShell({ user, children }: AppShellProps) {
             <div className="app-shell__group-title">Theme</div>
             <ThemeToggle />
           </div>
-
-          <div className="app-shell__user-strip">
-            <div className="app-shell__user-meta">
-              <strong>{user?.displayName ?? user?.email ?? 'Guest'}</strong>
-              {user?.email && user.displayName !== user.email ? (
-                <span className="app-shell__user-email">{user.email}</span>
-              ) : null}
-            </div>
-            {user ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                className="app-shell__logout-button"
-                onClick={() => void handleLogout()}
-                disabled={isLoggingOut}
-              >
-                {isLoggingOut ? 'Logging out...' : 'Logout'}
-              </Button>
-            ) : null}
-          </div>
         </div>
       </aside>
 
@@ -718,6 +697,16 @@ export default function AppShell({ user, children }: AppShellProps) {
           {user ? (
             <div className="app-shell__topbar-right app-shell__topbar-right--user">
               <Badge>{user.displayName}</Badge>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="app-shell__topbar-logout"
+                onClick={() => void handleLogout()}
+                disabled={isLoggingOut}
+              >
+                {isLoggingOut ? 'Logging out...' : 'Logout'}
+              </Button>
             </div>
           ) : null}
         </header>

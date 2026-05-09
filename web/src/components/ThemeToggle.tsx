@@ -22,7 +22,7 @@ export default function ThemeToggle() {
     },
     {
       value: 'system',
-      label: 'System',
+      label: 'Auto',
       icon: <LaptopMinimal size={14} strokeWidth={2} />,
     },
   ]
@@ -39,10 +39,10 @@ export default function ThemeToggle() {
         </span>
         <span>
           {preference === 'system'
-            ? `System · ${resolvedTheme === 'dark' ? 'Dark' : 'Light'}`
+            ? `Auto follows ${resolvedTheme === 'dark' ? 'dark' : 'light'}`
             : resolvedTheme === 'dark'
-              ? 'Dark mode'
-              : 'Light mode'}
+              ? 'Dark appearance'
+              : 'Light appearance'}
         </span>
       </div>
       <div
