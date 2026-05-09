@@ -18,6 +18,7 @@ import {
 import { Button } from './ui/Button'
 import { FileInput } from './ui/FileInput'
 import { SelectMenu } from './ui/SelectMenu'
+import { cx } from './ui/utils'
 
 type FontSize = 'small' | 'normal' | 'large'
 
@@ -28,6 +29,7 @@ type RichTextEditorProps = {
   onChange: (value: string) => void
   onUploadMedia: (file: File) => Promise<string>
   isUploading?: boolean
+  className?: string
 }
 
 type SelectionRange = {
@@ -158,6 +160,7 @@ export function RichTextEditor({
   onChange,
   onUploadMedia,
   isUploading = false,
+  className,
 }: RichTextEditorProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const selectionRef = useRef<SelectionRange | null>(null)
@@ -296,8 +299,8 @@ export function RichTextEditor({
   }
 
   return (
-    <div className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
-      <div>{label}</div>
+    <div className={cx('editing-rich-editor', className)}>
+      <div className="editing-field-group__label">{label}</div>
       <div
         className="editor-shell"
         onPaste={(event) => void handlePaste(event)}

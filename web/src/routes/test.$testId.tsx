@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-router'
 import { useState } from 'react'
 import { RichTextEditor } from '../components/RichTextEditor'
+import { EditingFieldGroup, EditingSurfaceSection } from '../components/layout/EditingSurface'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
@@ -648,77 +649,79 @@ function TestDetailPage() {
 
           <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="grid gap-6 px-6 py-6">
-              {isEditingContent ? (
-                <>
-                  <RichTextEditor
-                    label="Steps"
-                    placeholder="Describe the test steps"
-                    value={stepsValue}
-                    onChange={setStepsValue}
-                    onUploadMedia={uploadInlineMedia}
-                    isUploading={isUploadingMedia}
-                  />
-                  <RichTextEditor
-                    label="Expected result"
-                    placeholder="Describe the expected result"
-                    value={expectedValue}
-                    onChange={setExpectedValue}
-                    onUploadMedia={uploadInlineMedia}
-                    isUploading={isUploadingMedia}
-                  />
-                </>
-              ) : (
-                <>
-                  <section>
-                    <WorkspaceSectionHeader
-                      dense
-                      title="Steps"
-                      className="mb-3"
+              <EditingSurfaceSection
+                title="Content"
+                description="Maintain the executable steps and expected outcome for this test case."
+                bodyClassName="editing-rich-stack"
+              >
+                {isEditingContent ? (
+                  <>
+                    <RichTextEditor
+                      label="Steps"
+                      placeholder="Describe the test steps"
+                      value={stepsValue}
+                      onChange={setStepsValue}
+                      onUploadMedia={uploadInlineMedia}
+                      isUploading={isUploadingMedia}
                     />
-                    <div
-                      className="rich-output prose prose-sm max-w-none rounded-2xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-4 text-[var(--tms-text)]"
-                      onClick={handleRichContentClick}
-                      dangerouslySetInnerHTML={{
-                        __html: test.steps || '<p>-</p>',
-                      }}
+                    <RichTextEditor
+                      label="Expected result"
+                      placeholder="Describe the expected result"
+                      value={expectedValue}
+                      onChange={setExpectedValue}
+                      onUploadMedia={uploadInlineMedia}
+                      isUploading={isUploadingMedia}
                     />
-                  </section>
+                  </>
+                ) : (
+                  <>
+                    <section className="editing-rich-block">
+                      <WorkspaceSectionHeader
+                        dense
+                        title="Steps"
+                        className="editing-rich-block__content"
+                      />
+                      <div
+                        className="editing-rich-block__content rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
+                        onClick={handleRichContentClick}
+                        dangerouslySetInnerHTML={{
+                          __html: test.steps || '<p>-</p>',
+                        }}
+                      />
+                    </section>
 
-                  <section>
-                    <WorkspaceSectionHeader
-                      dense
-                      title="Expected result"
-                      className="mb-3"
-                    />
-                    <div
-                      className="rich-output prose prose-sm max-w-none rounded-2xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-4 text-[var(--tms-text)]"
-                      onClick={handleRichContentClick}
-                      dangerouslySetInnerHTML={{
-                        __html: test.expected || '<p>-</p>',
-                      }}
-                    />
-                  </section>
-                </>
-              )}
+                    <section className="editing-rich-block">
+                      <WorkspaceSectionHeader
+                        dense
+                        title="Expected result"
+                        className="editing-rich-block__content"
+                      />
+                      <div
+                        className="editing-rich-block__content rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
+                        onClick={handleRichContentClick}
+                        dangerouslySetInnerHTML={{
+                          __html: test.expected || '<p>-</p>',
+                        }}
+                      />
+                    </section>
+                  </>
+                )}
+              </EditingSurfaceSection>
             </div>
 
             <aside className="border-t border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-6 py-6 lg:border-l lg:border-t-0">
-              <section>
-                <WorkspaceSectionHeader
-                  dense
-                  title="Metadata"
-                  className="mb-4"
-                />
-                <dl className="grid gap-3 text-sm">
-                  <div>
-                    <dt className="font-semibold text-[var(--tms-text-soft)]">Project</dt>
-                    <dd className="m-0 mt-1 font-semibold text-[var(--tms-text)]">
+              <EditingSurfaceSection
+                dense
+                title="Metadata"
+                bodyClassName="editing-meta-grid"
+              >
+                  <div className="editing-meta-item">
+                    <div className="editing-meta-item__label">Project</div>
+                    <div className="editing-meta-item__value">
                       {test.projectName ?? '-'}
-                    </dd>
+                    </div>
                   </div>
-                  <div>
-                    <dt className="font-semibold text-[var(--tms-text-soft)]">Suite</dt>
-                    <dd className="m-0 mt-1">
+                  <EditingFieldGroup label="Suite" className="editing-meta-item">
                       <SelectMenu
                         value={test.sectionId?.toString() ?? ''}
                         onValueChange={(value) => {
@@ -744,11 +747,8 @@ function TestDetailPage() {
                         className="w-full text-sm font-semibold text-[var(--tms-text)]"
                         aria-label="Change suite"
                       />
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="font-semibold text-[var(--tms-text-soft)]">Status</dt>
-                    <dd className="m-0 mt-1">
+                  </EditingFieldGroup>
+                  <EditingFieldGroup label="Status" className="editing-meta-item">
                       <SelectMenu
                         value={test.status ?? 'Draft'}
                         onValueChange={(value) => {
@@ -762,11 +762,8 @@ function TestDetailPage() {
                         className="w-full text-sm font-semibold text-[var(--tms-text)]"
                         aria-label="Change status"
                       />
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="font-semibold text-[var(--tms-text-soft)]">Priority</dt>
-                    <dd className="m-0 mt-1">
+                  </EditingFieldGroup>
+                  <EditingFieldGroup label="Priority" className="editing-meta-item">
                       <SelectMenu
                         value={test.priority ?? 'Medium'}
                         onValueChange={(value) => {
@@ -780,11 +777,8 @@ function TestDetailPage() {
                         className="w-full text-sm font-semibold text-[var(--tms-text)]"
                         aria-label="Change priority"
                       />
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="font-semibold text-[var(--tms-text-soft)]">Type</dt>
-                    <dd className="m-0 mt-1">
+                  </EditingFieldGroup>
+                  <EditingFieldGroup label="Type" className="editing-meta-item">
                       <SelectMenu
                         value={test.caseType ?? 'Functional'}
                         onValueChange={(value) => {
@@ -798,22 +792,20 @@ function TestDetailPage() {
                         className="w-full text-sm font-semibold text-[var(--tms-text)]"
                         aria-label="Change type"
                       />
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="font-semibold text-[var(--tms-text-soft)]">Created</dt>
-                    <dd className="m-0 mt-1 font-semibold text-[var(--tms-text)]">
+                  </EditingFieldGroup>
+                  <div className="editing-meta-item">
+                    <div className="editing-meta-item__label">Created</div>
+                    <div className="editing-meta-item__value">
                       {formatDetailDate(test.createdAt)}
-                    </dd>
+                    </div>
                   </div>
-                  <div>
-                    <dt className="font-semibold text-[var(--tms-text-soft)]">Updated</dt>
-                    <dd className="m-0 mt-1 font-semibold text-[var(--tms-text)]">
+                  <div className="editing-meta-item">
+                    <div className="editing-meta-item__label">Updated</div>
+                    <div className="editing-meta-item__value">
                       {formatDetailDate(test.updatedAt ?? test.createdAt)}
-                    </dd>
+                    </div>
                   </div>
-                </dl>
-              </section>
+              </EditingSurfaceSection>
 
               <section className="mt-6 border-t border-[var(--tms-border-subtle)] pt-5">
                 <WorkspaceSectionHeader

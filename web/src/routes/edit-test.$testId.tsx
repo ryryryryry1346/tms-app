@@ -1,7 +1,7 @@
 import { Link, createFileRoute, notFound, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { RichTextEditor } from '../components/RichTextEditor'
-import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
+import { EditingFieldGroup, EditingSurfaceSection } from '../components/layout/EditingSurface'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -167,25 +167,21 @@ function EditTestPage() {
             className="tms-panel p-6"
             onSubmit={handleSubmit}
           >
-            <WorkspaceSectionHeader
+            <EditingSurfaceSection
               title="Case details"
               description="Update suite placement, metadata, and rich content for this test case."
-              className="mb-5"
-            />
-
-            <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
-              Test case title
+            >
+            <EditingFieldGroup label="Test case title">
               <Input
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 size="lg"
                 placeholder="Verify order cancellation"
               />
-            </label>
+            </EditingFieldGroup>
 
-            <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px_180px_190px]">
-              <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
-                Test suite
+            <div className="editing-field-grid editing-field-grid--metadata">
+              <EditingFieldGroup label="Test suite">
                 <SelectMenu
                   value={sectionId}
                   onValueChange={setSectionId}
@@ -198,10 +194,9 @@ function EditTestPage() {
                   className="w-full px-4 py-3 text-base"
                   aria-label="Choose test suite"
                 />
-              </label>
+              </EditingFieldGroup>
 
-              <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
-                Status
+              <EditingFieldGroup label="Status">
                 <SelectMenu
                   value={status}
                   onValueChange={(value) =>
@@ -221,10 +216,9 @@ function EditTestPage() {
                   className="w-full px-4 py-3 text-base"
                   aria-label="Choose case status"
                 />
-              </label>
+              </EditingFieldGroup>
 
-              <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
-                Priority
+              <EditingFieldGroup label="Priority">
                 <SelectMenu
                   value={priority}
                   onValueChange={(value) =>
@@ -247,10 +241,9 @@ function EditTestPage() {
                   className="w-full px-4 py-3 text-base"
                   aria-label="Choose case priority"
                 />
-              </label>
+              </EditingFieldGroup>
 
-              <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
-                Type
+              <EditingFieldGroup label="Type">
                 <SelectMenu
                   value={caseType}
                   onValueChange={(value) =>
@@ -279,15 +272,16 @@ function EditTestPage() {
                   className="w-full px-4 py-3 text-base"
                   aria-label="Choose case type"
                 />
-              </label>
+              </EditingFieldGroup>
             </div>
+            </EditingSurfaceSection>
 
-            <div className="mt-5 grid gap-5">
-              <WorkspaceSectionHeader
-                dense
-                title="Content"
-                description="Edit steps and expected result with inline attachments."
-              />
+            <EditingSurfaceSection
+              title="Content"
+              description="Edit steps and expected result with inline attachments."
+              className="mt-5"
+              bodyClassName="editing-rich-stack"
+            >
               <RichTextEditor
                 label="Steps"
                 placeholder="Describe the test steps"
@@ -305,7 +299,7 @@ function EditTestPage() {
                 onUploadMedia={uploadMedia}
                 isUploading={isUploading}
               />
-            </div>
+            </EditingSurfaceSection>
 
             {errorMessage ? (
               <Alert variant="danger" className="mt-5">
