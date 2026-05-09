@@ -39,6 +39,7 @@ type NavItem = {
     projectSlug: string
   }
   matchPath?: string
+  additionalMatchPaths?: string[]
   icon: ReactNode
   exact?: boolean
 }
@@ -63,6 +64,15 @@ function isActivePath(pathname: string, to: string, exact = false): boolean {
   }
 
   return pathname === to || pathname.startsWith(`${to}/`)
+}
+
+function isDeepShellPath(pathname: string): boolean {
+  return (
+    pathname.startsWith('/create-test') ||
+    pathname.startsWith('/edit-test/') ||
+    pathname.startsWith('/test/') ||
+    pathname.startsWith('/run/')
+  )
 }
 
 function getHeaderCopy(pathname: string): { label: string; title: string } {
@@ -263,7 +273,11 @@ function ShellNavLink({
   pathname: string
   onNavigate?: () => void
 }) {
-  const isActive = isActivePath(pathname, item.matchPath ?? item.to, item.exact)
+  const isActive =
+    isActivePath(pathname, item.matchPath ?? item.to, item.exact) ||
+    item.additionalMatchPaths?.some((matchPath) =>
+      pathname === matchPath || pathname.startsWith(matchPath),
+    ) === true
 
   return (
     <Link
@@ -290,6 +304,7 @@ export default function AppShell({ user, children }: AppShellProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const shellContext = deriveShellContext(pathname, matches)
   const projectSlug = shellContext?.projectSlug ?? getProjectSlug(pathname)
+  const isDeepFlow = isDeepShellPath(pathname)
   const headerCopy = getHeaderCopy(pathname)
 
   useEffect(() => {
@@ -324,6 +339,7 @@ export default function AppShell({ user, children }: AppShellProps) {
           to: '/project/$projectSlug/repository',
           params: { projectSlug },
           matchPath: `/project/${projectSlug}/repository`,
+          additionalMatchPaths: ['/create-test', '/edit-test/', '/test/'],
           icon: <FolderKanban size={16} strokeWidth={2} />,
         },
         {
@@ -331,6 +347,7 @@ export default function AppShell({ user, children }: AppShellProps) {
           to: '/project/$projectSlug/runs',
           params: { projectSlug },
           matchPath: `/project/${projectSlug}/runs`,
+          additionalMatchPaths: ['/run/'],
           icon: <PlayCircle size={16} strokeWidth={2} />,
         },
         {
@@ -427,23 +444,38 @@ export default function AppShell({ user, children }: AppShellProps) {
         </div>
 
         <div className="app-shell__scroll">
-          <section className="app-shell__group">
-            <div className="app-shell__group-title">Workspace</div>
-            <div className="app-shell__nav-list">
-              {workspaceItems.map((item) => (
-                <ShellNavLink
-                  key={item.to}
-                  item={item}
-                  pathname={pathname}
-                  onNavigate={closeSidebar}
-                />
-              ))}
-            </div>
-          </section>
+          {!isDeepFlow ? (
+            <section className="app-shell__group">
+              <div className="app-shell__group-title">Workspace</div>
+              <div className="app-shell__nav-list">
+                {workspaceItems.map((item) => (
+                  <ShellNavLink
+                    key={item.to}
+                    item={item}
+                    pathname={pathname}
+                    onNavigate={closeSidebar}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : (
+            <section className="app-shell__group">
+              <div className="app-shell__group-title">Workspace</div>
+              <Link
+                to="/"
+                onClick={closeSidebar}
+                className="app-shell__utility-link"
+              >
+                Back to projects
+              </Link>
+            </section>
+          )}
 
           {projectItems.length > 0 ? (
             <section className="app-shell__group">
-              <div className="app-shell__group-title">Current project</div>
+              <div className="app-shell__group-title">
+                {shellContext?.projectName ?? 'Current project'}
+              </div>
               <div className="app-shell__nav-list">
                 {projectItems.map((item) => (
                   <ShellNavLink
@@ -459,7 +491,9 @@ export default function AppShell({ user, children }: AppShellProps) {
 
           {contextRows.length > 0 ? (
             <section className="app-shell__group">
-              <div className="app-shell__group-title">Current context</div>
+              <div className="app-shell__group-title">
+                {isDeepFlow ? 'Working on' : 'Current context'}
+              </div>
               <div className="app-shell__context-card">
                 {contextRows.map((row) => (
                   <div key={`${row.label}-${row.value}`} className="app-shell__context-row">

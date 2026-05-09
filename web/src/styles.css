@@ -1317,6 +1317,21 @@ a {
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--border-focus) 18%, var(--border-default));
 }
 
+.app-shell__utility-link {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.app-shell__utility-link:hover {
+  color: var(--text-primary);
+}
+
 .app-shell__nav-icon {
   display: inline-flex;
   width: 1rem;
