@@ -6,6 +6,8 @@ import {
 } from '@tanstack/react-router'
 import {
   BarChart3,
+  ChevronLeft,
+  ChevronRight,
   CircleDot,
   FilePenLine,
   FolderKanban,
@@ -43,6 +45,8 @@ type NavItem = {
   icon: ReactNode
   exact?: boolean
 }
+
+const SIDEBAR_COLLAPSE_STORAGE_KEY = 'tms-sidebar-collapsed'
 
 function isAuthPath(pathname: string): boolean {
   return (
@@ -281,10 +285,12 @@ type ContextAction = {
 function ShellNavLink({
   item,
   pathname,
+  collapsed = false,
   onNavigate,
 }: {
   item: NavItem
   pathname: string
+  collapsed?: boolean
   onNavigate?: () => void
 }) {
   const isActive =
@@ -298,10 +304,12 @@ function ShellNavLink({
       to={item.to}
       params={item.params}
       onClick={onNavigate}
+      title={collapsed ? item.label : undefined}
+      aria-label={item.label}
       className={`app-shell__nav-link ${isActive ? 'is-active' : ''}`}
     >
       <span className="app-shell__nav-icon">{item.icon}</span>
-      <span>{item.label}</span>
+      {!collapsed ? <span>{item.label}</span> : null}
     </Link>
   )
 }
@@ -398,6 +406,7 @@ export default function AppShell({ user, children }: AppShellProps) {
   const pathname = location.pathname
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const shellContext = deriveShellContext(pathname, matches)
   const projectSlug = shellContext?.projectSlug ?? getProjectSlug(pathname)
   const isDeepFlow = isDeepShellPath(pathname)
@@ -410,6 +419,16 @@ export default function AppShell({ user, children }: AppShellProps) {
   useEffect(() => {
     setIsMobileSidebarOpen(false)
   }, [pathname])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    setIsSidebarCollapsed(
+      window.localStorage.getItem(SIDEBAR_COLLAPSE_STORAGE_KEY) === 'true',
+    )
+  }, [])
 
   if (isAuthPath(pathname)) {
     return <>{children}</>
@@ -527,11 +546,26 @@ export default function AppShell({ user, children }: AppShellProps) {
     setIsMobileSidebarOpen(false)
   }
 
+  function toggleSidebarCollapsed(): void {
+    setIsSidebarCollapsed((current) => {
+      const next = !current
+
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(
+          SIDEBAR_COLLAPSE_STORAGE_KEY,
+          String(next),
+        )
+      }
+
+      return next
+    })
+  }
+
   return (
     <div
       className={`app-shell ${
         showSidebar ? 'app-shell--with-sidebar' : 'app-shell--workspace-home'
-      }`}
+      } ${showSidebar && isSidebarCollapsed ? 'app-shell--sidebar-collapsed' : ''}`}
     >
       <div
         className={`app-shell__backdrop ${isMobileSidebarOpen ? 'is-open' : ''}`}
@@ -551,6 +585,21 @@ export default function AppShell({ user, children }: AppShellProps) {
             <Button
               type="button"
               size="sm"
+              variant="secondary"
+              className="app-shell__collapse-button"
+              onClick={toggleSidebarCollapsed}
+              aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {isSidebarCollapsed ? (
+                <ChevronRight size={16} strokeWidth={2} />
+              ) : (
+                <ChevronLeft size={16} strokeWidth={2} />
+              )}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
               className="app-shell__close-button md:hidden"
               onClick={closeSidebar}
               aria-label="Close navigation"
@@ -563,15 +612,16 @@ export default function AppShell({ user, children }: AppShellProps) {
             {!isDeepFlow ? (
               <section className="app-shell__group">
                 <div className="app-shell__group-title">Workspace</div>
-                <div className="app-shell__nav-list">
-                  {workspaceItems.map((item) => (
-                    <ShellNavLink
-                      key={item.to}
-                      item={item}
-                      pathname={pathname}
-                      onNavigate={closeSidebar}
-                    />
-                  ))}
+              <div className="app-shell__nav-list">
+                {workspaceItems.map((item) => (
+                  <ShellNavLink
+                    key={item.to}
+                    item={item}
+                    pathname={pathname}
+                    collapsed={isSidebarCollapsed}
+                    onNavigate={closeSidebar}
+                  />
+                ))}
                 </div>
               </section>
             ) : (
@@ -598,6 +648,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                       key={item.to}
                       item={item}
                       pathname={pathname}
+                      collapsed={isSidebarCollapsed}
                       onNavigate={closeSidebar}
                     />
                   ))}

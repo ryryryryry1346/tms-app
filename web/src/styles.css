@@ -1229,6 +1229,10 @@ a {
   transform: translateX(0);
 }
 
+.app-shell--sidebar-collapsed .app-shell__sidebar {
+  width: 72px;
+}
+
 .app-shell__brand {
   display: flex;
   align-items: center;
@@ -1260,6 +1264,11 @@ a {
   font-size: 0.95rem;
   font-weight: 600;
   line-height: 1.1;
+}
+
+.app-shell__collapse-button {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .app-shell__brand-mark--small {
@@ -1296,6 +1305,13 @@ a {
   text-transform: uppercase;
 }
 
+.app-shell--sidebar-collapsed .app-shell__brand-copy,
+.app-shell--sidebar-collapsed .app-shell__group-title,
+.app-shell--sidebar-collapsed .app-shell__context-card,
+.app-shell--sidebar-collapsed .app-shell__theme-block {
+  display: none;
+}
+
 .app-shell__nav-list {
   display: grid;
   gap: 0.125rem;
@@ -1316,6 +1332,33 @@ a {
   line-height: 1.2;
   text-decoration: none;
   align-self: start;
+}
+
+.app-shell--sidebar-collapsed .app-shell__brand {
+  justify-content: center;
+  padding-inline: 0.75rem;
+}
+
+.app-shell--sidebar-collapsed .app-shell__scroll,
+.app-shell--sidebar-collapsed .app-shell__bottom {
+  padding-inline: 0.625rem;
+}
+
+.app-shell--sidebar-collapsed .app-shell__group {
+  justify-items: center;
+}
+
+.app-shell--sidebar-collapsed .app-shell__nav-link {
+  grid-template-columns: 1rem;
+  justify-content: center;
+  width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0;
+}
+
+.app-shell--sidebar-collapsed .app-shell__nav-icon {
+  width: 1rem;
+  height: 1rem;
 }
 
 .app-shell__nav-link:hover {
@@ -1360,6 +1403,11 @@ a {
   gap: 0.75rem;
   border-top: 1px solid var(--border-subtle);
   padding: 1rem;
+}
+
+.app-shell--sidebar-collapsed .app-shell__bottom {
+  border-top: 0;
+  padding-top: 0.25rem;
 }
 
 .app-shell__theme-block {
@@ -2117,6 +2165,10 @@ a {
     grid-template-columns: 248px minmax(0, 1fr);
   }
 
+  .app-shell--with-sidebar.app-shell--sidebar-collapsed {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
   .app-shell__backdrop {
     display: none;
   }
@@ -2144,6 +2196,10 @@ a {
 }
 
 @media (max-width: 767px) {
+  .app-shell__collapse-button {
+    display: none !important;
+  }
+
   .app-shell__topbar {
     flex-wrap: wrap;
     align-items: flex-start;
