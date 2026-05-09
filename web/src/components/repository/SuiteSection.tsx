@@ -254,7 +254,7 @@ export function SuiteSection({
     const isPending = pendingQuickCreateSuiteId === section.id
 
     return (
-      <div className="tms-table-row repository-case-grid px-4 py-2.5 sm:px-5">
+      <div className="tms-table-row repository-case-grid px-3 py-2 sm:px-4">
         <div />
         <div className="tms-kicker">
           New
@@ -336,18 +336,18 @@ export function SuiteSection({
     <section
       onDragOver={(event) => onSuiteDragOver(event, section.id)}
       onDragLeave={() => onSuiteDragLeave(section.id)}
-      className={`overflow-visible rounded-[var(--tms-radius-panel)] border transition ${
+      className={`repository-suite-section overflow-visible rounded-[var(--tms-radius-md)] border transition ${
         dragOverSuiteId === section.id
           ? 'border-[var(--tms-primary)] bg-[var(--tms-surface-muted)] shadow-[var(--tms-focus-ring)]'
           : 'border-[var(--tms-border)]'
       }`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-4 sm:px-5">
-        <div className="flex min-w-0 items-center gap-4">
+      <div className="repository-suite-section__header flex flex-wrap items-center justify-between gap-3 border-b border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-3 py-2.5 sm:px-4">
+        <div className="flex min-w-0 items-center gap-2.5">
           <button
             type="button"
             onClick={() => onToggleCollapsed(section.id)}
-            className="rounded-lg px-2 py-1 text-sm font-semibold text-[var(--tms-text-muted)] hover:bg-[var(--tms-surface-muted)]"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md p-0 text-sm font-semibold text-[var(--tms-text-muted)] hover:bg-[var(--tms-surface-muted)]"
             aria-label={isCollapsed ? 'Expand suite' : 'Collapse suite'}
           >
             {isCollapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
@@ -363,7 +363,7 @@ export function SuiteSection({
                   onChange={(event) =>
                     onEditingSuiteNameChange(event.target.value)
                   }
-                  size="lg"
+                  size="sm"
                   className="min-w-[220px]"
                 />
                 <Button
@@ -380,11 +380,11 @@ export function SuiteSection({
                 </Button>
               </form>
             ) : (
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="text-[1.75rem] font-semibold text-[var(--tms-text)]">
+              <div className="flex flex-wrap items-baseline gap-2.5">
+                <div className="text-base font-semibold leading-6 text-[var(--tms-text)]">
                   {section.name}
                 </div>
-                <div className="text-sm text-[var(--tms-text-soft)]">
+                <div className="text-xs font-medium text-[var(--tms-text-soft)]">
                   {sectionTests.length} case
                   {sectionTests.length === 1 ? '' : 's'}
                 </div>
@@ -462,7 +462,7 @@ export function SuiteSection({
       </div>
 
       {isDeleteConfirming ? (
-        <div className="border-b border-[var(--tms-border-subtle)] px-4 py-4 sm:px-5">
+        <div className="border-b border-[var(--tms-border-subtle)] px-3 py-3 sm:px-4">
           <ConfirmActionAlert
             title="Delete this suite?"
             description="This only works when the suite has no test cases."
@@ -477,7 +477,7 @@ export function SuiteSection({
       ) : null}
 
       {suiteActionErrorMessage && showSuiteActionError ? (
-        <div className="border-b border-[var(--tms-border-subtle)] px-4 py-3 sm:px-5">
+        <div className="border-b border-[var(--tms-border-subtle)] px-3 py-2 sm:px-4">
           <Alert variant="danger" density="compact">
             {suiteActionErrorMessage}
           </Alert>
@@ -486,7 +486,7 @@ export function SuiteSection({
 
       {isCollapsed ? null : visibleTests.length === 0 ? (
         <div className="bg-[var(--tms-surface)]">
-          <div className="px-4 py-4 text-sm text-[var(--tms-text-muted)] sm:px-5">
+          <div className="px-3 py-3 text-sm text-[var(--tms-text-muted)] sm:px-4">
             <EmptyState
               title="No test cases in this suite yet"
               description="Create a case directly in this suite to start building coverage."
@@ -506,7 +506,7 @@ export function SuiteSection({
         <div className="bg-[var(--tms-surface)]">
           <div className="overflow-x-auto">
             <div className="min-w-[940px]">
-              <div className="tms-table-head repository-case-grid px-4 py-2 sm:px-5">
+              <div className="tms-table-head repository-case-grid px-3 py-1.5 sm:px-4">
                 <div />
                 <div>ID</div>
                 <div>Title</div>
@@ -569,7 +569,7 @@ export function SuiteSection({
                   onSuiteDragOver(event, section.id)
                 }}
                 onDrop={(event) => onSuiteAppendDrop(event, section.id)}
-                className={`border-t border-dashed px-4 py-3 text-center text-xs font-semibold uppercase tracking-[0.08em] transition sm:px-5 ${
+                className={`border-t border-dashed px-3 py-2 text-center text-[0.6875rem] font-semibold uppercase tracking-[0.08em] transition sm:px-4 ${
                   dragOverSuiteId === section.id && !dragOverTestDrop
                     ? 'border-[var(--tms-primary-border)] bg-[var(--tms-primary-soft)] text-[var(--tms-primary)]'
                     : 'border-[var(--tms-border-subtle)] text-[var(--tms-text-soft)]'

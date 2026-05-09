@@ -1419,7 +1419,7 @@ function ProjectRepositoryPage() {
             }
           />
 
-          <section className="workspace-toolbar-surface">
+          <section className="workspace-toolbar-surface repository-summary-strip">
             <div className="workspace-toolbar-surface__copy">
             {[
               { label: 'Suites', value: totalSuites },
@@ -1427,10 +1427,7 @@ function ProjectRepositoryPage() {
               { label: 'Ready', value: readyCases },
               { label: 'Archived', value: archivedCases },
             ].map((item) => (
-              <div
-                key={item.label}
-                className="tms-chip"
-              >
+              <div key={item.label} className="tms-chip repository-summary-strip__chip">
                 <span className="text-[var(--tms-text)]">{item.value}</span> {item.label}
               </div>
             ))}
@@ -1440,22 +1437,22 @@ function ProjectRepositoryPage() {
           {activeComposer ? (
             <section className="tms-panel mb-6 px-6 py-5">
               <form
-                className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]"
+                className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px]"
                 onSubmit={handleCreateSuite}
               >
-                <div className="md:col-span-2 text-xl font-semibold text-[var(--tms-text)]">
+                <div className="text-base font-semibold text-[var(--tms-text)] md:col-span-2">
                   Create suite
                 </div>
                 <Input
                   value={suiteName}
                   onChange={(event) => setSuiteName(event.target.value)}
-                  className="px-4 py-3 text-base"
+                  className="px-3 py-2 text-sm"
                   placeholder="Checkout smoke"
                 />
                 <Button
                   type="submit"
                   disabled={isSubmittingSuite || !dashboard.databaseConfigured}
-                  className="border-[var(--status-ready-border)] bg-[var(--status-ready-bg)] px-4 py-3 text-sm text-[var(--status-ready-text)]"
+                  className="border-[var(--status-ready-border)] bg-[var(--status-ready-bg)] px-3 py-2 text-sm text-[var(--status-ready-text)]"
                 >
                   {isSubmittingSuite ? 'Creating...' : 'Create suite'}
                 </Button>
@@ -1560,7 +1557,7 @@ function ProjectRepositoryPage() {
                 caseFilter={caseFilter}
               />
             ) : (
-              <div className="grid gap-4 p-5">
+              <div className="grid gap-2.5 p-3 sm:p-4">
                 {filteredSections.map(({ section, sectionTests, visibleTests }) => {
                   const isEditingSuite = editingSuiteId === section.id
                   const isDeleteConfirming = deleteConfirmSuiteId === section.id

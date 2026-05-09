@@ -113,7 +113,7 @@ export function RepositoryToolbar({
                   label: section.name,
                 })),
               ]}
-              className="min-w-[160px]"
+              className="min-w-[140px]"
               aria-label="Filter by suite"
             />
           </label>
@@ -131,7 +131,7 @@ export function RepositoryToolbar({
                   label: priority,
                 })),
               ]}
-              className="min-w-[110px]"
+              className="min-w-[96px]"
               aria-label="Filter by priority"
             />
           </label>
@@ -149,7 +149,7 @@ export function RepositoryToolbar({
                   label: caseType,
                 })),
               ]}
-              className="min-w-[120px]"
+              className="min-w-[104px]"
               aria-label="Filter by type"
             />
           </label>

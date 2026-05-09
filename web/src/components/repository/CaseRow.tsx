@@ -159,7 +159,7 @@ export function CaseRow({
       }}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
-      className={`tms-table-row repository-case-grid px-4 py-2.5 transition sm:px-5 ${
+      className={`tms-table-row repository-case-grid px-3 py-2 transition sm:px-4 ${
         draggedTestIds.includes(test.id)
           ? 'bg-[var(--tms-surface-muted)] opacity-70'
           : isDropTarget
@@ -169,7 +169,7 @@ export function CaseRow({
             : ''
       }`}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <Checkbox
           checked={isSelected}
           onChange={onToggleSelection}
@@ -179,7 +179,7 @@ export function CaseRow({
           draggable
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
-          className="inline-flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded-md border border-transparent bg-transparent p-0 text-[var(--tms-text-soft)] hover:border-[var(--tms-border-subtle)] hover:bg-[var(--tms-surface-muted)] hover:text-[var(--tms-text-muted)] active:cursor-grabbing"
+          className="inline-flex h-6 w-6 shrink-0 cursor-grab items-center justify-center rounded-md border border-transparent bg-transparent p-0 text-[var(--tms-text-soft)] hover:border-[var(--tms-border-subtle)] hover:bg-[var(--tms-surface-muted)] hover:text-[var(--tms-text-muted)] active:cursor-grabbing"
           aria-label={`Drag test case ${test.id}`}
         >
           <DragHandleIcon />
@@ -188,7 +188,7 @@ export function CaseRow({
       <Link
         to="/test/$testId"
         params={{ testId: test.id.toString() }}
-        className="text-sm font-semibold no-underline text-[var(--tms-primary)]"
+        className="text-xs font-semibold no-underline text-[var(--tms-primary)]"
       >
         #{test.id}
       </Link>
@@ -223,7 +223,7 @@ export function CaseRow({
             event.preventDefault()
             onStartTitleEdit()
           }}
-          className="block min-w-0 truncate pr-4 text-sm font-semibold no-underline text-[var(--tms-text)] hover:text-[var(--tms-primary)]"
+          className="block min-w-0 truncate pr-3 text-sm font-medium no-underline text-[var(--tms-text)] hover:text-[var(--tms-primary)]"
         >
           {test.title}
         </Link>
@@ -254,10 +254,10 @@ export function CaseRow({
         className="tms-inline-select tms-inline-select-neutral w-fit border-0 outline-none"
         aria-label={`Change type for ${test.title}`}
       />
-      <span className="text-sm font-semibold text-[var(--tms-text-muted)]">
+      <span className="text-xs font-medium text-[var(--tms-text-muted)]">
         {formatDate(test.createdAt)}
       </span>
-      <span className="text-sm font-semibold text-[var(--tms-text-muted)]">
+      <span className="text-xs font-medium text-[var(--tms-text-muted)]">
         {formatDate(test.updatedAt ?? test.createdAt)}
       </span>
       <SelectMenu
