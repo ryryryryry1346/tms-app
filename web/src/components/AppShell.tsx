@@ -462,23 +462,17 @@ export default function AppShell({ user, children }: AppShellProps) {
           </div>
 
           <div className="app-shell__scroll">
-            {!isDeepFlow ? (
-              <section className="app-shell__group">
-                <div className="app-shell__group-title">Workspace</div>
-              <div className="app-shell__nav-list">
-                {workspaceItems.map((item) => (
+            <nav className="app-shell__compact-nav" aria-label="Workspace navigation">
+              {!isDeepFlow ? (
+                workspaceItems.map((item) => (
                   <ShellNavLink
                     key={item.to}
                     item={item}
                     pathname={pathname}
                     onNavigate={closeSidebar}
                   />
-                ))}
-                </div>
-              </section>
-            ) : (
-              <section className="app-shell__group">
-                <div className="app-shell__group-title">Workspace</div>
+                ))
+              ) : (
                 <Link
                   to="/"
                   onClick={closeSidebar}
@@ -486,15 +480,14 @@ export default function AppShell({ user, children }: AppShellProps) {
                 >
                   Back to projects
                 </Link>
-              </section>
-            )}
+              )}
 
-            {projectItems.length > 0 ? (
-              <section className="app-shell__group">
-                <div className="app-shell__group-title">
-                  {shellContext?.projectName ?? 'Current project'}
-                </div>
-                <div className="app-shell__nav-list">
+              {projectItems.length > 0 ? (
+                <>
+                  <div className="app-shell__nav-divider" />
+                  <div className="app-shell__project-label">
+                    {shellContext?.projectName ?? 'Current project'}
+                  </div>
                   {projectItems.map((item) => (
                     <ShellNavLink
                       key={item.to}
@@ -503,9 +496,9 @@ export default function AppShell({ user, children }: AppShellProps) {
                       onNavigate={closeSidebar}
                     />
                   ))}
-                </div>
-              </section>
-            ) : null}
+                </>
+              ) : null}
+            </nav>
 
           </div>
         </aside>
