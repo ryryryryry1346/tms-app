@@ -91,82 +91,82 @@ export function RepositoryToolbar({
         meta={`${visibleCount} visible cases`}
         actions={
           <div className="tms-toolbar repository-toolbar__controls justify-end">
-          <label className="repository-toolbar__field">
-            <span className="shrink-0 whitespace-nowrap font-semibold">
-              Search
-            </span>
-            <Input
-              value={searchValue}
-              onChange={(event) => onSearchChange(event.target.value)}
-              className="repository-toolbar__input"
-            />
-          </label>
-          <label className="repository-toolbar__field">
-            <span className="font-semibold">Suite</span>
-            <SelectMenu
-              value={suiteFilterId}
-              onValueChange={onSuiteFilterChange}
-              options={[
-                { value: allSuitesFilter, label: 'All suites' },
-                ...suites.map((section) => ({
-                  value: section.id.toString(),
-                  label: section.name,
-                })),
-              ]}
-              className="min-w-[140px]"
-              aria-label="Filter by suite"
-            />
-          </label>
-          <label className="repository-toolbar__field">
-            <span className="font-semibold">Priority</span>
-            <SelectMenu
-              value={priorityFilter}
-              onValueChange={(value) =>
-                onPriorityFilterChange(value as RepositoryPriorityFilter)
-              }
-              options={[
-                { value: 'All', label: 'All' },
-                ...priorityOptions.map((priority) => ({
-                  value: priority,
-                  label: priority,
-                })),
-              ]}
-              className="min-w-[96px]"
-              aria-label="Filter by priority"
-            />
-          </label>
-          <label className="repository-toolbar__field">
-            <span className="font-semibold">Type</span>
-            <SelectMenu
-              value={caseTypeFilter}
-              onValueChange={(value) =>
-                onCaseTypeFilterChange(value as RepositoryCaseTypeFilter)
-              }
-              options={[
-                { value: 'All', label: 'All' },
-                ...caseTypeOptions.map((caseType) => ({
-                  value: caseType,
-                  label: caseType,
-                })),
-              ]}
-              className="min-w-[104px]"
-              aria-label="Filter by type"
-            />
-          </label>
-          <div className="repository-toolbar__chips">
-            {CASE_FILTER_OPTIONS.map((filter) => (
-              <Button
-                key={filter}
-                onClick={() => onCaseFilterChange(filter)}
-                variant={caseFilter === filter ? 'primary' : 'default'}
-                className={`${
-                  caseFilter === filter ? getCaseFilterChipClass(filter) : ''
-                }`}
-              >
-                {filter}
-              </Button>
-            ))}
-          </div>
+            <label className="repository-toolbar__field">
+              <span className="shrink-0 whitespace-nowrap font-semibold">
+                Search
+              </span>
+              <Input
+                value={searchValue}
+                onChange={(event) => onSearchChange(event.target.value)}
+                className="repository-toolbar__input"
+              />
+            </label>
+            <label className="repository-toolbar__field">
+              <span className="font-semibold">Suite</span>
+              <SelectMenu
+                value={suiteFilterId}
+                onValueChange={onSuiteFilterChange}
+                options={[
+                  { value: allSuitesFilter, label: 'All suites' },
+                  ...suites.map((section) => ({
+                    value: section.id.toString(),
+                    label: section.name,
+                  })),
+                ]}
+                className="min-w-[140px]"
+                aria-label="Filter by suite"
+              />
+            </label>
+            <label className="repository-toolbar__field">
+              <span className="font-semibold">Priority</span>
+              <SelectMenu
+                value={priorityFilter}
+                onValueChange={(value) =>
+                  onPriorityFilterChange(value as RepositoryPriorityFilter)
+                }
+                options={[
+                  { value: 'All', label: 'All' },
+                  ...priorityOptions.map((priority) => ({
+                    value: priority,
+                    label: priority,
+                  })),
+                ]}
+                className="min-w-[96px]"
+                aria-label="Filter by priority"
+              />
+            </label>
+            <label className="repository-toolbar__field">
+              <span className="font-semibold">Type</span>
+              <SelectMenu
+                value={caseTypeFilter}
+                onValueChange={(value) =>
+                  onCaseTypeFilterChange(value as RepositoryCaseTypeFilter)
+                }
+                options={[
+                  { value: 'All', label: 'All' },
+                  ...caseTypeOptions.map((caseType) => ({
+                    value: caseType,
+                    label: caseType,
+                  })),
+                ]}
+                className="min-w-[104px]"
+                aria-label="Filter by type"
+              />
+            </label>
+            <div className="repository-toolbar__chips">
+              {CASE_FILTER_OPTIONS.map((filter) => (
+                <Button
+                  key={filter}
+                  onClick={() => onCaseFilterChange(filter)}
+                  variant={caseFilter === filter ? 'primary' : 'default'}
+                  className={`${
+                    caseFilter === filter ? getCaseFilterChipClass(filter) : ''
+                  }`}
+                >
+                  {filter}
+                </Button>
+              ))}
+            </div>
           </div>
         }
       />
