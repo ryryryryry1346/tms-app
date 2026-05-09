@@ -41,7 +41,7 @@ import {
   updateTestContent,
   updateTestTitle,
 } from '../features/tests/server'
-import type { TestDetail } from '../features/tests/server'
+import type { DashboardTest, TestDetail } from '../features/tests/server'
 
 export const Route = createFileRoute('/project/$projectSlug/repository')({
   loader: async ({ params }) => {
@@ -170,8 +170,9 @@ function formatRepositoryDateTime(value: string | null | undefined): string {
 
 function ProjectRepositoryPage() {
   const loaderData = Route.useLoaderData()
-  const { project, dashboard } = loaderData
+  const { project, dashboard: loaderDashboard } = loaderData
   const router = useRouter()
+  const [dashboard, setDashboard] = useState(loaderDashboard)
 
   const [suiteName, setSuiteName] = useState('')
   const [suiteErrorMessage, setSuiteErrorMessage] = useState<string | null>(null)
@@ -250,40 +251,111 @@ function ProjectRepositoryPage() {
     position: 'before' | 'after'
   } | null>(null)
 
-  const activeTests = dashboard.tests.filter((test) => test.status !== 'Archived')
-  const filteredLifecycleTests = dashboard.tests.filter((test) => {
-    if (caseFilter === 'All') {
-      if (test.status === 'Archived') {
-        return false
+  useEffect(() => {
+    setDashboard(loaderDashboard)
+  }, [loaderDashboard])
+
+  function updateRepositoryTests(
+    testIds: number[],
+    updater: (test: DashboardTest) => DashboardTest,
+  ): void {
+    const testIdSet = new Set(testIds)
+
+    setDashboard((current) => ({
+      ...current,
+      tests: current.tests.map((test) =>
+        testIdSet.has(test.id) ? updater(test) : test,
+      ),
+    }))
+  }
+
+  function removeRepositoryTests(testIds: number[]): void {
+    const testIdSet = new Set(testIds)
+
+    setDashboard((current) => ({
+      ...current,
+      tests: current.tests.filter((test) => !testIdSet.has(test.id)),
+    }))
+  }
+
+  const activeTests = useMemo(
+    () => dashboard.tests.filter((test) => test.status !== 'Archived'),
+    [dashboard.tests],
+  )
+  const filteredLifecycleTests = useMemo(
+    () =>
+      dashboard.tests.filter((test) => {
+        if (caseFilter === 'All') {
+          if (test.status === 'Archived') {
+            return false
+          }
+        } else if (caseFilter === 'Archived') {
+          if (test.status !== 'Archived') {
+            return false
+          }
+        } else if (test.status !== caseFilter) {
+          return false
+        }
+
+        if (
+          priorityFilter !== 'All' &&
+          (test.priority ?? 'Medium') !== priorityFilter
+        ) {
+          return false
+        }
+
+        if (
+          caseTypeFilter !== 'All' &&
+          (test.caseType ?? 'Functional') !== caseTypeFilter
+        ) {
+          return false
+        }
+
+        return true
+      }),
+    [dashboard.tests, caseFilter, caseTypeFilter, priorityFilter],
+  )
+  const testsBySectionId = useMemo(() => {
+    const groupedTests = new Map<number, DashboardTest[]>()
+
+    for (const test of filteredLifecycleTests) {
+      if (test.sectionId === null) {
+        continue
       }
-    } else if (caseFilter === 'Archived') {
-      if (test.status !== 'Archived') {
-        return false
+
+      const existingTests = groupedTests.get(test.sectionId) ?? []
+      existingTests.push(test)
+      groupedTests.set(test.sectionId, existingTests)
+    }
+
+    return groupedTests
+  }, [filteredLifecycleTests])
+  const allTestIdsBySectionId = useMemo(() => {
+    const groupedIds = new Map<number, number[]>()
+
+    for (const test of dashboard.tests) {
+      if (test.sectionId === null) {
+        continue
       }
-    } else if (test.status !== caseFilter) {
-      return false
+
+      const existingIds = groupedIds.get(test.sectionId) ?? []
+      existingIds.push(test.id)
+      groupedIds.set(test.sectionId, existingIds)
     }
 
-    if (priorityFilter !== 'All' && (test.priority ?? 'Medium') !== priorityFilter) {
-      return false
-    }
-
-    if (
-      caseTypeFilter !== 'All' &&
-      (test.caseType ?? 'Functional') !== caseTypeFilter
-    ) {
-      return false
-    }
-
-    return true
-  })
+    return groupedIds
+  }, [dashboard.tests])
   const totalCases =
     caseFilter === 'All' ? activeTests.length : filteredLifecycleTests.length
   const totalSuites = dashboard.sections.length
-  const readyCases = activeTests.filter((test) => test.status === 'Ready').length
-  const archivedCases = dashboard.tests.filter(
-    (test) => test.status === 'Archived',
-  ).length
+  const readyCases = useMemo(
+    () => activeTests.filter((test) => test.status === 'Ready').length,
+    [activeTests],
+  )
+  const archivedCases = useMemo(
+    () => dashboard.tests.filter((test) => test.status === 'Archived').length,
+    [dashboard.tests],
+  )
 
   const normalizedSearch = searchValue.trim().toLowerCase()
 
@@ -297,9 +369,7 @@ function ProjectRepositoryPage() {
           return null
         }
 
-        const sectionTests = filteredLifecycleTests.filter(
-          (test) => test.sectionId === section.id,
-        )
+        const sectionTests = testsBySectionId.get(section.id) ?? []
         const matchingTests =
           normalizedSearch.length === 0
             ? sectionTests
@@ -330,6 +400,7 @@ function ProjectRepositoryPage() {
         return {
           section,
           sectionTests,
+          sectionAllTestIds: allTestIdsBySectionId.get(section.id) ?? [],
           visibleTests:
             normalizedSearch.length > 0 &&
             section.name.toLowerCase().includes(normalizedSearch)
@@ -340,11 +411,13 @@ function ProjectRepositoryPage() {
       .filter((item): item is NonNullable<typeof item> => item !== null)
   }, [
     dashboard.sections,
+    allTestIdsBySectionId,
     caseTypeFilter,
     filteredLifecycleTests,
     normalizedSearch,
     priorityFilter,
     suiteFilterId,
+    testsBySectionId,
   ])
 
   const selectedTestIdSet = useMemo(
@@ -588,8 +661,11 @@ function ProjectRepositoryPage() {
           updatedAt: new Date().toISOString(),
         },
       }))
+      updateRepositoryTests([previewTestDetail.id], (test) => ({
+        ...test,
+        updatedAt: new Date().toISOString(),
+      }))
       setIsEditingPreviewContent(false)
-      await router.invalidate()
     } catch (error) {
       setCaseActionErrorMessage(
         error instanceof Error ? error.message : 'Failed to update test content.',
@@ -640,20 +716,33 @@ function ProjectRepositoryPage() {
     setIsApplyingBulkAction(true)
 
     try {
+      const statusUpdateIds =
+        status === 'Archived'
+          ? selectedArchivableTests.map((test) => test.id)
+          : selectedTestIds
+
       await bulkUpdateTestStatus({
         data: {
-          ids:
-            status === 'Archived'
-              ? selectedArchivableTests.map((test) => test.id)
-              : selectedTestIds,
+          ids: statusUpdateIds,
           status,
         },
       })
 
+      const updatedAt = new Date().toISOString()
+      updateRepositoryTests(statusUpdateIds, (test) => ({
+        ...test,
+        status,
+        archivedFromStatus:
+          status === 'Archived'
+            ? test.status === 'Ready' || test.status === 'Draft'
+              ? test.status
+              : test.archivedFromStatus ?? 'Draft'
+            : null,
+        updatedAt,
+      }))
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
-      await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
         error instanceof Error
@@ -686,8 +775,14 @@ function ProjectRepositoryPage() {
         },
       })
 
+      const updatedAt = new Date().toISOString()
+      updateRepositoryTests(selectedTestIds, (test) => ({
+        ...test,
+        priority: metadata.priority ?? test.priority,
+        caseType: metadata.caseType ?? test.caseType,
+        updatedAt,
+      }))
       setSelectedTestIds([])
-      await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
         error instanceof Error
@@ -717,7 +812,13 @@ function ProjectRepositoryPage() {
         },
       })
 
-      await router.invalidate()
+      const updatedAt = new Date().toISOString()
+      updateRepositoryTests([testId], (test) => ({
+        ...test,
+        priority: metadata.priority ?? test.priority,
+        caseType: metadata.caseType ?? test.caseType,
+        updatedAt,
+      }))
     } catch (error) {
       setCaseActionErrorMessage(
         error instanceof Error
@@ -745,7 +846,18 @@ function ProjectRepositoryPage() {
         },
       })
 
-      await router.invalidate()
+      const updatedAt = new Date().toISOString()
+      updateRepositoryTests([testId], (test) => ({
+        ...test,
+        status,
+        archivedFromStatus:
+          status === 'Archived'
+            ? test.status === 'Ready' || test.status === 'Draft'
+              ? test.status
+              : test.archivedFromStatus ?? 'Draft'
+            : null,
+        updatedAt,
+      }))
     } catch (error) {
       setCaseActionErrorMessage(
         error instanceof Error
@@ -782,8 +894,12 @@ function ProjectRepositoryPage() {
         },
       })
 
+      updateRepositoryTests([testId], (test) => ({
+        ...test,
+        title: nextTitle,
+        updatedAt: new Date().toISOString(),
+      }))
       cancelCaseTitleEdit()
-      await router.invalidate()
     } catch (error) {
       setCaseActionErrorMessage(
         error instanceof Error ? error.message : 'Failed to update test case title.',
@@ -855,10 +971,15 @@ function ProjectRepositoryPage() {
         },
       })
 
+      updateRepositoryTests(selectedTestIds, (test) => ({
+        ...test,
+        status: test.archivedFromStatus ?? 'Draft',
+        archivedFromStatus: null,
+        updatedAt: new Date().toISOString(),
+      }))
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
-      await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
         error instanceof Error
@@ -887,10 +1008,10 @@ function ProjectRepositoryPage() {
         },
       })
 
+      removeRepositoryTests(selectedArchivedTests.map((test) => test.id))
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
-      await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
         error instanceof Error
@@ -1193,7 +1314,15 @@ function ProjectRepositoryPage() {
 
       setOpenCaseMenuId(null)
       setSelectedTestIds((current) => current.filter((id) => id !== testId))
-      await router.invalidate()
+      updateRepositoryTests([testId], (test) => ({
+        ...test,
+        status: 'Archived',
+        archivedFromStatus:
+          test.status === 'Ready' || test.status === 'Draft'
+            ? test.status
+            : test.archivedFromStatus ?? 'Draft',
+        updatedAt: new Date().toISOString(),
+      }))
     } catch (error) {
       setCaseActionErrorMessage(
         error instanceof Error ? error.message : 'Failed to archive test case.',
@@ -1216,7 +1345,12 @@ function ProjectRepositoryPage() {
 
       setOpenCaseMenuId(null)
       setSelectedTestIds((current) => current.filter((id) => id !== testId))
-      await router.invalidate()
+      updateRepositoryTests([testId], (test) => ({
+        ...test,
+        status: test.archivedFromStatus ?? 'Draft',
+        archivedFromStatus: null,
+        updatedAt: new Date().toISOString(),
+      }))
     } catch (error) {
       setCaseActionErrorMessage(
         error instanceof Error ? error.message : 'Failed to restore test case.',
@@ -1239,7 +1373,7 @@ function ProjectRepositoryPage() {
 
       setOpenCaseMenuId(null)
       setSelectedTestIds((current) => current.filter((id) => id !== testId))
-      await router.invalidate()
+      removeRepositoryTests([testId])
     } catch (error) {
       setCaseActionErrorMessage(
         error instanceof Error
@@ -1340,7 +1474,12 @@ function ProjectRepositoryPage() {
       setEditingSuiteId(null)
       setEditingSuiteName('')
       setSuiteActionSuiteId(null)
-      await router.invalidate()
+      setDashboard((current) => ({
+        ...current,
+        sections: current.sections.map((section) =>
+          section.id === suiteId ? { ...section, name: editingSuiteName } : section,
+        ),
+      }))
     } catch (error) {
       setSuiteActionErrorMessage(
         error instanceof Error ? error.message : 'Failed to rename suite.',
@@ -1377,7 +1516,10 @@ function ProjectRepositoryPage() {
       setDeleteConfirmSuiteId(null)
       setOpenSuiteMenuId(null)
       setSuiteActionSuiteId(null)
-      await router.invalidate()
+      setDashboard((current) => ({
+        ...current,
+        sections: current.sections.filter((section) => section.id !== suiteId),
+      }))
     } catch (error) {
       setSuiteActionErrorMessage(
         error instanceof Error ? error.message : 'Failed to delete suite.',
@@ -1558,16 +1700,18 @@ function ProjectRepositoryPage() {
               />
             ) : (
               <div className="grid gap-2.5 p-3 sm:p-4">
-                {filteredSections.map(({ section, sectionTests, visibleTests }) => {
+                {filteredSections.map(({
+                  section,
+                  sectionTests,
+                  sectionAllTestIds,
+                  visibleTests,
+                }) => {
                   const isEditingSuite = editingSuiteId === section.id
                   const isDeleteConfirming = deleteConfirmSuiteId === section.id
                   const isCollapsed = !expandedSuiteById[section.id]
                   const isPendingSuiteAction = Boolean(
                     pendingSuiteActionById[section.id],
                   )
-                  const sectionAllTestIds = dashboard.tests
-                    .filter((test) => test.sectionId === section.id)
-                    .map((test) => test.id)
                   const visibleTestIds = visibleTests.map((test) => test.id)
                   const allVisibleSelected =
                     visibleTestIds.length > 0 &&
