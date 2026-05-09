@@ -385,20 +385,6 @@ function getContextActions(
       : []
   }
 
-  if (pathname.startsWith('/project/') && projectSlug) {
-    return [
-      {
-        label: 'Open repository',
-        href: `/project/${projectSlug}/repository`,
-      },
-      {
-        label: 'Create case',
-        href: `/create-test?projectId=${encodeURIComponent(projectSlug)}`,
-        tone: 'primary',
-      },
-    ]
-  }
-
   return []
 }
 
@@ -417,6 +403,7 @@ export default function AppShell({ user, children }: AppShellProps) {
   const isDeepFlow = isDeepShellPath(pathname)
   const isWorkspaceHome = pathname === '/'
   const showSidebar = !isWorkspaceHome
+  const showWorkingContext = isDeepFlow && contextRows.length > 0
   const contextActions = getContextActions(pathname, shellContext)
   const headerCopy = getHeaderCopy(pathname)
 
@@ -618,11 +605,9 @@ export default function AppShell({ user, children }: AppShellProps) {
               </section>
             ) : null}
 
-            {contextRows.length > 0 ? (
+            {showWorkingContext ? (
               <section className="app-shell__group">
-                <div className="app-shell__group-title">
-                  {isDeepFlow ? 'Working on' : 'Current context'}
-                </div>
+                <div className="app-shell__group-title">Working on</div>
                 <div className="app-shell__context-card">
                   {contextRows.map((row) => (
                     row.href ? (

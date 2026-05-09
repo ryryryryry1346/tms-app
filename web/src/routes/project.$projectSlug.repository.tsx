@@ -1315,8 +1315,6 @@ function ProjectRepositoryPage() {
         <div className="workspace-view__stack">
           <ProjectPageHeader
             projectName={project.name}
-            projectSlug={project.slug ?? project.id.toString()}
-            activeTab="repository"
             description="Browse suites, test cases, filters, and bulk repository actions."
             actions={
               <>

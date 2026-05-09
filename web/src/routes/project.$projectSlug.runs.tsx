@@ -252,8 +252,6 @@ function ProjectRunsPage() {
         <div className="workspace-view__stack">
           <ProjectPageHeader
             projectName={project.name}
-            projectSlug={projectSlug}
-            activeTab="runs"
             description="Manage execution runs, scope coverage, and execution readiness for this project."
             actions={
               <Button

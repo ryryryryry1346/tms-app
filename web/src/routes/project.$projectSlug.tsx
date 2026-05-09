@@ -110,8 +110,6 @@ function ProjectOverviewPage() {
         <div className="workspace-view__stack">
           <ProjectPageHeader
             projectName={project.name}
-            projectSlug={projectSlug}
-            activeTab="overview"
             description="Project dashboard with repository health, recent activity, and execution summary."
             actions={
               <>

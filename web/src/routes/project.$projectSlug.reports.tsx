@@ -92,8 +92,6 @@ function ProjectReportsPage() {
         <div className="workspace-view__stack">
           <ProjectPageHeader
             projectName={project.name}
-            projectSlug={projectSlug}
-            activeTab="reports"
             description="Reporting workspace for quality trends, run outcomes, and project readiness."
           />
 
