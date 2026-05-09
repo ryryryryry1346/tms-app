@@ -6,8 +6,11 @@ import {
   redirect,
   useLocation,
 } from '@tanstack/react-router'
+import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { Badge } from '../components/ui/Badge'
 import { EmptyState } from '../components/ui/EmptyState'
+import { LinkButton } from '../components/ui/LinkButton'
+import { MetricCard } from '../components/ui/MetricCard'
 import { Panel } from '../components/ui/Panel'
 import { getRunsForProject } from '../features/runs/server'
 import { getDashboardState } from '../features/tests/server'
@@ -78,54 +81,6 @@ export const Route = createFileRoute('/project/$projectSlug')({
   component: ProjectOverviewPage,
 })
 
-function ProjectSubnav({
-  projectSlug,
-  active,
-}: {
-  projectSlug: string
-  active: 'overview' | 'repository' | 'runs' | 'reports'
-}) {
-  const tabClass = (isActive: boolean): string =>
-    `rounded-full px-4 py-2 text-sm font-semibold no-underline ${
-      isActive
-        ? 'bg-[var(--tms-primary-soft)] text-[var(--tms-primary)]'
-        : 'text-[var(--tms-text-muted)] hover:bg-[var(--tms-surface-muted)]'
-    }`
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Link
-        to="/project/$projectSlug"
-        params={{ projectSlug }}
-        className={tabClass(active === 'overview')}
-      >
-        Overview
-      </Link>
-      <Link
-        to="/project/$projectSlug/repository"
-        params={{ projectSlug }}
-        className={tabClass(active === 'repository')}
-      >
-        Repository
-      </Link>
-      <Link
-        to="/project/$projectSlug/runs"
-        params={{ projectSlug }}
-        className={tabClass(active === 'runs')}
-      >
-        Runs
-      </Link>
-      <Link
-        to="/project/$projectSlug/reports"
-        params={{ projectSlug }}
-        className={tabClass(active === 'reports')}
-      >
-        Reports
-      </Link>
-    </div>
-  )
-}
-
 function ProjectOverviewPage() {
   const { project, dashboard, runs } = Route.useLoaderData()
   const location = useLocation()
@@ -144,76 +99,58 @@ function ProjectOverviewPage() {
   const archivedCases = dashboard.tests.filter(
     (test) => test.status === 'Archived',
   ).length
+  const projectSlug = project.slug ?? project.id.toString()
   const recentRuns = [...runs].sort((a, b) => b.id - a.id).slice(0, 3)
   const recentCases = [...dashboard.tests].sort((a, b) => b.id - a.id).slice(0, 5)
 
   return (
-    <main className="min-h-[calc(100vh-65px)] bg-[var(--tms-bg)]">
-      <div className="mx-auto max-w-[1600px] px-6 py-6 lg:px-10">
-        <section className="mb-6 flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-3xl">
-            <div className="mb-2 flex items-center gap-3 text-sm text-[var(--tms-text-muted)]">
-              <Link to="/" className="no-underline text-[var(--tms-text-muted)]">
-                Workspace
-              </Link>
-              <span>/</span>
-              <span>Project</span>
-            </div>
-            <h1 className="m-0 text-4xl font-bold tracking-tight text-[var(--tms-text)] md:text-5xl">
-              {project.name}
-            </h1>
-            <p className="mt-2 text-base text-[var(--tms-text-muted)] md:text-lg">
-              Project dashboard with repository health, recent activity, and execution summary.
-            </p>
-            <div className="mt-4">
-              <ProjectSubnav
-                projectSlug={project.slug ?? project.id.toString()}
-                active="overview"
-              />
-            </div>
-          </div>
+    <main className="workspace-view">
+      <div className="workspace-view__inner">
+        <div className="workspace-view__stack">
+          <ProjectPageHeader
+            projectName={project.name}
+            projectSlug={projectSlug}
+            activeTab="overview"
+            description="Project dashboard with repository health, recent activity, and execution summary."
+            actions={
+              <>
+                <LinkButton
+                  to="/project/$projectSlug/repository"
+                  params={{ projectSlug }}
+                  variant="secondary"
+                >
+                  Open repository
+                </LinkButton>
+                <LinkButton
+                  to="/project/$projectSlug/runs"
+                  params={{ projectSlug }}
+                  variant="primary"
+                >
+                  Open runs
+                </LinkButton>
+              </>
+            }
+          />
 
-          <div className="flex flex-wrap gap-3">
-            <Link
-              to="/project/$projectSlug/repository"
-              params={{ projectSlug: project.slug ?? project.id.toString() }}
-              className="tms-button no-underline"
-            >
-              Open repository
-            </Link>
-            <Link
-              to="/project/$projectSlug/runs"
-              params={{ projectSlug: project.slug ?? project.id.toString() }}
-              className="tms-button tms-button-primary no-underline"
-            >
-              Open runs
-            </Link>
-          </div>
-        </section>
-
-        <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           {[
-            { label: 'Suites', value: dashboard.sections.length, tone: 'text-[var(--tms-primary)]' },
-            { label: 'Cases', value: activeTests.length, tone: 'text-[var(--tms-primary)]' },
-            { label: 'Ready', value: readyCases, tone: 'text-[var(--tms-success)]' },
-            { label: 'Draft', value: draftCases, tone: 'text-[var(--tms-text-soft)]' },
-            { label: 'Runs', value: runs.length, tone: 'text-[var(--tms-danger)]' },
+            { label: 'Suites', value: dashboard.sections.length, tone: 'primary' as const },
+            { label: 'Cases', value: activeTests.length, tone: 'primary' as const },
+            { label: 'Ready', value: readyCases, tone: 'success' as const },
+            { label: 'Draft', value: draftCases, tone: 'muted' as const },
+            { label: 'Runs', value: runs.length, tone: 'danger' as const },
           ].map((item) => (
-            <Panel
+            <MetricCard
               key={item.label}
-              className="px-6 py-5"
-            >
-              <div className="text-sm font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-soft)]">
-                {item.label}
-              </div>
-              <div className={`mt-3 text-4xl font-semibold ${item.tone}`}>
-                {item.value}
-              </div>
-            </Panel>
+              label={item.label}
+              value={item.value}
+              tone={item.tone}
+              density="compact"
+            />
           ))}
-        </section>
+          </section>
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
+          <section className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
           <div className="grid gap-6">
             <Panel className="px-6 py-5">
               <div className="mb-5 flex items-start justify-between gap-4">
@@ -227,7 +164,7 @@ function ProjectOverviewPage() {
                 </div>
                 <Link
                   to="/project/$projectSlug/repository"
-                  params={{ projectSlug: project.slug ?? project.id.toString() }}
+                  params={{ projectSlug }}
                   className="tms-button no-underline"
                 >
                   Open repository
@@ -383,7 +320,8 @@ function ProjectOverviewPage() {
               </div>
             </Panel>
           </div>
-        </section>
+          </section>
+        </div>
       </div>
     </main>
   )

@@ -6,6 +6,7 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
+import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { BulkCaseBar } from '../components/repository/BulkCaseBar'
 import { CasePreviewDrawer } from '../components/repository/CasePreviewDrawer'
 import { RepositoryEmptyState } from '../components/repository/RepositoryEmptyState'
@@ -16,6 +17,7 @@ import { SuiteSection } from '../components/repository/SuiteSection'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { LinkButton } from '../components/ui/LinkButton'
 import { uploadTestMedia } from '../features/media/server'
 import {
   createSuite,
@@ -162,54 +164,6 @@ function formatRepositoryDateTime(value: string | null | undefined): string {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date)
-}
-
-function ProjectSubnav({
-  projectSlug,
-  active,
-}: {
-  projectSlug: string
-  active: 'overview' | 'repository' | 'runs' | 'reports'
-}) {
-  const tabClass = (isActive: boolean): string =>
-    `rounded-full px-4 py-2 text-sm font-semibold no-underline ${
-      isActive
-        ? 'bg-[var(--tms-primary-soft)] text-[var(--tms-primary)]'
-        : 'text-[var(--tms-text-muted)] hover:bg-[var(--tms-surface-muted)]'
-    }`
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Link
-        to="/project/$projectSlug"
-        params={{ projectSlug }}
-        className={tabClass(active === 'overview')}
-      >
-        Overview
-      </Link>
-      <Link
-        to="/project/$projectSlug/repository"
-        params={{ projectSlug }}
-        className={tabClass(active === 'repository')}
-      >
-        Repository
-      </Link>
-      <Link
-        to="/project/$projectSlug/runs"
-        params={{ projectSlug }}
-        className={tabClass(active === 'runs')}
-      >
-        Runs
-      </Link>
-      <Link
-        to="/project/$projectSlug/reports"
-        params={{ projectSlug }}
-        className={tabClass(active === 'reports')}
-      >
-        Reports
-      </Link>
-    </div>
-  )
 }
 
 function ProjectRepositoryPage() {
@@ -1356,52 +1310,37 @@ function ProjectRepositoryPage() {
   }
 
   return (
-    <main className="tms-page">
-      <div className="mx-auto max-w-[1600px] px-6 py-6 lg:px-10">
-          <section className="mb-6 flex flex-wrap items-start justify-between gap-4">
-            <div className="max-w-3xl">
-              <div className="mb-2 flex items-center gap-3 text-sm text-[var(--tms-text-muted)]">
-                <Link to="/" className="no-underline text-[var(--tms-primary)]">
-                  Workspace
-                </Link>
-                <span>/</span>
-                <span>Project</span>
-              </div>
-              <h1 className="m-0 text-4xl font-bold tracking-tight text-[var(--tms-text)] md:text-5xl">
-                {project.name}
-              </h1>
-              <p className="mt-2 text-base text-[var(--tms-text-muted)] md:text-lg">
-                Browse suites, test cases, filters, and bulk repository actions.
-              </p>
-              <div className="mt-4">
-                <ProjectSubnav
-                  projectSlug={project.slug ?? project.id.toString()}
-                  active="repository"
-                />
-              </div>
-            </div>
+    <main className="workspace-view">
+      <div className="workspace-view__inner">
+        <div className="workspace-view__stack">
+          <ProjectPageHeader
+            projectName={project.name}
+            projectSlug={project.slug ?? project.id.toString()}
+            activeTab="repository"
+            description="Browse suites, test cases, filters, and bulk repository actions."
+            actions={
+              <>
+                <Button
+                  onClick={() =>
+                    setActiveComposer((current) => (current === 'suite' ? null : 'suite'))
+                  }
+                  variant="secondary"
+                >
+                  + Suite
+                </Button>
+                <LinkButton
+                  to="/create-test"
+                  search={{ projectId: project.id }}
+                  variant="primary"
+                >
+                  + Test case
+                </LinkButton>
+              </>
+            }
+          />
 
-            <div className="flex flex-wrap gap-3">
-              <Button
-                onClick={() =>
-                  setActiveComposer((current) => (current === 'suite' ? null : 'suite'))
-                }
-                variant="primary"
-                className="px-7 py-3 text-base"
-              >
-                + Suite
-              </Button>
-              <Link
-                to="/create-test"
-                search={{ projectId: project.id }}
-                className="tms-button tms-button-primary px-7 py-3 text-base no-underline"
-              >
-                + Test case
-              </Link>
-            </div>
-          </section>
-
-          <section className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+          <section className="workspace-toolbar-surface">
+            <div className="workspace-toolbar-surface__copy">
             {[
               { label: 'Suites', value: totalSuites },
               { label: 'Cases', value: activeTests.length },
@@ -1415,6 +1354,7 @@ function ProjectRepositoryPage() {
                 <span className="text-[var(--tms-text)]">{item.value}</span> {item.label}
               </div>
             ))}
+            </div>
           </section>
 
           {activeComposer ? (
@@ -1771,6 +1711,7 @@ function ProjectRepositoryPage() {
               formatDateTime={formatRepositoryDateTime}
             />
           ) : null}
+        </div>
       </div>
     </main>
   )

@@ -1,5 +1,7 @@
-import { Link, createFileRoute, notFound, redirect } from '@tanstack/react-router'
+import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
+import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { Badge } from '../components/ui/Badge'
+import { MetricCard } from '../components/ui/MetricCard'
 import { Panel } from '../components/ui/Panel'
 import { getRunsForProject } from '../features/runs/server'
 import { getDashboardState } from '../features/tests/server'
@@ -70,54 +72,6 @@ export const Route = createFileRoute('/project/$projectSlug/reports')({
   component: ProjectReportsPage,
 })
 
-function ProjectSubnav({
-  projectSlug,
-  active,
-}: {
-  projectSlug: string
-  active: 'overview' | 'repository' | 'runs' | 'reports'
-}) {
-  const tabClass = (isActive: boolean): string =>
-    `rounded-full px-4 py-2 text-sm font-semibold no-underline ${
-      isActive
-        ? 'bg-[var(--tms-primary-soft)] text-[var(--tms-primary)]'
-        : 'text-[var(--tms-text-muted)] hover:bg-[var(--tms-surface-muted)]'
-    }`
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Link
-        to="/project/$projectSlug"
-        params={{ projectSlug }}
-        className={tabClass(active === 'overview')}
-      >
-        Overview
-      </Link>
-      <Link
-        to="/project/$projectSlug/repository"
-        params={{ projectSlug }}
-        className={tabClass(active === 'repository')}
-      >
-        Repository
-      </Link>
-      <Link
-        to="/project/$projectSlug/runs"
-        params={{ projectSlug }}
-        className={tabClass(active === 'runs')}
-      >
-        Runs
-      </Link>
-      <Link
-        to="/project/$projectSlug/reports"
-        params={{ projectSlug }}
-        className={tabClass(active === 'reports')}
-      >
-        Reports
-      </Link>
-    </div>
-  )
-}
-
 function ProjectReportsPage() {
   const { project, dashboard, runs } = Route.useLoaderData()
   const activeTests = dashboard.tests.filter((test) => test.status !== 'Archived')
@@ -132,60 +86,35 @@ function ProjectReportsPage() {
   const projectSlug = project.slug ?? project.id.toString()
 
   return (
-    <main className="min-h-[calc(100vh-65px)] bg-[var(--tms-bg)]">
-      <div className="mx-auto max-w-[1600px] px-6 py-8 lg:px-10">
-        <section className="mb-8 flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-3xl">
-            <div className="mb-3 flex items-center gap-3 text-sm text-[var(--tms-text-muted)]">
-              <Link to="/" className="no-underline text-[var(--tms-text-muted)]">
-                Workspace
-              </Link>
-              <span>/</span>
-              <Link
-                to="/project/$projectSlug"
-                params={{ projectSlug }}
-                className="no-underline text-[var(--tms-text-muted)]"
-              >
-                Project
-              </Link>
-              <span>/</span>
-              <span>Reports</span>
-            </div>
-            <h1 className="m-0 text-4xl font-bold tracking-tight text-[var(--tms-text)] md:text-5xl">
-              {project.name}
-            </h1>
-            <p className="mt-3 text-base text-[var(--tms-text-muted)] md:text-lg">
-              Reporting workspace for quality trends, run outcomes, and project readiness.
-            </p>
-            <div className="mt-4">
-              <ProjectSubnav projectSlug={projectSlug} active="reports" />
-            </div>
-          </div>
-        </section>
+    <main className="workspace-view">
+      <div className="workspace-view__inner">
+        <div className="workspace-view__stack">
+          <ProjectPageHeader
+            projectName={project.name}
+            projectSlug={projectSlug}
+            activeTab="reports"
+            description="Reporting workspace for quality trends, run outcomes, and project readiness."
+          />
 
-        <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           {[
-            { label: 'Readiness', value: `${readiness}%`, tone: 'text-[var(--tms-success)]' },
-            { label: 'Ready', value: readyCases, tone: 'text-[var(--tms-primary)]' },
-            { label: 'Draft', value: draftCases, tone: 'text-[var(--tms-text-soft)]' },
-            { label: 'Archived', value: archivedCases, tone: 'text-[var(--tms-warning)]' },
-            { label: 'Runs', value: runs.length, tone: 'text-[var(--tms-danger)]' },
+            { label: 'Readiness', value: `${readiness}%`, tone: 'success' as const },
+            { label: 'Ready', value: readyCases, tone: 'primary' as const },
+            { label: 'Draft', value: draftCases, tone: 'muted' as const },
+            { label: 'Archived', value: archivedCases, tone: 'warning' as const },
+            { label: 'Runs', value: runs.length, tone: 'danger' as const },
           ].map((item) => (
-            <Panel
+            <MetricCard
               key={item.label}
-              className="px-6 py-5"
-            >
-              <div className="text-sm font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-soft)]">
-                {item.label}
-              </div>
-              <div className={`mt-3 text-4xl font-semibold ${item.tone}`}>
-                {item.value}
-              </div>
-            </Panel>
+              label={item.label}
+              value={item.value}
+              tone={item.tone}
+              density="compact"
+            />
           ))}
-        </section>
+          </section>
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.8fr)]">
+          <section className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.8fr)]">
           <Panel className="px-6 py-6">
             <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -256,7 +185,8 @@ function ProjectReportsPage() {
               ))}
             </div>
           </Panel>
-        </section>
+          </section>
+        </div>
       </div>
     </main>
   )

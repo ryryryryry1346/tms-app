@@ -6,12 +6,14 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
+import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Checkbox } from '../components/ui/Checkbox'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Input } from '../components/ui/Input'
+import { MetricCard } from '../components/ui/MetricCard'
 import { Panel } from '../components/ui/Panel'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import { getDashboardState } from '../features/tests/server'
@@ -87,54 +89,6 @@ export const Route = createFileRoute('/project/$projectSlug/runs')({
   component: ProjectRunsPage,
 })
 
-function ProjectSubnav({
-  projectSlug,
-  active,
-}: {
-  projectSlug: string
-  active: 'overview' | 'repository' | 'runs' | 'reports'
-}) {
-  const tabClass = (isActive: boolean): string =>
-    `rounded-full px-4 py-2 text-sm font-semibold no-underline ${
-      isActive
-        ? 'bg-[var(--tms-primary-soft)] text-[var(--tms-primary)]'
-        : 'text-[var(--tms-text-muted)] hover:bg-[var(--tms-surface-muted)]'
-    }`
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Link
-        to="/project/$projectSlug"
-        params={{ projectSlug }}
-        className={tabClass(active === 'overview')}
-      >
-        Overview
-      </Link>
-      <Link
-        to="/project/$projectSlug/repository"
-        params={{ projectSlug }}
-        className={tabClass(active === 'repository')}
-      >
-        Repository
-      </Link>
-      <Link
-        to="/project/$projectSlug/runs"
-        params={{ projectSlug }}
-        className={tabClass(active === 'runs')}
-      >
-        Runs
-      </Link>
-      <Link
-        to="/project/$projectSlug/reports"
-        params={{ projectSlug }}
-        className={tabClass(active === 'reports')}
-      >
-        Reports
-      </Link>
-    </div>
-  )
-}
-
 function getRunStateBadgeVariant(
   stateLabel: string,
 ): 'runPassed' | 'runFailed' | 'runNotRun' | 'primary' {
@@ -176,6 +130,7 @@ function ProjectRunsPage() {
   const totalCases = activeTests.length
   const totalSuites = dashboard.sections.length
   const readyCases = activeTests.filter((test) => test.status === 'Ready').length
+  const projectSlug = project.slug ?? project.id.toString()
   const selectedRunTestIds = useMemo(() => {
     if (runScope === 'all') {
       return activeTests.map((test) => test.id)
@@ -291,72 +246,42 @@ function ProjectRunsPage() {
   }
 
   return (
-    <main className="tms-page">
-      <div className="mx-auto max-w-[1600px] px-6 py-8 lg:px-10">
-        <section className="mb-8 flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-3xl">
-            <div className="mb-3 flex items-center gap-3 text-sm text-[var(--tms-text-muted)]">
-              <Link to="/" className="no-underline text-[var(--tms-primary)]">
-                Workspace
-              </Link>
-              <span>/</span>
-              <Link
-                to="/project/$projectSlug"
-                params={{ projectSlug: project.slug ?? project.id.toString() }}
-                className="no-underline text-[var(--tms-primary)]"
+    <main className="workspace-view">
+      <div className="workspace-view__inner">
+        <div className="workspace-view__stack">
+          <ProjectPageHeader
+            projectName={project.name}
+            projectSlug={projectSlug}
+            activeTab="runs"
+            description="Manage execution runs, scope coverage, and execution readiness for this project."
+            actions={
+              <Button
+                onClick={() => setShowCreateRunForm((current) => !current)}
+                variant="primary"
               >
-                Project
-              </Link>
-              <span>/</span>
-              <span>Runs</span>
-            </div>
-            <h1 className="m-0 text-5xl font-bold tracking-tight text-[var(--tms-text)]">
-              {project.name}
-            </h1>
-            <p className="mt-3 text-lg text-[var(--tms-text-muted)]">
-              Manage execution runs for this project.
-            </p>
-            <div className="mt-4">
-              <ProjectSubnav
-                projectSlug={project.slug ?? project.id.toString()}
-                active="runs"
-              />
-            </div>
-          </div>
+                + Run
+              </Button>
+            }
+          />
 
-          <div className="flex flex-wrap gap-3">
-            <Button
-              onClick={() => setShowCreateRunForm((current) => !current)}
-              variant="primary"
-              size="lg"
-            >
-              + Run
-            </Button>
-          </div>
-        </section>
-
-        <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {[
-            { label: 'Suites', value: totalSuites },
-            { label: 'Cases', value: totalCases },
-            { label: 'Ready', value: readyCases },
-            { label: 'Runs', value: runs.length },
+            { label: 'Suites', value: totalSuites, tone: 'default' as const },
+            { label: 'Cases', value: totalCases, tone: 'default' as const },
+            { label: 'Ready', value: readyCases, tone: 'success' as const },
+            { label: 'Runs', value: runs.length, tone: 'primary' as const },
           ].map((item) => (
-            <Panel
+            <MetricCard
               key={item.label}
-              className="px-7 py-6"
-            >
-              <div className="tms-kicker">
-                {item.label}
-              </div>
-              <div className="mt-3 text-4xl font-semibold text-[var(--tms-text)]">
-                {item.value}
-              </div>
-            </Panel>
+              label={item.label}
+              value={item.value}
+              tone={item.tone}
+              density="compact"
+            />
           ))}
-        </section>
+          </section>
 
-        <Panel className="px-6 py-6">
+          <Panel className="px-6 py-6">
           <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
             <div>
             <h2 className="m-0 text-2xl font-semibold text-[var(--tms-text)]">Runs</h2>
@@ -659,7 +584,8 @@ function ProjectRunsPage() {
               })}
             </TableShell>
           )}
-        </Panel>
+          </Panel>
+        </div>
       </div>
     </main>
   )

@@ -19,8 +19,21 @@ const metricValueVariants = cva('mt-3 text-4xl font-semibold', {
   },
 })
 
+const metricCardVariants = cva('', {
+  variants: {
+    density: {
+      default: 'px-6 py-5',
+      compact: 'px-4 py-4',
+    },
+  },
+  defaultVariants: {
+    density: 'default',
+  },
+})
+
 export type MetricCardProps = HTMLAttributes<HTMLDivElement> &
-  VariantProps<typeof metricValueVariants> & {
+  VariantProps<typeof metricValueVariants> &
+  VariantProps<typeof metricCardVariants> & {
     label: ReactNode
     value: ReactNode
     helper?: ReactNode
@@ -31,11 +44,12 @@ export function MetricCard({
   value,
   helper,
   tone,
+  density,
   className,
   ...props
 }: MetricCardProps) {
   return (
-    <Card className={cx('px-6 py-5', className)} {...props}>
+    <Card className={cx(metricCardVariants({ density }), className)} {...props}>
       <div className="text-sm font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-soft)]">
         {label}
       </div>
