@@ -1710,6 +1710,11 @@ a {
   box-shadow: none;
 }
 
+.workspace-home__filter-button--archived:not(.tms-button-warning):hover {
+  border-color: var(--priority-high-border);
+  color: var(--priority-high-text);
+}
+
 .workspace-home__create-row {
   display: flex;
   flex-wrap: wrap;
@@ -1763,6 +1768,23 @@ a {
 
 .workspace-home__project-name {
   font-size: 1rem;
+}
+
+.workspace-home__project-name-link {
+  display: inline-flex;
+  width: fit-content;
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.15;
+  text-decoration: none;
+}
+
+.workspace-home__project-name-link:hover {
+  color: var(--tms-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
 .workspace-home__project-actions {

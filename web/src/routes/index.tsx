@@ -158,7 +158,7 @@ function WorkspacePage() {
                     .length}{' '}
                   active
                 </Badge>
-                <Badge className="workspace-home__metric">
+                <Badge variant="warning" className="workspace-home__metric">
                   {dashboard.projects.filter((project) => project.status === 'Archived')
                     .length}{' '}
                   archived
@@ -188,8 +188,18 @@ function WorkspacePage() {
                       key={filterValue}
                       type="button"
                       size="sm"
-                      variant={projectFilter === filterValue ? 'primary' : 'secondary'}
-                      className="workspace-home__filter-button"
+                      variant={
+                        projectFilter === filterValue
+                          ? filterValue === 'Archived'
+                            ? 'warning'
+                            : 'primary'
+                          : 'secondary'
+                      }
+                      className={`workspace-home__filter-button ${
+                        filterValue === 'Archived'
+                          ? 'workspace-home__filter-button--archived'
+                          : ''
+                      }`}
                       onClick={() => setProjectFilter(filterValue)}
                     >
                       {filterValue}
@@ -258,13 +268,17 @@ function WorkspacePage() {
                       <div className="workspace-home__project-main">
                         <div className="workspace-home__project-copy">
                           <div className="workspace-home__project-topline">
-                            <h3 className="workspace-home__project-name">
+                            <Link
+                              to="/project/$projectSlug"
+                              params={{ projectSlug }}
+                              className="workspace-home__project-name-link"
+                            >
                               {project.name}
-                            </h3>
+                            </Link>
                             <Badge
                               variant={
                                 project.status === 'Archived'
-                                  ? 'statusArchived'
+                                  ? 'warning'
                                   : 'statusReady'
                               }
                             >
@@ -277,13 +291,6 @@ function WorkspacePage() {
                           </p>
                         </div>
                         <div className="workspace-home__project-actions">
-                          <Link
-                            to="/project/$projectSlug"
-                            params={{ projectSlug }}
-                            className="tms-button tms-button-secondary no-underline"
-                          >
-                            Open workspace
-                          </Link>
                           {project.status === 'Archived' ? (
                             <>
                               <Button
@@ -318,7 +325,7 @@ function WorkspacePage() {
                             <Button
                               type="button"
                               size="sm"
-                              variant="secondary"
+                              variant="warning"
                               onClick={() => handleProjectArchive(project.id)}
                               disabled={archivingProjectId === project.id}
                             >
