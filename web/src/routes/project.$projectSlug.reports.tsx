@@ -1,5 +1,6 @@
 import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
+import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Badge } from '../components/ui/Badge'
 import { MetricCard } from '../components/ui/MetricCard'
 import { Panel } from '../components/ui/Panel'
@@ -116,19 +117,12 @@ function ProjectReportsPage() {
 
           <section className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.8fr)]">
           <Panel className="px-6 py-6">
-            <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h2 className="m-0 text-2xl font-semibold text-[var(--tms-text)]">
-                  Reports
-                </h2>
-                <p className="mt-2 text-sm text-[var(--tms-text-muted)]">
-                  This page is reserved for aggregated quality reporting.
-                </p>
-              </div>
-              <Badge variant="draft">
-                Coming soon
-              </Badge>
-            </div>
+            <WorkspaceSectionHeader
+              title="Reports"
+              description="This page is reserved for aggregated quality reporting."
+              meta={<Badge variant="draft">Coming soon</Badge>}
+              className="mb-6"
+            />
 
             <div className="grid gap-4 md:grid-cols-3">
               {[
@@ -161,10 +155,12 @@ function ProjectReportsPage() {
           </Panel>
 
           <Panel className="px-6 py-6">
-            <h2 className="m-0 text-2xl font-semibold text-[var(--tms-text)]">
-              Current snapshot
-            </h2>
-            <div className="mt-5 grid gap-3">
+            <WorkspaceSectionHeader
+              title="Current snapshot"
+              description="High-level repository and execution indicators for this project."
+              className="mb-5"
+            />
+            <div className="grid gap-3">
               {[
                 ['Suites', dashboard.sections.length],
                 ['Active cases', activeTests.length],

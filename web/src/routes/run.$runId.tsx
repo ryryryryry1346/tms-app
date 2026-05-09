@@ -5,6 +5,7 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import {
   executeRunTest,
   getRunDetail,
@@ -452,10 +453,20 @@ function RunDetailPage() {
             }
           />
         ) : (
-          <TableShell className="shadow-[var(--tms-shadow-panel)]">
+          <>
+            <div className="workspace-dense-table-header">
+              <WorkspaceSectionHeader
+                dense
+                title="Execution table"
+                description="Update statuses, comments, and step through the remaining run items."
+                meta={`${filteredTests.length} visible`}
+              />
+            </div>
+            <TableShell className="shadow-[var(--tms-shadow-panel)]">
             <TableHead
               columns="44px 80px minmax(260px,1fr) 120px 250px 260px 92px"
               minWidth="1180px"
+              padding="sm"
             >
               <div>
                 <Checkbox
@@ -484,6 +495,7 @@ function RunDetailPage() {
                   }}
                   columns="44px 80px minmax(260px,1fr) 120px 250px 260px 92px"
                   minWidth="1180px"
+                  padding="sm"
                 >
                   <div>
                     <Checkbox
@@ -573,7 +585,8 @@ function RunDetailPage() {
                 </TableRow>
               )
             })}
-          </TableShell>
+            </TableShell>
+          </>
         )}
       </div>
     </main>

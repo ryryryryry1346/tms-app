@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-router'
 import { useState } from 'react'
 import { RichTextEditor } from '../components/RichTextEditor'
+import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
@@ -669,11 +670,13 @@ function TestDetailPage() {
               ) : (
                 <>
                   <section>
-                    <h2 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[var(--tms-text-soft)]">
-                      Steps
-                    </h2>
+                    <WorkspaceSectionHeader
+                      dense
+                      title="Steps"
+                      className="mb-3"
+                    />
                     <div
-                      className="rich-output prose prose-sm mt-3 max-w-none rounded-2xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-4 text-[var(--tms-text)]"
+                      className="rich-output prose prose-sm max-w-none rounded-2xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-4 text-[var(--tms-text)]"
                       onClick={handleRichContentClick}
                       dangerouslySetInnerHTML={{
                         __html: test.steps || '<p>-</p>',
@@ -682,11 +685,13 @@ function TestDetailPage() {
                   </section>
 
                   <section>
-                    <h2 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[var(--tms-text-soft)]">
-                      Expected result
-                    </h2>
+                    <WorkspaceSectionHeader
+                      dense
+                      title="Expected result"
+                      className="mb-3"
+                    />
                     <div
-                      className="rich-output prose prose-sm mt-3 max-w-none rounded-2xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-4 text-[var(--tms-text)]"
+                      className="rich-output prose prose-sm max-w-none rounded-2xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-4 text-[var(--tms-text)]"
                       onClick={handleRichContentClick}
                       dangerouslySetInnerHTML={{
                         __html: test.expected || '<p>-</p>',
@@ -699,10 +704,12 @@ function TestDetailPage() {
 
             <aside className="border-t border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-6 py-6 lg:border-l lg:border-t-0">
               <section>
-                <h2 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[var(--tms-text-soft)]">
-                  Metadata
-                </h2>
-                <dl className="mt-4 grid gap-3 text-sm">
+                <WorkspaceSectionHeader
+                  dense
+                  title="Metadata"
+                  className="mb-4"
+                />
+                <dl className="grid gap-3 text-sm">
                   <div>
                     <dt className="font-semibold text-[var(--tms-text-soft)]">Project</dt>
                     <dd className="m-0 mt-1 font-semibold text-[var(--tms-text)]">
@@ -809,15 +816,17 @@ function TestDetailPage() {
               </section>
 
               <section className="mt-6 border-t border-[var(--tms-border-subtle)] pt-5">
-                <h2 className="m-0 text-sm font-bold uppercase tracking-[0.08em] text-[var(--tms-text-soft)]">
-                  Activity
-                </h2>
+                <WorkspaceSectionHeader
+                  dense
+                  title="Activity"
+                  className="mb-3"
+                />
                 {test.activities.length === 0 ? (
-                  <p className="m-0 mt-3 text-sm text-[var(--tms-text-muted)]">
+                  <p className="m-0 text-sm text-[var(--tms-text-muted)]">
                     No activity recorded yet.
                   </p>
                 ) : (
-                  <div className="mt-3 grid gap-3">
+                  <div className="grid gap-3">
                     {test.activities.map((activity) => (
                       <div
                         key={activity.id}

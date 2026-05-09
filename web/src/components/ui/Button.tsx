@@ -8,6 +8,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: '',
+        secondary: 'tms-button-secondary',
         primary: 'tms-button-primary',
         danger: 'tms-button-danger',
         success: 'tms-button-success',

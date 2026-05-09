@@ -7,6 +7,7 @@ import {
   useLocation,
 } from '@tanstack/react-router'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
+import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Badge } from '../components/ui/Badge'
 import { EmptyState } from '../components/ui/EmptyState'
 import { LinkButton } from '../components/ui/LinkButton'
@@ -153,23 +154,20 @@ function ProjectOverviewPage() {
           <section className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
           <div className="grid gap-6">
             <Panel className="px-6 py-5">
-              <div className="mb-5 flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="m-0 text-2xl font-semibold text-[var(--tms-text)]">
-                    Repository health
-                  </h2>
-                  <p className="mt-2 text-sm text-[var(--tms-text-muted)]">
-                    Snapshot of suite structure and test case readiness.
-                  </p>
-                </div>
-                <Link
-                  to="/project/$projectSlug/repository"
-                  params={{ projectSlug }}
-                  className="tms-button no-underline"
-                >
-                  Open repository
-                </Link>
-              </div>
+              <WorkspaceSectionHeader
+                title="Repository health"
+                description="Snapshot of suite structure and test case readiness."
+                actions={
+                  <Link
+                    to="/project/$projectSlug/repository"
+                    params={{ projectSlug }}
+                    className="tms-button no-underline"
+                  >
+                    Open repository
+                  </Link>
+                }
+                className="mb-5"
+              />
 
               <div className="grid gap-3 md:grid-cols-2">
                 {dashboard.sections.map((section) => {
@@ -200,19 +198,16 @@ function ProjectOverviewPage() {
             </Panel>
 
             <Panel className="px-6 py-5">
-              <div className="mb-5 flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="m-0 text-2xl font-semibold text-[var(--tms-text)]">
-                    Recent test cases
-                  </h2>
-                  <p className="mt-2 text-sm text-[var(--tms-text-muted)]">
-                    Latest created cases across the project repository.
-                  </p>
-                </div>
-                <Badge variant={archivedCases > 0 ? 'warning' : 'draft'}>
-                  {archivedCases} archived
-                </Badge>
-              </div>
+              <WorkspaceSectionHeader
+                title="Recent test cases"
+                description="Latest created cases across the project repository."
+                meta={
+                  <Badge variant={archivedCases > 0 ? 'warning' : 'draft'}>
+                    {archivedCases} archived
+                  </Badge>
+                }
+                className="mb-5"
+              />
 
               {recentCases.length === 0 ? (
                 <EmptyState
@@ -256,14 +251,13 @@ function ProjectOverviewPage() {
 
           <div className="grid gap-6">
             <Panel className="px-6 py-5">
-              <h2 className="m-0 text-2xl font-semibold text-[var(--tms-text)]">
-                Recent runs
-              </h2>
-              <p className="mt-2 text-sm text-[var(--tms-text-muted)]">
-                Latest execution activity for this project.
-              </p>
+              <WorkspaceSectionHeader
+                title="Recent runs"
+                description="Latest execution activity for this project."
+                className="mb-5"
+              />
 
-              <div className="mt-5 grid gap-3">
+              <div className="grid gap-3">
                 {recentRuns.length === 0 ? (
                   <EmptyState
                     title="No runs yet"
@@ -288,14 +282,13 @@ function ProjectOverviewPage() {
             </Panel>
 
             <Panel className="px-6 py-5">
-              <h2 className="m-0 text-2xl font-semibold text-[var(--tms-text)]">
-                Quick actions
-              </h2>
-              <p className="mt-2 text-sm text-[var(--tms-text-muted)]">
-                Jump straight into the most common project workflows.
-              </p>
+              <WorkspaceSectionHeader
+                title="Quick actions"
+                description="Jump straight into the most common project workflows."
+                className="mb-5"
+              />
 
-              <div className="mt-5 grid gap-3">
+              <div className="grid gap-3">
                 <Link
                   to="/project/$projectSlug/repository"
                   params={{ projectSlug: project.slug ?? project.id.toString() }}

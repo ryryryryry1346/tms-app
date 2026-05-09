@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
+import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
@@ -282,23 +283,28 @@ function ProjectRunsPage() {
           </section>
 
           <Panel className="px-6 py-6">
-          <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-            <div>
-            <h2 className="m-0 text-2xl font-semibold text-[var(--tms-text)]">Runs</h2>
-              <p className="mt-2 text-sm text-[var(--tms-text-muted)]">
-                Create, rename, and track execution progress for this project.
-              </p>
-            </div>
-            <Badge>
-              {runs.length} run{runs.length === 1 ? '' : 's'}
-            </Badge>
-          </div>
+          <WorkspaceSectionHeader
+            title="Runs"
+            description="Create, rename, and track execution progress for this project."
+            meta={
+              <Badge>
+                {runs.length} run{runs.length === 1 ? '' : 's'}
+              </Badge>
+            }
+            className="mb-6"
+          />
 
           {showCreateRunForm ? (
             <form
               className="mb-6 rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border)] bg-[var(--tms-surface-muted)] p-4"
               onSubmit={handleCreateRun}
             >
+              <WorkspaceSectionHeader
+                dense
+                title="New run"
+                description="Choose scope and create a focused execution batch from active repository cases."
+                className="mb-4"
+              />
               <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
                 <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
                   Run name

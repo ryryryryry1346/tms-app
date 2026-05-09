@@ -1,6 +1,7 @@
 import { Link, createFileRoute, notFound, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { RichTextEditor } from '../components/RichTextEditor'
+import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -166,6 +167,12 @@ function EditTestPage() {
             className="tms-panel p-6"
             onSubmit={handleSubmit}
           >
+            <WorkspaceSectionHeader
+              title="Case details"
+              description="Update suite placement, metadata, and rich content for this test case."
+              className="mb-5"
+            />
+
             <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
               Test case title
               <Input
@@ -276,6 +283,11 @@ function EditTestPage() {
             </div>
 
             <div className="mt-5 grid gap-5">
+              <WorkspaceSectionHeader
+                dense
+                title="Content"
+                description="Edit steps and expected result with inline attachments."
+              />
               <RichTextEditor
                 label="Steps"
                 placeholder="Describe the test steps"
@@ -307,7 +319,7 @@ function EditTestPage() {
                   ? `${selectedSection.projectName ?? 'Project'} / ${selectedSection.name}`
                   : 'Choose a suite for this case.'}
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="workspace-secondary-actions">
                 <Link
                   to="/test/$testId"
                   params={{ testId: formState.test.id.toString() }}

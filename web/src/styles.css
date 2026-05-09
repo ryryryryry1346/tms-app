@@ -293,6 +293,16 @@ pre code {
   background: var(--state-hover);
 }
 
+.tms-button-secondary {
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.tms-button-secondary:hover {
+  background: var(--state-hover);
+  color: var(--text-primary);
+}
+
 .tms-button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
@@ -1422,6 +1432,95 @@ a {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
+}
+
+.workspace-section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.875rem;
+}
+
+.workspace-section-header--dense {
+  gap: 0.75rem;
+}
+
+.workspace-section-header__copy {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.workspace-section-header__eyebrow {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.workspace-section-header__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+}
+
+.workspace-section-header__title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.workspace-section-header--dense .workspace-section-header__title {
+  font-size: 0.9375rem;
+}
+
+.workspace-section-header__meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.workspace-section-header__description {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.workspace-section-header__actions,
+.workspace-secondary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.workspace-dense-table-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 0 0.875rem;
+}
+
+.workspace-dense-table-header__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 @media (min-width: 768px) {

@@ -2,6 +2,7 @@ import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { z } from 'zod'
 import { RichTextEditor } from '../components/RichTextEditor'
+import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -161,6 +162,12 @@ function CreateTestPage() {
           className="tms-panel p-6"
           onSubmit={handleSubmit}
         >
+          <WorkspaceSectionHeader
+            title="Case details"
+            description="Define the destination suite, metadata, and rich content for this new test case."
+            className="mb-5"
+          />
+
           <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
             Test case title
             <Input
@@ -264,6 +271,11 @@ function CreateTestPage() {
           </div>
 
           <div className="mt-5 grid gap-5">
+            <WorkspaceSectionHeader
+              dense
+              title="Content"
+              description="Capture steps and expected result with inline attachments."
+            />
             <RichTextEditor
               label="Steps"
               placeholder="Describe the test steps"
@@ -295,7 +307,7 @@ function CreateTestPage() {
                 ? `${selectedSection.projectName ?? 'Project'} / ${selectedSection.name}`
                 : 'Choose a suite to create this case.'}
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="workspace-secondary-actions">
               {selectedProjectSlug ? (
                 <Link
                   to="/project/$projectSlug/repository"

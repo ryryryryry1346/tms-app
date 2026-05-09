@@ -1,3 +1,4 @@
+import { WorkspaceSectionHeader } from '../layout/WorkspaceSectionHeader'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { PanelHeader } from '../ui/Panel'
@@ -83,17 +84,13 @@ export function RepositoryToolbar({
   onCaseFilterChange,
 }: RepositoryToolbarProps) {
   return (
-    <PanelHeader>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="m-0 text-xl font-semibold text-[var(--tms-text)]">
-            Test suites and cases
-          </h2>
-          <div className="tms-kicker mt-1">
-            {visibleCount} visible cases
-          </div>
-        </div>
-        <div className="tms-toolbar justify-end">
+    <PanelHeader dense>
+      <WorkspaceSectionHeader
+        dense
+        title="Test suites and cases"
+        meta={`${visibleCount} visible cases`}
+        actions={
+          <div className="tms-toolbar justify-end">
           <label className="flex items-center gap-2">
             <span className="shrink-0 whitespace-nowrap font-semibold">
               Search
@@ -170,8 +167,9 @@ export function RepositoryToolbar({
               </Button>
             ))}
           </div>
-        </div>
-      </div>
+          </div>
+        }
+      />
     </PanelHeader>
   )
 }
