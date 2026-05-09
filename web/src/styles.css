@@ -1230,7 +1230,10 @@ a {
 }
 
 .app-shell--sidebar-collapsed .app-shell__sidebar {
-  width: 72px;
+  width: 0;
+  min-width: 0;
+  border-right: 0;
+  overflow: hidden;
 }
 
 .app-shell__brand {
@@ -1271,6 +1274,10 @@ a {
   flex-shrink: 0;
 }
 
+.app-shell__desktop-expand-button {
+  flex-shrink: 0;
+}
+
 .app-shell__brand-mark--small {
   width: 1.75rem;
   height: 1.75rem;
@@ -1305,10 +1312,9 @@ a {
   text-transform: uppercase;
 }
 
-.app-shell--sidebar-collapsed .app-shell__brand-copy,
-.app-shell--sidebar-collapsed .app-shell__group-title,
-.app-shell--sidebar-collapsed .app-shell__context-card,
-.app-shell--sidebar-collapsed .app-shell__theme-block {
+.app-shell--sidebar-collapsed .app-shell__brand,
+.app-shell--sidebar-collapsed .app-shell__scroll,
+.app-shell--sidebar-collapsed .app-shell__bottom {
   display: none;
 }
 
@@ -1332,33 +1338,6 @@ a {
   line-height: 1.2;
   text-decoration: none;
   align-self: start;
-}
-
-.app-shell--sidebar-collapsed .app-shell__brand {
-  justify-content: center;
-  padding-inline: 0.75rem;
-}
-
-.app-shell--sidebar-collapsed .app-shell__scroll,
-.app-shell--sidebar-collapsed .app-shell__bottom {
-  padding-inline: 0.625rem;
-}
-
-.app-shell--sidebar-collapsed .app-shell__group {
-  justify-items: center;
-}
-
-.app-shell--sidebar-collapsed .app-shell__nav-link {
-  grid-template-columns: 1rem;
-  justify-content: center;
-  width: 2.5rem;
-  min-height: 2.5rem;
-  padding: 0;
-}
-
-.app-shell--sidebar-collapsed .app-shell__nav-icon {
-  width: 1rem;
-  height: 1rem;
 }
 
 .app-shell__nav-link:hover {
@@ -1403,11 +1382,6 @@ a {
   gap: 0.75rem;
   border-top: 1px solid var(--border-subtle);
   padding: 1rem;
-}
-
-.app-shell--sidebar-collapsed .app-shell__bottom {
-  border-top: 0;
-  padding-top: 0.25rem;
 }
 
 .app-shell__theme-block {
@@ -2166,7 +2140,7 @@ a {
   }
 
   .app-shell--with-sidebar.app-shell--sidebar-collapsed {
-    grid-template-columns: 72px minmax(0, 1fr);
+    grid-template-columns: 0 minmax(0, 1fr);
   }
 
   .app-shell__backdrop {
@@ -2197,6 +2171,10 @@ a {
 
 @media (max-width: 767px) {
   .app-shell__collapse-button {
+    display: none !important;
+  }
+
+  .app-shell__desktop-expand-button {
     display: none !important;
   }
 

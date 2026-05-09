@@ -285,12 +285,10 @@ type ContextAction = {
 function ShellNavLink({
   item,
   pathname,
-  collapsed = false,
   onNavigate,
 }: {
   item: NavItem
   pathname: string
-  collapsed?: boolean
   onNavigate?: () => void
 }) {
   const isActive =
@@ -304,12 +302,11 @@ function ShellNavLink({
       to={item.to}
       params={item.params}
       onClick={onNavigate}
-      title={collapsed ? item.label : undefined}
       aria-label={item.label}
       className={`app-shell__nav-link ${isActive ? 'is-active' : ''}`}
     >
       <span className="app-shell__nav-icon">{item.icon}</span>
-      {!collapsed ? <span>{item.label}</span> : null}
+      <span>{item.label}</span>
     </Link>
   )
 }
@@ -582,21 +579,19 @@ export default function AppShell({ user, children }: AppShellProps) {
               <span className="app-shell__eyebrow">Workspace</span>
               <strong>TMS</strong>
             </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              className="app-shell__collapse-button"
-              onClick={toggleSidebarCollapsed}
-              aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            >
-              {isSidebarCollapsed ? (
-                <ChevronRight size={16} strokeWidth={2} />
-              ) : (
+            {!isSidebarCollapsed ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="app-shell__collapse-button"
+                onClick={toggleSidebarCollapsed}
+                aria-label="Collapse sidebar"
+                title="Collapse sidebar"
+              >
                 <ChevronLeft size={16} strokeWidth={2} />
-              )}
-            </Button>
+              </Button>
+            ) : null}
             <Button
               type="button"
               size="sm"
@@ -618,7 +613,6 @@ export default function AppShell({ user, children }: AppShellProps) {
                     key={item.to}
                     item={item}
                     pathname={pathname}
-                    collapsed={isSidebarCollapsed}
                     onNavigate={closeSidebar}
                   />
                 ))}
@@ -648,7 +642,6 @@ export default function AppShell({ user, children }: AppShellProps) {
                       key={item.to}
                       item={item}
                       pathname={pathname}
-                      collapsed={isSidebarCollapsed}
                       onNavigate={closeSidebar}
                     />
                   ))}
@@ -718,6 +711,19 @@ export default function AppShell({ user, children }: AppShellProps) {
           <div className="app-shell__topbar-left">
             {showSidebar ? (
               <>
+                {isSidebarCollapsed ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    className="app-shell__desktop-expand-button"
+                    onClick={toggleSidebarCollapsed}
+                    aria-label="Expand sidebar"
+                    title="Expand sidebar"
+                  >
+                    <ChevronRight size={16} strokeWidth={2} />
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
                   size="sm"
