@@ -11,6 +11,7 @@ import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHea
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
+import { ConfirmActionAlert } from '../components/ui/ConfirmActionAlert'
 import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
 import { SelectMenu } from '../components/ui/SelectMenu'
@@ -151,6 +152,7 @@ function TestDetailPage() {
   const [pendingMetadataField, setPendingMetadataField] =
     useState<PendingMetadataField | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
   const repositoryLink = test.projectSlug
@@ -572,7 +574,7 @@ function TestDetailPage() {
                 <Link
                   to="/edit-test/$testId"
                   params={{ testId: test.id.toString() }}
-                  className="tms-button tms-button-primary no-underline"
+                  className="tms-button no-underline"
                 >
                   Full editor
                 </Link>
@@ -592,6 +594,7 @@ function TestDetailPage() {
                       type="button"
                       onClick={cancelContentEdit}
                       disabled={isSavingContent}
+                      variant="secondary"
                     >
                       Cancel
                     </Button>
@@ -611,6 +614,7 @@ function TestDetailPage() {
                     void handleDuplicate()
                   }}
                   disabled={isDuplicating || isDeleting}
+                  variant="secondary"
                 >
                   {isDuplicating ? 'Duplicating...' : 'Duplicate'}
                 </Button>
@@ -621,24 +625,41 @@ function TestDetailPage() {
                       void handleRestore()
                     }}
                     disabled={isArchiving || isDeleting}
-                    variant="success"
+                    variant="secondary"
                   >
                     {isArchiving ? 'Restoring...' : 'Restore'}
                   </Button>
                 ) : (
                   <Button
                     type="button"
-                    onClick={() => {
-                      void handleArchive()
-                    }}
+                    onClick={() => setShowArchiveConfirm(true)}
                     disabled={isArchiving || isDeleting}
-                    variant="warning"
+                    variant="secondary"
                   >
-                    {isArchiving ? 'Archiving...' : 'Archive'}
+                    Archive
                   </Button>
                 )}
               </div>
             </div>
+
+            {showArchiveConfirm ? (
+              <ConfirmActionAlert
+                className="mt-4"
+                title="Archive this test case?"
+                description="The case will leave the active repository and can be restored later from the Archived filter."
+                confirmLabel="Archive test case"
+                pendingLabel="Archiving..."
+                confirmVariant="primary"
+                isPending={isArchiving}
+                onCancel={() => setShowArchiveConfirm(false)}
+                onConfirm={() => {
+                  void (async () => {
+                    await handleArchive()
+                    setShowArchiveConfirm(false)
+                  })()
+                }}
+              />
+            ) : null}
 
             {actionError ? (
               <Alert variant="danger" className="mt-4">
@@ -843,36 +864,25 @@ function TestDetailPage() {
               {test.status === 'Archived' ? (
                 <section className="mt-6 border-t border-[var(--tms-border-subtle)] pt-5">
                   {showDeleteConfirm ? (
-                    <Alert variant="danger" className="p-3">
-                      <p className="m-0 font-semibold">
-                        Delete this archived test case permanently?
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          onClick={() => {
-                            void handleDeletePermanently()
-                          }}
-                          disabled={isDeleting}
-                          variant="danger"
-                        >
-                          {isDeleting ? 'Deleting...' : 'Confirm delete'}
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={() => setShowDeleteConfirm(false)}
-                          disabled={isDeleting}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </Alert>
+                    <ConfirmActionAlert
+                      className="p-3"
+                      title="Delete this archived test case permanently?"
+                      description="This action cannot be undone and will remove the test case from the repository."
+                      confirmLabel="Delete permanently"
+                      pendingLabel="Deleting..."
+                      confirmVariant="danger"
+                      isPending={isDeleting}
+                      onCancel={() => setShowDeleteConfirm(false)}
+                      onConfirm={() => {
+                        void handleDeletePermanently()
+                      }}
+                    />
                   ) : (
                     <Button
                       type="button"
                       onClick={() => setShowDeleteConfirm(true)}
                       disabled={isDeleting || isArchiving}
-                      variant="danger"
+                      variant="secondary"
                       className="w-full"
                     >
                       Delete permanently

@@ -402,6 +402,7 @@ function RunDetailPage() {
                     void handleBulkStatus(status)
                   }}
                   disabled={selectedTestIds.length === 0 || isBulkUpdating}
+                  variant="secondary"
                   className={getRunResultChipClass(status)}
                 >
                   {status}
@@ -412,6 +413,7 @@ function RunDetailPage() {
                   void handleBulkStatus(null)
                 }}
                 disabled={selectedTestIds.length === 0 || isBulkUpdating}
+                variant="secondary"
               >
                 Clear
               </Button>
@@ -532,6 +534,7 @@ function RunDetailPage() {
                           void handleRunTest(test.id, status)
                         }}
                         size="sm"
+                        variant="secondary"
                         className={`rounded-lg border px-2.5 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-55 ${getRunResultChipClass(status)}`}
                       >
                         {status}
@@ -543,6 +546,7 @@ function RunDetailPage() {
                         void handleRunTest(test.id, null)
                       }}
                       size="sm"
+                      variant="secondary"
                       className="rounded-lg border border-[var(--tms-border)] bg-[var(--tms-surface)] px-2.5 py-1 text-xs font-semibold text-[var(--tms-text-muted)]"
                     >
                       Clear
@@ -568,6 +572,7 @@ function RunDetailPage() {
                         void handleSaveComment(test.id)
                       }}
                       size="sm"
+                      variant="secondary"
                       className="rounded-lg border border-[var(--tms-border)] bg-[var(--tms-surface)] px-2.5 py-2 text-xs font-semibold text-[var(--tms-text-muted)]"
                     >
                       {isCommentPending ? '...' : 'Save'}

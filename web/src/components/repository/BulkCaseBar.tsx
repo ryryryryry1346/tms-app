@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
+import { ConfirmActionAlert } from '../ui/ConfirmActionAlert'
 import { Panel } from '../ui/Panel'
 import { PopoverMenu, PopoverMenuItem } from '../ui/PopoverMenu'
 
@@ -98,6 +99,7 @@ export function BulkCaseBar({
             trigger={
               <Button
                 disabled={isApplying || suites.length === 0}
+                variant="secondary"
                 className={menuButtonClass(openMenu === 'move')}
                 aria-haspopup="menu"
                 aria-expanded={openMenu === 'move'}
@@ -129,6 +131,7 @@ export function BulkCaseBar({
             trigger={
               <Button
                 disabled={isApplying}
+                variant="secondary"
                 className={menuButtonClass(openMenu === 'status')}
                 aria-haspopup="menu"
                 aria-expanded={openMenu === 'status'}
@@ -176,6 +179,7 @@ export function BulkCaseBar({
             trigger={
               <Button
                 disabled={isApplying}
+                variant="secondary"
                 className={menuButtonClass(openMenu === 'more')}
                 aria-haspopup="menu"
                 aria-expanded={openMenu === 'more'}
@@ -249,6 +253,7 @@ export function BulkCaseBar({
               onClearSelection()
             }}
             disabled={isApplying}
+            variant="secondary"
           >
             Clear selection
           </Button>
@@ -256,65 +261,35 @@ export function BulkCaseBar({
       </div>
 
       {isArchiveConfirming ? (
-        <Alert
-          variant="warning"
+        <ConfirmActionAlert
           className="mt-3"
           title={`Archive ${selectedArchivableCount} selected case${
             selectedArchivableCount === 1 ? '' : 's'
           }?`}
-          action={
-            <>
-            <Button
-              onClick={onCancelArchive}
-              disabled={isApplying}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={onConfirmArchive}
-              disabled={isApplying}
-              variant="warning"
-              className="bg-[var(--tms-warning)] text-white"
-            >
-              {isApplying ? 'Archiving...' : 'Confirm archive'}
-            </Button>
-            </>
-          }
-        >
-          Archived cases leave the active repository and can be restored from
-          the Archived filter.
-        </Alert>
+          description="Archived cases leave the active repository and can be restored from the Archived filter."
+          confirmLabel="Archive selected"
+          pendingLabel="Archiving..."
+          confirmVariant="primary"
+          isPending={isApplying}
+          onCancel={onCancelArchive}
+          onConfirm={onConfirmArchive}
+        />
       ) : null}
 
       {isDeleteConfirming ? (
-        <Alert
-          variant="danger"
+        <ConfirmActionAlert
           className="mt-3"
           title={`Permanently delete ${selectedArchivedCount} archived case${
             selectedArchivedCount === 1 ? '' : 's'
           }?`}
-          action={
-            <>
-            <Button
-              onClick={onCancelDeleteArchived}
-              disabled={isApplying}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={onConfirmDeleteArchived}
-              disabled={isApplying}
-              variant="danger"
-              className="bg-[var(--tms-danger)] text-white"
-            >
-              {isApplying ? 'Deleting...' : 'Confirm delete'}
-            </Button>
-            </>
-          }
-        >
-          This action cannot be undone. Deleted test cases will be removed
-          from the repository.
-        </Alert>
+          description="This action cannot be undone. Deleted test cases will be removed from the repository."
+          confirmLabel="Delete permanently"
+          pendingLabel="Deleting..."
+          confirmVariant="danger"
+          isPending={isApplying}
+          onCancel={onCancelDeleteArchived}
+          onConfirm={onConfirmDeleteArchived}
+        />
       ) : null}
 
       {errorMessage ? (
