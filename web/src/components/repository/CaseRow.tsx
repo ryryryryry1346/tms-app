@@ -239,7 +239,7 @@ export function CaseRow({
         }))}
         onPointerDown={(event) => event.stopPropagation()}
         disabled={isPending}
-        className={`tms-chip w-fit border-0 outline-none ${getPriorityChipClass(priority)}`}
+        className={`tms-inline-select w-fit border-0 outline-none ${getPriorityChipClass(priority)}`}
         aria-label={`Change priority for ${test.title}`}
       />
       <SelectMenu
@@ -251,7 +251,7 @@ export function CaseRow({
         }))}
         onPointerDown={(event) => event.stopPropagation()}
         disabled={isPending}
-        className="tms-chip w-fit border-0 outline-none"
+        className="tms-inline-select tms-inline-select-neutral w-fit border-0 outline-none"
         aria-label={`Change type for ${test.title}`}
       />
       <span className="text-sm font-semibold text-[var(--tms-text-muted)]">
@@ -269,7 +269,7 @@ export function CaseRow({
         }))}
         onPointerDown={(event) => event.stopPropagation()}
         disabled={isPending}
-        className={`tms-chip w-fit border-0 outline-none ${getStatusChipClass(status)}`}
+        className={`tms-inline-select w-fit border-0 outline-none ${getStatusChipClass(status)}`}
         aria-label={`Change status for ${test.title}`}
       />
       <CaseActionsMenu

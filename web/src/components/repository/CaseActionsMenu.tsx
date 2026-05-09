@@ -1,6 +1,11 @@
 import { Link } from '@tanstack/react-router'
 import { Button } from '../ui/Button'
-import { PopoverMenu, PopoverMenuItem } from '../ui/PopoverMenu'
+import {
+  PopoverMenu,
+  PopoverMenuItem,
+  PopoverMenuLabel,
+  PopoverMenuSeparator,
+} from '../ui/PopoverMenu'
 
 type CaseActionsMenuProps = {
   testId: number
@@ -44,6 +49,7 @@ export function CaseActionsMenu({
           <Button
             size="sm"
             disabled={isPending}
+            variant="secondary"
             aria-label="Open test case actions"
             aria-haspopup="menu"
             aria-expanded={isOpen}
@@ -52,6 +58,7 @@ export function CaseActionsMenu({
           </Button>
         }
       >
+          <PopoverMenuLabel>Open</PopoverMenuLabel>
           <Link
             to="/test/$testId"
             params={{ testId: testId.toString() }}
@@ -69,6 +76,8 @@ export function CaseActionsMenu({
           >
             Edit
           </Link>
+          <PopoverMenuSeparator />
+          <PopoverMenuLabel>Actions</PopoverMenuLabel>
           <PopoverMenuItem
             disabled={isPending}
             onClick={onDuplicate}
@@ -77,6 +86,8 @@ export function CaseActionsMenu({
           </PopoverMenuItem>
           {isArchived ? (
             <>
+              <PopoverMenuSeparator />
+              <PopoverMenuLabel>Lifecycle</PopoverMenuLabel>
               <PopoverMenuItem
                 disabled={isPending}
                 onClick={onRestore}
@@ -93,13 +104,17 @@ export function CaseActionsMenu({
               </PopoverMenuItem>
             </>
           ) : (
-            <PopoverMenuItem
-              disabled={isPending}
-              onClick={onArchive}
-              tone="warning"
-            >
-              Archive
-            </PopoverMenuItem>
+            <>
+              <PopoverMenuSeparator />
+              <PopoverMenuLabel>Lifecycle</PopoverMenuLabel>
+              <PopoverMenuItem
+                disabled={isPending}
+                onClick={onArchive}
+                tone="warning"
+              >
+                Archive
+              </PopoverMenuItem>
+            </>
           )}
       </PopoverMenu>
     </div>

@@ -2,9 +2,15 @@ import { type DragEvent, type FormEvent } from 'react'
 import { Alert } from '../ui/Alert'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
+import { ConfirmActionAlert } from '../ui/ConfirmActionAlert'
 import { EmptyState } from '../ui/EmptyState'
 import { Input } from '../ui/Input'
-import { PopoverMenu, PopoverMenuItem } from '../ui/PopoverMenu'
+import {
+  PopoverMenu,
+  PopoverMenuItem,
+  PopoverMenuLabel,
+  PopoverMenuSeparator,
+} from '../ui/PopoverMenu'
 import { SelectMenu } from '../ui/SelectMenu'
 import {
   CaseRow,
@@ -283,7 +289,7 @@ export function SuiteSection({
             label: priority,
           }))}
           disabled={isPending}
-          className={`tms-chip w-fit border-0 outline-none ${getQuickCreatePriorityChipClass(quickCreatePriority)}`}
+          className={`tms-inline-select w-fit border-0 outline-none ${getQuickCreatePriorityChipClass(quickCreatePriority)}`}
           aria-label="Choose new case priority"
         />
         <SelectMenu
@@ -294,7 +300,7 @@ export function SuiteSection({
             label: caseType,
           }))}
           disabled={isPending}
-          className="tms-chip w-fit border-0 outline-none"
+          className="tms-inline-select tms-inline-select-neutral w-fit border-0 outline-none"
           aria-label="Choose new case type"
         />
         <span className="text-sm font-semibold text-[var(--tms-text-soft)]">-</span>
@@ -309,7 +315,7 @@ export function SuiteSection({
             label: status,
           }))}
           disabled={isPending}
-          className={`tms-chip w-fit border-0 outline-none ${getQuickCreateStatusChipClass(quickCreateStatus)}`}
+          className={`tms-inline-select w-fit border-0 outline-none ${getQuickCreateStatusChipClass(quickCreateStatus)}`}
           aria-label="Choose new case status"
         />
         <div className="flex justify-end gap-2">
@@ -424,6 +430,7 @@ export function SuiteSection({
               trigger={
                 <Button
                   disabled={isPendingSuiteAction}
+                  variant="secondary"
                   aria-label="Open suite actions"
                   aria-haspopup="menu"
                   aria-expanded={isMenuOpen}
@@ -431,7 +438,8 @@ export function SuiteSection({
                   ...
                 </Button>
               }
-            >
+              >
+                <PopoverMenuLabel>Suite</PopoverMenuLabel>
               <PopoverMenuItem
                 onClick={() => onStartRenameSuite(section.id, section.name)}
               >
@@ -440,6 +448,8 @@ export function SuiteSection({
               <PopoverMenuItem onClick={() => onToggleCollapsed(section.id)}>
                 {isCollapsed ? 'Expand' : 'Collapse'}
               </PopoverMenuItem>
+              <PopoverMenuSeparator />
+              <PopoverMenuLabel>Lifecycle</PopoverMenuLabel>
               <PopoverMenuItem
                 onClick={() => onRequestDeleteSuite(section.id)}
                 tone="danger"
@@ -453,29 +463,16 @@ export function SuiteSection({
 
       {isDeleteConfirming ? (
         <div className="border-b border-[var(--tms-border-subtle)] px-5 py-4">
-          <Alert
-            variant="warning"
+          <ConfirmActionAlert
             title="Delete this suite?"
-            action={
-              <>
-              <Button
-                disabled={isPendingSuiteAction}
-                onClick={() => onConfirmDeleteSuite(section.id)}
-                variant="danger"
-                className="bg-[var(--tms-danger-soft)]"
-              >
-                Confirm delete
-              </Button>
-              <Button
-                onClick={onCancelDeleteSuite}
-              >
-                Cancel
-              </Button>
-              </>
-            }
-          >
-            This only works when the suite has no test cases.
-          </Alert>
+            description="This only works when the suite has no test cases."
+            confirmLabel="Delete empty suite"
+            pendingLabel="Deleting..."
+            confirmVariant="danger"
+            isPending={isPendingSuiteAction}
+            onCancel={onCancelDeleteSuite}
+            onConfirm={() => onConfirmDeleteSuite(section.id)}
+          />
         </div>
       ) : null}
 

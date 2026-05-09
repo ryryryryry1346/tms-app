@@ -23,6 +23,11 @@ type PopoverMenuItemProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   tone?: 'default' | 'success' | 'warning' | 'danger'
 }
 
+type PopoverMenuLabelProps = {
+  children: ReactNode
+  className?: string
+}
+
 function getItemToneClass(tone: NonNullable<PopoverMenuItemProps['tone']>): string {
   if (tone === 'success') {
     return 'text-[var(--tms-success)] hover:bg-[var(--tms-success-soft)]'
@@ -98,4 +103,15 @@ export function PopoverMenuItem({
       {...props}
     />
   )
+}
+
+export function PopoverMenuLabel({
+  children,
+  className,
+}: PopoverMenuLabelProps) {
+  return <div className={cx('tms-popover-label', className)}>{children}</div>
+}
+
+export function PopoverMenuSeparator() {
+  return <div className="tms-popover-separator" />
 }

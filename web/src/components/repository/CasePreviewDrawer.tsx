@@ -1,7 +1,9 @@
 import { Link } from '@tanstack/react-router'
+import { useState } from 'react'
 import { RichTextEditor } from '../RichTextEditor'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
+import { ConfirmActionAlert } from '../ui/ConfirmActionAlert'
 import { Panel } from '../ui/Panel'
 
 type PreviewCase = {
@@ -107,6 +109,8 @@ export function CasePreviewDrawer({
   onArchive,
   formatDateTime,
 }: CasePreviewDrawerProps) {
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false)
+
   return (
     <div className="fixed inset-0 z-40">
       <button
@@ -117,23 +121,26 @@ export function CasePreviewDrawer({
       />
       <aside className="absolute right-0 top-0 flex h-full w-full max-w-[560px] flex-col border-l border-[var(--tms-border)] bg-[var(--tms-surface)] shadow-[var(--tms-shadow-drawer)]">
         <div className="border-b border-[var(--tms-border-subtle)] px-6 py-5">
-          <div className="mb-4 flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="tms-kicker m-0">
+          <div className="tms-transient-header">
+            <div className="tms-transient-header__copy">
+              <p className="tms-transient-header__eyebrow">
                 Case #{test.id}
               </p>
-              <h2 className="m-0 mt-2 text-2xl font-bold leading-tight text-[var(--tms-text)]">
+              <h2 className="tms-transient-header__title">
                 {test.title}
               </h2>
             </div>
-            <Button
-              type="button"
-              onClick={onClose}
-            >
-              Close
-            </Button>
+            <div className="tms-transient-header__actions">
+              <Button
+                type="button"
+                onClick={onClose}
+                variant="secondary"
+              >
+                Close
+              </Button>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2 text-xs font-semibold">
+          <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
             <Badge variant="primary">
               {suite?.name ?? 'No suite'}
             </Badge>
@@ -171,23 +178,27 @@ export function CasePreviewDrawer({
             </div>
           ) : (
             <>
-              <section className="mb-5">
-                <h3 className="tms-kicker m-0 text-sm">
-                  Steps
-                </h3>
+              <section className="editing-rich-block mb-5">
+                <div className="editing-rich-block__content">
+                  <h3 className="tms-transient-header__eyebrow m-0">
+                    Steps
+                  </h3>
+                </div>
                 <div
-                  className="rich-output prose prose-sm mt-3 max-w-none text-[var(--tms-text)]"
+                  className="editing-rich-block__content rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
                   onClick={onRichContentClick}
                   dangerouslySetInnerHTML={{ __html: test.steps || '<p>-</p>' }}
                 />
               </section>
 
-              <section>
-                <h3 className="tms-kicker m-0 text-sm">
-                  Expected result
-                </h3>
+              <section className="editing-rich-block">
+                <div className="editing-rich-block__content">
+                  <h3 className="tms-transient-header__eyebrow m-0">
+                    Expected result
+                  </h3>
+                </div>
                 <div
-                  className="rich-output prose prose-sm mt-3 max-w-none text-[var(--tms-text)]"
+                  className="editing-rich-block__content rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
                   onClick={onRichContentClick}
                   dangerouslySetInnerHTML={{ __html: test.expected || '<p>-</p>' }}
                 />
@@ -229,7 +240,24 @@ export function CasePreviewDrawer({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 border-t border-[var(--tms-border-subtle)] px-6 py-4">
+        <div className="border-t border-[var(--tms-border-subtle)] px-6 py-4">
+          {showArchiveConfirm ? (
+            <ConfirmActionAlert
+              className="mb-3"
+              title="Archive this test case?"
+              description="The case will leave the active repository and can be restored later from the Archived filter."
+              confirmLabel="Archive test case"
+              pendingLabel="Archiving..."
+              confirmVariant="primary"
+              isPending={isPendingAction}
+              onCancel={() => setShowArchiveConfirm(false)}
+              onConfirm={() => {
+                onArchive()
+                setShowArchiveConfirm(false)
+              }}
+            />
+          ) : null}
+          <div className="tms-transient-footer">
           {isEditingContent ? (
             <>
               <Button
@@ -244,6 +272,7 @@ export function CasePreviewDrawer({
                 type="button"
                 disabled={isSavingContent}
                 onClick={onCancelEdit}
+                variant="secondary"
               >
                 Cancel
               </Button>
@@ -260,14 +289,14 @@ export function CasePreviewDrawer({
           <Link
             to="/edit-test/$testId"
             params={{ testId: test.id.toString() }}
-            className="tms-button no-underline"
+            className="tms-button tms-button-secondary no-underline"
           >
             Full editor
           </Link>
           <Link
             to="/test/$testId"
             params={{ testId: test.id.toString() }}
-            className="tms-button no-underline"
+            className="tms-button tms-button-secondary no-underline"
           >
             Open full page
           </Link>
@@ -276,7 +305,7 @@ export function CasePreviewDrawer({
               type="button"
               disabled={isPendingAction}
               onClick={onRestore}
-              variant="success"
+              variant="secondary"
             >
               Restore
             </Button>
@@ -284,12 +313,13 @@ export function CasePreviewDrawer({
             <Button
               type="button"
               disabled={isPendingAction}
-              onClick={onArchive}
-              variant="warning"
+              onClick={() => setShowArchiveConfirm(true)}
+              variant="secondary"
             >
               Archive
             </Button>
           )}
+          </div>
         </div>
       </aside>
     </div>
