@@ -79,6 +79,10 @@ function isDeepShellPath(pathname: string): boolean {
   )
 }
 
+function shouldShowWorkingContext(pathname: string): boolean {
+  return pathname.startsWith('/test/') || pathname.startsWith('/run/')
+}
+
 function getHeaderCopy(pathname: string): { label: string; title: string } {
   if (pathname === '/') {
     return { label: 'Workspace', title: 'Projects' }
@@ -521,7 +525,8 @@ export default function AppShell({ user, children }: AppShellProps) {
         }
       : null,
   ].filter(Boolean) as ContextRow[]
-  const showWorkingContext = isDeepFlow && contextRows.length > 0
+  const showWorkingContext =
+    isDeepFlow && shouldShowWorkingContext(pathname) && contextRows.length > 0
   const contextActions = getContextActions(pathname, shellContext)
 
   async function handleLogout(): Promise<void> {
