@@ -697,6 +697,60 @@ pre code {
   min-height: 3.5rem;
 }
 
+.overview-summary-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  box-shadow: var(--tms-shadow-subtle);
+}
+
+.overview-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1.65fr) minmax(280px, 0.8fr);
+}
+
+.overview-main-column,
+.overview-side-column {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.overview-panel {
+  box-shadow: var(--tms-shadow-subtle);
+}
+
+.overview-suite-grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.overview-suite-card {
+  min-height: 3.75rem;
+}
+
+.overview-list-row {
+  display: block;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: var(--tms-radius-overlay);
+  background: var(--tms-surface-soft);
+  padding: 0.65rem 0.85rem;
+}
+
+@media (max-width: 1100px) {
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .overview-suite-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .tms-popover {
   z-index: 50;
   min-width: 11rem;

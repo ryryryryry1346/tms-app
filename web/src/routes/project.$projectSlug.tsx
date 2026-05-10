@@ -11,7 +11,6 @@ import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHea
 import { Badge } from '../components/ui/Badge'
 import { EmptyState } from '../components/ui/EmptyState'
 import { LinkButton } from '../components/ui/LinkButton'
-import { MetricCard } from '../components/ui/MetricCard'
 import { Panel } from '../components/ui/Panel'
 import { getRunsForProject } from '../features/runs/server'
 import { getDashboardState } from '../features/tests/server'
@@ -102,7 +101,7 @@ function ProjectOverviewPage() {
   ).length
   const projectSlug = project.slug ?? project.id.toString()
   const recentRuns = [...runs].sort((a, b) => b.id - a.id).slice(0, 3)
-  const recentCases = [...dashboard.tests].sort((a, b) => b.id - a.id).slice(0, 5)
+  const recentCases = [...dashboard.tests].sort((a, b) => b.id - a.id).slice(0, 3)
 
   return (
     <main className="workspace-view">
@@ -131,43 +130,50 @@ function ProjectOverviewPage() {
             }
           />
 
-          <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          {[
-            { label: 'Suites', value: dashboard.sections.length, tone: 'primary' as const },
-            { label: 'Cases', value: activeTests.length, tone: 'primary' as const },
-            { label: 'Ready', value: readyCases, tone: 'success' as const },
-            { label: 'Draft', value: draftCases, tone: 'muted' as const },
-            { label: 'Runs', value: runs.length, tone: 'danger' as const },
-          ].map((item) => (
-            <MetricCard
-              key={item.label}
-              label={item.label}
-              value={item.value}
-              tone={item.tone}
-              density="compact"
-            />
-          ))}
+          <section className="repository-summary-strip overview-summary-strip">
+            {[
+              { label: 'Suites', value: dashboard.sections.length },
+              { label: 'Cases', value: activeTests.length },
+              { label: 'Ready', value: readyCases },
+              { label: 'Draft', value: draftCases },
+              { label: 'Runs', value: runs.length },
+            ].map((item) => (
+              <Badge
+                key={item.label}
+                className="repository-summary-strip__chip"
+                variant={
+                  item.label === 'Ready'
+                    ? 'runPassed'
+                    : item.label === 'Runs'
+                      ? 'primary'
+                      : 'default'
+                }
+              >
+                {item.value} {item.label}
+              </Badge>
+            ))}
           </section>
 
-          <section className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
-          <div className="grid gap-6">
-            <Panel className="px-6 py-5">
+          <section className="overview-grid">
+          <div className="overview-main-column">
+            <Panel className="overview-panel px-4 py-3">
               <WorkspaceSectionHeader
+                dense
                 title="Repository health"
                 description="Snapshot of suite structure and test case readiness."
                 actions={
                   <Link
                     to="/project/$projectSlug/repository"
                     params={{ projectSlug }}
-                    className="tms-button no-underline"
+                    className="tms-button min-h-0 px-2.5 py-1 text-xs no-underline"
                   >
                     Open repository
                   </Link>
                 }
-                className="mb-5"
+                className="mb-3"
               />
 
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="overview-suite-grid">
                 {dashboard.sections.map((section) => {
                   const suiteTests = activeTests.filter(
                     (test) => test.sectionId === section.id,
@@ -179,12 +185,12 @@ function ProjectOverviewPage() {
                   return (
                     <Panel
                       key={section.id}
-                      className="rounded-2xl border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-5 py-4 shadow-none"
+                      className="overview-suite-card rounded-[var(--tms-radius-overlay)] border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-3 py-2 shadow-none"
                     >
-                      <div className="text-lg font-semibold text-[var(--tms-text)]">
+                      <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
                         {section.name}
                       </div>
-                      <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-[var(--tms-text-muted)]">
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[var(--tms-text-muted)]">
                         <span>{suiteTests.length} cases</span>
                         <span>Ready {suiteReady}</span>
                         <span>Draft {suiteTests.length - suiteReady}</span>
@@ -195,8 +201,9 @@ function ProjectOverviewPage() {
               </div>
             </Panel>
 
-            <Panel className="px-6 py-5">
+            <Panel className="overview-panel px-4 py-3">
               <WorkspaceSectionHeader
+                dense
                 title="Recent test cases"
                 description="Latest created cases across the project repository."
                 meta={
@@ -204,7 +211,7 @@ function ProjectOverviewPage() {
                     {archivedCases} archived
                   </Badge>
                 }
-                className="mb-5"
+                className="mb-3"
               />
 
               {recentCases.length === 0 ? (
@@ -213,7 +220,7 @@ function ProjectOverviewPage() {
                   description="Newly created test cases will appear here."
                 />
               ) : (
-                <div className="grid gap-3">
+                <div className="grid gap-2">
                   {recentCases.map((test) => {
                     const suite =
                       dashboard.sections.find((section) => section.id === test.sectionId) ??
@@ -224,18 +231,18 @@ function ProjectOverviewPage() {
                         key={test.id}
                         to="/test/$testId"
                         params={{ testId: test.id.toString() }}
-                        className="rounded-2xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-5 py-4 no-underline transition hover:border-[var(--tms-primary-border)]"
+                        className="overview-list-row no-underline transition hover:border-[var(--tms-primary-border)]"
                       >
-                        <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
-                            <div className="text-lg font-semibold text-[var(--tms-text)]">
+                            <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
                               #{test.id} {test.title}
                             </div>
-                            <div className="mt-1 text-sm text-[var(--tms-text-muted)]">
+                            <div className="mt-0.5 text-xs text-[var(--tms-text-muted)]">
                               {suite?.name ?? 'No suite'} / {test.status ?? 'Draft'}
                             </div>
                           </div>
-                          <span className="text-sm font-semibold text-[var(--tms-primary)]">
+                          <span className="shrink-0 text-xs font-semibold text-[var(--tms-primary)]">
                             Open
                           </span>
                         </div>
@@ -247,15 +254,16 @@ function ProjectOverviewPage() {
             </Panel>
           </div>
 
-          <div className="grid gap-6">
-            <Panel className="px-6 py-5">
+          <div className="overview-side-column">
+            <Panel className="overview-panel px-4 py-3">
               <WorkspaceSectionHeader
+                dense
                 title="Recent runs"
                 description="Latest execution activity for this project."
-                className="mb-5"
+                className="mb-3"
               />
 
-              <div className="grid gap-3">
+              <div className="grid gap-2">
                 {recentRuns.length === 0 ? (
                   <EmptyState
                     title="No runs yet"
@@ -267,47 +275,15 @@ function ProjectOverviewPage() {
                       key={run.id}
                       to="/run/$runId"
                       params={{ runId: run.id.toString() }}
-                      className="rounded-2xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-5 py-4 no-underline transition hover:border-[var(--tms-primary-border)]"
+                      className="overview-list-row no-underline transition hover:border-[var(--tms-primary-border)]"
                     >
-                      <div className="text-lg font-semibold text-[var(--tms-text)]">
+                      <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
                         {run.name}
                       </div>
-                      <div className="mt-1 text-sm text-[var(--tms-text-muted)]">Run ID: {run.id}</div>
+                      <div className="mt-0.5 text-xs text-[var(--tms-text-muted)]">Run ID: {run.id}</div>
                     </Link>
                   ))
                 )}
-              </div>
-            </Panel>
-
-            <Panel className="px-6 py-5">
-              <WorkspaceSectionHeader
-                title="Quick actions"
-                description="Jump straight into the most common project workflows."
-                className="mb-5"
-              />
-
-              <div className="grid gap-3">
-                <Link
-                  to="/project/$projectSlug/repository"
-                  params={{ projectSlug: project.slug ?? project.id.toString() }}
-                  className="tms-button no-underline"
-                >
-                  Manage suites and cases
-                </Link>
-                <Link
-                  to="/create-test"
-                  search={{ projectId: project.id }}
-                  className="tms-button no-underline"
-                >
-                  Create test case
-                </Link>
-                <Link
-                  to="/project/$projectSlug/runs"
-                  params={{ projectSlug: project.slug ?? project.id.toString() }}
-                  className="tms-button tms-button-primary no-underline"
-                >
-                  Start or continue runs
-                </Link>
               </div>
             </Panel>
           </div>
