@@ -102,7 +102,13 @@ function formatDate(value: string | null): string {
     return 'Never'
   }
 
-  return new Date(value).toLocaleDateString()
+  const [year, month, day] = value.slice(0, 10).split('-')
+
+  if (!year || !month || !day) {
+    return value.slice(0, 10)
+  }
+
+  return `${day}.${month}.${year}`
 }
 
 function ProjectDocDetailPage() {
