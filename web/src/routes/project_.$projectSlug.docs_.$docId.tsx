@@ -1,6 +1,5 @@
 import { createFileRoute, notFound, redirect, useNavigate, useRouter } from '@tanstack/react-router'
-import { useState } from 'react'
-import { RichTextEditor } from '../components/RichTextEditor'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Alert } from '../components/ui/Alert'
@@ -9,13 +8,24 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { LinkButton } from '../components/ui/LinkButton'
 import { Panel } from '../components/ui/Panel'
-import { SelectMenu } from '../components/ui/SelectMenu'
 import {
   deleteProjectDoc,
   getProjectDocDetail,
   updateProjectDoc,
 } from '../features/docs/server'
 import { uploadTestMedia } from '../features/media/server'
+
+const RichTextEditor = lazy(() =>
+  import('../components/RichTextEditor').then((module) => ({
+    default: module.RichTextEditor,
+  })),
+)
+
+const SelectMenu = lazy(() =>
+  import('../components/ui/SelectMenu').then((module) => ({
+    default: module.SelectMenu,
+  })),
+)
 
 const DOC_CATEGORIES = [
   'General',
@@ -26,7 +36,7 @@ const DOC_CATEGORIES = [
   'Release',
 ]
 
-export const Route = createFileRoute('/project/$projectSlug/docs_/$docId')({
+export const Route = createFileRoute('/project_/$projectSlug/docs_/$docId')({
   loader: async ({ params }) => {
     const projectSlug = params.projectSlug.trim()
     const docId = Number(params.docId)
@@ -75,6 +85,14 @@ function formatDate(value: string | null): string {
   return `${day}.${month}.${year}`
 }
 
+function prepareDocContentHtml(content: string): string {
+  return content
+    .replace(/<img(?![^>]*\bloading=)([^>]*)>/gi, '<img loading="lazy"$1>')
+    .replace(/<img(?![^>]*\bdecoding=)([^>]*)>/gi, '<img decoding="async"$1>')
+    .replace(/<video(?![^>]*\bpreload=)([^>]*)>/gi, '<video preload="metadata"$1>')
+    .replace(/<iframe(?![^>]*\bloading=)([^>]*)>/gi, '<iframe loading="lazy"$1>')
+}
+
 function ProjectDocDetailPage() {
   const { project, doc } = Route.useLoaderData()
   const router = useRouter()
@@ -91,6 +109,10 @@ function ProjectDocDetailPage() {
   const [isUploading, setIsUploading] = useState(false)
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const readableContentHtml = useMemo(
+    () => prepareDocContentHtml(content),
+    [content],
+  )
 
   async function uploadMedia(file: File): Promise<string> {
     setErrorMessage(null)
@@ -283,25 +305,35 @@ function ProjectDocDetailPage() {
                   </label>
                   <label className="grid gap-1.5 text-sm font-semibold text-[var(--tms-text)]">
                     Category
-                    <SelectMenu
-                      value={category}
-                      options={DOC_CATEGORIES.map((item) => ({
-                        value: item,
-                        label: item,
-                      }))}
-                      onValueChange={setCategory}
-                    />
+                    <Suspense fallback={<Input value={category} readOnly />}>
+                      <SelectMenu
+                        value={category}
+                        options={DOC_CATEGORIES.map((item) => ({
+                          value: item,
+                          label: item,
+                        }))}
+                        onValueChange={setCategory}
+                      />
+                    </Suspense>
                   </label>
                 </div>
 
-                <RichTextEditor
-                  label="Content"
-                  placeholder="Add steps, commands, links, endpoint notes, screenshots, or support instructions..."
-                  value={content}
-                  onChange={setContent}
-                  onUploadMedia={uploadMedia}
-                  isUploading={isUploading}
-                />
+                <Suspense
+                  fallback={
+                    <div className="docs-content-view__empty">
+                      Loading editor...
+                    </div>
+                  }
+                >
+                  <RichTextEditor
+                    label="Content"
+                    placeholder="Add steps, commands, links, endpoint notes, screenshots, or support instructions..."
+                    value={content}
+                    onChange={setContent}
+                    onUploadMedia={uploadMedia}
+                    isUploading={isUploading}
+                  />
+                </Suspense>
               </>
             ) : (
               <article className="docs-content-view">
@@ -311,7 +343,7 @@ function ProjectDocDetailPage() {
                 {content.trim().length > 0 ? (
                   <div
                     className="docs-content-view__body"
-                    dangerouslySetInnerHTML={{ __html: content }}
+                    dangerouslySetInnerHTML={{ __html: readableContentHtml }}
                   />
                 ) : (
                   <div className="docs-content-view__empty">

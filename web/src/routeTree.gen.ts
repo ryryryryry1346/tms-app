@@ -25,7 +25,7 @@ import { Route as ProjectProjectSlugRepositoryRouteImport } from './routes/proje
 import { Route as ProjectProjectSlugReportsRouteImport } from './routes/project.$projectSlug.reports'
 import { Route as ProjectProjectSlugDocsRouteImport } from './routes/project.$projectSlug.docs'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as ProjectProjectSlugDocsDocIdRouteImport } from './routes/project.$projectSlug.docs_.$docId'
+import { Route as ProjectProjectSlugDocsDocIdRouteImport } from './routes/project_.$projectSlug.docs_.$docId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -111,9 +111,9 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 } as any)
 const ProjectProjectSlugDocsDocIdRoute =
   ProjectProjectSlugDocsDocIdRouteImport.update({
-    id: '/docs_/$docId',
-    path: '/docs/$docId',
-    getParentRoute: () => ProjectProjectSlugRoute,
+    id: '/project_/$projectSlug/docs_/$docId',
+    path: '/project/$projectSlug/docs/$docId',
+    getParentRoute: () => rootRouteImport,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -172,7 +172,7 @@ export interface FileRoutesById {
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
-  '/project/$projectSlug/docs_/$docId': typeof ProjectProjectSlugDocsDocIdRoute
+  '/project_/$projectSlug/docs_/$docId': typeof ProjectProjectSlugDocsDocIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -231,7 +231,7 @@ export interface FileRouteTypes {
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/repository'
     | '/project/$projectSlug/runs'
-    | '/project/$projectSlug/docs_/$docId'
+    | '/project_/$projectSlug/docs_/$docId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -247,6 +247,7 @@ export interface RootRouteChildren {
   RunRunIdRoute: typeof RunRunIdRoute
   TestTestIdRoute: typeof TestTestIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ProjectProjectSlugDocsDocIdRoute: typeof ProjectProjectSlugDocsDocIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -363,12 +364,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/project/$projectSlug/docs_/$docId': {
-      id: '/project/$projectSlug/docs_/$docId'
-      path: '/docs/$docId'
+    '/project_/$projectSlug/docs_/$docId': {
+      id: '/project_/$projectSlug/docs_/$docId'
+      path: '/project/$projectSlug/docs/$docId'
       fullPath: '/project/$projectSlug/docs/$docId'
       preLoaderRoute: typeof ProjectProjectSlugDocsDocIdRouteImport
-      parentRoute: typeof ProjectProjectSlugRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -378,7 +379,6 @@ interface ProjectProjectSlugRouteChildren {
   ProjectProjectSlugReportsRoute: typeof ProjectProjectSlugReportsRoute
   ProjectProjectSlugRepositoryRoute: typeof ProjectProjectSlugRepositoryRoute
   ProjectProjectSlugRunsRoute: typeof ProjectProjectSlugRunsRoute
-  ProjectProjectSlugDocsDocIdRoute: typeof ProjectProjectSlugDocsDocIdRoute
 }
 
 const ProjectProjectSlugRouteChildren: ProjectProjectSlugRouteChildren = {
@@ -386,7 +386,6 @@ const ProjectProjectSlugRouteChildren: ProjectProjectSlugRouteChildren = {
   ProjectProjectSlugReportsRoute: ProjectProjectSlugReportsRoute,
   ProjectProjectSlugRepositoryRoute: ProjectProjectSlugRepositoryRoute,
   ProjectProjectSlugRunsRoute: ProjectProjectSlugRunsRoute,
-  ProjectProjectSlugDocsDocIdRoute: ProjectProjectSlugDocsDocIdRoute,
 }
 
 const ProjectProjectSlugRouteWithChildren =
@@ -405,6 +404,7 @@ const rootRouteChildren: RootRouteChildren = {
   RunRunIdRoute: RunRunIdRoute,
   TestTestIdRoute: TestTestIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ProjectProjectSlugDocsDocIdRoute: ProjectProjectSlugDocsDocIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
