@@ -289,10 +289,10 @@ function RunDetailPage() {
 
   return (
     <main className="tms-page">
-      <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
-        <section className="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <div className="mx-auto max-w-[1680px] px-4 py-5 sm:px-6 lg:px-10">
+        <section className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className="mb-3 flex flex-wrap items-center gap-2 text-sm font-semibold text-[var(--tms-text-muted)]">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--tms-text-muted)]">
               <Link to="/" className="no-underline text-[var(--tms-primary)]">
                 Workspace
               </Link>
@@ -311,7 +311,7 @@ function RunDetailPage() {
               <span>/</span>
               <span>Run #{data.run.id}</span>
             </div>
-            <h1 className="m-0 text-4xl font-bold tracking-tight text-[var(--tms-text)]">
+            <h1 className="m-0 text-3xl font-semibold tracking-tight text-[var(--tms-text)]">
               {data.run.name}
             </h1>
           </div>
@@ -327,23 +327,23 @@ function RunDetailPage() {
           ) : null}
         </section>
 
-        <Panel className="sticky top-3 z-20 mb-5 bg-[var(--tms-surface)]/95 p-4 backdrop-blur">
-          <div className="grid gap-3 lg:grid-cols-[260px_minmax(0,1fr)]">
-            <div>
+        <Panel className="run-detail-summary sticky top-3 z-20 mb-4 bg-[var(--tms-surface)]/95 p-3 backdrop-blur">
+          <div className="grid gap-3 xl:grid-cols-[220px_minmax(0,1fr)]">
+            <div className="run-detail-progress">
               <div className="flex items-end justify-between gap-3">
                 <div>
                   <div className="tms-kicker">
                     Progress
                   </div>
-                  <div className="mt-1 text-3xl font-bold text-[var(--tms-text)]">
+                  <div className="mt-1 text-2xl font-semibold text-[var(--tms-text)]">
                     {progress}%
                   </div>
                 </div>
-                <div className="text-sm font-semibold text-[var(--tms-text-muted)]">
+                <div className="text-xs font-semibold text-[var(--tms-text-muted)]">
                   {executedCount}/{data.tests.length}
                 </div>
               </div>
-              <div className="tms-run-progress-track mt-3 h-2 overflow-hidden rounded-full">
+              <div className="tms-run-progress-track mt-2 h-1.5 overflow-hidden rounded-full">
                 <div
                   className="tms-run-progress-fill h-full rounded-full"
                   style={{ width: `${progress}%` }}
@@ -351,7 +351,7 @@ function RunDetailPage() {
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
               {[
                 { label: 'Passed', value: passedCount, className: 'text-[var(--run-passed-text)]' },
                 { label: 'Failed', value: failedCount, className: 'text-[var(--run-failed-text)]' },
@@ -360,12 +360,12 @@ function RunDetailPage() {
               ].map((item) => (
                 <Panel
                   key={item.label}
-                  className="rounded-[var(--tms-radius-overlay)] border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-3 shadow-none"
+                  className="run-detail-metric rounded-[var(--tms-radius-overlay)] border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-3 py-2 shadow-none"
                 >
-                  <div className="tms-kicker">
+                  <div className="tms-kicker text-[0.64rem]">
                     {item.label}
                   </div>
-                  <div className={`mt-1 text-2xl font-bold ${item.className}`}>
+                  <div className={`text-lg font-semibold ${item.className}`}>
                     {item.value}
                   </div>
                 </Panel>
@@ -373,13 +373,14 @@ function RunDetailPage() {
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--tms-border-subtle)] pt-4">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--tms-border-subtle)] pt-3">
             <div className="flex flex-wrap gap-2">
               {RUN_FILTERS.map((filter) => (
                 <Button
                   key={filter}
                   onClick={() => setRunFilter(filter)}
                   variant={runFilter === filter ? 'primary' : 'default'}
+                  size="sm"
                   className={
                     runFilter === filter
                       ? getRunResultChipClass(filter)
@@ -391,8 +392,8 @@ function RunDetailPage() {
               ))}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold text-[var(--tms-text-muted)]">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-xs font-semibold text-[var(--tms-text-muted)]">
                 {selectedTestIds.length} selected
               </span>
               {STATUS_ACTIONS.map((status) => (
@@ -403,6 +404,7 @@ function RunDetailPage() {
                   }}
                   disabled={selectedTestIds.length === 0 || isBulkUpdating}
                   variant="secondary"
+                  size="sm"
                   className={getRunResultChipClass(status)}
                 >
                   {status}
@@ -414,6 +416,7 @@ function RunDetailPage() {
                 }}
                 disabled={selectedTestIds.length === 0 || isBulkUpdating}
                 variant="secondary"
+                size="sm"
               >
                 Clear
               </Button>
@@ -426,6 +429,7 @@ function RunDetailPage() {
                     })
                   }
                   variant="primary"
+                  size="sm"
                 >
                   Next not run
                 </Button>
@@ -464,10 +468,10 @@ function RunDetailPage() {
                 meta={`${filteredTests.length} visible`}
               />
             </div>
-            <TableShell className="shadow-[var(--tms-shadow-panel)]">
+            <TableShell className="run-execution-table shadow-[var(--tms-shadow-panel)]">
             <TableHead
-              columns="44px 80px minmax(260px,1fr) 120px 250px 260px 92px"
-              minWidth="1180px"
+              columns="36px 64px minmax(300px,1fr) 108px 250px minmax(240px,0.85fr) 62px"
+              minWidth="1160px"
               padding="sm"
             >
               <div>
@@ -495,9 +499,10 @@ function RunDetailPage() {
                   ref={(node) => {
                     testRowRefs.current[test.id] = node
                   }}
-                  columns="44px 80px minmax(260px,1fr) 120px 250px 260px 92px"
-                  minWidth="1180px"
+                  columns="36px 64px minmax(300px,1fr) 108px 250px minmax(240px,0.85fr) 62px"
+                  minWidth="1160px"
                   padding="sm"
+                  className="run-execution-row"
                 >
                   <div>
                     <Checkbox
@@ -513,7 +518,7 @@ function RunDetailPage() {
                   >
                     #{test.id}
                   </Link>
-                  <div className="min-w-0 pr-4">
+                  <div className="min-w-0 pr-3">
                     <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
                       {test.title}
                     </div>
@@ -525,7 +530,7 @@ function RunDetailPage() {
                       {test.status ?? 'Not run'}
                     </Badge>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="run-result-actions">
                     {STATUS_ACTIONS.map((status) => (
                       <Button
                         key={status}
@@ -535,7 +540,7 @@ function RunDetailPage() {
                         }}
                         size="sm"
                         variant="secondary"
-                        className={`rounded-lg border px-2.5 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-55 ${getRunResultChipClass(status)}`}
+                        className={`run-result-button disabled:cursor-not-allowed disabled:opacity-55 ${getRunResultChipClass(status)}`}
                       >
                         {status}
                       </Button>
@@ -547,12 +552,12 @@ function RunDetailPage() {
                       }}
                       size="sm"
                       variant="secondary"
-                      className="rounded-lg border border-[var(--tms-border)] bg-[var(--tms-surface)] px-2.5 py-1 text-xs font-semibold text-[var(--tms-text-muted)]"
+                      className="run-result-button border-[var(--tms-border)] bg-[var(--tms-surface)] text-[var(--tms-text-muted)]"
                     >
                       Clear
                     </Button>
                   </div>
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-center gap-2">
                     <Textarea
                       value={commentByTestId[test.id] ?? ''}
                       onChange={(event) =>
@@ -561,10 +566,10 @@ function RunDetailPage() {
                           [test.id]: event.target.value,
                         }))
                       }
-                      rows={2}
+                      rows={1}
                       placeholder="Execution note"
                       size="sm"
-                      className="min-w-[180px] flex-1 rounded-xl"
+                      className="run-comment-input min-w-[170px] flex-1"
                     />
                     <Button
                       disabled={isCommentPending}
@@ -573,7 +578,7 @@ function RunDetailPage() {
                       }}
                       size="sm"
                       variant="secondary"
-                      className="rounded-lg border border-[var(--tms-border)] bg-[var(--tms-surface)] px-2.5 py-2 text-xs font-semibold text-[var(--tms-text-muted)]"
+                      className="run-save-comment-button border-[var(--tms-border)] bg-[var(--tms-surface)] text-[var(--tms-text-muted)]"
                     >
                       {isCommentPending ? '...' : 'Save'}
                     </Button>
