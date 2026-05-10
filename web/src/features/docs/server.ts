@@ -32,6 +32,10 @@ const projectDocsInput = z.object({
   projectId: z.number().int().positive(),
 })
 
+const projectDocInput = z.object({
+  docId: z.number().int().positive(),
+})
+
 const createProjectDocInput = z.object({
   projectId: z.number().int().positive(),
   title: z.string().trim().min(1).max(240),
@@ -86,6 +90,29 @@ export const getProjectDocs = createServerFn({ method: 'POST' })
     return {
       docs: docs.filter((doc) => doc.status !== 'Archived') as ProjectDoc[],
     }
+  })
+
+export const getProjectDoc = createServerFn({ method: 'POST' })
+  .inputValidator(projectDocInput)
+  .handler(async ({ data }): Promise<{ doc: ProjectDoc }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+    await ensureDocsServerDeps()
+
+    const db = getDb()
+    const rows = await db
+      .select()
+      .from(projectDocs)
+      .where(eq(projectDocs.id, data.docId))
+      .limit(1)
+
+    const doc = rows[0] as ProjectDoc | undefined
+
+    if (!doc || doc.status === 'Archived') {
+      throw notFound()
+    }
+
+    return { doc }
   })
 
 export const createProjectDoc = createServerFn({ method: 'POST' })

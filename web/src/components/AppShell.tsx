@@ -103,7 +103,7 @@ function getHeaderCopy(
     return { label: projectLabel, title: 'Runs' }
   }
 
-  if (pathname.startsWith('/project/') && pathname.endsWith('/docs')) {
+  if (pathname.startsWith('/project/') && pathname.includes('/docs')) {
     return { label: projectLabel, title: 'Docs' }
   }
 

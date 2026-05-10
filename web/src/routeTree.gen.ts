@@ -25,6 +25,7 @@ import { Route as ProjectProjectSlugRepositoryRouteImport } from './routes/proje
 import { Route as ProjectProjectSlugReportsRouteImport } from './routes/project.$projectSlug.reports'
 import { Route as ProjectProjectSlugDocsRouteImport } from './routes/project.$projectSlug.docs'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ProjectProjectSlugDocsDocIdRouteImport } from './routes/project.$projectSlug.docs.$docId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -108,6 +109,12 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectProjectSlugDocsDocIdRoute =
+  ProjectProjectSlugDocsDocIdRouteImport.update({
+    id: '/$docId',
+    path: '/$docId',
+    getParentRoute: () => ProjectProjectSlugDocsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -122,10 +129,11 @@ export interface FileRoutesByFullPath {
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRoute
+  '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRouteWithChildren
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
+  '/project/$projectSlug/docs/$docId': typeof ProjectProjectSlugDocsDocIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -140,10 +148,11 @@ export interface FileRoutesByTo {
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRoute
+  '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRouteWithChildren
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
+  '/project/$projectSlug/docs/$docId': typeof ProjectProjectSlugDocsDocIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -159,10 +168,11 @@ export interface FileRoutesById {
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRoute
+  '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRouteWithChildren
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
+  '/project/$projectSlug/docs/$docId': typeof ProjectProjectSlugDocsDocIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/repository'
     | '/project/$projectSlug/runs'
+    | '/project/$projectSlug/docs/$docId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/repository'
     | '/project/$projectSlug/runs'
+    | '/project/$projectSlug/docs/$docId'
   id:
     | '__root__'
     | '/'
@@ -219,6 +231,7 @@ export interface FileRouteTypes {
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/repository'
     | '/project/$projectSlug/runs'
+    | '/project/$projectSlug/docs/$docId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -350,18 +363,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/project/$projectSlug/docs/$docId': {
+      id: '/project/$projectSlug/docs/$docId'
+      path: '/$docId'
+      fullPath: '/project/$projectSlug/docs/$docId'
+      preLoaderRoute: typeof ProjectProjectSlugDocsDocIdRouteImport
+      parentRoute: typeof ProjectProjectSlugDocsRoute
+    }
   }
 }
 
+interface ProjectProjectSlugDocsRouteChildren {
+  ProjectProjectSlugDocsDocIdRoute: typeof ProjectProjectSlugDocsDocIdRoute
+}
+
+const ProjectProjectSlugDocsRouteChildren: ProjectProjectSlugDocsRouteChildren =
+  {
+    ProjectProjectSlugDocsDocIdRoute: ProjectProjectSlugDocsDocIdRoute,
+  }
+
+const ProjectProjectSlugDocsRouteWithChildren =
+  ProjectProjectSlugDocsRoute._addFileChildren(
+    ProjectProjectSlugDocsRouteChildren,
+  )
+
 interface ProjectProjectSlugRouteChildren {
-  ProjectProjectSlugDocsRoute: typeof ProjectProjectSlugDocsRoute
+  ProjectProjectSlugDocsRoute: typeof ProjectProjectSlugDocsRouteWithChildren
   ProjectProjectSlugReportsRoute: typeof ProjectProjectSlugReportsRoute
   ProjectProjectSlugRepositoryRoute: typeof ProjectProjectSlugRepositoryRoute
   ProjectProjectSlugRunsRoute: typeof ProjectProjectSlugRunsRoute
 }
 
 const ProjectProjectSlugRouteChildren: ProjectProjectSlugRouteChildren = {
-  ProjectProjectSlugDocsRoute: ProjectProjectSlugDocsRoute,
+  ProjectProjectSlugDocsRoute: ProjectProjectSlugDocsRouteWithChildren,
   ProjectProjectSlugReportsRoute: ProjectProjectSlugReportsRoute,
   ProjectProjectSlugRepositoryRoute: ProjectProjectSlugRepositoryRoute,
   ProjectProjectSlugRunsRoute: ProjectProjectSlugRunsRoute,

@@ -88,7 +88,7 @@ function ProjectOverviewPage() {
   if (
     location.pathname.endsWith('/runs') ||
     location.pathname.endsWith('/repository') ||
-    location.pathname.endsWith('/docs') ||
+    location.pathname.includes('/docs') ||
     location.pathname.endsWith('/reports')
   ) {
     return <Outlet />
