@@ -127,9 +127,6 @@ function ProjectRunsPage() {
   )
 
   const activeTests = dashboard.tests.filter((test) => test.status !== 'Archived')
-  const totalCases = activeTests.length
-  const totalSuites = dashboard.sections.length
-  const readyCases = activeTests.filter((test) => test.status === 'Ready').length
   const projectSlug = project.slug ?? project.id.toString()
   const selectedRunTestIds = useMemo(() => {
     if (runScope === 'all') {
@@ -261,23 +258,6 @@ function ProjectRunsPage() {
               </Button>
             }
           />
-
-          <section className="repository-summary-strip runs-summary-strip">
-            {[
-              { label: 'Suites', value: totalSuites },
-              { label: 'Cases', value: totalCases },
-              { label: 'Ready', value: readyCases },
-              { label: 'Runs', value: runs.length },
-            ].map((item) => (
-              <Badge
-                key={item.label}
-                className="repository-summary-strip__chip"
-                variant={item.label === 'Ready' ? 'runPassed' : 'default'}
-              >
-                {item.value} {item.label}
-              </Badge>
-            ))}
-          </section>
 
           <Panel className="runs-panel px-3 py-3 sm:px-4 sm:py-4">
           <WorkspaceSectionHeader

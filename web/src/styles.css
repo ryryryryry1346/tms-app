@@ -682,13 +682,6 @@ pre code {
   font-size: 0.75rem !important;
 }
 
-.runs-summary-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  box-shadow: var(--tms-shadow-subtle);
-}
-
 .runs-panel {
   box-shadow: var(--tms-shadow-subtle);
 }
