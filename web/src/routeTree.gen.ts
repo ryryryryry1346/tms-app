@@ -23,6 +23,7 @@ import { Route as EditTestTestIdRouteImport } from './routes/edit-test.$testId'
 import { Route as ProjectProjectSlugRunsRouteImport } from './routes/project.$projectSlug.runs'
 import { Route as ProjectProjectSlugRepositoryRouteImport } from './routes/project.$projectSlug.repository'
 import { Route as ProjectProjectSlugReportsRouteImport } from './routes/project.$projectSlug.reports'
+import { Route as ProjectProjectSlugDocsRouteImport } from './routes/project.$projectSlug.docs'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -97,6 +98,11 @@ const ProjectProjectSlugReportsRoute =
     path: '/reports',
     getParentRoute: () => ProjectProjectSlugRoute,
   } as any)
+const ProjectProjectSlugDocsRoute = ProjectProjectSlugDocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => ProjectProjectSlugRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRoute
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
@@ -133,6 +140,7 @@ export interface FileRoutesByTo {
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRoute
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRoute
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/run/$runId'
     | '/test/$testId'
     | '/api/auth/$'
+    | '/project/$projectSlug/docs'
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/repository'
     | '/project/$projectSlug/runs'
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/run/$runId'
     | '/test/$testId'
     | '/api/auth/$'
+    | '/project/$projectSlug/docs'
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/repository'
     | '/project/$projectSlug/runs'
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '/run/$runId'
     | '/test/$testId'
     | '/api/auth/$'
+    | '/project/$projectSlug/docs'
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/repository'
     | '/project/$projectSlug/runs'
@@ -324,6 +336,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectProjectSlugReportsRouteImport
       parentRoute: typeof ProjectProjectSlugRoute
     }
+    '/project/$projectSlug/docs': {
+      id: '/project/$projectSlug/docs'
+      path: '/docs'
+      fullPath: '/project/$projectSlug/docs'
+      preLoaderRoute: typeof ProjectProjectSlugDocsRouteImport
+      parentRoute: typeof ProjectProjectSlugRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -335,12 +354,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface ProjectProjectSlugRouteChildren {
+  ProjectProjectSlugDocsRoute: typeof ProjectProjectSlugDocsRoute
   ProjectProjectSlugReportsRoute: typeof ProjectProjectSlugReportsRoute
   ProjectProjectSlugRepositoryRoute: typeof ProjectProjectSlugRepositoryRoute
   ProjectProjectSlugRunsRoute: typeof ProjectProjectSlugRunsRoute
 }
 
 const ProjectProjectSlugRouteChildren: ProjectProjectSlugRouteChildren = {
+  ProjectProjectSlugDocsRoute: ProjectProjectSlugDocsRoute,
   ProjectProjectSlugReportsRoute: ProjectProjectSlugReportsRoute,
   ProjectProjectSlugRepositoryRoute: ProjectProjectSlugRepositoryRoute,
   ProjectProjectSlugRunsRoute: ProjectProjectSlugRunsRoute,

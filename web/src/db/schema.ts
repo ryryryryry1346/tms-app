@@ -184,6 +184,24 @@ export const testRunItems = mysqlTable(
   }),
 )
 
+export const projectDocs = mysqlTable(
+  'project_docs',
+  {
+    id: int('id').autoincrement().primaryKey(),
+    projectId: int('project_id').notNull(),
+    title: text('title').notNull(),
+    category: varchar('category', { length: 128 }),
+    content: text('content'),
+    status: varchar('status', { length: 64 }).notNull().default('Published'),
+    createdAt: varchar('created_at', { length: 32 }),
+    updatedAt: varchar('updated_at', { length: 32 }),
+  },
+  (table) => ({
+    projectIdIndex: index('project_docs_project_id_idx').on(table.projectId),
+    statusIndex: index('project_docs_status_idx').on(table.status),
+  }),
+)
+
 export type Project = typeof projects.$inferSelect
 export type NewProject = typeof projects.$inferInsert
 export type AuthUser = typeof user.$inferSelect

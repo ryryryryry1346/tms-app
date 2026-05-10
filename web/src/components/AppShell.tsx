@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-router'
 import {
   BarChart3,
+  BookOpenText,
   ChevronLeft,
   ChevronRight,
   CircleDot,
@@ -36,6 +37,7 @@ type NavItem = {
     | '/project/$projectSlug'
     | '/project/$projectSlug/repository'
     | '/project/$projectSlug/runs'
+    | '/project/$projectSlug/docs'
     | '/project/$projectSlug/reports'
   params?: {
     projectSlug: string
@@ -99,6 +101,10 @@ function getHeaderCopy(
 
   if (pathname.startsWith('/project/') && pathname.endsWith('/runs')) {
     return { label: projectLabel, title: 'Runs' }
+  }
+
+  if (pathname.startsWith('/project/') && pathname.endsWith('/docs')) {
+    return { label: projectLabel, title: 'Docs' }
   }
 
   if (pathname.startsWith('/project/') && pathname.endsWith('/reports')) {
@@ -376,6 +382,13 @@ export default function AppShell({ user, children }: AppShellProps) {
           matchPath: `/project/${projectSlug}/runs`,
           additionalMatchPaths: ['/run/'],
           icon: <PlayCircle size={16} strokeWidth={2} />,
+        },
+        {
+          label: 'Docs',
+          to: '/project/$projectSlug/docs',
+          params: { projectSlug },
+          matchPath: `/project/${projectSlug}/docs`,
+          icon: <BookOpenText size={16} strokeWidth={2} />,
         },
         {
           label: 'Reports',
