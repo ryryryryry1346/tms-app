@@ -83,41 +83,46 @@ function shouldShowWorkingContext(pathname: string): boolean {
   return pathname.startsWith('/test/') || pathname.startsWith('/run/')
 }
 
-function getHeaderCopy(pathname: string): { label: string; title: string } {
+function getHeaderCopy(
+  pathname: string,
+  shellContext: ShellContext | null,
+): { label: string; title: string } {
   if (pathname === '/') {
     return { label: 'Workspace', title: 'Projects' }
   }
 
+  const projectLabel = shellContext?.projectName ?? 'Project'
+
   if (pathname.startsWith('/project/') && pathname.endsWith('/repository')) {
-    return { label: 'Project', title: 'Repository' }
+    return { label: projectLabel, title: 'Repository' }
   }
 
   if (pathname.startsWith('/project/') && pathname.endsWith('/runs')) {
-    return { label: 'Project', title: 'Runs' }
+    return { label: projectLabel, title: 'Runs' }
   }
 
   if (pathname.startsWith('/project/') && pathname.endsWith('/reports')) {
-    return { label: 'Project', title: 'Reports' }
+    return { label: projectLabel, title: 'Reports' }
   }
 
   if (pathname.startsWith('/project/')) {
-    return { label: 'Project', title: 'Overview' }
+    return { label: projectLabel, title: 'Overview' }
   }
 
   if (pathname.startsWith('/run/')) {
-    return { label: 'Execution', title: 'Run detail' }
+    return { label: shellContext?.projectName ?? 'Execution', title: 'Run detail' }
   }
 
   if (pathname.startsWith('/test/')) {
-    return { label: 'Repository', title: 'Test case' }
+    return { label: shellContext?.projectName ?? 'Repository', title: 'Test case' }
   }
 
   if (pathname.startsWith('/create-test')) {
-    return { label: 'Repository', title: 'Create test case' }
+    return { label: shellContext?.projectName ?? 'Repository', title: 'Create test case' }
   }
 
   if (pathname.startsWith('/edit-test/')) {
-    return { label: 'Repository', title: 'Edit test case' }
+    return { label: shellContext?.projectName ?? 'Repository', title: 'Edit test case' }
   }
 
   return { label: 'Workspace', title: 'TMS' }
@@ -317,7 +322,7 @@ export default function AppShell({ user, children }: AppShellProps) {
   const isDeepFlow = isDeepShellPath(pathname)
   const isWorkspaceHome = pathname === '/'
   const showSidebar = !isWorkspaceHome
-  const headerCopy = getHeaderCopy(pathname)
+  const headerCopy = getHeaderCopy(pathname, shellContext)
 
   useEffect(() => {
     setIsMobileSidebarOpen(false)
