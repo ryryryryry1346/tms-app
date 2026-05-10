@@ -1,4 +1,4 @@
-import { createFileRoute, notFound, redirect, useRouter } from '@tanstack/react-router'
+import { createFileRoute, notFound, redirect, useNavigate, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
@@ -114,6 +114,7 @@ function formatDate(value: string | null): string {
 function ProjectDocDetailPage() {
   const { project, doc } = Route.useLoaderData()
   const router = useRouter()
+  const navigate = useNavigate()
   const projectSlug = project.slug ?? project.id.toString()
   const [title, setTitle] = useState(doc.title)
   const [category, setCategory] = useState(doc.category ?? 'General')
@@ -180,7 +181,7 @@ function ProjectDocDetailPage() {
         },
       })
 
-      await router.navigate({
+      await navigate({
         to: '/project/$projectSlug/docs',
         params: {
           projectSlug,

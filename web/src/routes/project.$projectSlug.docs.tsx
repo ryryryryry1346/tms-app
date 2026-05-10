@@ -1,4 +1,4 @@
-import { createFileRoute, notFound, redirect, useRouter } from '@tanstack/react-router'
+import { createFileRoute, notFound, redirect, useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
@@ -93,7 +93,7 @@ function formatDate(value: string | null): string {
 
 function ProjectDocsPage() {
   const { project, docs } = Route.useLoaderData()
-  const router = useRouter()
+  const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -125,7 +125,7 @@ function ProjectDocsPage() {
         },
       })
 
-      await router.navigate({
+      await navigate({
         to: '/project/$projectSlug/docs/$docId',
         params: {
           projectSlug,
@@ -136,6 +136,7 @@ function ProjectDocsPage() {
       setErrorMessage(
         error instanceof Error ? error.message : 'Failed to create article.',
       )
+    } finally {
       setIsCreating(false)
     }
   }
