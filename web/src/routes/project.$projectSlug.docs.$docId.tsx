@@ -116,9 +116,11 @@ function ProjectDocDetailPage() {
   const router = useRouter()
   const navigate = useNavigate()
   const projectSlug = project.slug ?? project.id.toString()
+  const isNewArticle = doc.title === 'Untitled article' && !doc.content
   const [title, setTitle] = useState(doc.title)
   const [category, setCategory] = useState(doc.category ?? 'General')
   const [content, setContent] = useState(doc.content ?? '')
+  const [isEditing, setIsEditing] = useState(isNewArticle)
   const [isSaving, setIsSaving] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -161,6 +163,7 @@ function ProjectDocDetailPage() {
       })
 
       await router.invalidate()
+      setIsEditing(false)
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : 'Failed to save documentation.',
@@ -220,8 +223,12 @@ function ProjectDocDetailPage() {
             <div className="docs-editor-header">
               <WorkspaceSectionHeader
                 dense
-                title="Article"
-                description="Edit the article content, metadata, and attachments."
+                title={isEditing ? 'Edit article' : 'Article'}
+                description={
+                  isEditing
+                    ? 'Edit the article content, metadata, and attachments.'
+                    : 'Read project knowledge without loading the full editor.'
+                }
                 meta={<Badge>Updated {formatDate(doc.updatedAt)}</Badge>}
               />
               <div className="flex flex-wrap items-center gap-2">
@@ -235,49 +242,96 @@ function ProjectDocDetailPage() {
                 >
                   Archive
                 </Button>
-                <Button
-                  onClick={() => {
-                    void handleSave()
-                  }}
-                  disabled={isSaving || title.trim().length === 0}
-                  variant="primary"
-                  size="sm"
-                >
-                  {isSaving ? 'Saving...' : 'Save article'}
-                </Button>
+                {isEditing ? (
+                  <>
+                    {!isNewArticle ? (
+                      <Button
+                        onClick={() => {
+                          setTitle(doc.title)
+                          setCategory(doc.category ?? 'General')
+                          setContent(doc.content ?? '')
+                          setIsEditing(false)
+                        }}
+                        disabled={isSaving}
+                        variant="secondary"
+                        size="sm"
+                      >
+                        Cancel
+                      </Button>
+                    ) : null}
+                    <Button
+                      onClick={() => {
+                        void handleSave()
+                      }}
+                      disabled={isSaving || title.trim().length === 0}
+                      variant="primary"
+                      size="sm"
+                    >
+                      {isSaving ? 'Saving...' : 'Save article'}
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    onClick={() => setIsEditing(true)}
+                    variant="primary"
+                    size="sm"
+                  >
+                    Edit article
+                  </Button>
+                )}
               </div>
             </div>
 
-            <div className="docs-fields">
-              <label className="grid gap-1.5 text-sm font-semibold text-[var(--tms-text)]">
-                Title
-                <Input
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  placeholder="Endpoints for monolith"
-                />
-              </label>
-              <label className="grid gap-1.5 text-sm font-semibold text-[var(--tms-text)]">
-                Category
-                <SelectMenu
-                  value={category}
-                  options={DOC_CATEGORIES.map((item) => ({
-                    value: item,
-                    label: item,
-                  }))}
-                  onValueChange={setCategory}
-                />
-              </label>
-            </div>
+            {isEditing ? (
+              <>
+                <div className="docs-fields">
+                  <label className="grid gap-1.5 text-sm font-semibold text-[var(--tms-text)]">
+                    Title
+                    <Input
+                      value={title}
+                      onChange={(event) => setTitle(event.target.value)}
+                      placeholder="Endpoints for monolith"
+                    />
+                  </label>
+                  <label className="grid gap-1.5 text-sm font-semibold text-[var(--tms-text)]">
+                    Category
+                    <SelectMenu
+                      value={category}
+                      options={DOC_CATEGORIES.map((item) => ({
+                        value: item,
+                        label: item,
+                      }))}
+                      onValueChange={setCategory}
+                    />
+                  </label>
+                </div>
 
-            <RichTextEditor
-              label="Content"
-              placeholder="Add steps, commands, links, endpoint notes, screenshots, or support instructions..."
-              value={content}
-              onChange={setContent}
-              onUploadMedia={uploadMedia}
-              isUploading={isUploading}
-            />
+                <RichTextEditor
+                  label="Content"
+                  placeholder="Add steps, commands, links, endpoint notes, screenshots, or support instructions..."
+                  value={content}
+                  onChange={setContent}
+                  onUploadMedia={uploadMedia}
+                  isUploading={isUploading}
+                />
+              </>
+            ) : (
+              <article className="docs-content-view">
+                <div className="docs-content-view__meta">
+                  <Badge>{category}</Badge>
+                </div>
+                {content.trim().length > 0 ? (
+                  <div
+                    className="docs-content-view__body"
+                    dangerouslySetInnerHTML={{ __html: content }}
+                  />
+                ) : (
+                  <div className="docs-content-view__empty">
+                    This article does not have content yet.
+                  </div>
+                )}
+              </article>
+            )}
           </Panel>
         </div>
       </div>

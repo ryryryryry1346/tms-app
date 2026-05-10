@@ -784,6 +784,53 @@ pre code {
   white-space: nowrap;
 }
 
+.docs-content-view {
+  display: grid;
+  gap: 1rem;
+}
+
+.docs-content-view__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.docs-content-view__body {
+  color: var(--tms-text);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+
+.docs-content-view__body p {
+  margin: 0 0 0.8rem;
+}
+
+.docs-content-view__body ul {
+  margin: 0 0 0.8rem;
+  padding-left: 1.35rem;
+  list-style: disc;
+}
+
+.docs-content-view__body ol {
+  margin: 0 0 0.8rem;
+  padding-left: 1.35rem;
+  list-style: decimal;
+}
+
+.docs-content-view__body li {
+  margin: 0.15rem 0;
+}
+
+.docs-content-view__empty {
+  border: 1px dashed var(--tms-border-subtle);
+  border-radius: var(--tms-radius-overlay);
+  background: var(--tms-surface-soft);
+  color: var(--tms-text-muted);
+  padding: 1rem;
+  font-size: 0.875rem;
+}
+
 .docs-editor-header {
   display: flex;
   flex-wrap: wrap;
