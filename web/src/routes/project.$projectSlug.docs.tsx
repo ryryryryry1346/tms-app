@@ -1,9 +1,7 @@
 import {
-  Outlet,
   createFileRoute,
   notFound,
   redirect,
-  useLocation,
 } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
@@ -102,16 +100,11 @@ function formatDate(value: string | null): string {
 
 function ProjectDocsPage() {
   const { project, docs } = Route.useLoaderData()
-  const location = useLocation()
   const [articleDocs, setArticleDocs] = useState(docs)
   const [query, setQuery] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const projectSlug = project.slug ?? project.id.toString()
-
-  if (location.pathname.includes('/docs/')) {
-    return <Outlet />
-  }
 
   const filteredDocs = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()

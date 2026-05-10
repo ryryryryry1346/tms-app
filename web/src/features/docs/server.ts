@@ -36,6 +36,11 @@ const projectDocInput = z.object({
   docId: z.number().int().positive(),
 })
 
+const projectDocDetailInput = z.object({
+  projectSlug: z.string().trim().min(1),
+  docId: z.number().int().positive(),
+})
+
 const createProjectDocInput = z.object({
   projectId: z.number().int().positive(),
   title: z.string().trim().min(1).max(240),
@@ -50,7 +55,7 @@ const updateProjectDocInput = z.object({
   content: z.string().max(65_000).optional(),
 })
 
-const archiveProjectDocInput = z.object({
+const deleteProjectDocInput = z.object({
   docId: z.number().int().positive(),
 })
 
@@ -63,6 +68,13 @@ export type ProjectDoc = {
   status: string
   createdAt: string | null
   updatedAt: string | null
+}
+
+export type ProjectDocProject = {
+  id: number
+  name: string
+  slug: string | null
+  status: string | null
 }
 
 function nowIso(): string {
@@ -114,6 +126,50 @@ export const getProjectDoc = createServerFn({ method: 'POST' })
 
     return { doc }
   })
+
+export const getProjectDocDetail = createServerFn({ method: 'POST' })
+  .inputValidator(projectDocDetailInput)
+  .handler(
+    async ({
+      data,
+    }): Promise<{ project: ProjectDocProject; doc: ProjectDoc }> => {
+      const { requireSessionUser } = await import('../auth/helpers.server')
+      await requireSessionUser()
+      await ensureDocsServerDeps()
+
+      const db = getDb()
+      const numericProjectId = Number(data.projectSlug)
+      const projectRows = await db
+        .select()
+        .from(projects)
+        .where(
+          Number.isInteger(numericProjectId) && numericProjectId > 0
+            ? eq(projects.id, numericProjectId)
+            : eq(projects.slug, data.projectSlug),
+        )
+        .limit(1)
+
+      const project = projectRows[0] as ProjectDocProject | undefined
+
+      if (!project) {
+        throw notFound()
+      }
+
+      const docRows = await db
+        .select()
+        .from(projectDocs)
+        .where(eq(projectDocs.id, data.docId))
+        .limit(1)
+
+      const doc = docRows[0] as ProjectDoc | undefined
+
+      if (!doc || doc.status === 'Archived' || doc.projectId !== project.id) {
+        throw notFound()
+      }
+
+      return { project, doc }
+    },
+  )
 
 export const createProjectDoc = createServerFn({ method: 'POST' })
   .inputValidator(createProjectDocInput)
@@ -170,21 +226,15 @@ export const updateProjectDoc = createServerFn({ method: 'POST' })
     return { ok: true }
   })
 
-export const archiveProjectDoc = createServerFn({ method: 'POST' })
-  .inputValidator(archiveProjectDocInput)
+export const deleteProjectDoc = createServerFn({ method: 'POST' })
+  .inputValidator(deleteProjectDocInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
     await ensureDocsServerDeps()
 
     const db = getDb()
-    await db
-      .update(projectDocs)
-      .set({
-        status: 'Archived',
-        updatedAt: nowIso(),
-      })
-      .where(eq(projectDocs.id, data.docId))
+    await db.delete(projectDocs).where(eq(projectDocs.id, data.docId))
 
     return { ok: true }
   })

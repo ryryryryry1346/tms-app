@@ -11,12 +11,11 @@ import { LinkButton } from '../components/ui/LinkButton'
 import { Panel } from '../components/ui/Panel'
 import { SelectMenu } from '../components/ui/SelectMenu'
 import {
-  archiveProjectDoc,
-  getProjectDoc,
+  deleteProjectDoc,
+  getProjectDocDetail,
   updateProjectDoc,
 } from '../features/docs/server'
 import { uploadTestMedia } from '../features/media/server'
-import { getDashboardState } from '../features/tests/server'
 
 const DOC_CATEGORIES = [
   'General',
@@ -27,7 +26,7 @@ const DOC_CATEGORIES = [
   'Release',
 ]
 
-export const Route = createFileRoute('/project/$projectSlug/docs/$docId')({
+export const Route = createFileRoute('/project/$projectSlug/docs_/$docId')({
   loader: async ({ params }) => {
     const projectSlug = params.projectSlug.trim()
     const docId = Number(params.docId)
@@ -36,61 +35,26 @@ export const Route = createFileRoute('/project/$projectSlug/docs/$docId')({
       throw notFound()
     }
 
-    const numericProjectId = Number(projectSlug)
-
-    if (Number.isInteger(numericProjectId) && numericProjectId > 0) {
-      const legacyDashboard = await getDashboardState({
-        data: {
-          projectId: numericProjectId,
-        },
-      })
-
-      const legacyProject =
-        legacyDashboard.projects.find((item) => item.id === numericProjectId) ??
-        null
-
-      if (!legacyProject?.slug) {
-        throw notFound()
-      }
-
-      if (legacyProject.slug !== projectSlug) {
-        throw redirect({
-          to: '/project/$projectSlug/docs/$docId',
-          params: {
-            projectSlug: legacyProject.slug,
-            docId: params.docId,
-          },
-          replace: true,
-        })
-      }
-    }
-
-    const dashboard = await getDashboardState({
+    const docsState = await getProjectDocDetail({
       data: {
         projectSlug,
-      },
-    })
-
-    const project =
-      dashboard.projects.find((item) => item.slug === projectSlug) ?? null
-    const selectedProjectId = dashboard.selectedProjectId ?? project?.id ?? null
-
-    if (!project || !selectedProjectId) {
-      throw notFound()
-    }
-
-    const docsState = await getProjectDoc({
-      data: {
         docId,
       },
     })
 
-    if (docsState.doc.projectId !== selectedProjectId) {
-      throw notFound()
+    if (docsState.project.slug && docsState.project.slug !== projectSlug) {
+      throw redirect({
+        to: '/project/$projectSlug/docs/$docId',
+        params: {
+          projectSlug: docsState.project.slug,
+          docId: params.docId,
+        },
+        replace: true,
+      })
     }
 
     return {
-      project,
+      project: docsState.project,
       doc: docsState.doc,
     }
   },
@@ -123,6 +87,7 @@ function ProjectDocDetailPage() {
   const [isEditing, setIsEditing] = useState(isNewArticle)
   const [isSaving, setIsSaving] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   async function uploadMedia(file: File): Promise<string> {
@@ -173,12 +138,12 @@ function ProjectDocDetailPage() {
     }
   }
 
-  async function handleArchive(): Promise<void> {
+  async function handleDelete(): Promise<void> {
     setErrorMessage(null)
     setIsSaving(true)
 
     try {
-      await archiveProjectDoc({
+      await deleteProjectDoc({
         data: {
           docId: doc.id,
         },
@@ -192,7 +157,7 @@ function ProjectDocDetailPage() {
       })
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : 'Failed to archive documentation.',
+        error instanceof Error ? error.message : 'Failed to delete documentation.',
       )
       setIsSaving(false)
     }
@@ -232,16 +197,37 @@ function ProjectDocDetailPage() {
                 meta={<Badge>Updated {formatDate(doc.updatedAt)}</Badge>}
               />
               <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  onClick={() => {
-                    void handleArchive()
-                  }}
-                  disabled={isSaving}
-                  variant="warning"
-                  size="sm"
-                >
-                  Archive
-                </Button>
+                {isConfirmingDelete ? (
+                  <>
+                    <Button
+                      onClick={() => setIsConfirmingDelete(false)}
+                      disabled={isSaving}
+                      variant="secondary"
+                      size="sm"
+                    >
+                      Cancel delete
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        void handleDelete()
+                      }}
+                      disabled={isSaving}
+                      variant="danger"
+                      size="sm"
+                    >
+                      {isSaving ? 'Deleting...' : 'Confirm delete'}
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    onClick={() => setIsConfirmingDelete(true)}
+                    disabled={isSaving}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    Delete
+                  </Button>
+                )}
                 {isEditing ? (
                   <>
                     {!isNewArticle ? (
