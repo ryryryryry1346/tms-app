@@ -609,6 +609,23 @@ pre code {
   background: var(--run-progress-fill);
 }
 
+.tms-run-progress-segment {
+  height: 100%;
+  flex: 0 0 auto;
+}
+
+.tms-run-progress-segment--passed {
+  background: var(--run-passed-text);
+}
+
+.tms-run-progress-segment--failed {
+  background: var(--run-failed-text);
+}
+
+.tms-run-progress-segment--blocked {
+  background: var(--run-blocked-text);
+}
+
 .run-detail-summary {
   box-shadow: var(--tms-shadow-subtle);
 }

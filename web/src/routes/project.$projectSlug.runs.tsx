@@ -475,6 +475,12 @@ function ProjectRunsPage() {
                 const executed = run.passed + run.failed + run.blocked
                 const progress =
                   run.total === 0 ? 0 : Math.round((executed / run.total) * 100)
+                const passedProgress =
+                  run.total === 0 ? 0 : (run.passed / run.total) * 100
+                const failedProgress =
+                  run.total === 0 ? 0 : (run.failed / run.total) * 100
+                const blockedProgress =
+                  run.total === 0 ? 0 : (run.blocked / run.total) * 100
                 const stateLabel =
                   run.total === 0
                     ? 'Empty'
@@ -546,10 +552,21 @@ function ProjectRunsPage() {
                           {executed}/{run.total}
                         </span>
                       </div>
-                      <div className="tms-run-progress-track mt-1 h-2 overflow-hidden rounded-full">
+                      <div
+                        className="tms-run-progress-track mt-1 flex h-2 overflow-hidden rounded-full"
+                        aria-label={`${run.passed} passed, ${run.failed} failed, ${run.blocked} blocked, ${run.notRun} not run`}
+                      >
                         <div
-                          className="tms-run-progress-fill h-full rounded-full"
-                          style={{ width: `${progress}%` }}
+                          className="tms-run-progress-segment tms-run-progress-segment--passed"
+                          style={{ width: `${passedProgress}%` }}
+                        />
+                        <div
+                          className="tms-run-progress-segment tms-run-progress-segment--failed"
+                          style={{ width: `${failedProgress}%` }}
+                        />
+                        <div
+                          className="tms-run-progress-segment tms-run-progress-segment--blocked"
+                          style={{ width: `${blockedProgress}%` }}
                         />
                       </div>
                     </div>

@@ -110,6 +110,12 @@ function RunDetailPage() {
     data.tests.length === 0
       ? 0
       : Math.round((executedCount / data.tests.length) * 100)
+  const passedProgress =
+    data.tests.length === 0 ? 0 : (passedCount / data.tests.length) * 100
+  const failedProgress =
+    data.tests.length === 0 ? 0 : (failedCount / data.tests.length) * 100
+  const blockedProgress =
+    data.tests.length === 0 ? 0 : (blockedCount / data.tests.length) * 100
 
   const filteredTests = useMemo(() => {
     if (runFilter === 'All') {
@@ -343,10 +349,21 @@ function RunDetailPage() {
                   {executedCount}/{data.tests.length}
                 </div>
               </div>
-              <div className="tms-run-progress-track mt-2 h-1.5 overflow-hidden rounded-full">
+              <div
+                className="tms-run-progress-track mt-2 flex h-1.5 overflow-hidden rounded-full"
+                aria-label={`${passedCount} passed, ${failedCount} failed, ${blockedCount} blocked, ${notRunCount} not run`}
+              >
                 <div
-                  className="tms-run-progress-fill h-full rounded-full"
-                  style={{ width: `${progress}%` }}
+                  className="tms-run-progress-segment tms-run-progress-segment--passed"
+                  style={{ width: `${passedProgress}%` }}
+                />
+                <div
+                  className="tms-run-progress-segment tms-run-progress-segment--failed"
+                  style={{ width: `${failedProgress}%` }}
+                />
+                <div
+                  className="tms-run-progress-segment tms-run-progress-segment--blocked"
+                  style={{ width: `${blockedProgress}%` }}
                 />
               </div>
             </div>
