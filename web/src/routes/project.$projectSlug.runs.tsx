@@ -14,7 +14,6 @@ import { Button } from '../components/ui/Button'
 import { Checkbox } from '../components/ui/Checkbox'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Input } from '../components/ui/Input'
-import { MetricCard } from '../components/ui/MetricCard'
 import { Panel } from '../components/ui/Panel'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import { getDashboardState } from '../features/tests/server'
@@ -263,25 +262,26 @@ function ProjectRunsPage() {
             }
           />
 
-          <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {[
-            { label: 'Suites', value: totalSuites, tone: 'default' as const },
-            { label: 'Cases', value: totalCases, tone: 'default' as const },
-            { label: 'Ready', value: readyCases, tone: 'success' as const },
-            { label: 'Runs', value: runs.length, tone: 'primary' as const },
-          ].map((item) => (
-            <MetricCard
-              key={item.label}
-              label={item.label}
-              value={item.value}
-              tone={item.tone}
-              density="compact"
-            />
-          ))}
+          <section className="repository-summary-strip runs-summary-strip">
+            {[
+              { label: 'Suites', value: totalSuites },
+              { label: 'Cases', value: totalCases },
+              { label: 'Ready', value: readyCases },
+              { label: 'Runs', value: runs.length },
+            ].map((item) => (
+              <Badge
+                key={item.label}
+                className="repository-summary-strip__chip"
+                variant={item.label === 'Ready' ? 'runPassed' : 'default'}
+              >
+                {item.value} {item.label}
+              </Badge>
+            ))}
           </section>
 
-          <Panel className="px-4 py-4 sm:px-6 sm:py-6">
+          <Panel className="runs-panel px-3 py-3 sm:px-4 sm:py-4">
           <WorkspaceSectionHeader
+            dense
             title="Runs"
             description="Create, rename, and track execution progress for this project."
             meta={
@@ -289,19 +289,19 @@ function ProjectRunsPage() {
                 {runs.length} run{runs.length === 1 ? '' : 's'}
               </Badge>
             }
-            className="mb-6"
+            className="mb-3"
           />
 
           {showCreateRunForm ? (
             <form
-              className="mb-6 rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border)] bg-[var(--tms-surface-muted)] p-4"
+              className="mb-4 rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border)] bg-[var(--tms-surface-muted)] p-3"
               onSubmit={handleCreateRun}
             >
               <WorkspaceSectionHeader
                 dense
                 title="New run"
                 description="Choose scope and create a focused execution batch from active repository cases."
-                className="mb-4"
+                className="mb-3"
               />
               <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
                 <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
@@ -310,7 +310,7 @@ function ProjectRunsPage() {
                     value={runName}
                     onChange={(event) => setRunName(event.target.value)}
                     placeholder="Week 13. Regression"
-                    size="lg"
+                    size="md"
                     className="min-w-0"
                   />
                 </label>
@@ -319,7 +319,8 @@ function ProjectRunsPage() {
                     type="submit"
                     disabled={isCreatingRun || selectedRunTestIds.length === 0}
                     variant="primary"
-                    className="whitespace-nowrap px-5 py-3"
+                    size="sm"
+                    className="whitespace-nowrap"
                   >
                     {isCreatingRun ? 'Creating...' : 'Create run'}
                   </Button>
@@ -328,14 +329,15 @@ function ProjectRunsPage() {
                       setShowCreateRunForm(false)
                       resetCreateRunForm()
                     }}
-                    className="tms-button whitespace-nowrap px-5 py-3"
+                    size="sm"
+                    className="tms-button whitespace-nowrap"
                   >
                     Cancel
                   </Button>
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap gap-2">
                   {[
                     { value: 'all', label: 'All active cases' },
@@ -349,6 +351,7 @@ function ProjectRunsPage() {
                         setCreateRunErrorMessage(null)
                       }}
                       variant={runScope === option.value ? 'primary' : 'default'}
+                      size="sm"
                       className={`tms-button ${
                         runScope === option.value
                           ? 'tms-chip-primary'
@@ -366,7 +369,7 @@ function ProjectRunsPage() {
               </div>
 
               {runScope === 'suites' ? (
-                <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                   {dashboard.sections.map((section) => {
                     const sectionCaseCount = activeTests.filter(
                       (test) => test.sectionId === section.id,
@@ -413,7 +416,7 @@ function ProjectRunsPage() {
                       return (
                         <label
                           key={test.id}
-                          className="flex items-center justify-between gap-4 border-t border-[var(--tms-border-subtle)] px-4 py-2.5 first:border-t-0"
+                          className="flex items-center justify-between gap-4 border-t border-[var(--tms-border-subtle)] px-3 py-2 first:border-t-0"
                         >
                           <span className="min-w-0">
                             <span className="block truncate text-sm font-semibold text-[var(--tms-text)]">
@@ -458,8 +461,9 @@ function ProjectRunsPage() {
           ) : (
             <TableShell>
               <TableHead
-                columns="minmax(300px,1fr) 190px 96px 96px 96px 110px 190px"
-                minWidth="1180px"
+                columns="minmax(300px,1fr) 180px 76px 76px 82px 82px 152px"
+                minWidth="1040px"
+                padding="sm"
               >
                 <div>Run</div>
                 <div>Progress</div>
@@ -493,14 +497,15 @@ function ProjectRunsPage() {
                 return (
                   <TableRow
                     key={run.id}
-                    columns="minmax(300px,1fr) 190px 96px 96px 96px 110px 190px"
-                    minWidth="1180px"
-                    className="py-4"
+                    columns="minmax(300px,1fr) 180px 76px 76px 82px 82px 152px"
+                    minWidth="1040px"
+                    padding="sm"
+                    className="runs-table-row"
                   >
-                    <div className="min-w-0 pr-4">
+                    <div className="min-w-0 pr-3">
                       {isEditing ? (
                           <form
-                            className="grid gap-2 xl:grid-cols-[minmax(240px,1fr)_auto_auto]"
+                            className="grid gap-2 xl:grid-cols-[minmax(220px,1fr)_auto_auto]"
                             onSubmit={(event) => handleRenameRun(event, run.id)}
                           >
                             <Input
@@ -508,13 +513,14 @@ function ProjectRunsPage() {
                               onChange={(event) =>
                                 setEditingRunName(event.target.value)
                               }
-                              size="lg"
+                              size="sm"
                               className="min-w-0"
                             />
                             <Button
                               type="submit"
                               disabled={isPending}
                               variant="primary"
+                              size="sm"
                             >
                               {isPending ? 'Saving...' : 'Save'}
                             </Button>
@@ -524,13 +530,14 @@ function ProjectRunsPage() {
                                 setEditingRunName('')
                                 setRunActionErrorMessage(null)
                               }}
+                              size="sm"
                             >
                               Cancel
                             </Button>
                           </form>
                         ) : (
                           <>
-                            <div className="truncate text-base font-semibold text-[var(--tms-text)]">
+                            <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
                               {run.name}
                             </div>
                             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--tms-text-muted)]">
@@ -545,15 +552,15 @@ function ProjectRunsPage() {
                           </>
                         )}
                     </div>
-                    <div className="pr-6">
-                      <div className="flex items-center justify-between gap-3 text-sm font-semibold text-[var(--tms-text)]">
+                    <div className="pr-4">
+                      <div className="flex items-center justify-between gap-3 text-xs font-semibold text-[var(--tms-text)]">
                         <span>{progress}%</span>
                         <span className="text-xs text-[var(--tms-text-soft)]">
                           {executed}/{run.total}
                         </span>
                       </div>
                       <div
-                        className="tms-run-progress-track mt-1 flex h-2 overflow-hidden rounded-full"
+                        className="tms-run-progress-track mt-1 flex h-1.5 overflow-hidden rounded-full"
                         aria-label={`${run.passed} passed, ${run.failed} failed, ${run.blocked} blocked, ${run.notRun} not run`}
                       >
                         <div
@@ -570,30 +577,31 @@ function ProjectRunsPage() {
                         />
                       </div>
                     </div>
-                    <div className="text-sm font-semibold text-[var(--run-passed-text)]">
+                    <div className="text-xs font-semibold text-[var(--run-passed-text)]">
                       {run.passed}
                     </div>
-                    <div className="text-sm font-semibold text-[var(--run-failed-text)]">
+                    <div className="text-xs font-semibold text-[var(--run-failed-text)]">
                       {run.failed}
                     </div>
-                    <div className="text-sm font-semibold text-[var(--run-blocked-text)]">
+                    <div className="text-xs font-semibold text-[var(--run-blocked-text)]">
                       {run.blocked}
                     </div>
-                    <div className="text-sm font-semibold text-[var(--run-not-run-text)]">
+                    <div className="text-xs font-semibold text-[var(--run-not-run-text)]">
                       {run.notRun}
                     </div>
-                    <div className="flex justify-end gap-2 whitespace-nowrap">
+                    <div className="flex justify-end gap-1.5 whitespace-nowrap">
                       {!isEditing ? (
                         <>
                           <Button
                             onClick={() => startRenameRun(run.id, run.name)}
+                            size="sm"
                           >
                             Rename
                           </Button>
                           <Link
                             to="/run/$runId"
                             params={{ runId: run.id.toString() }}
-                            className="tms-button tms-button-primary no-underline"
+                            className="tms-button tms-button-primary min-h-0 px-2.5 py-1 text-xs no-underline"
                           >
                             Open run
                           </Link>
