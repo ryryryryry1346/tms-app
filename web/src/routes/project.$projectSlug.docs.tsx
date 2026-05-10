@@ -1,4 +1,4 @@
-import { createFileRoute, notFound, redirect, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
@@ -7,10 +7,13 @@ import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Input } from '../components/ui/Input'
-import { LinkButton } from '../components/ui/LinkButton'
 import { Panel } from '../components/ui/Panel'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
-import { createProjectDoc, getProjectDocs } from '../features/docs/server'
+import {
+  createProjectDoc,
+  getProjectDocs,
+  type ProjectDoc,
+} from '../features/docs/server'
 import { getDashboardState } from '../features/tests/server'
 
 export const Route = createFileRoute('/project/$projectSlug/docs')({
@@ -93,7 +96,7 @@ function formatDate(value: string | null): string {
 
 function ProjectDocsPage() {
   const { project, docs } = Route.useLoaderData()
-  const navigate = useNavigate()
+  const [articleDocs, setArticleDocs] = useState(docs)
   const [query, setQuery] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -103,13 +106,21 @@ function ProjectDocsPage() {
     const normalizedQuery = query.trim().toLowerCase()
 
     if (!normalizedQuery) {
-      return docs
+      return articleDocs
     }
 
-    return docs.filter((doc) =>
+    return articleDocs.filter((doc) =>
       `${doc.title} ${doc.category ?? ''}`.toLowerCase().includes(normalizedQuery),
     )
-  }, [docs, query])
+  }, [articleDocs, query])
+
+  function getDocUrl(docId: number): string {
+    return `/project/${projectSlug}/docs/${docId}`
+  }
+
+  function openDoc(docId: number): void {
+    window.location.assign(getDocUrl(docId))
+  }
 
   async function handleCreateArticle(): Promise<void> {
     setErrorMessage(null)
@@ -125,13 +136,31 @@ function ProjectDocsPage() {
         },
       })
 
-      await navigate({
-        to: '/project/$projectSlug/docs/$docId',
-        params: {
-          projectSlug,
-          docId: result.id.toString(),
-        },
+      if (!Number.isInteger(result.id) || result.id <= 0) {
+        throw new Error('Created article id is missing.')
+      }
+
+      const timestamp = new Date().toISOString()
+      const createdDoc: ProjectDoc = {
+        id: result.id,
+        projectId: project.id,
+        title: 'Untitled article',
+        category: 'General',
+        content: '',
+        status: 'Published',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }
+
+      setArticleDocs((current) => {
+        if (current.some((doc) => doc.id === createdDoc.id)) {
+          return current
+        }
+
+        return [createdDoc, ...current]
       })
+
+      openDoc(result.id)
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : 'Failed to create article.',
@@ -169,7 +198,7 @@ function ProjectDocsPage() {
                 dense
                 title="Docs"
                 description="Reusable project knowledge. Open an article to read or edit it on its own page."
-                meta={<Badge>{docs.length} articles</Badge>}
+                meta={<Badge>{articleDocs.length} articles</Badge>}
               />
               <Input
                 value={query}
@@ -201,18 +230,21 @@ function ProjectDocsPage() {
                     key={doc.id}
                     columns="minmax(260px, 1.6fr) minmax(120px, 0.45fr) minmax(120px, 0.45fr) minmax(90px, 0.28fr)"
                     padding="sm"
-                    className="items-center"
+                    className="docs-clickable-row items-center"
+                    role="link"
+                    tabIndex={0}
+                    onClick={() => openDoc(doc.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        openDoc(doc.id)
+                      }
+                    }}
                   >
                     <div className="min-w-0">
-                      <LinkButton
-                        to="/project/$projectSlug/docs/$docId"
-                        params={{ projectSlug, docId: doc.id.toString() }}
-                        variant="ghost"
-                        size="sm"
-                        className="docs-title-link"
-                      >
+                      <span className="docs-title-text">
                         {doc.title}
-                      </LinkButton>
+                      </span>
                     </div>
                     <span className="text-sm text-[var(--tms-text-muted)]">
                       {doc.category ?? 'General'}
@@ -221,14 +253,17 @@ function ProjectDocsPage() {
                       {formatDate(doc.updatedAt)}
                     </span>
                     <div className="text-right">
-                      <LinkButton
-                        to="/project/$projectSlug/docs/$docId"
-                        params={{ projectSlug, docId: doc.id.toString() }}
+                      <Button
+                        type="button"
                         variant="secondary"
                         size="sm"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          openDoc(doc.id)
+                        }}
                       >
                         Open
-                      </LinkButton>
+                      </Button>
                     </div>
                   </TableRow>
                 ))}

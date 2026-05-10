@@ -764,11 +764,22 @@ pre code {
   box-shadow: var(--tms-shadow-subtle);
 }
 
-.docs-title-link {
+.docs-clickable-row {
+  cursor: pointer;
+}
+
+.docs-clickable-row:hover {
+  background: var(--tms-surface-soft);
+}
+
+.docs-title-text {
+  display: block;
   max-width: 100%;
-  justify-content: flex-start;
   overflow: hidden;
-  padding-inline: 0;
+  color: var(--tms-text);
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
