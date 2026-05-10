@@ -80,7 +80,9 @@ function ProjectDocDetailPage() {
   const router = useRouter()
   const navigate = useNavigate()
   const projectSlug = project.slug ?? project.id.toString()
-  const isNewArticle = doc.title === 'Untitled article' && !doc.content
+  const isNewArticle =
+    (doc.title === 'Untitled article' || doc.title === 'Untitled doc') &&
+    !doc.content
   const [title, setTitle] = useState(doc.title)
   const [category, setCategory] = useState(doc.category ?? 'General')
   const [content, setContent] = useState(doc.content ?? '')
@@ -170,7 +172,7 @@ function ProjectDocDetailPage() {
           <ProjectPageHeader
             eyebrow="Project docs"
             projectName={title}
-            description={`${project.name} knowledge article.`}
+            description={`${project.name} knowledge doc.`}
             actions={
               <LinkButton
                 to="/project/$projectSlug/docs"
@@ -188,10 +190,10 @@ function ProjectDocDetailPage() {
             <div className="docs-editor-header">
               <WorkspaceSectionHeader
                 dense
-                title={isEditing ? 'Edit article' : 'Article'}
+                title={isEditing ? 'Edit doc' : 'Doc'}
                 description={
                   isEditing
-                    ? 'Edit the article content, metadata, and attachments.'
+                    ? 'Edit the doc content, metadata, and attachments.'
                     : 'Read project knowledge without loading the full editor.'
                 }
                 meta={<Badge>Updated {formatDate(doc.updatedAt)}</Badge>}
@@ -253,7 +255,7 @@ function ProjectDocDetailPage() {
                       variant="primary"
                       size="sm"
                     >
-                      {isSaving ? 'Saving...' : 'Save article'}
+                      {isSaving ? 'Saving...' : 'Save doc'}
                     </Button>
                   </>
                 ) : (
@@ -262,7 +264,7 @@ function ProjectDocDetailPage() {
                     variant="primary"
                     size="sm"
                   >
-                    Edit article
+                    Edit doc
                   </Button>
                 )}
               </div>
@@ -313,7 +315,7 @@ function ProjectDocDetailPage() {
                   />
                 ) : (
                   <div className="docs-content-view__empty">
-                    This article does not have content yet.
+                    This doc does not have content yet.
                   </div>
                 )}
               </article>

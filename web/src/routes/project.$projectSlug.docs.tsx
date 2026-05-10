@@ -134,21 +134,21 @@ function ProjectDocsPage() {
       const result = await createProjectDoc({
         data: {
           projectId: project.id,
-          title: 'Untitled article',
+          title: 'Untitled doc',
           category: 'General',
           content: '',
         },
       })
 
       if (!Number.isInteger(result.id) || result.id <= 0) {
-        throw new Error('Created article id is missing.')
+        throw new Error('Created doc id is missing.')
       }
 
       const timestamp = new Date().toISOString()
       const createdDoc: ProjectDoc = {
         id: result.id,
         projectId: project.id,
-        title: 'Untitled article',
+        title: 'Untitled doc',
         category: 'General',
         content: '',
         status: 'Published',
@@ -167,7 +167,7 @@ function ProjectDocsPage() {
       openDoc(result.id)
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : 'Failed to create article.',
+        error instanceof Error ? error.message : 'Failed to create doc.',
       )
     } finally {
       setIsCreating(false)
@@ -189,7 +189,7 @@ function ProjectDocsPage() {
                 disabled={isCreating}
                 variant="primary"
               >
-                {isCreating ? 'Creating...' : '+ Article'}
+                {isCreating ? 'Creating...' : '+ Doc'}
               </Button>
             }
           />
@@ -201,13 +201,13 @@ function ProjectDocsPage() {
               <WorkspaceSectionHeader
                 dense
                 title="Docs"
-                description="Reusable project knowledge. Open an article to read or edit it on its own page."
-                meta={<Badge>{articleDocs.length} articles</Badge>}
+                description="Reusable project knowledge. Open a doc to read or edit it on its own page."
+                meta={<Badge>{articleDocs.length} docs</Badge>}
               />
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search articles"
+                placeholder="Search docs"
                 size="sm"
                 className="docs-index-search"
               />
@@ -215,8 +215,8 @@ function ProjectDocsPage() {
 
             {filteredDocs.length === 0 ? (
               <EmptyState
-                title="No articles"
-                description="Create the first project article."
+                title="No docs"
+                description="Create the first project doc."
               />
             ) : (
               <TableShell surface="panel" className="docs-table mt-4">
@@ -224,7 +224,7 @@ function ProjectDocsPage() {
                   columns="minmax(260px, 1.6fr) minmax(120px, 0.45fr) minmax(120px, 0.45fr) minmax(90px, 0.28fr)"
                   padding="sm"
                 >
-                  <span>Article</span>
+                  <span>Doc</span>
                   <span>Category</span>
                   <span>Updated</span>
                   <span className="text-right">Open</span>
