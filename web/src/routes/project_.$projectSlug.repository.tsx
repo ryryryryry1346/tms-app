@@ -349,6 +349,85 @@ function ProjectRepositoryPage() {
     }))
   }
 
+  function addRepositoryTest(test: DashboardTest): void {
+    const normalizedStatus = test.status ?? 'Draft'
+    const matchesLifecycleFilter =
+      caseFilter === 'All'
+        ? normalizedStatus !== 'Archived'
+        : normalizedStatus === caseFilter
+    const matchesSuiteFilter =
+      suiteFilterId === ALL_SUITES_FILTER || String(test.sectionId) === suiteFilterId
+    const matchesPriorityFilter =
+      priorityFilter === 'All' || (test.priority ?? 'Medium') === priorityFilter
+    const matchesTypeFilter =
+      caseTypeFilter === 'All' || (test.caseType ?? 'Functional') === caseTypeFilter
+    const normalizedTitle = test.title.toLowerCase()
+    const normalizedQuery = searchValue.trim().toLowerCase()
+    const matchesSearch =
+      normalizedQuery.length === 0 ||
+      normalizedTitle.includes(normalizedQuery) ||
+      String(test.id).includes(normalizedQuery)
+    const shouldAppearInCurrentView =
+      matchesLifecycleFilter &&
+      matchesSuiteFilter &&
+      matchesPriorityFilter &&
+      matchesTypeFilter &&
+      matchesSearch
+
+    setDashboard((current) => {
+      const nextFilteredTotal = shouldAppearInCurrentView
+        ? current.pagination.totalCases + 1
+        : current.pagination.totalCases
+
+      return {
+        ...current,
+        tests: shouldAppearInCurrentView ? [...current.tests, test] : current.tests,
+        pagination: {
+          ...current.pagination,
+          totalCases: nextFilteredTotal,
+          totalPages: Math.max(
+            1,
+            Math.ceil(nextFilteredTotal / current.pagination.pageSize),
+          ),
+        },
+        stats: {
+          ...current.stats,
+          totalCases: current.stats.totalCases + 1,
+          activeCases:
+            normalizedStatus === 'Archived'
+              ? current.stats.activeCases
+              : current.stats.activeCases + 1,
+          readyCases:
+            normalizedStatus === 'Ready'
+              ? current.stats.readyCases + 1
+              : current.stats.readyCases,
+          archivedCases:
+            normalizedStatus === 'Archived'
+              ? current.stats.archivedCases + 1
+              : current.stats.archivedCases,
+        },
+      }
+    })
+  }
+
+  function addRepositorySuite(section: {
+    id: number
+    name: string
+    projectId: number
+  }): void {
+    setDashboard((current) => ({
+      ...current,
+      sections: [
+        ...current.sections,
+        {
+          ...section,
+          projectName: project.name,
+          projectSlug: project.slug,
+        },
+      ],
+    }))
+  }
+
   const activeTests = useMemo(
     () => dashboard.tests.filter((test) => test.status !== 'Archived'),
     [dashboard.tests],
@@ -992,7 +1071,7 @@ function ProjectRepositoryPage() {
     setPendingQuickCreateSuiteId(suiteId)
 
     try {
-      await createTestCase({
+      const result = await createTestCase({
         data: {
           title,
           sectionId: suiteId,
@@ -1003,9 +1082,22 @@ function ProjectRepositoryPage() {
           expected: '',
         },
       })
+      const now = new Date().toISOString()
 
+      addRepositoryTest({
+        id: result.id,
+        title,
+        status: quickCreateStatus,
+        priority: quickCreatePriority,
+        caseType: quickCreateType,
+        archivedFromStatus: null,
+        sectionId: suiteId,
+        projectId: project.id,
+        sortOrder: 0,
+        createdAt: now,
+        updatedAt: now,
+      })
       cancelQuickCreateCase()
-      await router.invalidate()
     } catch (error) {
       setCaseActionErrorMessage(
         error instanceof Error ? error.message : 'Failed to create test case.',
@@ -1487,16 +1579,20 @@ function ProjectRepositoryPage() {
     setIsSubmittingSuite(true)
 
     try {
-      await createSuite({
+      const result = await createSuite({
         data: {
           projectId: project.id,
           name: suiteName,
         },
       })
 
+      addRepositorySuite({
+        id: result.id,
+        name: suiteName.trim(),
+        projectId: project.id,
+      })
       setSuiteName('')
       setActiveComposer(null)
-      await router.invalidate()
     } catch (error) {
       setSuiteErrorMessage(
         error instanceof Error ? error.message : 'Failed to create suite.',
