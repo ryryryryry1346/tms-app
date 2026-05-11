@@ -148,6 +148,7 @@ function TestDetailPage() {
   const [isSavingContent, setIsSavingContent] = useState(false)
   const [isUploadingMedia, setIsUploadingMedia] = useState(false)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [caseTitle, setCaseTitle] = useState(test.title)
   const [titleValue, setTitleValue] = useState(test.title)
   const [pendingMetadataField, setPendingMetadataField] =
     useState<PendingMetadataField | null>(null)
@@ -281,12 +282,12 @@ function TestDetailPage() {
 
   function startTitleEdit(): void {
     setActionError(null)
-    setTitleValue(test.title)
+    setTitleValue(caseTitle)
     setIsEditingTitle(true)
   }
 
   function cancelTitleEdit(): void {
-    setTitleValue(test.title)
+    setTitleValue(caseTitle)
     setIsEditingTitle(false)
   }
 
@@ -298,7 +299,7 @@ function TestDetailPage() {
       return
     }
 
-    if (nextTitle === test.title) {
+    if (nextTitle === caseTitle) {
       cancelTitleEdit()
       return
     }
@@ -314,8 +315,9 @@ function TestDetailPage() {
         },
       })
 
+      setCaseTitle(nextTitle)
+      setTitleValue(nextTitle)
       setIsEditingTitle(false)
-      await router.invalidate()
     } catch (error) {
       setActionError(
         error instanceof Error ? error.message : 'Failed to update test title.',
@@ -507,7 +509,7 @@ function TestDetailPage() {
                   Test case
                 </p>
                 {isEditingTitle ? (
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <div className="test-detail-title-edit-row mt-2">
                     <Input
                       value={titleValue}
                       onChange={(event) => setTitleValue(event.target.value)}
@@ -524,31 +526,33 @@ function TestDetailPage() {
                       }}
                       disabled={pendingMetadataField === 'title'}
                       autoFocus
-                      className="min-w-[220px] flex-1 rounded-xl border-[var(--tms-primary-border)] px-3 py-2 text-2xl font-bold leading-tight text-[var(--tms-text)] sm:min-w-[280px] sm:text-3xl"
+                      className="test-detail-title-input"
                       aria-label="Edit test case title"
                     />
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        void saveTitleEdit()
-                      }}
-                      disabled={pendingMetadataField === 'title'}
-                      variant="primary"
-                    >
-                      Save title
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={cancelTitleEdit}
-                      disabled={pendingMetadataField === 'title'}
-                    >
-                      Cancel
-                    </Button>
+                    <div className="test-detail-title-actions">
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          void saveTitleEdit()
+                        }}
+                        disabled={pendingMetadataField === 'title'}
+                        variant="primary"
+                      >
+                        Save title
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={cancelTitleEdit}
+                        disabled={pendingMetadataField === 'title'}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
                 ) : (
-                  <div className="mt-2 flex flex-wrap items-start gap-3">
-                    <h1 className="m-0 text-3xl font-bold leading-tight text-[var(--tms-text)] sm:text-4xl">
-                      {test.title}
+                  <div className="test-detail-title-view-row mt-2">
+                    <h1 className="test-detail-title">
+                      {caseTitle}
                     </h1>
                     <Button
                       type="button"
