@@ -156,6 +156,10 @@ const getTestDetailInput = z.object({
   id: z.number().int().positive(),
 })
 
+const createTestFormInput = z.object({
+  projectId: z.number().int().positive().optional(),
+})
+
 const createTestInput = z.object({
   title: z.string().trim().min(1),
   sectionId: z.number().int().positive(),
@@ -456,6 +460,12 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
     const caseTypeFilter = data.caseType ?? 'All'
     const search = data.search?.trim() ?? ''
     const searchPattern = `%${search}%`
+    const numericSearchId = Number(search)
+    const searchCondition = search
+      ? Number.isInteger(numericSearchId) && numericSearchId > 0
+        ? or(like(tests.title, searchPattern), eq(tests.id, numericSearchId))
+        : like(tests.title, searchPattern)
+      : undefined
     const filteredTestConditions = [
       eq(tests.projectId, project.id),
       statusFilter === 'All'
@@ -464,9 +474,7 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
       data.suiteId ? eq(tests.sectionId, data.suiteId) : undefined,
       priorityFilter !== 'All' ? eq(tests.priority, priorityFilter) : undefined,
       caseTypeFilter !== 'All' ? eq(tests.caseType, caseTypeFilter) : undefined,
-      search
-        ? or(like(tests.title, searchPattern), sql`${tests.id} like ${searchPattern}`)
-        : undefined,
+      searchCondition,
     ].filter(
       (
         condition,
@@ -478,10 +486,7 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
       sectionRows,
       testRows,
       filteredCountRows,
-      totalCountRows,
-      activeCountRows,
-      readyCountRows,
-      archivedCountRows,
+      statsRows,
     ] = await Promise.all([
       db
         .select({
@@ -519,30 +524,16 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
         .where(and(...filteredTestConditions)),
       db
         .select({
-          value: count(),
+          totalCases: count(),
+          activeCases: sql<number>`sum(case when ${tests.status} <> 'Archived' then 1 else 0 end)`,
+          readyCases: sql<number>`sum(case when ${tests.status} = 'Ready' then 1 else 0 end)`,
+          archivedCases: sql<number>`sum(case when ${tests.status} = 'Archived' then 1 else 0 end)`,
         })
         .from(tests)
         .where(eq(tests.projectId, project.id)),
-      db
-        .select({
-          value: count(),
-        })
-        .from(tests)
-        .where(and(eq(tests.projectId, project.id), sql`${tests.status} <> 'Archived'`)),
-      db
-        .select({
-          value: count(),
-        })
-        .from(tests)
-        .where(and(eq(tests.projectId, project.id), eq(tests.status, 'Ready'))),
-      db
-        .select({
-          value: count(),
-        })
-        .from(tests)
-        .where(and(eq(tests.projectId, project.id), eq(tests.status, 'Archived'))),
     ])
     const totalFilteredCases = filteredCountRows[0]?.value ?? 0
+    const stats = statsRows[0]
 
     return {
       databaseConfigured: true,
@@ -558,10 +549,10 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
         totalPages: Math.max(1, Math.ceil(totalFilteredCases / pageSize)),
       },
       stats: {
-        totalCases: totalCountRows[0]?.value ?? 0,
-        activeCases: activeCountRows[0]?.value ?? 0,
-        readyCases: readyCountRows[0]?.value ?? 0,
-        archivedCases: archivedCountRows[0]?.value ?? 0,
+        totalCases: Number(stats?.totalCases ?? 0),
+        activeCases: Number(stats?.activeCases ?? 0),
+        readyCases: Number(stats?.readyCases ?? 0),
+        archivedCases: Number(stats?.archivedCases ?? 0),
       },
     }
   })
@@ -1203,8 +1194,9 @@ export const deleteArchivedTestCase = createServerFn({ method: 'POST' })
     return { ok: true }
   })
 
-export const getCreateTestFormState = createServerFn({ method: 'GET' }).handler(
-  async (): Promise<CreateTestFormState> => {
+export const getCreateTestFormState = createServerFn({ method: 'POST' })
+  .inputValidator(createTestFormInput)
+  .handler(async ({ data }): Promise<CreateTestFormState> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
     await ensureTestServerDeps()
@@ -1217,23 +1209,43 @@ export const getCreateTestFormState = createServerFn({ method: 'GET' }).handler(
     }
 
     const db = getDb()
+    const projectId = data.projectId
     await ensureProjectSlugs()
-    const rows = await db
-      .select({
-        id: sections.id,
-        name: sections.name,
-        projectId: sections.projectId,
-      })
-      .from(sections)
-      .orderBy(asc(sections.id))
+    const rows = projectId
+      ? await db
+          .select({
+            id: sections.id,
+            name: sections.name,
+            projectId: sections.projectId,
+          })
+          .from(sections)
+          .where(eq(sections.projectId, projectId))
+          .orderBy(asc(sections.id))
+      : await db
+          .select({
+            id: sections.id,
+            name: sections.name,
+            projectId: sections.projectId,
+          })
+          .from(sections)
+          .orderBy(asc(sections.id))
 
-    const projectRows = await db
-      .select({
-        id: projects.id,
-        name: projects.name,
-        slug: projects.slug,
-      })
-      .from(projects)
+    const projectRows = projectId
+      ? await db
+          .select({
+            id: projects.id,
+            name: projects.name,
+            slug: projects.slug,
+          })
+          .from(projects)
+          .where(eq(projects.id, projectId))
+      : await db
+          .select({
+            id: projects.id,
+            name: projects.name,
+            slug: projects.slug,
+          })
+          .from(projects)
 
     const projectById = new Map(projectRows.map((project) => [project.id, project]))
 
@@ -1251,8 +1263,7 @@ export const getCreateTestFormState = createServerFn({ method: 'GET' }).handler(
             : null,
       })),
     }
-  },
-)
+  })
 
 export const createTestCase = createServerFn({ method: 'POST' })
   .inputValidator(createTestInput)

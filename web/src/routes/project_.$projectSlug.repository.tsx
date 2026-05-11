@@ -45,7 +45,7 @@ import {
 } from '../features/tests/server'
 import type { DashboardTest, TestDetail } from '../features/tests/server'
 
-export const Route = createFileRoute('/project/$projectSlug/repository')({
+export const Route = createFileRoute('/project_/$projectSlug/repository')({
   validateSearch: z.object({
     q: z.string().optional().catch(''),
     suiteId: z.coerce.number().int().positive().optional().catch(undefined),

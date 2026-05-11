@@ -19,7 +19,13 @@ export const Route = createFileRoute('/create-test')({
     suiteId: z.coerce.number().int().positive().optional(),
     projectId: z.coerce.number().int().positive().optional(),
   }),
-  loader: async () => getCreateTestFormState(),
+  loaderDeps: ({ search }) => search,
+  loader: async ({ deps }) =>
+    getCreateTestFormState({
+      data: {
+        projectId: deps.projectId,
+      },
+    }),
   component: CreateTestPage,
 })
 
