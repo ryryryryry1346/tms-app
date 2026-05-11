@@ -773,10 +773,11 @@ function ProjectRepositoryPage() {
     setIsUploadingPreviewMedia(true)
 
     try {
+      const formData = new FormData()
+      formData.append('file', file)
+
       const result = await uploadTestMedia({
-        data: {
-          file,
-        },
+        data: formData,
       })
 
       return result.url
