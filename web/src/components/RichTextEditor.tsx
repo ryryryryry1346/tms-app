@@ -1,6 +1,5 @@
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
 import Image from '@tiptap/extension-image'
 import { FontSize as TipTapFontSize, TextStyle } from '@tiptap/extension-text-style'
@@ -168,10 +167,7 @@ export function RichTextEditor({
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit.configure({
-        underline: false,
-      }),
-      Underline,
+      StarterKit,
       TextStyle,
       TipTapFontSize,
       MediaImage,

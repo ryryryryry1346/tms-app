@@ -498,6 +498,7 @@ function TestDetailPage() {
           )}
         </div>
 
+        <div className="grid gap-4">
         <Panel className="overflow-hidden">
           <div className="border-b border-[var(--tms-border-subtle)] px-4 py-5 sm:px-6 sm:py-6">
             <div className="flex flex-wrap items-start justify-between gap-5">
@@ -669,8 +670,10 @@ function TestDetailPage() {
             ) : null}
           </div>
 
-          <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="grid gap-6 px-4 py-5 sm:px-6 sm:py-6">
+        </Panel>
+
+          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <Panel className="grid gap-4 px-4 py-5 sm:px-6 sm:py-6">
               <EditingSurfaceSection
                 title="Content"
                 description="Maintain the executable steps and expected outcome for this test case."
@@ -729,9 +732,9 @@ function TestDetailPage() {
                   </>
                 )}
               </EditingSurfaceSection>
-            </div>
+            </Panel>
 
-            <aside className="border-t border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-5 sm:px-6 sm:py-6 lg:border-l lg:border-t-0">
+            <Panel className="bg-[var(--tms-surface-soft)] px-4 py-5 sm:px-6 sm:py-6">
               <EditingSurfaceSection
                 dense
                 title="Metadata"
@@ -891,9 +894,9 @@ function TestDetailPage() {
                   )}
                 </section>
               ) : null}
-            </aside>
+            </Panel>
           </div>
-        </Panel>
+        </div>
       </div>
     </main>
   )
