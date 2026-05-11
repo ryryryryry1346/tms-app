@@ -1127,6 +1127,16 @@ pre code {
   line-height: 1.4;
 }
 
+.test-detail-header-layout {
+  display: grid;
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.test-detail-heading {
+  min-width: 0;
+}
+
 .test-detail-title,
 .test-detail-title-input {
   min-height: 2.75rem;
@@ -1142,14 +1152,10 @@ pre code {
   overflow-wrap: anywhere;
 }
 
-.test-detail-title-view-row,
-.test-detail-title-edit-row {
+.test-detail-title-row {
   display: grid;
   align-items: start;
   gap: 0.5rem;
-}
-
-.test-detail-title-edit-row {
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -1157,6 +1163,7 @@ pre code {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  min-width: 10.75rem;
 }
 
 .test-detail-title-input {
@@ -1167,19 +1174,36 @@ pre code {
   padding: 0.375rem 0.625rem;
 }
 
+.test-detail-main-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 0.5rem;
+}
+
 @media (min-width: 640px) {
   .test-detail-title,
   .test-detail-title-input {
     font-size: 2.25rem;
   }
 
-  .test-detail-title-view-row,
-  .test-detail-title-edit-row {
+  .test-detail-title-row {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .test-detail-title-actions {
     flex-wrap: nowrap;
+  }
+}
+
+@media (min-width: 900px) {
+  .test-detail-header-layout {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .test-detail-main-actions {
+    justify-content: flex-end;
+    max-width: 31rem;
   }
 }
 

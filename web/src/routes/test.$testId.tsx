@@ -503,13 +503,13 @@ function TestDetailPage() {
         <div className="grid gap-4">
         <Panel className="overflow-hidden">
           <div className="border-b border-[var(--tms-border-subtle)] px-4 py-5 sm:px-6 sm:py-6">
-            <div className="flex flex-wrap items-start justify-between gap-5">
-              <div className="min-w-0">
+            <div className="test-detail-header-layout">
+              <div className="test-detail-heading">
                 <p className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--tms-text-soft)]">
                   Test case
                 </p>
-                {isEditingTitle ? (
-                  <div className="test-detail-title-edit-row mt-2">
+                <div className="test-detail-title-row mt-2">
+                  {isEditingTitle ? (
                     <Input
                       value={titleValue}
                       onChange={(event) => setTitleValue(event.target.value)}
@@ -529,7 +529,14 @@ function TestDetailPage() {
                       className="test-detail-title-input"
                       aria-label="Edit test case title"
                     />
-                    <div className="test-detail-title-actions">
+                  ) : (
+                    <h1 className="test-detail-title">
+                      {caseTitle}
+                    </h1>
+                  )}
+                  <div className="test-detail-title-actions">
+                    {isEditingTitle ? (
+                      <>
                       <Button
                         type="button"
                         onClick={() => {
@@ -547,22 +554,18 @@ function TestDetailPage() {
                       >
                         Cancel
                       </Button>
-                    </div>
+                      </>
+                    ) : (
+                      <Button
+                        type="button"
+                        onClick={startTitleEdit}
+                        className="hover:text-[var(--tms-primary)]"
+                      >
+                        Edit title
+                      </Button>
+                    )}
                   </div>
-                ) : (
-                  <div className="test-detail-title-view-row mt-2">
-                    <h1 className="test-detail-title">
-                      {caseTitle}
-                    </h1>
-                    <Button
-                      type="button"
-                      onClick={startTitleEdit}
-                      className="mt-1 hover:text-[var(--tms-primary)]"
-                    >
-                      Edit title
-                    </Button>
-                  </div>
-                )}
+                </div>
                 <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
                   <Badge variant={getStatusVariant(test.status)}>
                     {test.status ?? 'Draft'}
@@ -576,7 +579,7 @@ function TestDetailPage() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap justify-end gap-2">
+              <div className="test-detail-main-actions">
                 <Link
                   to="/edit-test/$testId"
                   params={{ testId: test.id.toString() }}
