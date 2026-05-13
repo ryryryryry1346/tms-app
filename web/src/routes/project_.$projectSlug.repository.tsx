@@ -629,6 +629,13 @@ function ProjectRepositoryPage() {
   const selectedArchivedTests = selectedTests.filter(
     (test) => test.status === 'Archived',
   )
+  const importMissingSuitesSummary = importPreview
+    ? importPreview.missingSuites.length > 8
+      ? `${importPreview.missingSuites.slice(0, 8).join(', ')} and ${
+          importPreview.missingSuites.length - 8
+        } more`
+      : importPreview.missingSuites.join(', ')
+    : ''
   const previewTest =
     previewTestId === null
       ? null
@@ -2087,7 +2094,7 @@ function ProjectRepositoryPage() {
                           : 'warning'
                       }
                     >
-                      Missing suites: {importPreview.missingSuites.join(', ')}.
+                      Missing suites: {importMissingSuitesSummary}.
                       {createMissingImportSuites
                         ? ' They will be created during import.'
                         : ' Enable suite creation or create them manually before import.'}

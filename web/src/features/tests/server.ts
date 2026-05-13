@@ -1061,10 +1061,10 @@ function mapImportRow({
   if (normalizedTitle && normalizedSuite) {
     if (existingTitleKeys.has(titleKey)) {
       duplicate = 'database'
-      errors.push(`A case named "${normalizedTitle}" already exists in "${normalizedSuite}".`)
+      warnings.push(`A case named "${normalizedTitle}" already exists in "${normalizedSuite}".`)
     } else if (fileTitleKeys.has(titleKey)) {
       duplicate = 'file'
-      errors.push(`Duplicate case "${normalizedTitle}" in "${normalizedSuite}" inside this CSV.`)
+      warnings.push(`Duplicate case "${normalizedTitle}" in "${normalizedSuite}" inside this CSV.`)
     } else {
       fileTitleKeys.add(titleKey)
     }
