@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { WorkspaceSectionHeader } from '../layout/WorkspaceSectionHeader'
 import { Button } from '../ui/Button'
-import { Checkbox } from '../ui/Checkbox'
 import { Input } from '../ui/Input'
 import { PanelHeader } from '../ui/Panel'
 import {
@@ -191,12 +190,16 @@ export function RepositoryToolbar({
                     }}
                     className="justify-start gap-2"
                   >
-                    <Checkbox
-                      checked={visibleColumns[column]}
-                      disabled={visibleColumns[column] && visibleColumnCount <= 1}
-                      onChange={() => undefined}
-                      tabIndex={-1}
-                    />
+                    <span
+                      aria-hidden="true"
+                      className={`inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border text-[0.625rem] leading-none ${
+                        visibleColumns[column]
+                          ? 'border-[var(--tms-primary)] bg-[var(--tms-primary)] text-[var(--tms-text-inverse)]'
+                          : 'border-[var(--tms-border)] bg-[var(--tms-surface)]'
+                      }`}
+                    >
+                      {visibleColumns[column] ? 'x' : ''}
+                    </span>
                     {REPOSITORY_COLUMN_LABELS[column]}
                   </PopoverMenuItem>
                 ),

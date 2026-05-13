@@ -77,7 +77,7 @@ export const Route = createFileRoute('/project_/$projectSlug/repository')({
       .optional()
       .catch('All'),
     page: z.coerce.number().int().positive().optional().catch(1),
-    pageSize: z.coerce.number().int().min(25).max(200).optional().catch(30),
+    pageSize: z.coerce.number().int().min(25).max(30).optional().catch(30),
   }),
   loaderDeps: ({ search }) => search,
   loader: async ({ params, deps }) => {
