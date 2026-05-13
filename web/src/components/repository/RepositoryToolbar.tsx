@@ -35,7 +35,6 @@ export type RepositoryCaseTypeFilter =
   | 'API'
 
 type RepositoryToolbarProps = {
-  visibleCount: number
   searchValue: string
   priorityFilter: RepositoryPriorityFilter
   caseTypeFilter: RepositoryCaseTypeFilter
@@ -44,14 +43,12 @@ type RepositoryToolbarProps = {
   caseTypeOptions: Exclude<RepositoryCaseTypeFilter, 'All'>[]
   visibleColumns: RepositoryVisibleColumns
   density: RepositoryTableDensity
-  isExporting: boolean
   onSearchChange: (value: string) => void
   onToggleColumn: (column: RepositoryColumnKey) => void
   onDensityChange: (density: RepositoryTableDensity) => void
   onPriorityFilterChange: (value: RepositoryPriorityFilter) => void
   onCaseTypeFilterChange: (value: RepositoryCaseTypeFilter) => void
   onCaseFilterChange: (value: RepositoryCaseFilter) => void
-  onExportFiltered: () => void
 }
 
 const CASE_FILTER_OPTIONS: RepositoryCaseFilter[] = [
@@ -78,7 +75,6 @@ function getCaseFilterChipClass(filter: RepositoryCaseFilter): string {
 }
 
 export function RepositoryToolbar({
-  visibleCount,
   searchValue,
   priorityFilter,
   caseTypeFilter,
@@ -87,14 +83,12 @@ export function RepositoryToolbar({
   caseTypeOptions,
   visibleColumns,
   density,
-  isExporting,
   onSearchChange,
   onToggleColumn,
   onDensityChange,
   onPriorityFilterChange,
   onCaseTypeFilterChange,
   onCaseFilterChange,
-  onExportFiltered,
 }: RepositoryToolbarProps) {
   const [isTableSettingsOpen, setIsTableSettingsOpen] = useState(false)
   const visibleColumnCount = Object.values(visibleColumns).filter(Boolean).length
@@ -104,7 +98,6 @@ export function RepositoryToolbar({
       <WorkspaceSectionHeader
         dense
         title="Test suites and cases"
-        meta={`${visibleCount} visible cases`}
         actions={
           <div className="tms-toolbar repository-toolbar__controls justify-end">
             <label className="repository-toolbar__field">
@@ -167,13 +160,6 @@ export function RepositoryToolbar({
                 </Button>
               ))}
             </div>
-            <Button
-              onClick={onExportFiltered}
-              disabled={isExporting || visibleCount === 0}
-              variant="secondary"
-            >
-              {isExporting ? 'Exporting...' : 'Export CSV'}
-            </Button>
             <PopoverMenu
               isOpen={isTableSettingsOpen}
               onClose={() => setIsTableSettingsOpen(false)}

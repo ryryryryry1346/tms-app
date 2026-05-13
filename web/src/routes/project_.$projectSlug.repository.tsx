@@ -77,7 +77,7 @@ export const Route = createFileRoute('/project_/$projectSlug/repository')({
       .optional()
       .catch('All'),
     page: z.coerce.number().int().positive().optional().catch(1),
-    pageSize: z.coerce.number().int().min(25).max(200).optional().catch(100),
+    pageSize: z.coerce.number().int().min(25).max(200).optional().catch(30),
   }),
   loaderDeps: ({ search }) => search,
   loader: async ({ params, deps }) => {
@@ -1936,6 +1936,17 @@ function ProjectRepositoryPage() {
                 >
                   Import CSV
                 </Button>
+                <Button
+                  onClick={() => {
+                    void handleExportCsv('filtered')
+                  }}
+                  disabled={
+                    isExportingCsv || dashboard.pagination.totalCases === 0
+                  }
+                  variant="secondary"
+                >
+                  {isExportingCsv ? 'Exporting...' : 'Export CSV'}
+                </Button>
                 <LinkButton
                   to="/create-test"
                   search={{ projectId: project.id }}
@@ -2210,7 +2221,6 @@ function ProjectRepositoryPage() {
 
           <RepositoryPanel>
             <RepositoryToolbar
-              visibleCount={dashboard.pagination.totalCases}
               searchValue={searchValue}
               priorityFilter={priorityFilter}
               caseTypeFilter={caseTypeFilter}
@@ -2219,7 +2229,6 @@ function ProjectRepositoryPage() {
               caseTypeOptions={CASE_TYPE_OPTIONS}
               visibleColumns={visibleColumns}
               density={tableDensity}
-              isExporting={isExportingCsv}
               onSearchChange={(value) => {
                 clearBulkConfirmations()
                 setSearchValue(value)
@@ -2243,9 +2252,6 @@ function ProjectRepositoryPage() {
                 updateRepositorySearch({
                   status: value,
                 })
-              }}
-              onExportFiltered={() => {
-                void handleExportCsv('filtered')
               }}
             />
 
@@ -2386,7 +2392,7 @@ function ProjectRepositoryPage() {
                   </div>
                 </div>
                 <div
-                  className={`tms-table-header repository-case-grid px-3 sm:px-4 ${
+                  className={`tms-table-head repository-case-grid px-3 sm:px-4 ${
                     tableDensity === 'compact' ? 'py-1.5' : 'py-2'
                   }`}
                   style={repositoryGridStyle}

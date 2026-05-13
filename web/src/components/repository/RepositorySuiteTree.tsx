@@ -118,8 +118,7 @@ export function RepositorySuiteTree({
     <aside className="repository-browser-tree" aria-label="Repository suites">
       <div className="repository-browser-tree__header">
         <div>
-          <div className="tms-kicker">Suites</div>
-          <div className="repository-browser-tree__title">Repository</div>
+          <div className="repository-browser-tree__title">Suites</div>
         </div>
         <Button
           type="button"
@@ -244,11 +243,6 @@ export function RepositorySuiteTree({
                   </PopoverMenu>
                 </div>
               )}
-
-              <div className="repository-browser-tree__suite-meta">
-                <span>Ready {stats?.readyCases ?? 0}</span>
-                <span>Draft {stats?.draftCases ?? 0}</span>
-              </div>
 
               {isDeleteConfirming ? (
                 <div className="repository-browser-tree__confirm">
