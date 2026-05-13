@@ -14,8 +14,9 @@ import { CasePreviewDrawer } from '../components/repository/CasePreviewDrawer'
 import { RepositoryEmptyState } from '../components/repository/RepositoryEmptyState'
 import { RepositoryErrorBanner } from '../components/repository/RepositoryErrorBanner'
 import { RepositoryPanel } from '../components/repository/RepositoryPanel'
+import { RepositorySuiteTree } from '../components/repository/RepositorySuiteTree'
 import { RepositoryToolbar } from '../components/repository/RepositoryToolbar'
-import { SuiteSection } from '../components/repository/SuiteSection'
+import { CaseRow } from '../components/repository/CaseRow'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Checkbox } from '../components/ui/Checkbox'
@@ -2291,215 +2292,161 @@ function ProjectRepositoryPage() {
               <RepositoryErrorBanner message={caseActionErrorMessage} />
             ) : null}
 
-            {dashboard.sections.length === 0 ? (
-              <RepositoryEmptyState reason="no-suites" />
-            ) : filteredSections.length === 0 ? (
-              <RepositoryEmptyState
-                reason="no-matching-cases"
-                caseFilter={caseFilter}
+            <div className="repository-browser">
+              <RepositorySuiteTree
+                sections={dashboard.sections}
+                suiteStats={dashboard.suiteStats}
+                selectedSuiteId={suiteFilterId}
+                allSuitesFilter={ALL_SUITES_FILTER}
+                totalActiveCases={dashboard.stats.activeCases}
+                onCreateSuite={() =>
+                  setActiveComposer((current) =>
+                    current === 'suite' ? null : 'suite',
+                  )
+                }
+                onSelectSuite={(value) => {
+                  clearBulkConfirmations()
+                  setSelectedTestIds([])
+                  updateRepositorySearch({
+                    suiteId:
+                      value === ALL_SUITES_FILTER ? undefined : Number(value),
+                  })
+                }}
               />
-            ) : (
-              <div className="grid gap-2.5 p-3 sm:p-4">
-                {filteredSections.map(({
-                  section,
-                  sectionTests,
-                  sectionAllTestIds,
-                  visibleTests,
-                }) => {
-                  const isEditingSuite = editingSuiteId === section.id
-                  const isDeleteConfirming = deleteConfirmSuiteId === section.id
-                  const isCollapsed = !expandedSuiteById[section.id]
-                  const isPendingSuiteAction = Boolean(
-                    pendingSuiteActionById[section.id],
-                  )
-                  const visibleTestIds = visibleTests.map((test) => test.id)
-                  const allVisibleSelected =
-                    visibleTestIds.length > 0 &&
-                    visibleTestIds.every((id) => selectedTestIdSet.has(id))
 
-                  return (
-                    <SuiteSection
-                      key={section.id}
-                      section={section}
-                      sectionTests={sectionTests}
-                      visibleTests={visibleTests}
-                      sectionAllTestIds={sectionAllTestIds}
-                      visibleTestIds={visibleTestIds}
-                      selectedTestIdSet={selectedTestIdSet}
-                      isCollapsed={isCollapsed}
-                      isEditingSuite={isEditingSuite}
-                      isDeleteConfirming={isDeleteConfirming}
-                      isPendingSuiteAction={isPendingSuiteAction}
-                      isMenuOpen={openSuiteMenuId === section.id}
-                      allVisibleSelected={allVisibleSelected}
-                      editingSuiteName={editingSuiteName}
-                      suiteActionErrorMessage={suiteActionErrorMessage}
-                      showSuiteActionError={suiteActionSuiteId === section.id}
-                      dragOverSuiteId={dragOverSuiteId}
-                      draggedTestIds={draggedTestIds}
-                      dragOverTestDrop={dragOverTestDrop}
-                      isApplyingBulkAction={isApplyingBulkAction}
-                      quickCreateSuiteId={quickCreateSuiteId}
-                      pendingQuickCreateSuiteId={pendingQuickCreateSuiteId}
-                      quickCreateTitle={quickCreateTitle}
-                      quickCreatePriority={quickCreatePriority}
-                      quickCreateType={quickCreateType}
-                      quickCreateStatus={quickCreateStatus}
-                      priorityOptions={PRIORITY_OPTIONS}
-                      caseTypeOptions={CASE_TYPE_OPTIONS}
-                      statusOptions={CASE_STATUS_OPTIONS}
-                      quickCreateStatusOptions={QUICK_CREATE_STATUS_OPTIONS}
-                      openCaseMenuId={openCaseMenuId}
-                      pendingCaseActionId={pendingCaseActionId}
-                      editingCaseTitleId={editingCaseTitleId}
-                      editingCaseTitleValue={editingCaseTitleValue}
-                      formatDate={formatRepositoryDate}
-                      onToggleCollapsed={toggleSuiteCollapsed}
-                      onRenameSuite={(event, suiteId) => {
-                        void handleRenameSuite(event, suiteId)
-                      }}
-                      onEditingSuiteNameChange={setEditingSuiteName}
-                      onCancelRenameSuite={() => {
-                        setEditingSuiteId(null)
-                        setEditingSuiteName('')
-                        setSuiteActionErrorMessage(null)
-                      }}
-                      onToggleSuiteSelection={toggleSuiteSelection}
-                      onStartQuickCreateCase={startQuickCreateCase}
-                      onQuickCreateTitleChange={setQuickCreateTitle}
-                      onQuickCreatePriorityChange={setQuickCreatePriority}
-                      onQuickCreateTypeChange={setQuickCreateType}
-                      onQuickCreateStatusChange={setQuickCreateStatus}
-                      onSubmitQuickCreateCase={(suiteId) => {
-                        void handleQuickCreateCase(suiteId)
-                      }}
-                      onCancelQuickCreateCase={cancelQuickCreateCase}
-                      onToggleSuiteMenu={(suiteId) => {
-                        setSuiteActionErrorMessage(null)
-                        setDeleteConfirmSuiteId(null)
-                        setOpenSuiteMenuId((current) =>
-                          current === suiteId ? null : suiteId,
-                        )
-                      }}
-                      onCloseSuiteMenu={() => setOpenSuiteMenuId(null)}
-                      onStartRenameSuite={startRenameSuite}
-                      onRequestDeleteSuite={(suiteId) => {
-                        setSuiteActionErrorMessage(null)
-                        setSuiteActionSuiteId(suiteId)
-                        setDeleteConfirmSuiteId((current) =>
-                          current === suiteId ? null : suiteId,
-                        )
-                        setOpenSuiteMenuId(null)
-                      }}
-                      onConfirmDeleteSuite={(suiteId) => {
-                        void handleDeleteSuite(suiteId)
-                      }}
-                      onCancelDeleteSuite={() => setDeleteConfirmSuiteId(null)}
-                      onSuiteDragOver={handleSuiteDragOver}
-                      onSuiteDragLeave={(suiteId) => {
-                        setDragOverSuiteId((current) =>
-                          current === suiteId ? null : current,
-                        )
-                      }}
-                      onSuiteAppendDrop={(event, suiteId) => {
-                        setDragOverTestDrop(null)
-                        void handleSuiteAppendDrop({
-                          event,
-                          suiteId,
-                          currentSuiteTestIds: sectionAllTestIds,
-                        })
-                      }}
-                      onToggleTestSelection={toggleTestSelection}
-                      onCaseDragStart={handleCaseDragStart}
-                      onCaseDragEnd={() => {
-                        setDraggedTestIds([])
-                        setDragOverSuiteId(null)
-                        setDragOverTestDrop(null)
-                      }}
-                      onCaseDragOver={(_event, testId, position) => {
-                        setDragOverSuiteId(section.id)
-                        setDragOverTestDrop({
-                          testId,
-                          position,
-                        })
-                      }}
-                      onCaseDragLeave={(testId) => {
-                        setDragOverTestDrop((current) =>
-                          current?.testId === testId ? null : current,
-                        )
-                      }}
-                      onCaseDrop={(event, testId) => {
-                        const position =
-                          dragOverTestDrop?.testId === testId
-                            ? dragOverTestDrop.position
-                            : 'before'
+              <section className="repository-browser-table">
+                <div className="tms-table-header repository-case-grid px-3 py-2 sm:px-4">
+                  <span />
+                  <span>ID</span>
+                  <span>Title</span>
+                  <span>Priority</span>
+                  <span>Type</span>
+                  <span>Created</span>
+                  <span>Updated</span>
+                  <span>Status</span>
+                  <span>Actions</span>
+                </div>
 
-                        void handleCaseDrop({
-                          event,
-                          suiteId: section.id,
-                          targetTestId: testId,
-                          position,
-                          currentSuiteTestIds: sectionAllTestIds,
-                        })
-                      }}
-                      onStartCaseTitleEdit={startCaseTitleEdit}
-                      onCaseTitleEditChange={setEditingCaseTitleValue}
-                      onSaveCaseTitleEdit={(testId, currentTitle) => {
-                        void saveCaseTitleEdit(testId, currentTitle)
-                      }}
-                      onCancelCaseTitleEdit={cancelCaseTitleEdit}
-                      onCasePriorityChange={(testId, priority) => {
-                        const test = visibleTests.find((item) => item.id === testId)
+                {dashboard.sections.length === 0 ? (
+                  <RepositoryEmptyState reason="no-suites" />
+                ) : dashboard.tests.length === 0 ? (
+                  <RepositoryEmptyState
+                    reason="no-matching-cases"
+                    caseFilter={caseFilter}
+                  />
+                ) : (
+                  dashboard.tests.map((test) => {
+                    const sectionId = test.sectionId ?? 0
+                    const sectionAllTestIds =
+                      allTestIdsBySectionId.get(sectionId) ?? []
 
-                        if (priority === (test?.priority ?? 'Medium')) {
-                          return
+                    return (
+                      <CaseRow
+                        key={test.id}
+                        test={test}
+                        isSelected={selectedTestIdSet.has(test.id)}
+                        isMenuOpen={openCaseMenuId === test.id}
+                        isPending={pendingCaseActionId === test.id}
+                        isEditingTitle={editingCaseTitleId === test.id}
+                        editingTitleValue={editingCaseTitleValue}
+                        draggedTestIds={draggedTestIds}
+                        dragOverDrop={dragOverTestDrop}
+                        priorityOptions={PRIORITY_OPTIONS}
+                        caseTypeOptions={CASE_TYPE_OPTIONS}
+                        statusOptions={CASE_STATUS_OPTIONS}
+                        formatDate={formatRepositoryDate}
+                        onToggleSelection={() => toggleTestSelection(test.id)}
+                        onDragStart={(event) => handleCaseDragStart(event, test.id)}
+                        onDragEnd={() => {
+                          setDraggedTestIds([])
+                          setDragOverSuiteId(null)
+                          setDragOverTestDrop(null)
+                        }}
+                        onDragOver={(_event, testId, position) => {
+                          setDragOverSuiteId(sectionId)
+                          setDragOverTestDrop({
+                            testId,
+                            position,
+                          })
+                        }}
+                        onDragLeave={(testId) => {
+                          setDragOverTestDrop((current) =>
+                            current?.testId === testId ? null : current,
+                          )
+                        }}
+                        onDrop={(event) => {
+                          if (!test.sectionId) {
+                            return
+                          }
+
+                          const position =
+                            dragOverTestDrop?.testId === test.id
+                              ? dragOverTestDrop.position
+                              : 'before'
+
+                          void handleCaseDrop({
+                            event,
+                            suiteId: test.sectionId,
+                            targetTestId: test.id,
+                            position,
+                            currentSuiteTestIds: sectionAllTestIds,
+                          })
+                        }}
+                        onTitleEditChange={setEditingCaseTitleValue}
+                        onStartTitleEdit={() =>
+                          startCaseTitleEdit(test.id, test.title)
                         }
-
-                        void handleCaseMetadataChange(testId, { priority })
-                      }}
-                      onCaseTypeChange={(testId, caseType) => {
-                        const test = visibleTests.find((item) => item.id === testId)
-
-                        if (caseType === (test?.caseType ?? 'Functional')) {
-                          return
+                        onSaveTitleEdit={() =>
+                          void saveCaseTitleEdit(test.id, test.title)
                         }
+                        onCancelTitleEdit={cancelCaseTitleEdit}
+                        onPriorityChange={(priority) => {
+                          if (priority === (test.priority ?? 'Medium')) {
+                            return
+                          }
 
-                        void handleCaseMetadataChange(testId, { caseType })
-                      }}
-                      onCaseStatusChange={(testId, status) => {
-                        const test = visibleTests.find((item) => item.id === testId)
+                          void handleCaseMetadataChange(test.id, { priority })
+                        }}
+                        onCaseTypeChange={(caseType) => {
+                          if (caseType === (test.caseType ?? 'Functional')) {
+                            return
+                          }
 
-                        if (status === (test?.status ?? 'Draft')) {
-                          return
-                        }
+                          void handleCaseMetadataChange(test.id, { caseType })
+                        }}
+                        onStatusChange={(status) => {
+                          if (status === (test.status ?? 'Draft')) {
+                            return
+                          }
 
-                        void handleCaseStatusChange(testId, status)
-                      }}
-                      onToggleCaseMenu={(testId) => {
-                        setCaseActionErrorMessage(null)
-                        setOpenCaseMenuId((current) =>
-                          current === testId ? null : testId,
-                        )
-                      }}
-                      onCloseCaseMenu={() => setOpenCaseMenuId(null)}
-                      onPreviewCase={openCasePreview}
-                      onDuplicateCase={(testId) => {
-                        void handleCaseDuplicate(testId)
-                      }}
-                      onRestoreCase={(testId) => {
-                        void handleCaseRestore(testId)
-                      }}
-                      onDeleteCasePermanently={(testId) => {
-                        void handleCaseDeletePermanently(testId)
-                      }}
-                      onArchiveCase={(testId) => {
-                        void handleCaseArchive(testId)
-                      }}
-                    />
-                  )
-                })}
-              </div>
-            )}
+                          void handleCaseStatusChange(test.id, status)
+                        }}
+                        onToggleMenu={() => {
+                          setCaseActionErrorMessage(null)
+                          setOpenCaseMenuId((current) =>
+                            current === test.id ? null : test.id,
+                          )
+                        }}
+                        onCloseMenu={() => setOpenCaseMenuId(null)}
+                        onPreview={() => openCasePreview(test.id)}
+                        onDuplicate={() => {
+                          void handleCaseDuplicate(test.id)
+                        }}
+                        onRestore={() => {
+                          void handleCaseRestore(test.id)
+                        }}
+                        onDeletePermanently={() => {
+                          void handleCaseDeletePermanently(test.id)
+                        }}
+                        onArchive={() => {
+                          void handleCaseArchive(test.id)
+                        }}
+                      />
+                    )
+                  })
+                )}
+              </section>
+            </div>
           </RepositoryPanel>
 
           {dashboard.pagination.totalPages > 1 ? (

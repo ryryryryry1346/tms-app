@@ -2407,6 +2407,100 @@ a {
   font-size: 0.75rem;
 }
 
+.repository-browser {
+  display: grid;
+  grid-template-columns: minmax(210px, 260px) minmax(0, 1fr);
+  min-height: 520px;
+  border-top: 1px solid var(--tms-border-subtle);
+}
+
+.repository-browser-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+  padding: 0.875rem;
+  border-right: 1px solid var(--tms-border-subtle);
+  background: var(--tms-surface-soft);
+}
+
+.repository-browser-tree__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.125rem 0.125rem 0.5rem;
+}
+
+.repository-browser-tree__title {
+  color: var(--tms-text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.repository-browser-tree__add {
+  min-height: 1.875rem;
+  width: 1.875rem;
+  padding: 0;
+}
+
+.repository-browser-tree__list {
+  display: grid;
+  gap: 0.125rem;
+  overflow: auto;
+}
+
+.repository-browser-tree__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.625rem;
+  width: 100%;
+  min-height: 2rem;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--tms-radius-md);
+  background: transparent;
+  color: var(--tms-text-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.repository-browser-tree__item:hover {
+  border-color: var(--tms-border-subtle);
+  background: var(--tms-surface-muted);
+  color: var(--tms-text);
+}
+
+.repository-browser-tree__item--active {
+  border-color: var(--tms-border-focus);
+  background: var(--tms-primary-soft);
+  color: var(--tms-text);
+}
+
+.repository-browser-tree__item-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.repository-browser-tree__count {
+  color: var(--tms-text-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.repository-browser-table {
+  min-width: 0;
+  overflow-x: auto;
+  padding: 0.875rem;
+}
+
 .create-edit-actions {
   justify-content: flex-end;
 }
@@ -2745,6 +2839,16 @@ a {
 
   .repository-case-grid {
     grid-template-columns: 64px 76px minmax(220px, 1fr) 108px 128px 112px 112px 112px 84px;
+  }
+
+  .repository-browser {
+    grid-template-columns: 1fr;
+  }
+
+  .repository-browser-tree {
+    max-height: 260px;
+    border-right: 0;
+    border-bottom: 1px solid var(--tms-border-subtle);
   }
 
   .editor-toolbar {

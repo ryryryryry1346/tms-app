@@ -245,6 +245,14 @@ export type RepositoryState = DashboardState & {
     totalCases: number
     totalPages: number
   }
+  suiteStats: Array<{
+    sectionId: number
+    totalCases: number
+    activeCases: number
+    readyCases: number
+    draftCases: number
+    archivedCases: number
+  }>
   stats: {
     totalCases: number
     activeCases: number
@@ -363,6 +371,7 @@ export const getDashboardState = createServerFn({ method: 'POST' })
           totalCases: 0,
           totalPages: 1,
         },
+        suiteStats: [],
         stats: {
           totalCases: 0,
           activeCases: 0,
@@ -495,6 +504,7 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
           totalCases: 0,
           totalPages: 1,
         },
+        suiteStats: [],
         stats: {
           totalCases: 0,
           activeCases: 0,
@@ -539,6 +549,7 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
       testRows,
       filteredCountRows,
       statsRows,
+      suiteStatsRows,
     ] = await Promise.all([
       db
         .select({
@@ -583,6 +594,18 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
         })
         .from(tests)
         .where(eq(tests.projectId, project.id)),
+      db
+        .select({
+          sectionId: tests.sectionId,
+          totalCases: count(),
+          activeCases: sql<number>`sum(case when ${tests.status} <> 'Archived' then 1 else 0 end)`,
+          readyCases: sql<number>`sum(case when ${tests.status} = 'Ready' then 1 else 0 end)`,
+          draftCases: sql<number>`sum(case when ${tests.status} = 'Draft' then 1 else 0 end)`,
+          archivedCases: sql<number>`sum(case when ${tests.status} = 'Archived' then 1 else 0 end)`,
+        })
+        .from(tests)
+        .where(eq(tests.projectId, project.id))
+        .groupBy(tests.sectionId),
     ])
     const totalFilteredCases = filteredCountRows[0]?.value ?? 0
     const stats = statsRows[0]
@@ -600,6 +623,16 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
         totalCases: totalFilteredCases,
         totalPages: Math.max(1, Math.ceil(totalFilteredCases / pageSize)),
       },
+      suiteStats: suiteStatsRows
+        .filter((row) => row.sectionId !== null)
+        .map((row) => ({
+          sectionId: row.sectionId ?? 0,
+          totalCases: Number(row.totalCases ?? 0),
+          activeCases: Number(row.activeCases ?? 0),
+          readyCases: Number(row.readyCases ?? 0),
+          draftCases: Number(row.draftCases ?? 0),
+          archivedCases: Number(row.archivedCases ?? 0),
+        })),
       stats: {
         totalCases: Number(stats?.totalCases ?? 0),
         activeCases: Number(stats?.activeCases ?? 0),
