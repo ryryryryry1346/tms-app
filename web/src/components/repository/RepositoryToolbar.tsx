@@ -1,8 +1,22 @@
+import { useState } from 'react'
 import { WorkspaceSectionHeader } from '../layout/WorkspaceSectionHeader'
 import { Button } from '../ui/Button'
+import { Checkbox } from '../ui/Checkbox'
 import { Input } from '../ui/Input'
 import { PanelHeader } from '../ui/Panel'
+import {
+  PopoverMenu,
+  PopoverMenuItem,
+  PopoverMenuLabel,
+  PopoverMenuSeparator,
+} from '../ui/PopoverMenu'
 import { SelectMenu } from '../ui/SelectMenu'
+import type {
+  RepositoryColumnKey,
+  RepositoryTableDensity,
+  RepositoryVisibleColumns,
+} from './CaseRow'
+import { REPOSITORY_COLUMN_LABELS } from './CaseRow'
 
 export type RepositoryCaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
 export type RepositoryPriorityFilter =
@@ -28,8 +42,12 @@ type RepositoryToolbarProps = {
   caseFilter: RepositoryCaseFilter
   priorityOptions: Exclude<RepositoryPriorityFilter, 'All'>[]
   caseTypeOptions: Exclude<RepositoryCaseTypeFilter, 'All'>[]
+  visibleColumns: RepositoryVisibleColumns
+  density: RepositoryTableDensity
   isExporting: boolean
   onSearchChange: (value: string) => void
+  onToggleColumn: (column: RepositoryColumnKey) => void
+  onDensityChange: (density: RepositoryTableDensity) => void
   onPriorityFilterChange: (value: RepositoryPriorityFilter) => void
   onCaseTypeFilterChange: (value: RepositoryCaseTypeFilter) => void
   onCaseFilterChange: (value: RepositoryCaseFilter) => void
@@ -67,13 +85,20 @@ export function RepositoryToolbar({
   caseFilter,
   priorityOptions,
   caseTypeOptions,
+  visibleColumns,
+  density,
   isExporting,
   onSearchChange,
+  onToggleColumn,
+  onDensityChange,
   onPriorityFilterChange,
   onCaseTypeFilterChange,
   onCaseFilterChange,
   onExportFiltered,
 }: RepositoryToolbarProps) {
+  const [isTableSettingsOpen, setIsTableSettingsOpen] = useState(false)
+  const visibleColumnCount = Object.values(visibleColumns).filter(Boolean).length
+
   return (
     <PanelHeader dense>
       <WorkspaceSectionHeader
@@ -149,6 +174,66 @@ export function RepositoryToolbar({
             >
               {isExporting ? 'Exporting...' : 'Export CSV'}
             </Button>
+            <PopoverMenu
+              isOpen={isTableSettingsOpen}
+              onClose={() => setIsTableSettingsOpen(false)}
+              onOpenChange={setIsTableSettingsOpen}
+              className="min-w-[220px]"
+              trigger={
+                <Button
+                  type="button"
+                  variant="secondary"
+                  aria-label="Configure repository table"
+                >
+                  View
+                </Button>
+              }
+            >
+              <PopoverMenuLabel>Columns</PopoverMenuLabel>
+              {(Object.keys(REPOSITORY_COLUMN_LABELS) as RepositoryColumnKey[]).map(
+                (column) => (
+                  <PopoverMenuItem
+                    key={column}
+                    onClick={(event) => {
+                      event.preventDefault()
+
+                      if (visibleColumns[column] && visibleColumnCount <= 1) {
+                        return
+                      }
+
+                      onToggleColumn(column)
+                    }}
+                    className="justify-start gap-2"
+                  >
+                    <Checkbox
+                      checked={visibleColumns[column]}
+                      disabled={visibleColumns[column] && visibleColumnCount <= 1}
+                      onChange={() => undefined}
+                      tabIndex={-1}
+                    />
+                    {REPOSITORY_COLUMN_LABELS[column]}
+                  </PopoverMenuItem>
+                ),
+              )}
+              <PopoverMenuSeparator />
+              <PopoverMenuLabel>Density</PopoverMenuLabel>
+              <PopoverMenuItem onClick={() => onDensityChange('compact')}>
+                <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                  Compact
+                  {density === 'compact' ? (
+                    <span aria-hidden="true">Active</span>
+                  ) : null}
+                </span>
+              </PopoverMenuItem>
+              <PopoverMenuItem onClick={() => onDensityChange('comfortable')}>
+                <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                  Comfortable
+                  {density === 'comfortable' ? (
+                    <span aria-hidden="true">Active</span>
+                  ) : null}
+                </span>
+              </PopoverMenuItem>
+            </PopoverMenu>
           </div>
         }
       />

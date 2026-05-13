@@ -1,5 +1,4 @@
 import {
-  Link,
   createFileRoute,
   notFound,
   redirect,
@@ -15,8 +14,15 @@ import { RepositoryEmptyState } from '../components/repository/RepositoryEmptySt
 import { RepositoryErrorBanner } from '../components/repository/RepositoryErrorBanner'
 import { RepositoryPanel } from '../components/repository/RepositoryPanel'
 import { RepositorySuiteTree } from '../components/repository/RepositorySuiteTree'
+import {
+  CaseRow,
+  DEFAULT_REPOSITORY_VISIBLE_COLUMNS,
+  getRepositoryCaseGridTemplate,
+  type RepositoryColumnKey,
+  type RepositoryTableDensity,
+  type RepositoryVisibleColumns,
+} from '../components/repository/CaseRow'
 import { RepositoryToolbar } from '../components/repository/RepositoryToolbar'
-import { CaseRow } from '../components/repository/CaseRow'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Checkbox } from '../components/ui/Checkbox'
@@ -37,7 +43,6 @@ import {
   bulkRestoreTestCases,
   bulkUpdateTestMetadata,
   bulkUpdateTestStatus,
-  createTestCase,
   deleteArchivedTestCase,
   duplicateTestCase,
   exportRepositoryCasesCsv,
@@ -146,7 +151,6 @@ type ComposerKind = 'suite' | null
 type RepositoryImportPanelSource = RepositoryImportSource
 type CaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
 type CaseStatusValue = Exclude<CaseFilter, 'All'>
-type QuickCreateStatusValue = Exclude<CaseStatusValue, 'Archived'>
 type PriorityFilter = 'All' | 'Low' | 'Medium' | 'High' | 'Critical'
 type PriorityValue = Exclude<PriorityFilter, 'All'>
 type CaseTypeFilter =
@@ -160,7 +164,6 @@ type CaseTypeFilter =
 type CaseTypeValue = Exclude<CaseTypeFilter, 'All'>
 const ALL_SUITES_FILTER = 'all'
 const CASE_STATUS_OPTIONS: CaseStatusValue[] = ['Draft', 'Ready', 'Archived']
-const QUICK_CREATE_STATUS_OPTIONS: QuickCreateStatusValue[] = ['Draft', 'Ready']
 const PRIORITY_OPTIONS: PriorityValue[] = ['Low', 'Medium', 'High', 'Critical']
 const CASE_TYPE_OPTIONS: CaseTypeValue[] = [
   'Functional',
@@ -170,6 +173,32 @@ const CASE_TYPE_OPTIONS: CaseTypeValue[] = [
   'UI',
   'API',
 ]
+const REPOSITORY_COLUMNS_STORAGE_KEY = 'tms.repository.visibleColumns'
+const REPOSITORY_DENSITY_STORAGE_KEY = 'tms.repository.tableDensity'
+
+function normalizeRepositoryVisibleColumns(
+  value: unknown,
+): RepositoryVisibleColumns {
+  if (!value || typeof value !== 'object') {
+    return DEFAULT_REPOSITORY_VISIBLE_COLUMNS
+  }
+
+  const rawColumns = value as Partial<Record<RepositoryColumnKey, unknown>>
+  const nextColumns: RepositoryVisibleColumns = {
+    ...DEFAULT_REPOSITORY_VISIBLE_COLUMNS,
+    priority: rawColumns.priority === false ? false : true,
+    type: rawColumns.type === false ? false : true,
+    created: rawColumns.created === false ? false : true,
+    updated: rawColumns.updated === false ? false : true,
+    status: rawColumns.status === false ? false : true,
+  }
+
+  if (!Object.values(nextColumns).some(Boolean)) {
+    return DEFAULT_REPOSITORY_VISIBLE_COLUMNS
+  }
+
+  return nextColumns
+}
 
 function formatRepositoryDate(value: string | null | undefined): string {
   if (!value) {
@@ -267,11 +296,12 @@ function ProjectRepositoryPage() {
     null,
   )
   const [openSuiteMenuId, setOpenSuiteMenuId] = useState<number | null>(null)
-  const [expandedSuiteById, setExpandedSuiteById] = useState<
-    Record<number, boolean>
-  >({})
   const [activeComposer, setActiveComposer] = useState<ComposerKind>(null)
   const [searchValue, setSearchValue] = useState(search.q ?? '')
+  const [visibleColumns, setVisibleColumns] =
+    useState<RepositoryVisibleColumns>(DEFAULT_REPOSITORY_VISIBLE_COLUMNS)
+  const [tableDensity, setTableDensity] =
+    useState<RepositoryTableDensity>('compact')
   const caseFilter = search.status ?? 'All'
   const priorityFilter = search.priority ?? 'All'
   const caseTypeFilter = search.type ?? 'All'
@@ -298,19 +328,6 @@ function ProjectRepositoryPage() {
   const [previewDetailErrorMessage, setPreviewDetailErrorMessage] = useState<
     string | null
   >(null)
-  const [quickCreateSuiteId, setQuickCreateSuiteId] = useState<number | null>(
-    null,
-  )
-  const [quickCreateTitle, setQuickCreateTitle] = useState('')
-  const [quickCreatePriority, setQuickCreatePriority] =
-    useState<PriorityValue>('Medium')
-  const [quickCreateType, setQuickCreateType] =
-    useState<CaseTypeValue>('Functional')
-  const [quickCreateStatus, setQuickCreateStatus] =
-    useState<QuickCreateStatusValue>('Draft')
-  const [pendingQuickCreateSuiteId, setPendingQuickCreateSuiteId] = useState<
-    number | null
-  >(null)
   const [isEditingPreviewContent, setIsEditingPreviewContent] = useState(false)
   const [previewStepsValue, setPreviewStepsValue] = useState('')
   const [previewExpectedValue, setPreviewExpectedValue] = useState('')
@@ -320,7 +337,6 @@ function ProjectRepositoryPage() {
     string | null
   >(null)
   const [draggedTestIds, setDraggedTestIds] = useState<number[]>([])
-  const [dragOverSuiteId, setDragOverSuiteId] = useState<number | null>(null)
   const [dragOverTestDrop, setDragOverTestDrop] = useState<{
     testId: number
     position: 'before' | 'after'
@@ -333,6 +349,41 @@ function ProjectRepositoryPage() {
   useEffect(() => {
     setSearchValue(search.q ?? '')
   }, [search.q])
+
+  useEffect(() => {
+    try {
+      const storedColumns = window.localStorage.getItem(
+        REPOSITORY_COLUMNS_STORAGE_KEY,
+      )
+      const storedDensity = window.localStorage.getItem(
+        REPOSITORY_DENSITY_STORAGE_KEY,
+      )
+
+      if (storedColumns) {
+        setVisibleColumns(
+          normalizeRepositoryVisibleColumns(JSON.parse(storedColumns)),
+        )
+      }
+
+      if (storedDensity === 'compact' || storedDensity === 'comfortable') {
+        setTableDensity(storedDensity)
+      }
+    } catch {
+      setVisibleColumns(DEFAULT_REPOSITORY_VISIBLE_COLUMNS)
+      setTableDensity('compact')
+    }
+  }, [])
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      REPOSITORY_COLUMNS_STORAGE_KEY,
+      JSON.stringify(visibleColumns),
+    )
+  }, [visibleColumns])
+
+  useEffect(() => {
+    window.localStorage.setItem(REPOSITORY_DENSITY_STORAGE_KEY, tableDensity)
+  }, [tableDensity])
 
   useEffect(() => {
     const nextSearch = searchValue.trim()
@@ -369,6 +420,22 @@ function ProjectRepositoryPage() {
         page: nextSearch.page ?? 1,
       }),
       replace: true,
+    })
+  }
+
+  function toggleRepositoryColumn(column: RepositoryColumnKey): void {
+    setVisibleColumns((currentColumns) => {
+      const visibleColumnCount =
+        Object.values(currentColumns).filter(Boolean).length
+
+      if (currentColumns[column] && visibleColumnCount <= 1) {
+        return currentColumns
+      }
+
+      return {
+        ...currentColumns,
+        [column]: !currentColumns[column],
+      }
     })
   }
 
@@ -634,58 +701,6 @@ function ProjectRepositoryPage() {
     })
   }
 
-  const activeTests = useMemo(
-    () => dashboard.tests.filter((test) => test.status !== 'Archived'),
-    [dashboard.tests],
-  )
-  const filteredLifecycleTests = useMemo(
-    () =>
-      dashboard.tests.filter((test) => {
-        if (caseFilter === 'All') {
-          if (test.status === 'Archived') {
-            return false
-          }
-        } else if (caseFilter === 'Archived') {
-          if (test.status !== 'Archived') {
-            return false
-          }
-        } else if (test.status !== caseFilter) {
-          return false
-        }
-
-        if (
-          priorityFilter !== 'All' &&
-          (test.priority ?? 'Medium') !== priorityFilter
-        ) {
-          return false
-        }
-
-        if (
-          caseTypeFilter !== 'All' &&
-          (test.caseType ?? 'Functional') !== caseTypeFilter
-        ) {
-          return false
-        }
-
-        return true
-      }),
-    [dashboard.tests, caseFilter, caseTypeFilter, priorityFilter],
-  )
-  const testsBySectionId = useMemo(() => {
-    const groupedTests = new Map<number, DashboardTest[]>()
-
-    for (const test of filteredLifecycleTests) {
-      if (test.sectionId === null) {
-        continue
-      }
-
-      const existingTests = groupedTests.get(test.sectionId) ?? []
-      existingTests.push(test)
-      groupedTests.set(test.sectionId, existingTests)
-    }
-
-    return groupedTests
-  }, [filteredLifecycleTests])
   const allTestIdsBySectionId = useMemo(() => {
     const groupedIds = new Map<number, number[]>()
 
@@ -701,80 +716,7 @@ function ProjectRepositoryPage() {
 
     return groupedIds
   }, [dashboard.tests])
-  const totalCases =
-    caseFilter === 'All' ? activeTests.length : filteredLifecycleTests.length
   const totalSuites = dashboard.sections.length
-  const readyCases = useMemo(
-    () => activeTests.filter((test) => test.status === 'Ready').length,
-    [activeTests],
-  )
-  const archivedCases = useMemo(
-    () => dashboard.tests.filter((test) => test.status === 'Archived').length,
-    [dashboard.tests],
-  )
-
-  const normalizedSearch = searchValue.trim().toLowerCase()
-
-  const filteredSections = useMemo(() => {
-    return dashboard.sections
-      .map((section) => {
-        if (
-          suiteFilterId !== ALL_SUITES_FILTER &&
-          String(section.id) !== suiteFilterId
-        ) {
-          return null
-        }
-
-        const sectionTests = testsBySectionId.get(section.id) ?? []
-        const matchingTests =
-          normalizedSearch.length === 0
-            ? sectionTests
-            : sectionTests.filter((test) => {
-                const title = test.title.toLowerCase()
-                const id = String(test.id)
-                const suiteName = section.name.toLowerCase()
-                const priority = (test.priority ?? 'Medium').toLowerCase()
-                const caseType = (test.caseType ?? 'Functional').toLowerCase()
-
-                return (
-                  title.includes(normalizedSearch) ||
-                  id.includes(normalizedSearch) ||
-                  suiteName.includes(normalizedSearch) ||
-                  priority.includes(normalizedSearch) ||
-                  caseType.includes(normalizedSearch)
-                )
-              })
-
-        if (
-          normalizedSearch.length > 0 &&
-          !section.name.toLowerCase().includes(normalizedSearch) &&
-          matchingTests.length === 0
-        ) {
-          return null
-        }
-
-        return {
-          section,
-          sectionTests,
-          sectionAllTestIds: allTestIdsBySectionId.get(section.id) ?? [],
-          visibleTests:
-            normalizedSearch.length > 0 &&
-            section.name.toLowerCase().includes(normalizedSearch)
-              ? sectionTests
-              : matchingTests,
-        }
-      })
-      .filter((item): item is NonNullable<typeof item> => item !== null)
-  }, [
-    dashboard.sections,
-    allTestIdsBySectionId,
-    caseTypeFilter,
-    filteredLifecycleTests,
-    normalizedSearch,
-    priorityFilter,
-    suiteFilterId,
-    testsBySectionId,
-  ])
 
   const selectedTestIdSet = useMemo(
     () => new Set(selectedTestIds),
@@ -783,6 +725,12 @@ function ProjectRepositoryPage() {
   const selectedTests = useMemo(
     () => dashboard.tests.filter((test) => selectedTestIdSet.has(test.id)),
     [dashboard.tests, selectedTestIdSet],
+  )
+  const repositoryGridStyle = useMemo(
+    () => ({
+      gridTemplateColumns: getRepositoryCaseGridTemplate(visibleColumns),
+    }),
+    [visibleColumns],
   )
   const selectedArchivableTests = selectedTests.filter(
     (test) => test.status !== 'Archived',
@@ -926,24 +874,6 @@ function ProjectRepositoryPage() {
   function cancelCaseTitleEdit(): void {
     setEditingCaseTitleId(null)
     setEditingCaseTitleValue('')
-  }
-
-  function startQuickCreateCase(suiteId: number): void {
-    setCaseActionErrorMessage(null)
-    setOpenCaseMenuId(null)
-    setQuickCreateSuiteId(suiteId)
-    setQuickCreateTitle('')
-    setQuickCreatePriority('Medium')
-    setQuickCreateType('Functional')
-    setQuickCreateStatus('Draft')
-  }
-
-  function cancelQuickCreateCase(): void {
-    setQuickCreateSuiteId(null)
-    setQuickCreateTitle('')
-    setQuickCreatePriority('Medium')
-    setQuickCreateType('Functional')
-    setQuickCreateStatus('Draft')
   }
 
   function openCasePreview(testId: number): void {
@@ -1280,54 +1210,6 @@ function ProjectRepositoryPage() {
     }
   }
 
-  async function handleQuickCreateCase(suiteId: number): Promise<void> {
-    const title = quickCreateTitle.trim()
-
-    if (!title) {
-      setCaseActionErrorMessage('Test case title cannot be empty.')
-      return
-    }
-
-    setCaseActionErrorMessage(null)
-    setPendingQuickCreateSuiteId(suiteId)
-
-    try {
-      const result = await createTestCase({
-        data: {
-          title,
-          sectionId: suiteId,
-          status: quickCreateStatus,
-          priority: quickCreatePriority,
-          caseType: quickCreateType,
-          steps: '',
-          expected: '',
-        },
-      })
-      const now = new Date().toISOString()
-
-      addRepositoryTest({
-        id: result.id,
-        title,
-        status: quickCreateStatus,
-        priority: quickCreatePriority,
-        caseType: quickCreateType,
-        archivedFromStatus: null,
-        sectionId: suiteId,
-        projectId: project.id,
-        sortOrder: 0,
-        createdAt: now,
-        updatedAt: now,
-      })
-      cancelQuickCreateCase()
-    } catch (error) {
-      setCaseActionErrorMessage(
-        error instanceof Error ? error.message : 'Failed to create test case.',
-      )
-    } finally {
-      setPendingQuickCreateSuiteId(null)
-    }
-  }
-
   function handleBulkArchiveRequest(): void {
     if (selectedArchivableTests.length === 0) {
       return
@@ -1445,7 +1327,6 @@ function ProjectRepositoryPage() {
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
       setDraggedTestIds([])
-      setDragOverSuiteId(null)
       setDragOverTestDrop(null)
       await router.invalidate()
     } catch (error) {
@@ -1488,7 +1369,6 @@ function ProjectRepositoryPage() {
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
       setDraggedTestIds([])
-      setDragOverSuiteId(null)
       setDragOverTestDrop(null)
       await router.invalidate()
     } catch (error) {
@@ -1743,44 +1623,6 @@ function ProjectRepositoryPage() {
     ]
   }
 
-  function handleSuiteDragOver(
-    event: React.DragEvent<HTMLElement>,
-    suiteId: number,
-  ): void {
-    if (draggedTestIds.length === 0) {
-      return
-    }
-
-    event.preventDefault()
-    event.dataTransfer.dropEffect = 'move'
-    setDragOverSuiteId(suiteId)
-  }
-
-  async function handleSuiteAppendDrop({
-    event,
-    suiteId,
-    currentSuiteTestIds,
-  }: {
-    event: React.DragEvent<HTMLElement>
-    suiteId: number
-    currentSuiteTestIds: number[]
-  }): Promise<void> {
-    event.preventDefault()
-    event.stopPropagation()
-
-    const ids = getDraggedIdsFromEvent(event)
-    const orderedIds = buildReorderedIds({
-      currentIds: currentSuiteTestIds,
-      draggedIds: ids,
-    })
-
-    await handleMoveAndReorderTestCases({
-      testIds: ids,
-      targetSuiteId: suiteId,
-      orderedIds,
-    })
-  }
-
   async function handleCaseDrop({
     event,
     suiteId,
@@ -1801,7 +1643,6 @@ function ProjectRepositoryPage() {
 
     if (ids.includes(targetTestId)) {
       setDraggedTestIds([])
-      setDragOverSuiteId(null)
       setDragOverTestDrop(null)
       return
     }
@@ -1975,13 +1816,6 @@ function ProjectRepositoryPage() {
     setEditingSuiteId(suiteId)
     setEditingSuiteName(currentName)
     setOpenSuiteMenuId(null)
-  }
-
-  function toggleSuiteCollapsed(suiteId: number): void {
-    setExpandedSuiteById((current) => ({
-      ...current,
-      [suiteId]: !current[suiteId],
-    }))
   }
 
   async function handleRenameSuite(
@@ -2383,11 +2217,15 @@ function ProjectRepositoryPage() {
               caseFilter={caseFilter}
               priorityOptions={PRIORITY_OPTIONS}
               caseTypeOptions={CASE_TYPE_OPTIONS}
+              visibleColumns={visibleColumns}
+              density={tableDensity}
               isExporting={isExportingCsv}
               onSearchChange={(value) => {
                 clearBulkConfirmations()
                 setSearchValue(value)
               }}
+              onToggleColumn={toggleRepositoryColumn}
+              onDensityChange={setTableDensity}
               onPriorityFilterChange={(value) => {
                 clearBulkConfirmations()
                 updateRepositorySearch({
@@ -2547,15 +2385,20 @@ function ProjectRepositoryPage() {
                     {dashboard.pagination.totalCases} visible
                   </div>
                 </div>
-                <div className="tms-table-header repository-case-grid px-3 py-2 sm:px-4">
+                <div
+                  className={`tms-table-header repository-case-grid px-3 sm:px-4 ${
+                    tableDensity === 'compact' ? 'py-1.5' : 'py-2'
+                  }`}
+                  style={repositoryGridStyle}
+                >
                   <span />
                   <span>ID</span>
                   <span>Title</span>
-                  <span>Priority</span>
-                  <span>Type</span>
-                  <span>Created</span>
-                  <span>Updated</span>
-                  <span>Status</span>
+                  {visibleColumns.priority ? <span>Priority</span> : null}
+                  {visibleColumns.type ? <span>Type</span> : null}
+                  {visibleColumns.created ? <span>Created</span> : null}
+                  {visibleColumns.updated ? <span>Updated</span> : null}
+                  {visibleColumns.status ? <span>Status</span> : null}
                   <span>Actions</span>
                 </div>
 
@@ -2586,16 +2429,16 @@ function ProjectRepositoryPage() {
                         priorityOptions={PRIORITY_OPTIONS}
                         caseTypeOptions={CASE_TYPE_OPTIONS}
                         statusOptions={CASE_STATUS_OPTIONS}
+                        visibleColumns={visibleColumns}
+                        density={tableDensity}
                         formatDate={formatRepositoryDate}
                         onToggleSelection={() => toggleTestSelection(test.id)}
                         onDragStart={(event) => handleCaseDragStart(event, test.id)}
                         onDragEnd={() => {
                           setDraggedTestIds([])
-                          setDragOverSuiteId(null)
                           setDragOverTestDrop(null)
                         }}
                         onDragOver={(_event, testId, position) => {
-                          setDragOverSuiteId(sectionId)
                           setDragOverTestDrop({
                             testId,
                             position,
