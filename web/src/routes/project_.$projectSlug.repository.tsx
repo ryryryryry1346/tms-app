@@ -18,8 +18,10 @@ import { RepositoryToolbar } from '../components/repository/RepositoryToolbar'
 import { SuiteSection } from '../components/repository/SuiteSection'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
+import { FileInput } from '../components/ui/FileInput'
 import { Input } from '../components/ui/Input'
 import { LinkButton } from '../components/ui/LinkButton'
+import { SelectMenu } from '../components/ui/SelectMenu'
 import { uploadTestMedia } from '../features/media/server'
 import {
   createSuite,
@@ -40,11 +42,17 @@ import {
   getRepositoryState,
   getTestDetail,
   moveAndReorderTestCases,
+  previewRepositoryImportCsv,
   restoreTestCase,
   updateTestContent,
   updateTestTitle,
 } from '../features/tests/server'
-import type { DashboardTest, TestDetail } from '../features/tests/server'
+import type {
+  DashboardTest,
+  RepositoryImportPreview,
+  RepositoryImportSource,
+  TestDetail,
+} from '../features/tests/server'
 
 export const Route = createFileRoute('/project_/$projectSlug/repository')({
   validateSearch: z.object({
@@ -131,6 +139,7 @@ export const Route = createFileRoute('/project_/$projectSlug/repository')({
 })
 
 type ComposerKind = 'suite' | null
+type RepositoryImportPanelSource = RepositoryImportSource
 type CaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
 type CaseStatusValue = Exclude<CaseFilter, 'All'>
 type QuickCreateStatusValue = Exclude<CaseStatusValue, 'Archived'>
@@ -223,6 +232,14 @@ function ProjectRepositoryPage() {
   const [suiteName, setSuiteName] = useState('')
   const [suiteErrorMessage, setSuiteErrorMessage] = useState<string | null>(null)
   const [isSubmittingSuite, setIsSubmittingSuite] = useState(false)
+  const [isImportPanelOpen, setIsImportPanelOpen] = useState(false)
+  const [importSource, setImportSource] =
+    useState<RepositoryImportPanelSource>('auto')
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importPreview, setImportPreview] =
+    useState<RepositoryImportPreview | null>(null)
+  const [isParsingImport, setIsParsingImport] = useState(false)
+  const [importErrorMessage, setImportErrorMessage] = useState<string | null>(null)
 
   const [editingSuiteId, setEditingSuiteId] = useState<number | null>(null)
   const [editingSuiteName, setEditingSuiteName] = useState('')
@@ -1363,6 +1380,40 @@ function ProjectRepositoryPage() {
     }
   }
 
+  async function handleImportPreview(
+    event: React.FormEvent<HTMLFormElement>,
+  ): Promise<void> {
+    event.preventDefault()
+
+    if (!importFile) {
+      setImportErrorMessage('Choose a CSV file first.')
+      return
+    }
+
+    setImportErrorMessage(null)
+    setImportPreview(null)
+    setIsParsingImport(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', importFile)
+      formData.append('projectId', project.id.toString())
+      formData.append('source', importSource)
+
+      const result = await previewRepositoryImportCsv({
+        data: formData,
+      })
+
+      setImportPreview(result)
+    } catch (error) {
+      setImportErrorMessage(
+        error instanceof Error ? error.message : 'Failed to preview CSV import.',
+      )
+    } finally {
+      setIsParsingImport(false)
+    }
+  }
+
   function handleCaseDragStart(
     event: React.DragEvent<HTMLElement>,
     testId: number,
@@ -1791,6 +1842,15 @@ function ProjectRepositoryPage() {
                 >
                   + Suite
                 </Button>
+                <Button
+                  onClick={() => {
+                    setIsImportPanelOpen((current) => !current)
+                    setImportErrorMessage(null)
+                  }}
+                  variant="secondary"
+                >
+                  Import CSV
+                </Button>
                 <LinkButton
                   to="/create-test"
                   search={{ projectId: project.id }}
@@ -1845,6 +1905,127 @@ function ProjectRepositoryPage() {
                   </Alert>
                 ) : null}
               </form>
+            </section>
+          ) : null}
+
+          {isImportPanelOpen ? (
+            <section className="tms-panel mb-6 px-4 py-4 sm:px-5">
+              <form
+                className="grid gap-3 lg:grid-cols-[180px_minmax(0,1fr)_140px]"
+                onSubmit={(event) => {
+                  void handleImportPreview(event)
+                }}
+              >
+                <div className="lg:col-span-3">
+                  <div className="text-base font-semibold text-[var(--tms-text)]">
+                    Import CSV preview
+                  </div>
+                  <div className="mt-1 text-sm text-[var(--tms-text-muted)]">
+                    Parse and validate a CSV file without creating test cases.
+                  </div>
+                </div>
+                <label className="grid gap-1.5 text-sm font-semibold text-[var(--tms-text)]">
+                  Source
+                  <SelectMenu
+                    value={importSource}
+                    onValueChange={(value) => {
+                      setImportSource(value as RepositoryImportPanelSource)
+                      setImportPreview(null)
+                    }}
+                    options={[
+                      { value: 'auto', label: 'Auto detect' },
+                      { value: 'native', label: 'TMS CSV' },
+                      { value: 'testmo', label: 'Testmo CSV' },
+                    ]}
+                    aria-label="Import source"
+                  />
+                </label>
+                <label className="grid gap-1.5 text-sm font-semibold text-[var(--tms-text)]">
+                  CSV file
+                  <FileInput
+                    accept=".csv,text/csv"
+                    onChange={(event) => {
+                      setImportFile(event.currentTarget.files?.[0] ?? null)
+                      setImportPreview(null)
+                      setImportErrorMessage(null)
+                    }}
+                  />
+                </label>
+                <div className="flex items-end">
+                  <Button
+                    type="submit"
+                    disabled={isParsingImport || !importFile}
+                    variant="primary"
+                    className="w-full"
+                  >
+                    {isParsingImport ? 'Parsing...' : 'Preview'}
+                  </Button>
+                </div>
+              </form>
+
+              {importErrorMessage ? (
+                <Alert variant="danger" className="mt-3">
+                  {importErrorMessage}
+                </Alert>
+              ) : null}
+
+              {importPreview ? (
+                <div className="mt-4 grid gap-3">
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--tms-text-muted)]">
+                    <span className="tms-chip">
+                      {importPreview.totalRows} rows
+                    </span>
+                    <span className="tms-chip tms-chip-status-ready">
+                      {importPreview.validRows} valid
+                    </span>
+                    <span className="tms-chip tms-chip-status-draft">
+                      {importPreview.warningRows} warnings
+                    </span>
+                    <span className="tms-chip tms-chip-status-archived">
+                      {importPreview.errorRows} errors
+                    </span>
+                    <span>
+                      Detected: {importPreview.detectedSource === 'testmo' ? 'Testmo CSV' : 'TMS CSV'}
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto rounded-[var(--tms-radius-md)] border border-[var(--tms-border-subtle)]">
+                    <div className="grid min-w-[980px] grid-cols-[70px_1.2fr_1fr_100px_110px_110px_1.4fr] border-b border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
+                      <span>Row</span>
+                      <span>Title</span>
+                      <span>Suite</span>
+                      <span>Status</span>
+                      <span>Priority</span>
+                      <span>Type</span>
+                      <span>Notes</span>
+                    </div>
+                    {importPreview.previewRows.map((row) => (
+                      <div
+                        key={row.rowNumber}
+                        className="grid min-w-[980px] grid-cols-[70px_1.2fr_1fr_100px_110px_110px_1.4fr] gap-0 border-b border-[var(--tms-border-subtle)] px-3 py-2 text-sm last:border-b-0"
+                      >
+                        <span className="text-[var(--tms-text-muted)]">
+                          {row.rowNumber}
+                        </span>
+                        <span className="min-w-0 truncate font-semibold">
+                          {row.title || '-'}
+                        </span>
+                        <span className="min-w-0 truncate">{row.suite || '-'}</span>
+                        <span>{row.status}</span>
+                        <span>{row.priority}</span>
+                        <span>{row.caseType}</span>
+                        <span className="min-w-0 text-[var(--tms-text-muted)]">
+                          {[...row.errors, ...row.warnings].join(' ') || 'OK'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {importPreview.totalRows > importPreview.previewRows.length ? (
+                    <div className="text-xs text-[var(--tms-text-muted)]">
+                      Showing first {importPreview.previewRows.length} rows only.
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </section>
           ) : null}
 

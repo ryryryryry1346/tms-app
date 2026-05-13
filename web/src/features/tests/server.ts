@@ -259,6 +259,32 @@ export type RepositoryCsvExport = {
   rowCount: number
 }
 
+export type RepositoryImportSource = 'auto' | 'native' | 'testmo'
+
+export type RepositoryImportPreviewRow = {
+  rowNumber: number
+  title: string
+  suite: string
+  status: 'Draft' | 'Ready' | 'Archived'
+  priority: 'Low' | 'Medium' | 'High' | 'Critical'
+  caseType: 'Functional' | 'Regression' | 'Smoke' | 'E2E' | 'UI' | 'API'
+  stepsPreview: string
+  expectedPreview: string
+  warnings: string[]
+  errors: string[]
+}
+
+export type RepositoryImportPreview = {
+  filename: string
+  source: RepositoryImportSource
+  detectedSource: Exclude<RepositoryImportSource, 'auto'>
+  totalRows: number
+  previewRows: RepositoryImportPreviewRow[]
+  validRows: number
+  warningRows: number
+  errorRows: number
+}
+
 export type CreateTestFormState = {
   databaseConfigured: boolean
   sections: DashboardSection[]
@@ -758,6 +784,343 @@ export const exportRepositoryCasesCsv = createServerFn({ method: 'POST' })
       rowCount: testRows.length,
     }
   })
+
+type CsvParseResult = {
+  headers: string[]
+  rows: string[][]
+}
+
+function parseCsv(text: string): CsvParseResult {
+  const headers: string[] = []
+  const rows: string[][] = []
+  let current = ''
+  let currentRow: string[] = []
+  let isQuoted = false
+  let rowIndex = 0
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index]
+    const nextChar = text[index + 1]
+
+    if (char === '"') {
+      if (isQuoted && nextChar === '"') {
+        current += '"'
+        index += 1
+      } else {
+        isQuoted = !isQuoted
+      }
+
+      continue
+    }
+
+    if (char === ',' && !isQuoted) {
+      currentRow.push(current)
+      current = ''
+      continue
+    }
+
+    if ((char === '\n' || char === '\r') && !isQuoted) {
+      if (char === '\r' && nextChar === '\n') {
+        index += 1
+      }
+
+      currentRow.push(current)
+      current = ''
+
+      if (rowIndex === 0) {
+        headers.push(...currentRow.map((header) => header.replace(/^\uFEFF/, '').trim()))
+      } else if (currentRow.some((field) => field.trim().length > 0)) {
+        rows.push(currentRow)
+      }
+
+      currentRow = []
+      rowIndex += 1
+      continue
+    }
+
+    current += char
+  }
+
+  if (current.length > 0 || currentRow.length > 0) {
+    currentRow.push(current)
+
+    if (rowIndex === 0) {
+      headers.push(...currentRow.map((header) => header.replace(/^\uFEFF/, '').trim()))
+    } else if (currentRow.some((field) => field.trim().length > 0)) {
+      rows.push(currentRow)
+    }
+  }
+
+  return { headers, rows }
+}
+
+function normalizeHeader(value: string): string {
+  return value.trim().toLowerCase()
+}
+
+function getCsvValue(
+  headers: string[],
+  row: string[],
+  names: string[],
+): string {
+  const normalizedNames = names.map(normalizeHeader)
+
+  for (let index = 0; index < headers.length; index += 1) {
+    if (!normalizedNames.includes(normalizeHeader(headers[index] ?? ''))) {
+      continue
+    }
+
+    const value = row[index]?.trim() ?? ''
+
+    if (value.length > 0) {
+      return value
+    }
+  }
+
+  return ''
+}
+
+function stripHtml(value: string): string {
+  return value
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+function truncatePreview(value: string): string {
+  const text = stripHtml(value).replace(/\s+/g, ' ').trim()
+
+  return text.length > 120 ? `${text.slice(0, 117)}...` : text
+}
+
+function normalizeImportPriority(value: string): {
+  value: RepositoryImportPreviewRow['priority']
+  warning?: string
+} {
+  const normalized = value.trim().toLowerCase()
+
+  if (normalized === 'low') return { value: 'Low' }
+  if (normalized === 'medium' || normalized === 'normal') return { value: 'Medium' }
+  if (normalized === 'high') return { value: 'High' }
+  if (normalized === 'critical' || normalized === 'urgent') return { value: 'Critical' }
+
+  return {
+    value: 'Medium',
+    warning: value
+      ? `Unknown priority "${value}" will be imported as Medium.`
+      : 'Missing priority will be imported as Medium.',
+  }
+}
+
+function normalizeImportType(value: string): {
+  value: RepositoryImportPreviewRow['caseType']
+  warning?: string
+} {
+  const normalized = value.trim().toLowerCase()
+
+  if (normalized.includes('regression')) return { value: 'Regression' }
+  if (normalized.includes('smoke')) return { value: 'Smoke' }
+  if (normalized.includes('e2e')) return { value: 'E2E' }
+  if (normalized.includes('api')) return { value: 'API' }
+  if (normalized.includes('ui')) return { value: 'UI' }
+  if (normalized.includes('functional') || normalized.includes('steps') || !normalized) {
+    return { value: 'Functional' }
+  }
+
+  return {
+    value: 'Functional',
+    warning: `Unknown type "${value}" will be imported as Functional.`,
+  }
+}
+
+function normalizeImportStatus(value: string, stateValue: string): {
+  value: RepositoryImportPreviewRow['status']
+  warning?: string
+} {
+  const normalized = (value || stateValue).trim().toLowerCase()
+
+  if (normalized === 'ready') return { value: 'Ready' }
+  if (normalized === 'draft' || normalized === 'active' || !normalized) return { value: 'Draft' }
+  if (normalized === 'archived' || normalized === 'inactive') return { value: 'Archived' }
+
+  return {
+    value: 'Draft',
+    warning: `Unknown status "${value || stateValue}" will be imported as Draft.`,
+  }
+}
+
+function detectImportSource(headers: string[]): Exclude<RepositoryImportSource, 'auto'> {
+  const headerSet = new Set(headers.map(normalizeHeader))
+
+  if (
+    headerSet.has('case id') &&
+    headerSet.has('case') &&
+    headerSet.has('steps (step)')
+  ) {
+    return 'testmo'
+  }
+
+  return 'native'
+}
+
+function mapImportRow({
+  headers,
+  row,
+  rowNumber,
+  source,
+  knownSuiteNames,
+}: {
+  headers: string[]
+  row: string[]
+  rowNumber: number
+  source: Exclude<RepositoryImportSource, 'auto'>
+  knownSuiteNames: Set<string>
+}): RepositoryImportPreviewRow {
+  const warnings: string[] = []
+  const errors: string[] = []
+  const title =
+    source === 'testmo'
+      ? getCsvValue(headers, row, ['Case'])
+      : getCsvValue(headers, row, ['title', 'case', 'name'])
+  const suite =
+    source === 'testmo'
+      ? getCsvValue(headers, row, ['Folder', 'Suite']) || 'Imported'
+      : getCsvValue(headers, row, ['suite', 'folder', 'section']) || 'Imported'
+  const rawPriority = getCsvValue(headers, row, ['priority'])
+  const rawType =
+    source === 'testmo'
+      ? getCsvValue(headers, row, ['Template'])
+      : getCsvValue(headers, row, ['type', 'case_type', 'template'])
+  const rawStatus =
+    source === 'testmo'
+      ? ''
+      : getCsvValue(headers, row, ['status', 'state'])
+  const rawState = getCsvValue(headers, row, ['State'])
+  const steps =
+    source === 'testmo'
+      ? getCsvValue(headers, row, ['Steps (Step)'])
+      : getCsvValue(headers, row, ['steps', 'steps (step)', 'step'])
+  const expected =
+    source === 'testmo'
+      ? getCsvValue(headers, row, ['Steps (Expected)', 'Expected'])
+      : getCsvValue(headers, row, ['expected', 'expected_result', 'steps (expected)'])
+  const priority = normalizeImportPriority(rawPriority)
+  const caseType = normalizeImportType(rawType)
+  const status = normalizeImportStatus(rawStatus, rawState)
+
+  if (!title.trim()) {
+    errors.push('Title is required.')
+  }
+
+  if (!suite.trim()) {
+    errors.push('Suite is required.')
+  } else if (!knownSuiteNames.has(suite.trim().toLowerCase())) {
+    warnings.push(`Suite "${suite}" does not exist and would be created later.`)
+  }
+
+  if (priority.warning) warnings.push(priority.warning)
+  if (caseType.warning) warnings.push(caseType.warning)
+  if (status.warning) warnings.push(status.warning)
+
+  return {
+    rowNumber,
+    title: title.trim(),
+    suite: suite.trim(),
+    status: status.value,
+    priority: priority.value,
+    caseType: caseType.value,
+    stepsPreview: truncatePreview(steps),
+    expectedPreview: truncatePreview(expected),
+    warnings,
+    errors,
+  }
+}
+
+export const previewRepositoryImportCsv = createServerFn({ method: 'POST' }).handler(
+  async ({ data }): Promise<RepositoryImportPreview> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+    await ensureTestServerDeps()
+
+    if (!(data instanceof FormData)) {
+      throw new Error('Import preview request must be sent as FormData.')
+    }
+
+    const file = data.get('file')
+    const projectIdValue = Number(data.get('projectId'))
+    const requestedSourceValue = String(data.get('source') ?? 'auto')
+    const requestedSource: RepositoryImportSource =
+      requestedSourceValue === 'native' || requestedSourceValue === 'testmo'
+        ? requestedSourceValue
+        : 'auto'
+
+    if (!(file instanceof File)) {
+      throw new Error('Choose a CSV file first.')
+    }
+
+    if (!Number.isInteger(projectIdValue) || projectIdValue <= 0) {
+      throw new Error('Project is missing for import preview.')
+    }
+
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      throw new Error('Only .csv files are supported for import preview.')
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error('CSV file is too large. Maximum size is 5 MB.')
+    }
+
+    const text = await file.text()
+    const parsed = parseCsv(text)
+
+    if (parsed.headers.length === 0) {
+      throw new Error('CSV header row is empty.')
+    }
+
+    const detectedSource = detectImportSource(parsed.headers)
+    const source = requestedSource === 'auto' ? detectedSource : requestedSource
+    const db = getDb()
+    const sectionRows = await db
+      .select({ name: sections.name })
+      .from(sections)
+      .where(eq(sections.projectId, projectIdValue))
+    const knownSuiteNames = new Set(
+      sectionRows.map((section) => section.name.trim().toLowerCase()),
+    )
+    const mappedRows = parsed.rows.map((row, index) =>
+      mapImportRow({
+        headers: parsed.headers,
+        row,
+        rowNumber: index + 2,
+        source,
+        knownSuiteNames,
+      }),
+    )
+    const errorRows = mappedRows.filter((row) => row.errors.length > 0).length
+    const warningRows = mappedRows.filter((row) => row.warnings.length > 0).length
+
+    return {
+      filename: file.name,
+      source: requestedSource,
+      detectedSource,
+      totalRows: mappedRows.length,
+      previewRows: mappedRows.slice(0, 50),
+      validRows: mappedRows.length - errorRows,
+      warningRows,
+      errorRows,
+    }
+  },
+)
 
 export const updateTestStatus = createServerFn({ method: 'POST' })
   .inputValidator(updateTestStatusInput)
