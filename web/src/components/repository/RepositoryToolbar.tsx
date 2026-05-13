@@ -20,25 +20,16 @@ export type RepositoryCaseTypeFilter =
   | 'UI'
   | 'API'
 
-type RepositorySuiteOption = {
-  id: number
-  name: string
-}
-
 type RepositoryToolbarProps = {
   visibleCount: number
   searchValue: string
-  suiteFilterId: string
   priorityFilter: RepositoryPriorityFilter
   caseTypeFilter: RepositoryCaseTypeFilter
   caseFilter: RepositoryCaseFilter
-  allSuitesFilter: string
-  suites: RepositorySuiteOption[]
   priorityOptions: Exclude<RepositoryPriorityFilter, 'All'>[]
   caseTypeOptions: Exclude<RepositoryCaseTypeFilter, 'All'>[]
   isExporting: boolean
   onSearchChange: (value: string) => void
-  onSuiteFilterChange: (value: string) => void
   onPriorityFilterChange: (value: RepositoryPriorityFilter) => void
   onCaseTypeFilterChange: (value: RepositoryCaseTypeFilter) => void
   onCaseFilterChange: (value: RepositoryCaseFilter) => void
@@ -71,17 +62,13 @@ function getCaseFilterChipClass(filter: RepositoryCaseFilter): string {
 export function RepositoryToolbar({
   visibleCount,
   searchValue,
-  suiteFilterId,
   priorityFilter,
   caseTypeFilter,
   caseFilter,
-  allSuitesFilter,
-  suites,
   priorityOptions,
   caseTypeOptions,
   isExporting,
   onSearchChange,
-  onSuiteFilterChange,
   onPriorityFilterChange,
   onCaseTypeFilterChange,
   onCaseFilterChange,
@@ -103,22 +90,6 @@ export function RepositoryToolbar({
                 value={searchValue}
                 onChange={(event) => onSearchChange(event.target.value)}
                 className="repository-toolbar__input"
-              />
-            </label>
-            <label className="repository-toolbar__field">
-              <span className="font-semibold">Suite</span>
-              <SelectMenu
-                value={suiteFilterId}
-                onValueChange={onSuiteFilterChange}
-                options={[
-                  { value: allSuitesFilter, label: 'All suites' },
-                  ...suites.map((section) => ({
-                    value: section.id.toString(),
-                    label: section.name,
-                  })),
-                ]}
-                className="min-w-[140px]"
-                aria-label="Filter by suite"
               />
             </label>
             <label className="repository-toolbar__field">

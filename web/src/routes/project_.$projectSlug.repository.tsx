@@ -392,6 +392,40 @@ function ProjectRepositoryPage() {
     setDashboard((current) => ({
       ...current,
       tests: current.tests.filter((test) => !testIdSet.has(test.id)),
+      suiteStats: current.suiteStats.map((stats) => {
+        const removedTests = current.tests.filter(
+          (test) => test.sectionId === stats.sectionId && testIdSet.has(test.id),
+        )
+
+        if (removedTests.length === 0) {
+          return stats
+        }
+
+        return {
+          ...stats,
+          totalCases: Math.max(0, stats.totalCases - removedTests.length),
+          activeCases: Math.max(
+            0,
+            stats.activeCases -
+              removedTests.filter((test) => test.status !== 'Archived').length,
+          ),
+          readyCases: Math.max(
+            0,
+            stats.readyCases -
+              removedTests.filter((test) => test.status === 'Ready').length,
+          ),
+          draftCases: Math.max(
+            0,
+            stats.draftCases -
+              removedTests.filter((test) => test.status === 'Draft').length,
+          ),
+          archivedCases: Math.max(
+            0,
+            stats.archivedCases -
+              removedTests.filter((test) => test.status === 'Archived').length,
+          ),
+        }
+      }),
     }))
   }
 
@@ -428,6 +462,30 @@ function ProjectRepositoryPage() {
       return {
         ...current,
         tests: shouldAppearInCurrentView ? [...current.tests, test] : current.tests,
+        suiteStats: current.suiteStats.map((stats) =>
+          stats.sectionId === test.sectionId
+            ? {
+                ...stats,
+                totalCases: stats.totalCases + 1,
+                activeCases:
+                  normalizedStatus === 'Archived'
+                    ? stats.activeCases
+                    : stats.activeCases + 1,
+                readyCases:
+                  normalizedStatus === 'Ready'
+                    ? stats.readyCases + 1
+                    : stats.readyCases,
+                draftCases:
+                  normalizedStatus === 'Draft'
+                    ? stats.draftCases + 1
+                    : stats.draftCases,
+                archivedCases:
+                  normalizedStatus === 'Archived'
+                    ? stats.archivedCases + 1
+                    : stats.archivedCases,
+              }
+            : stats,
+        ),
         pagination: {
           ...current.pagination,
           totalCases: nextFilteredTotal,
@@ -471,7 +529,109 @@ function ProjectRepositoryPage() {
           projectSlug: project.slug,
         },
       ],
+      suiteStats: [
+        ...current.suiteStats,
+        {
+          sectionId: section.id,
+          totalCases: 0,
+          activeCases: 0,
+          readyCases: 0,
+          draftCases: 0,
+          archivedCases: 0,
+        },
+      ],
     }))
+  }
+
+  function adjustSuiteStatsForStatusChanges(
+    testIds: number[],
+    nextStatusForTest: (test: DashboardTest) => CaseStatusValue,
+  ): void {
+    const testIdSet = new Set(testIds)
+
+    setDashboard((current) => {
+      const deltasBySuiteId = new Map<
+        number,
+        {
+          activeCases: number
+          readyCases: number
+          draftCases: number
+          archivedCases: number
+        }
+      >()
+
+      for (const test of current.tests) {
+        if (!test.sectionId || !testIdSet.has(test.id)) {
+          continue
+        }
+
+        const previousStatus = test.status ?? 'Draft'
+        const nextStatus = nextStatusForTest(test)
+
+        if (previousStatus === nextStatus) {
+          continue
+        }
+
+        const delta = deltasBySuiteId.get(test.sectionId) ?? {
+          activeCases: 0,
+          readyCases: 0,
+          draftCases: 0,
+          archivedCases: 0,
+        }
+
+        if (previousStatus !== 'Archived') {
+          delta.activeCases -= 1
+        }
+
+        if (nextStatus !== 'Archived') {
+          delta.activeCases += 1
+        }
+
+        if (previousStatus === 'Ready') {
+          delta.readyCases -= 1
+        } else if (previousStatus === 'Draft') {
+          delta.draftCases -= 1
+        } else if (previousStatus === 'Archived') {
+          delta.archivedCases -= 1
+        }
+
+        if (nextStatus === 'Ready') {
+          delta.readyCases += 1
+        } else if (nextStatus === 'Draft') {
+          delta.draftCases += 1
+        } else if (nextStatus === 'Archived') {
+          delta.archivedCases += 1
+        }
+
+        deltasBySuiteId.set(test.sectionId, delta)
+      }
+
+      if (deltasBySuiteId.size === 0) {
+        return current
+      }
+
+      return {
+        ...current,
+        suiteStats: current.suiteStats.map((stats) => {
+          const delta = deltasBySuiteId.get(stats.sectionId)
+
+          if (!delta) {
+            return stats
+          }
+
+          return {
+            ...stats,
+            activeCases: Math.max(0, stats.activeCases + delta.activeCases),
+            readyCases: Math.max(0, stats.readyCases + delta.readyCases),
+            draftCases: Math.max(0, stats.draftCases + delta.draftCases),
+            archivedCases: Math.max(
+              0,
+              stats.archivedCases + delta.archivedCases,
+            ),
+          }
+        }),
+      }
+    })
   }
 
   const activeTests = useMemo(
@@ -660,6 +820,11 @@ function ProjectRepositoryPage() {
       : dashboard.sections.find((section) => section.id === previewTest.sectionId) ??
         null
   const previewActivities = previewTestDetail?.activities.slice(0, 12) ?? []
+  const selectedSuite =
+    suiteFilterId === ALL_SUITES_FILTER
+      ? null
+      : dashboard.sections.find((section) => section.id.toString() === suiteFilterId) ??
+        null
 
   useEffect(() => {
     if (!previewTest) {
@@ -933,6 +1098,7 @@ function ProjectRepositoryPage() {
       })
 
       const updatedAt = new Date().toISOString()
+      adjustSuiteStatsForStatusChanges(statusUpdateIds, () => status)
       updateRepositoryTests(statusUpdateIds, (test) => ({
         ...test,
         status,
@@ -1051,6 +1217,7 @@ function ProjectRepositoryPage() {
       })
 
       const updatedAt = new Date().toISOString()
+      adjustSuiteStatsForStatusChanges([testId], () => status)
       updateRepositoryTests([testId], (test) => ({
         ...test,
         status,
@@ -1188,6 +1355,9 @@ function ProjectRepositoryPage() {
         },
       })
 
+      adjustSuiteStatsForStatusChanges(selectedTestIds, (test) =>
+        test.archivedFromStatus ?? 'Draft',
+      )
       updateRepositoryTests(selectedTestIds, (test) => ({
         ...test,
         status: test.archivedFromStatus ?? 'Draft',
@@ -1669,6 +1839,7 @@ function ProjectRepositoryPage() {
 
       setOpenCaseMenuId(null)
       setSelectedTestIds((current) => current.filter((id) => id !== testId))
+      adjustSuiteStatsForStatusChanges([testId], () => 'Archived')
       updateRepositoryTests([testId], (test) => ({
         ...test,
         status: 'Archived',
@@ -1700,6 +1871,9 @@ function ProjectRepositoryPage() {
 
       setOpenCaseMenuId(null)
       setSelectedTestIds((current) => current.filter((id) => id !== testId))
+      adjustSuiteStatsForStatusChanges([testId], (test) =>
+        test.archivedFromStatus ?? 'Draft',
+      )
       updateRepositoryTests([testId], (test) => ({
         ...test,
         status: test.archivedFromStatus ?? 'Draft',
@@ -1878,7 +2052,15 @@ function ProjectRepositoryPage() {
       setDashboard((current) => ({
         ...current,
         sections: current.sections.filter((section) => section.id !== suiteId),
+        suiteStats: current.suiteStats.filter(
+          (stats) => stats.sectionId !== suiteId,
+        ),
       }))
+      if (suiteFilterId === suiteId.toString()) {
+        updateRepositorySearch({
+          suiteId: undefined,
+        })
+      }
     } catch (error) {
       setSuiteActionErrorMessage(
         error instanceof Error ? error.message : 'Failed to delete suite.',
@@ -2196,24 +2378,15 @@ function ProjectRepositoryPage() {
             <RepositoryToolbar
               visibleCount={dashboard.pagination.totalCases}
               searchValue={searchValue}
-              suiteFilterId={suiteFilterId}
               priorityFilter={priorityFilter}
               caseTypeFilter={caseTypeFilter}
               caseFilter={caseFilter}
-              allSuitesFilter={ALL_SUITES_FILTER}
-              suites={dashboard.sections}
               priorityOptions={PRIORITY_OPTIONS}
               caseTypeOptions={CASE_TYPE_OPTIONS}
               isExporting={isExportingCsv}
               onSearchChange={(value) => {
                 clearBulkConfirmations()
                 setSearchValue(value)
-              }}
-              onSuiteFilterChange={(value) => {
-                clearBulkConfirmations()
-                updateRepositorySearch({
-                  suiteId: value === ALL_SUITES_FILTER ? undefined : Number(value),
-                })
               }}
               onPriorityFilterChange={(value) => {
                 clearBulkConfirmations()
@@ -2299,11 +2472,27 @@ function ProjectRepositoryPage() {
                 selectedSuiteId={suiteFilterId}
                 allSuitesFilter={ALL_SUITES_FILTER}
                 totalActiveCases={dashboard.stats.activeCases}
+                editingSuiteId={editingSuiteId}
+                editingSuiteName={editingSuiteName}
+                deleteConfirmSuiteId={deleteConfirmSuiteId}
+                openSuiteMenuId={openSuiteMenuId}
+                pendingSuiteActionById={pendingSuiteActionById}
+                suiteActionErrorMessage={suiteActionErrorMessage}
+                suiteActionSuiteId={suiteActionSuiteId}
                 onCreateSuite={() =>
                   setActiveComposer((current) =>
                     current === 'suite' ? null : 'suite',
                   )
                 }
+                onCreateCase={(suiteId) => {
+                  void navigate({
+                    to: '/create-test',
+                    search: {
+                      projectId: project.id,
+                      suiteId,
+                    },
+                  })
+                }}
                 onSelectSuite={(value) => {
                   clearBulkConfirmations()
                   setSelectedTestIds([])
@@ -2312,9 +2501,52 @@ function ProjectRepositoryPage() {
                       value === ALL_SUITES_FILTER ? undefined : Number(value),
                   })
                 }}
+                onStartRenameSuite={startRenameSuite}
+                onRenameSuite={(event, suiteId) => {
+                  void handleRenameSuite(event, suiteId)
+                }}
+                onEditingSuiteNameChange={setEditingSuiteName}
+                onCancelRenameSuite={() => {
+                  setEditingSuiteId(null)
+                  setEditingSuiteName('')
+                  setSuiteActionSuiteId(null)
+                }}
+                onRequestDeleteSuite={(suiteId) => {
+                  setSuiteActionErrorMessage(null)
+                  setSuiteActionSuiteId(suiteId)
+                  setDeleteConfirmSuiteId(suiteId)
+                  setOpenSuiteMenuId(null)
+                }}
+                onConfirmDeleteSuite={(suiteId) => {
+                  void handleDeleteSuite(suiteId)
+                }}
+                onCancelDeleteSuite={() => {
+                  setDeleteConfirmSuiteId(null)
+                  setSuiteActionSuiteId(null)
+                }}
+                onToggleSuiteMenu={(suiteId) => {
+                  setSuiteActionErrorMessage(null)
+                  setOpenSuiteMenuId((current) =>
+                    current === suiteId ? null : suiteId,
+                  )
+                }}
+                onCloseSuiteMenu={() => setOpenSuiteMenuId(null)}
               />
 
               <section className="repository-browser-table">
+                <div className="repository-browser-table__header">
+                  <div>
+                    <div className="tms-kicker">
+                      {selectedSuite ? 'Suite' : 'Repository'}
+                    </div>
+                    <div className="repository-browser-table__title">
+                      {selectedSuite?.name ?? 'All test cases'}
+                    </div>
+                  </div>
+                  <div className="repository-browser-table__meta">
+                    {dashboard.pagination.totalCases} visible
+                  </div>
+                </div>
                 <div className="tms-table-header repository-case-grid px-3 py-2 sm:px-4">
                   <span />
                   <span>ID</span>

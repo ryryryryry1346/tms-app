@@ -1,4 +1,14 @@
+import { type FormEvent } from 'react'
+import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
+import { ConfirmActionAlert } from '../ui/ConfirmActionAlert'
+import { Input } from '../ui/Input'
+import {
+  PopoverMenu,
+  PopoverMenuItem,
+  PopoverMenuLabel,
+  PopoverMenuSeparator,
+} from '../ui/PopoverMenu'
 
 type RepositorySuiteTreeSection = {
   id: number
@@ -19,8 +29,25 @@ type RepositorySuiteTreeProps = {
   selectedSuiteId: string
   allSuitesFilter: string
   totalActiveCases: number
+  editingSuiteId: number | null
+  editingSuiteName: string
+  deleteConfirmSuiteId: number | null
+  openSuiteMenuId: number | null
+  pendingSuiteActionById: Record<number, boolean>
+  suiteActionErrorMessage: string | null
+  suiteActionSuiteId: number | null
   onSelectSuite: (suiteId: string) => void
   onCreateSuite: () => void
+  onCreateCase: (suiteId: number) => void
+  onStartRenameSuite: (suiteId: number, suiteName: string) => void
+  onRenameSuite: (event: FormEvent<HTMLFormElement>, suiteId: number) => void
+  onEditingSuiteNameChange: (value: string) => void
+  onCancelRenameSuite: () => void
+  onRequestDeleteSuite: (suiteId: number) => void
+  onConfirmDeleteSuite: (suiteId: number) => void
+  onCancelDeleteSuite: () => void
+  onToggleSuiteMenu: (suiteId: number) => void
+  onCloseSuiteMenu: () => void
 }
 
 function FolderIcon() {
@@ -63,8 +90,25 @@ export function RepositorySuiteTree({
   selectedSuiteId,
   allSuitesFilter,
   totalActiveCases,
+  editingSuiteId,
+  editingSuiteName,
+  deleteConfirmSuiteId,
+  openSuiteMenuId,
+  pendingSuiteActionById,
+  suiteActionErrorMessage,
+  suiteActionSuiteId,
   onSelectSuite,
   onCreateSuite,
+  onCreateCase,
+  onStartRenameSuite,
+  onRenameSuite,
+  onEditingSuiteNameChange,
+  onCancelRenameSuite,
+  onRequestDeleteSuite,
+  onConfirmDeleteSuite,
+  onCancelDeleteSuite,
+  onToggleSuiteMenu,
+  onCloseSuiteMenu,
 }: RepositorySuiteTreeProps) {
   const statsBySectionId = new Map(
     suiteStats.map((stats) => [stats.sectionId, stats]),
@@ -108,24 +152,125 @@ export function RepositorySuiteTree({
         {sections.map((section) => {
           const stats = statsBySectionId.get(section.id)
           const activeCases = stats?.activeCases ?? 0
+          const isActive = selectedSuiteId === section.id.toString()
+          const isEditing = editingSuiteId === section.id
+          const isDeleteConfirming = deleteConfirmSuiteId === section.id
+          const isPending = pendingSuiteActionById[section.id] === true
+          const showSuiteError =
+            suiteActionSuiteId === section.id && suiteActionErrorMessage
 
           return (
-            <button
-              key={section.id}
-              type="button"
-              className={`repository-browser-tree__item ${
-                selectedSuiteId === section.id.toString()
-                  ? 'repository-browser-tree__item--active'
-                  : ''
-              }`}
-              onClick={() => onSelectSuite(section.id.toString())}
-            >
-              <span className="repository-browser-tree__item-main">
-                <FolderIcon />
-                <span className="truncate">{section.name}</span>
-              </span>
-              <span className="repository-browser-tree__count">{activeCases}</span>
-            </button>
+            <div key={section.id} className="repository-browser-tree__suite">
+              {isEditing ? (
+                <form
+                  className="repository-browser-tree__rename"
+                  onSubmit={(event) => onRenameSuite(event, section.id)}
+                >
+                  <Input
+                    value={editingSuiteName}
+                    onChange={(event) =>
+                      onEditingSuiteNameChange(event.currentTarget.value)
+                    }
+                    size="sm"
+                    autoFocus
+                  />
+                  <div className="repository-browser-tree__rename-actions">
+                    <Button type="submit" size="sm" variant="primary" disabled={isPending}>
+                      {isPending ? 'Saving' : 'Save'}
+                    </Button>
+                    <Button type="button" size="sm" onClick={onCancelRenameSuite}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <div
+                  className={`repository-browser-tree__item ${
+                    isActive ? 'repository-browser-tree__item--active' : ''
+                  }`}
+                >
+                  <button
+                    type="button"
+                    className="repository-browser-tree__item-button"
+                    onClick={() => onSelectSuite(section.id.toString())}
+                  >
+                    <span className="repository-browser-tree__item-main">
+                      <FolderIcon />
+                      <span className="truncate">{section.name}</span>
+                    </span>
+                    <span className="repository-browser-tree__count">
+                      {activeCases}
+                    </span>
+                  </button>
+                  <PopoverMenu
+                    isOpen={openSuiteMenuId === section.id}
+                    onClose={onCloseSuiteMenu}
+                    onOpenChange={(nextOpen) => {
+                      if (nextOpen) {
+                        onToggleSuiteMenu(section.id)
+                      }
+                    }}
+                    align="right"
+                    className="min-w-[190px]"
+                    trigger={
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        disabled={isPending}
+                        className="repository-browser-tree__menu-trigger"
+                        aria-label={`Open actions for ${section.name}`}
+                      >
+                        ...
+                      </Button>
+                    }
+                  >
+                    <PopoverMenuLabel>Suite</PopoverMenuLabel>
+                    <PopoverMenuItem onClick={() => onCreateCase(section.id)}>
+                      Create case
+                    </PopoverMenuItem>
+                    <PopoverMenuItem
+                      onClick={() => onStartRenameSuite(section.id, section.name)}
+                    >
+                      Rename
+                    </PopoverMenuItem>
+                    <PopoverMenuSeparator />
+                    <PopoverMenuItem
+                      tone="danger"
+                      onClick={() => onRequestDeleteSuite(section.id)}
+                    >
+                      Delete empty suite
+                    </PopoverMenuItem>
+                  </PopoverMenu>
+                </div>
+              )}
+
+              <div className="repository-browser-tree__suite-meta">
+                <span>Ready {stats?.readyCases ?? 0}</span>
+                <span>Draft {stats?.draftCases ?? 0}</span>
+              </div>
+
+              {isDeleteConfirming ? (
+                <div className="repository-browser-tree__confirm">
+                  <ConfirmActionAlert
+                    title="Delete empty suite?"
+                    description="Only suites without test cases can be deleted."
+                    confirmLabel="Delete"
+                    pendingLabel="Deleting"
+                    confirmVariant="danger"
+                    isPending={isPending}
+                    onCancel={onCancelDeleteSuite}
+                    onConfirm={() => onConfirmDeleteSuite(section.id)}
+                  />
+                </div>
+              ) : null}
+
+              {showSuiteError ? (
+                <Alert variant="danger" density="compact">
+                  {suiteActionErrorMessage}
+                </Alert>
+              ) : null}
+            </div>
           )
         })}
       </div>
