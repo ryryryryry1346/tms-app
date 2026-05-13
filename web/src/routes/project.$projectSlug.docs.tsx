@@ -2,10 +2,12 @@ import {
   createFileRoute,
   notFound,
   redirect,
+  useNavigate,
 } from '@tanstack/react-router'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
+import { preloadRichTextEditor } from '../components/RichTextEditor.lazy'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
@@ -100,11 +102,20 @@ function formatDate(value: string | null): string {
 
 function ProjectDocsPage() {
   const { project, docs } = Route.useLoaderData()
+  const navigate = useNavigate()
   const [articleDocs, setArticleDocs] = useState(docs)
   const [query, setQuery] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const projectSlug = project.slug ?? project.id.toString()
+
+  useEffect(() => {
+    const preloadTimer = window.setTimeout(() => {
+      void preloadRichTextEditor()
+    }, 900)
+
+    return () => window.clearTimeout(preloadTimer)
+  }, [])
 
   const filteredDocs = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -118,17 +129,21 @@ function ProjectDocsPage() {
     )
   }, [articleDocs, query])
 
-  function getDocUrl(docId: number): string {
-    return `/project/${projectSlug}/docs/${docId}`
-  }
-
   function openDoc(docId: number): void {
-    window.location.assign(getDocUrl(docId))
+    void preloadRichTextEditor()
+    void navigate({
+      to: '/project/$projectSlug/docs/$docId',
+      params: {
+        projectSlug,
+        docId: docId.toString(),
+      },
+    })
   }
 
   async function handleCreateArticle(): Promise<void> {
     setErrorMessage(null)
     setIsCreating(true)
+    void preloadRichTextEditor()
 
     try {
       const result = await createProjectDoc({
@@ -238,6 +253,12 @@ function ProjectDocsPage() {
                     role="link"
                     tabIndex={0}
                     onClick={() => openDoc(doc.id)}
+                    onPointerEnter={() => {
+                      void preloadRichTextEditor()
+                    }}
+                    onFocus={() => {
+                      void preloadRichTextEditor()
+                    }}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault()

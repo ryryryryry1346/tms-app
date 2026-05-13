@@ -8,18 +8,13 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { LinkButton } from '../components/ui/LinkButton'
 import { Panel } from '../components/ui/Panel'
+import { LazyRichTextEditor, preloadRichTextEditor } from '../components/RichTextEditor.lazy'
 import {
   deleteProjectDoc,
   getProjectDocDetail,
   updateProjectDoc,
 } from '../features/docs/server'
 import { uploadTestMedia } from '../features/media/server'
-
-const RichTextEditor = lazy(() =>
-  import('../components/RichTextEditor').then((module) => ({
-    default: module.RichTextEditor,
-  })),
-)
 
 const SelectMenu = lazy(() =>
   import('../components/ui/SelectMenu').then((module) => ({
@@ -282,7 +277,10 @@ function ProjectDocDetailPage() {
                   </>
                 ) : (
                   <Button
-                    onClick={() => setIsEditing(true)}
+                    onClick={() => {
+                      void preloadRichTextEditor()
+                      setIsEditing(true)
+                    }}
                     variant="primary"
                     size="sm"
                   >
@@ -325,7 +323,7 @@ function ProjectDocDetailPage() {
                     </div>
                   }
                 >
-                  <RichTextEditor
+                  <LazyRichTextEditor
                     label="Content"
                     placeholder="Add steps, commands, links, endpoint notes, screenshots, or support instructions..."
                     value={content}
