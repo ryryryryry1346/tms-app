@@ -36,6 +36,7 @@ import {
   createTestCase,
   deleteArchivedTestCase,
   duplicateTestCase,
+  exportRepositoryCasesCsv,
   getRepositoryState,
   getTestDetail,
   moveAndReorderTestCases,
@@ -195,6 +196,21 @@ function formatRepositoryDateTime(value: string | null | undefined): string {
   }).format(date)
 }
 
+function downloadCsvFile(filename: string, csv: string): void {
+  const blob = new Blob([`\uFEFF${csv}`], {
+    type: 'text/csv;charset=utf-8',
+  })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
 function ProjectRepositoryPage() {
   const loaderData = Route.useLoaderData()
   const search = Route.useSearch()
@@ -202,6 +218,7 @@ function ProjectRepositoryPage() {
   const router = useRouter()
   const navigate = useNavigate()
   const [dashboard, setDashboard] = useState(loaderDashboard)
+  const projectSlug = project.slug ?? project.id.toString()
 
   const [suiteName, setSuiteName] = useState('')
   const [suiteErrorMessage, setSuiteErrorMessage] = useState<string | null>(null)
@@ -233,6 +250,7 @@ function ProjectRepositoryPage() {
   const suiteFilterId = search.suiteId?.toString() ?? ALL_SUITES_FILTER
   const [selectedTestIds, setSelectedTestIds] = useState<number[]>([])
   const [isApplyingBulkAction, setIsApplyingBulkAction] = useState(false)
+  const [isExportingCsv, setIsExportingCsv] = useState(false)
   const [isBulkArchiveConfirming, setIsBulkArchiveConfirming] = useState(false)
   const [isBulkDeleteConfirming, setIsBulkDeleteConfirming] = useState(false)
   const [bulkActionErrorMessage, setBulkActionErrorMessage] = useState<string | null>(
@@ -1290,6 +1308,61 @@ function ProjectRepositoryPage() {
     await handleMoveTestCases(selectedTestIds, targetSuiteId)
   }
 
+  async function handleExportCsv(scope: 'filtered' | 'selected'): Promise<void> {
+    const ids = scope === 'selected' ? selectedTestIds : []
+
+    if (scope === 'selected' && ids.length === 0) {
+      setBulkActionErrorMessage('Select at least one test case to export.')
+      return
+    }
+
+    setCaseActionErrorMessage(null)
+    setBulkActionErrorMessage(null)
+    setIsExportingCsv(true)
+
+    try {
+      const result = await exportRepositoryCasesCsv({
+        data: {
+          projectSlug,
+          search: search.q,
+          suiteId: search.suiteId,
+          status: caseFilter,
+          priority: priorityFilter,
+          caseType: caseTypeFilter,
+          ids,
+        },
+      })
+
+      if (result.rowCount === 0) {
+        const message =
+          scope === 'selected'
+            ? 'No selected test cases were available to export.'
+            : 'No test cases match the current filters.'
+
+        if (scope === 'selected') {
+          setBulkActionErrorMessage(message)
+        } else {
+          setCaseActionErrorMessage(message)
+        }
+
+        return
+      }
+
+      downloadCsvFile(result.filename, result.csv)
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to export test cases.'
+
+      if (scope === 'selected') {
+        setBulkActionErrorMessage(message)
+      } else {
+        setCaseActionErrorMessage(message)
+      }
+    } finally {
+      setIsExportingCsv(false)
+    }
+  }
+
   function handleCaseDragStart(
     event: React.DragEvent<HTMLElement>,
     testId: number,
@@ -1787,6 +1860,7 @@ function ProjectRepositoryPage() {
               suites={dashboard.sections}
               priorityOptions={PRIORITY_OPTIONS}
               caseTypeOptions={CASE_TYPE_OPTIONS}
+              isExporting={isExportingCsv}
               onSearchChange={(value) => {
                 clearBulkConfirmations()
                 setSearchValue(value)
@@ -1815,6 +1889,9 @@ function ProjectRepositoryPage() {
                   status: value,
                 })
               }}
+              onExportFiltered={() => {
+                void handleExportCsv('filtered')
+              }}
             />
 
             {selectedTestIds.length > 0 ? (
@@ -1824,6 +1901,7 @@ function ProjectRepositoryPage() {
                 priorities={PRIORITY_OPTIONS}
                 caseTypes={CASE_TYPE_OPTIONS}
                 isApplying={isApplyingBulkAction}
+                isExporting={isExportingCsv}
                 isArchivedView={caseFilter === 'Archived'}
                 selectedArchivableCount={selectedArchivableTests.length}
                 selectedArchivedCount={selectedArchivedTests.length}
@@ -1841,6 +1919,9 @@ function ProjectRepositoryPage() {
                 }}
                 onCaseTypeChange={(caseType) => {
                   void handleBulkMetadataUpdate({ caseType })
+                }}
+                onExportSelected={() => {
+                  void handleExportCsv('selected')
                 }}
                 onRestoreArchived={() => {
                   void handleBulkRestore()

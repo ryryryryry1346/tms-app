@@ -26,6 +26,7 @@ type BulkCaseBarProps = {
   priorities: RepositoryBulkPriority[]
   caseTypes: RepositoryBulkCaseType[]
   isApplying: boolean
+  isExporting: boolean
   isArchivedView: boolean
   selectedArchivableCount: number
   selectedArchivedCount: number
@@ -36,6 +37,7 @@ type BulkCaseBarProps = {
   onStatusChange: (status: RepositoryBulkStatus) => void
   onPriorityChange: (priority: RepositoryBulkPriority) => void
   onCaseTypeChange: (caseType: RepositoryBulkCaseType) => void
+  onExportSelected: () => void
   onRestoreArchived: () => void
   onRequestArchive: () => void
   onCancelArchive: () => void
@@ -58,6 +60,7 @@ export function BulkCaseBar({
   priorities,
   caseTypes,
   isApplying,
+  isExporting,
   isArchivedView,
   selectedArchivableCount,
   selectedArchivedCount,
@@ -68,6 +71,7 @@ export function BulkCaseBar({
   onStatusChange,
   onPriorityChange,
   onCaseTypeChange,
+  onExportSelected,
   onRestoreArchived,
   onRequestArchive,
   onCancelArchive,
@@ -246,6 +250,17 @@ export function BulkCaseBar({
               </>
             ) : null}
           </PopoverMenu>
+
+          <Button
+            onClick={() => {
+              closeMenu()
+              onExportSelected()
+            }}
+            disabled={isApplying || isExporting}
+            variant="secondary"
+          >
+            {isExporting ? 'Exporting...' : 'Export CSV'}
+          </Button>
 
           <Button
             onClick={() => {

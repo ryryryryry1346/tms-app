@@ -61,6 +61,10 @@ const dashboardInput = z.object({
   pageSize: z.number().int().min(25).max(200).optional(),
 })
 
+const exportRepositoryCsvInput = dashboardInput.extend({
+  ids: z.array(z.number().int().positive()).optional(),
+})
+
 type ActivityDb = ReturnType<typeof import('../../db/client')['getDb']>
 
 type ActivityActor = {
@@ -247,6 +251,12 @@ export type RepositoryState = DashboardState & {
     readyCases: number
     archivedCases: number
   }
+}
+
+export type RepositoryCsvExport = {
+  filename: string
+  csv: string
+  rowCount: number
 }
 
 export type CreateTestFormState = {
@@ -554,6 +564,198 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
         readyCases: Number(stats?.readyCases ?? 0),
         archivedCases: Number(stats?.archivedCases ?? 0),
       },
+    }
+  })
+
+function csvCell(value: unknown): string {
+  if (value === null || value === undefined) {
+    return ''
+  }
+
+  const text = String(value)
+
+  if (/[",\r\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`
+  }
+
+  return text
+}
+
+function csvRow(values: unknown[]): string {
+  return values.map(csvCell).join(',')
+}
+
+function buildRepositoryCsvFilename(projectName: string, scope: string): string {
+  const normalizedProjectName = projectName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  const date = new Date().toISOString().slice(0, 10)
+
+  return `${normalizedProjectName || 'project'}-repository-${scope}-${date}.csv`
+}
+
+export const exportRepositoryCasesCsv = createServerFn({ method: 'POST' })
+  .inputValidator(exportRepositoryCsvInput)
+  .handler(async ({ data }): Promise<RepositoryCsvExport> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+    await ensureTestServerDeps()
+
+    if (!isDatabaseConfigured()) {
+      return {
+        filename: 'repository-export.csv',
+        csv: csvRow([
+          'id',
+          'suite',
+          'title',
+          'status',
+          'priority',
+          'type',
+          'steps',
+          'expected',
+          'created_at',
+          'updated_at',
+        ]),
+        rowCount: 0,
+      }
+    }
+
+    const db = getDb()
+
+    async function loadProject(): Promise<DashboardProject | null> {
+      const rows = await db
+        .select({
+          id: projects.id,
+          name: projects.name,
+          slug: projects.slug,
+          status: projects.status,
+        })
+        .from(projects)
+        .where(
+          data.projectId
+            ? eq(projects.id, data.projectId)
+            : eq(projects.slug, data.projectSlug ?? ''),
+        )
+        .limit(1)
+
+      return rows[0] ?? null
+    }
+
+    let project = await loadProject()
+
+    if (!project && data.projectSlug) {
+      await ensureProjectSlugs()
+      project = await loadProject()
+    }
+
+    if (!project) {
+      throw notFound()
+    }
+
+    const selectedIds = Array.from(new Set(data.ids ?? []))
+    const statusFilter = data.status ?? 'All'
+    const priorityFilter = data.priority ?? 'All'
+    const caseTypeFilter = data.caseType ?? 'All'
+    const search = data.search?.trim() ?? ''
+    const searchPattern = `%${search}%`
+    const numericSearchId = Number(search)
+    const searchCondition = search
+      ? Number.isInteger(numericSearchId) && numericSearchId > 0
+        ? or(like(tests.title, searchPattern), eq(tests.id, numericSearchId))
+        : like(tests.title, searchPattern)
+      : undefined
+    const filteredTestConditions = [
+      eq(tests.projectId, project.id),
+      selectedIds.length > 0 ? inArray(tests.id, selectedIds) : undefined,
+      selectedIds.length === 0 && statusFilter === 'All'
+        ? sql`${tests.status} <> 'Archived'`
+        : undefined,
+      selectedIds.length === 0 && statusFilter !== 'All'
+        ? eq(tests.status, statusFilter)
+        : undefined,
+      selectedIds.length === 0 && data.suiteId
+        ? eq(tests.sectionId, data.suiteId)
+        : undefined,
+      selectedIds.length === 0 && priorityFilter !== 'All'
+        ? eq(tests.priority, priorityFilter)
+        : undefined,
+      selectedIds.length === 0 && caseTypeFilter !== 'All'
+        ? eq(tests.caseType, caseTypeFilter)
+        : undefined,
+      selectedIds.length === 0 ? searchCondition : undefined,
+    ].filter(
+      (
+        condition,
+      ): condition is Exclude<typeof condition, undefined> =>
+        condition !== undefined,
+    )
+
+    const [sectionRows, testRows] = await Promise.all([
+      db
+        .select({
+          id: sections.id,
+          name: sections.name,
+        })
+        .from(sections)
+        .where(eq(sections.projectId, project.id)),
+      db
+        .select({
+          id: tests.id,
+          title: tests.title,
+          status: tests.status,
+          priority: tests.priority,
+          caseType: tests.caseType,
+          sectionId: tests.sectionId,
+          sortOrder: tests.sortOrder,
+          steps: tests.steps,
+          expected: tests.expected,
+          createdAt: tests.createdAt,
+          updatedAt: tests.updatedAt,
+        })
+        .from(tests)
+        .where(and(...filteredTestConditions))
+        .orderBy(asc(tests.sectionId), asc(tests.sortOrder), asc(tests.id)),
+    ])
+    const suiteNameById = new Map(
+      sectionRows.map((section) => [section.id, section.name]),
+    )
+    const rows = [
+      csvRow([
+        'id',
+        'suite',
+        'title',
+        'status',
+        'priority',
+        'type',
+        'steps',
+        'expected',
+        'created_at',
+        'updated_at',
+      ]),
+      ...testRows.map((test) =>
+        csvRow([
+          test.id,
+          test.sectionId ? suiteNameById.get(test.sectionId) ?? '' : '',
+          test.title,
+          test.status ?? 'Draft',
+          test.priority ?? 'Medium',
+          test.caseType ?? 'Functional',
+          test.steps ?? '',
+          test.expected ?? '',
+          test.createdAt ?? '',
+          test.updatedAt ?? '',
+        ]),
+      ),
+    ]
+
+    return {
+      filename: buildRepositoryCsvFilename(
+        project.name,
+        selectedIds.length > 0 ? 'selected' : 'filtered',
+      ),
+      csv: rows.join('\r\n'),
+      rowCount: testRows.length,
     }
   })
 

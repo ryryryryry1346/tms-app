@@ -36,11 +36,13 @@ type RepositoryToolbarProps = {
   suites: RepositorySuiteOption[]
   priorityOptions: Exclude<RepositoryPriorityFilter, 'All'>[]
   caseTypeOptions: Exclude<RepositoryCaseTypeFilter, 'All'>[]
+  isExporting: boolean
   onSearchChange: (value: string) => void
   onSuiteFilterChange: (value: string) => void
   onPriorityFilterChange: (value: RepositoryPriorityFilter) => void
   onCaseTypeFilterChange: (value: RepositoryCaseTypeFilter) => void
   onCaseFilterChange: (value: RepositoryCaseFilter) => void
+  onExportFiltered: () => void
 }
 
 const CASE_FILTER_OPTIONS: RepositoryCaseFilter[] = [
@@ -77,11 +79,13 @@ export function RepositoryToolbar({
   suites,
   priorityOptions,
   caseTypeOptions,
+  isExporting,
   onSearchChange,
   onSuiteFilterChange,
   onPriorityFilterChange,
   onCaseTypeFilterChange,
   onCaseFilterChange,
+  onExportFiltered,
 }: RepositoryToolbarProps) {
   return (
     <PanelHeader dense>
@@ -167,6 +171,13 @@ export function RepositoryToolbar({
                 </Button>
               ))}
             </div>
+            <Button
+              onClick={onExportFiltered}
+              disabled={isExporting || visibleCount === 0}
+              variant="secondary"
+            >
+              {isExporting ? 'Exporting...' : 'Export CSV'}
+            </Button>
           </div>
         }
       />
