@@ -18,6 +18,7 @@ import { RepositoryToolbar } from '../components/repository/RepositoryToolbar'
 import { SuiteSection } from '../components/repository/SuiteSection'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
+import { Checkbox } from '../components/ui/Checkbox'
 import { FileInput } from '../components/ui/FileInput'
 import { Input } from '../components/ui/Input'
 import { LinkButton } from '../components/ui/LinkButton'
@@ -41,6 +42,7 @@ import {
   exportRepositoryCasesCsv,
   getRepositoryState,
   getTestDetail,
+  importRepositoryCsv,
   moveAndReorderTestCases,
   previewRepositoryImportCsv,
   restoreTestCase,
@@ -50,6 +52,7 @@ import {
 import type {
   DashboardTest,
   RepositoryImportPreview,
+  RepositoryImportResult,
   RepositoryImportSource,
   TestDetail,
 } from '../features/tests/server'
@@ -238,7 +241,14 @@ function ProjectRepositoryPage() {
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importPreview, setImportPreview] =
     useState<RepositoryImportPreview | null>(null)
+  const [importResult, setImportResult] = useState<RepositoryImportResult | null>(
+    null,
+  )
+  const [createMissingImportSuites, setCreateMissingImportSuites] =
+    useState(true)
+  const [isImportConfirming, setIsImportConfirming] = useState(false)
   const [isParsingImport, setIsParsingImport] = useState(false)
+  const [isImportingCsv, setIsImportingCsv] = useState(false)
   const [importErrorMessage, setImportErrorMessage] = useState<string | null>(null)
 
   const [editingSuiteId, setEditingSuiteId] = useState<number | null>(null)
@@ -1392,6 +1402,8 @@ function ProjectRepositoryPage() {
 
     setImportErrorMessage(null)
     setImportPreview(null)
+    setImportResult(null)
+    setIsImportConfirming(false)
     setIsParsingImport(true)
 
     try {
@@ -1399,6 +1411,10 @@ function ProjectRepositoryPage() {
       formData.append('file', importFile)
       formData.append('projectId', project.id.toString())
       formData.append('source', importSource)
+      formData.append(
+        'createMissingSuites',
+        createMissingImportSuites ? 'true' : 'false',
+      )
 
       const result = await previewRepositoryImportCsv({
         data: formData,
@@ -1411,6 +1427,49 @@ function ProjectRepositoryPage() {
       )
     } finally {
       setIsParsingImport(false)
+    }
+  }
+
+  async function handleImportConfirm(): Promise<void> {
+    if (!importFile || !importPreview) {
+      setImportErrorMessage('Preview a CSV file before importing.')
+      return
+    }
+
+    if (importPreview.errorRows > 0) {
+      setImportErrorMessage('Resolve import errors before creating test cases.')
+      return
+    }
+
+    setImportErrorMessage(null)
+    setImportResult(null)
+    setIsImportingCsv(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', importFile)
+      formData.append('projectId', project.id.toString())
+      formData.append('source', importSource)
+      formData.append(
+        'createMissingSuites',
+        createMissingImportSuites ? 'true' : 'false',
+      )
+
+      const result = await importRepositoryCsv({
+        data: formData,
+      })
+
+      setImportResult(result)
+      setIsImportConfirming(false)
+      setImportPreview(null)
+      setImportFile(null)
+      await router.invalidate()
+    } catch (error) {
+      setImportErrorMessage(
+        error instanceof Error ? error.message : 'Failed to import CSV.',
+      )
+    } finally {
+      setIsImportingCsv(false)
     }
   }
 
@@ -1846,6 +1905,8 @@ function ProjectRepositoryPage() {
                   onClick={() => {
                     setIsImportPanelOpen((current) => !current)
                     setImportErrorMessage(null)
+                    setImportResult(null)
+                    setIsImportConfirming(false)
                   }}
                   variant="secondary"
                 >
@@ -1918,10 +1979,10 @@ function ProjectRepositoryPage() {
               >
                 <div className="lg:col-span-3">
                   <div className="text-base font-semibold text-[var(--tms-text)]">
-                    Import CSV preview
+                    Import CSV
                   </div>
                   <div className="mt-1 text-sm text-[var(--tms-text-muted)]">
-                    Parse and validate a CSV file without creating test cases.
+                    Preview, validate, confirm, then create test cases.
                   </div>
                 </div>
                 <label className="grid gap-1.5 text-sm font-semibold text-[var(--tms-text)]">
@@ -1947,6 +2008,8 @@ function ProjectRepositoryPage() {
                     onChange={(event) => {
                       setImportFile(event.currentTarget.files?.[0] ?? null)
                       setImportPreview(null)
+                      setImportResult(null)
+                      setIsImportConfirming(false)
                       setImportErrorMessage(null)
                     }}
                   />
@@ -1961,11 +2024,33 @@ function ProjectRepositoryPage() {
                     {isParsingImport ? 'Parsing...' : 'Preview'}
                   </Button>
                 </div>
+                <label className="flex items-center gap-2 text-sm text-[var(--tms-text)] lg:col-span-3">
+                  <Checkbox
+                    checked={createMissingImportSuites}
+                    onChange={(event) => {
+                      setCreateMissingImportSuites(event.currentTarget.checked)
+                      setImportPreview(null)
+                      setImportResult(null)
+                      setIsImportConfirming(false)
+                    }}
+                  />
+                  Create missing suites during import
+                </label>
               </form>
 
               {importErrorMessage ? (
                 <Alert variant="danger" className="mt-3">
                   {importErrorMessage}
+                </Alert>
+              ) : null}
+
+              {importResult ? (
+                <Alert variant="success" className="mt-3">
+                  Imported {importResult.importedCases} cases
+                  {importResult.createdSuites > 0
+                    ? ` and created ${importResult.createdSuites} suites`
+                    : ''}
+                  .
                 </Alert>
               ) : null}
 
@@ -1984,10 +2069,30 @@ function ProjectRepositoryPage() {
                     <span className="tms-chip tms-chip-status-archived">
                       {importPreview.errorRows} errors
                     </span>
+                    <span className="tms-chip">
+                      {importPreview.duplicateRows} duplicates
+                    </span>
+                    <span className="tms-chip">
+                      {importPreview.missingSuites.length} missing suites
+                    </span>
                     <span>
                       Detected: {importPreview.detectedSource === 'testmo' ? 'Testmo CSV' : 'TMS CSV'}
                     </span>
                   </div>
+                  {importPreview.missingSuites.length > 0 ? (
+                    <Alert
+                      variant={
+                        createMissingImportSuites && importPreview.errorRows === 0
+                          ? 'info'
+                          : 'warning'
+                      }
+                    >
+                      Missing suites: {importPreview.missingSuites.join(', ')}.
+                      {createMissingImportSuites
+                        ? ' They will be created during import.'
+                        : ' Enable suite creation or create them manually before import.'}
+                    </Alert>
+                  ) : null}
                   <div className="overflow-x-auto rounded-[var(--tms-radius-md)] border border-[var(--tms-border-subtle)]">
                     <div className="grid min-w-[980px] grid-cols-[70px_1.2fr_1fr_100px_110px_110px_1.4fr] border-b border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
                       <span>Row</span>
@@ -2014,7 +2119,15 @@ function ProjectRepositoryPage() {
                         <span>{row.priority}</span>
                         <span>{row.caseType}</span>
                         <span className="min-w-0 text-[var(--tms-text-muted)]">
-                          {[...row.errors, ...row.warnings].join(' ') || 'OK'}
+                          {[
+                            ...row.errors,
+                            ...row.warnings,
+                            row.duplicate !== 'none'
+                              ? `Duplicate: ${row.duplicate}`
+                              : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ') || 'OK'}
                         </span>
                       </div>
                     ))}
@@ -2024,6 +2137,48 @@ function ProjectRepositoryPage() {
                       Showing first {importPreview.previewRows.length} rows only.
                     </div>
                   ) : null}
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--tms-radius-md)] border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-3 py-3">
+                    <div className="text-sm text-[var(--tms-text-muted)]">
+                      {importPreview.errorRows > 0
+                        ? 'Import is blocked until CSV errors are resolved.'
+                        : isImportConfirming
+                          ? `Confirm import of ${importPreview.validRows} cases.`
+                          : 'Review the preview before creating test cases.'}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {isImportConfirming ? (
+                        <>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            disabled={isImportingCsv}
+                            onClick={() => setIsImportConfirming(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="primary"
+                            disabled={isImportingCsv}
+                            onClick={() => {
+                              void handleImportConfirm()
+                            }}
+                          >
+                            {isImportingCsv ? 'Importing...' : 'Confirm import'}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="primary"
+                          disabled={importPreview.errorRows > 0 || isImportingCsv}
+                          onClick={() => setIsImportConfirming(true)}
+                        >
+                          Continue to import
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ) : null}
             </section>

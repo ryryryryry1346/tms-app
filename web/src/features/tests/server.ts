@@ -268,8 +268,11 @@ export type RepositoryImportPreviewRow = {
   status: 'Draft' | 'Ready' | 'Archived'
   priority: 'Low' | 'Medium' | 'High' | 'Critical'
   caseType: 'Functional' | 'Regression' | 'Smoke' | 'E2E' | 'UI' | 'API'
+  steps: string
+  expected: string
   stepsPreview: string
   expectedPreview: string
+  duplicate: 'none' | 'file' | 'database'
   warnings: string[]
   errors: string[]
 }
@@ -283,6 +286,19 @@ export type RepositoryImportPreview = {
   validRows: number
   warningRows: number
   errorRows: number
+  missingSuites: string[]
+  duplicateRows: number
+}
+
+export type RepositoryImportResult = {
+  importedCases: number
+  createdSuites: number
+  skippedRows: number
+}
+
+type RepositoryImportPlan = {
+  preview: RepositoryImportPreview
+  rows: RepositoryImportPreviewRow[]
 }
 
 export type CreateTestFormState = {
@@ -979,12 +995,18 @@ function mapImportRow({
   rowNumber,
   source,
   knownSuiteNames,
+  existingTitleKeys,
+  fileTitleKeys,
+  createMissingSuites,
 }: {
   headers: string[]
   row: string[]
   rowNumber: number
   source: Exclude<RepositoryImportSource, 'auto'>
   knownSuiteNames: Set<string>
+  existingTitleKeys: Set<string>
+  fileTitleKeys: Set<string>
+  createMissingSuites: boolean
 }): RepositoryImportPreviewRow {
   const warnings: string[] = []
   const errors: string[] = []
@@ -1017,15 +1039,35 @@ function mapImportRow({
   const priority = normalizeImportPriority(rawPriority)
   const caseType = normalizeImportType(rawType)
   const status = normalizeImportStatus(rawStatus, rawState)
+  const normalizedTitle = title.trim()
+  const normalizedSuite = suite.trim()
+  const titleKey = `${normalizedSuite.toLowerCase()}::${normalizedTitle.toLowerCase()}`
+  let duplicate: RepositoryImportPreviewRow['duplicate'] = 'none'
 
-  if (!title.trim()) {
+  if (!normalizedTitle) {
     errors.push('Title is required.')
   }
 
-  if (!suite.trim()) {
+  if (!normalizedSuite) {
     errors.push('Suite is required.')
-  } else if (!knownSuiteNames.has(suite.trim().toLowerCase())) {
-    warnings.push(`Suite "${suite}" does not exist and would be created later.`)
+  } else if (!knownSuiteNames.has(normalizedSuite.toLowerCase())) {
+    if (createMissingSuites) {
+      warnings.push(`Suite "${normalizedSuite}" will be created.`)
+    } else {
+      errors.push(`Suite "${normalizedSuite}" does not exist.`)
+    }
+  }
+
+  if (normalizedTitle && normalizedSuite) {
+    if (existingTitleKeys.has(titleKey)) {
+      duplicate = 'database'
+      errors.push(`A case named "${normalizedTitle}" already exists in "${normalizedSuite}".`)
+    } else if (fileTitleKeys.has(titleKey)) {
+      duplicate = 'file'
+      errors.push(`Duplicate case "${normalizedTitle}" in "${normalizedSuite}" inside this CSV.`)
+    } else {
+      fileTitleKeys.add(titleKey)
+    }
   }
 
   if (priority.warning) warnings.push(priority.warning)
@@ -1034,15 +1076,154 @@ function mapImportRow({
 
   return {
     rowNumber,
-    title: title.trim(),
-    suite: suite.trim(),
+    title: normalizedTitle,
+    suite: normalizedSuite,
     status: status.value,
     priority: priority.value,
     caseType: caseType.value,
+    steps: stripHtml(steps),
+    expected: stripHtml(expected),
     stepsPreview: truncatePreview(steps),
     expectedPreview: truncatePreview(expected),
+    duplicate,
     warnings,
     errors,
+  }
+}
+
+async function buildRepositoryImportPreview({
+  file,
+  projectId,
+  requestedSource,
+  createMissingSuites,
+}: {
+  file: File
+  projectId: number
+  requestedSource: RepositoryImportSource
+  createMissingSuites: boolean
+}): Promise<RepositoryImportPlan> {
+  const text = await file.text()
+  const parsed = parseCsv(text)
+
+  if (parsed.headers.length === 0) {
+    throw new Error('CSV header row is empty.')
+  }
+
+  const detectedSource = detectImportSource(parsed.headers)
+  const source = requestedSource === 'auto' ? detectedSource : requestedSource
+  const db = getDb()
+  const [sectionRows, existingCaseRows] = await Promise.all([
+    db
+      .select({ id: sections.id, name: sections.name })
+      .from(sections)
+      .where(eq(sections.projectId, projectId)),
+    db
+      .select({
+        title: tests.title,
+        sectionId: tests.sectionId,
+      })
+      .from(tests)
+      .where(eq(tests.projectId, projectId)),
+  ])
+  const suiteNameById = new Map(
+    sectionRows.map((section) => [section.id, section.name]),
+  )
+  const existingTitleKeys = new Set(
+    existingCaseRows
+      .map((test) => {
+        const suiteName =
+          test.sectionId === null ? '' : suiteNameById.get(test.sectionId) ?? ''
+
+        return suiteName
+          ? `${suiteName.trim().toLowerCase()}::${test.title.trim().toLowerCase()}`
+          : ''
+      })
+      .filter((key) => key.length > 0),
+  )
+  const fileTitleKeys = new Set<string>()
+  const knownSuiteNames = new Set(
+    sectionRows.map((section) => section.name.trim().toLowerCase()),
+  )
+  const mappedRows = parsed.rows.map((row, index) =>
+    mapImportRow({
+      headers: parsed.headers,
+      row,
+      rowNumber: index + 2,
+      source,
+      knownSuiteNames,
+      existingTitleKeys,
+      fileTitleKeys,
+      createMissingSuites,
+    }),
+  )
+  const missingSuites = Array.from(
+    new Set(
+      mappedRows
+        .filter(
+          (row) =>
+            row.suite && !knownSuiteNames.has(row.suite.trim().toLowerCase()),
+        )
+        .map((row) => row.suite),
+    ),
+  ).sort((first, second) => first.localeCompare(second))
+  const errorRows = mappedRows.filter((row) => row.errors.length > 0).length
+  const warningRows = mappedRows.filter((row) => row.warnings.length > 0).length
+  const duplicateRows = mappedRows.filter((row) => row.duplicate !== 'none').length
+
+  return {
+    preview: {
+      filename: file.name,
+      source: requestedSource,
+      detectedSource,
+      totalRows: mappedRows.length,
+      previewRows: mappedRows.slice(0, 50),
+      validRows: mappedRows.length - errorRows,
+      warningRows,
+      errorRows,
+      missingSuites,
+      duplicateRows,
+    },
+    rows: mappedRows,
+  }
+}
+
+function readRepositoryImportFormData(data: unknown): {
+  file: File
+  projectId: number
+  requestedSource: RepositoryImportSource
+} {
+  if (!(data instanceof FormData)) {
+    throw new Error('Import request must be sent as FormData.')
+  }
+
+  const file = data.get('file')
+  const projectIdValue = Number(data.get('projectId'))
+  const requestedSourceValue = String(data.get('source') ?? 'auto')
+  const requestedSource: RepositoryImportSource =
+    requestedSourceValue === 'native' || requestedSourceValue === 'testmo'
+      ? requestedSourceValue
+      : 'auto'
+
+  if (!(file instanceof File)) {
+    throw new Error('Choose a CSV file first.')
+  }
+
+  if (!Number.isInteger(projectIdValue) || projectIdValue <= 0) {
+    throw new Error('Project is missing for import.')
+  }
+
+  if (!file.name.toLowerCase().endsWith('.csv')) {
+    throw new Error('Only .csv files are supported for import.')
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error('CSV file is too large. Maximum size is 5 MB.')
+  }
+
+  return {
+    file,
+    projectId: projectIdValue,
+    requestedSource,
   }
 }
 
@@ -1052,72 +1233,131 @@ export const previewRepositoryImportCsv = createServerFn({ method: 'POST' }).han
     await requireSessionUser()
     await ensureTestServerDeps()
 
-    if (!(data instanceof FormData)) {
-      throw new Error('Import preview request must be sent as FormData.')
+    const { file, projectId, requestedSource } = readRepositoryImportFormData(data)
+    const createMissingSuites =
+      data instanceof FormData &&
+      String(data.get('createMissingSuites') ?? 'true') === 'true'
+
+    const plan = await buildRepositoryImportPreview({
+      file,
+      projectId,
+      requestedSource,
+      createMissingSuites,
+    })
+
+    return plan.preview
+  },
+)
+
+export const importRepositoryCsv = createServerFn({ method: 'POST' }).handler(
+  async ({ data }): Promise<RepositoryImportResult> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    const user = await requireSessionUser()
+    await ensureTestServerDeps()
+
+    const maybeFormData = data
+    const { file, projectId, requestedSource } = readRepositoryImportFormData(
+      maybeFormData,
+    )
+    const createMissingSuites =
+      maybeFormData instanceof FormData &&
+      String(maybeFormData.get('createMissingSuites') ?? 'false') === 'true'
+    const { preview, rows } = await buildRepositoryImportPreview({
+      file,
+      projectId,
+      requestedSource,
+      createMissingSuites,
+    })
+
+    if (preview.errorRows > 0) {
+      throw new Error('Resolve import errors before creating test cases.')
     }
 
-    const file = data.get('file')
-    const projectIdValue = Number(data.get('projectId'))
-    const requestedSourceValue = String(data.get('source') ?? 'auto')
-    const requestedSource: RepositoryImportSource =
-      requestedSourceValue === 'native' || requestedSourceValue === 'testmo'
-        ? requestedSourceValue
-        : 'auto'
-
-    if (!(file instanceof File)) {
-      throw new Error('Choose a CSV file first.')
-    }
-
-    if (!Number.isInteger(projectIdValue) || projectIdValue <= 0) {
-      throw new Error('Project is missing for import preview.')
-    }
-
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      throw new Error('Only .csv files are supported for import preview.')
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      throw new Error('CSV file is too large. Maximum size is 5 MB.')
-    }
-
-    const text = await file.text()
-    const parsed = parseCsv(text)
-
-    if (parsed.headers.length === 0) {
-      throw new Error('CSV header row is empty.')
-    }
-
-    const detectedSource = detectImportSource(parsed.headers)
-    const source = requestedSource === 'auto' ? detectedSource : requestedSource
     const db = getDb()
+    const now = new Date().toISOString()
     const sectionRows = await db
-      .select({ name: sections.name })
+      .select({ id: sections.id, name: sections.name })
       .from(sections)
-      .where(eq(sections.projectId, projectIdValue))
-    const knownSuiteNames = new Set(
-      sectionRows.map((section) => section.name.trim().toLowerCase()),
+      .where(eq(sections.projectId, projectId))
+    const sectionByName = new Map(
+      sectionRows.map((section) => [section.name.trim().toLowerCase(), section]),
     )
-    const mappedRows = parsed.rows.map((row, index) =>
-      mapImportRow({
-        headers: parsed.headers,
-        row,
-        rowNumber: index + 2,
-        source,
-        knownSuiteNames,
-      }),
+    let createdSuites = 0
+
+    for (const suiteName of preview.missingSuites) {
+      if (!createMissingSuites) {
+        continue
+      }
+
+      const result = await db.insert(sections).values({
+        name: suiteName,
+        projectId,
+      })
+      sectionByName.set(suiteName.trim().toLowerCase(), {
+        id: result[0].insertId,
+        name: suiteName,
+      })
+      createdSuites += 1
+    }
+
+    const suiteIds = Array.from(sectionByName.values()).map((section) => section.id)
+    const sortRows =
+      suiteIds.length > 0
+        ? await db
+            .select({
+              sectionId: tests.sectionId,
+              maxSortOrder: sql<number>`coalesce(max(${tests.sortOrder}), 0)`,
+            })
+            .from(tests)
+            .where(inArray(tests.sectionId, suiteIds))
+            .groupBy(tests.sectionId)
+        : []
+    const nextSortOrderBySuite = new Map(
+      sortRows.map((row) => [row.sectionId, Number(row.maxSortOrder ?? 0)]),
     )
-    const errorRows = mappedRows.filter((row) => row.errors.length > 0).length
-    const warningRows = mappedRows.filter((row) => row.warnings.length > 0).length
+    let importedCases = 0
+    const importedRows = rows
+
+    for (const row of importedRows) {
+      const section = sectionByName.get(row.suite.trim().toLowerCase())
+
+      if (!section) {
+        continue
+      }
+
+      const nextSortOrder = (nextSortOrderBySuite.get(section.id) ?? 0) + 10
+      nextSortOrderBySuite.set(section.id, nextSortOrder)
+      const result = await db.insert(tests).values({
+        title: row.title,
+        steps: row.steps,
+        expected: row.expected,
+        status: row.status,
+        priority: row.priority,
+        caseType: row.caseType,
+        sectionId: section.id,
+        projectId,
+        sortOrder: nextSortOrder,
+        createdAt: now,
+        updatedAt: now,
+      })
+      const testId = result[0].insertId
+
+      await logTestCaseActivity({
+        db,
+        testId,
+        projectId,
+        actor: user,
+        action: 'created',
+        summary: `Imported from ${preview.filename}.`,
+        createdAt: now,
+      })
+      importedCases += 1
+    }
 
     return {
-      filename: file.name,
-      source: requestedSource,
-      detectedSource,
-      totalRows: mappedRows.length,
-      previewRows: mappedRows.slice(0, 50),
-      validRows: mappedRows.length - errorRows,
-      warningRows,
-      errorRows,
+      importedCases,
+      createdSuites,
+      skippedRows: preview.totalRows - importedCases,
     }
   },
 )
