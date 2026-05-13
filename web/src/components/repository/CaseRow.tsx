@@ -268,17 +268,19 @@ export function CaseRow({
           aria-label={`Edit title for ${test.title}`}
         />
       ) : (
-        <Link
-          to="/test/$testId"
-          params={{ testId: test.id.toString() }}
+        <button
+          type="button"
+          onClick={onPreview}
           onDoubleClick={(event) => {
             event.preventDefault()
+            event.stopPropagation()
             onStartTitleEdit()
           }}
-          className="block min-w-0 truncate pr-3 text-sm font-medium no-underline text-[var(--tms-text)] hover:text-[var(--tms-primary)]"
+          className="block min-w-0 truncate border-0 bg-transparent p-0 pr-3 text-left text-sm font-medium text-[var(--tms-primary)] hover:underline"
+          aria-label={`Preview test case ${test.title}`}
         >
           {test.title}
-        </Link>
+        </button>
       )}
       {visibleColumns.priority ? (
         <SelectMenu
