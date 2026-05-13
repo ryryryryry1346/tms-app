@@ -63,6 +63,8 @@ import type {
   TestDetail,
 } from '../features/tests/server'
 
+const REPOSITORY_PAGE_SIZE = 30
+
 export const Route = createFileRoute('/project_/$projectSlug/repository')({
   validateSearch: z.object({
     q: z.string().optional().catch(''),
@@ -77,7 +79,13 @@ export const Route = createFileRoute('/project_/$projectSlug/repository')({
       .optional()
       .catch('All'),
     page: z.coerce.number().int().positive().optional().catch(1),
-    pageSize: z.coerce.number().int().min(25).max(30).optional().catch(30),
+    pageSize: z.coerce
+      .number()
+      .int()
+      .min(REPOSITORY_PAGE_SIZE)
+      .max(REPOSITORY_PAGE_SIZE)
+      .optional()
+      .catch(REPOSITORY_PAGE_SIZE),
   }),
   loaderDeps: ({ search }) => search,
   loader: async ({ params, deps }) => {
@@ -94,7 +102,7 @@ export const Route = createFileRoute('/project_/$projectSlug/repository')({
         data: {
           projectId: numericProjectId,
           page: deps.page,
-          pageSize: deps.pageSize,
+          pageSize: REPOSITORY_PAGE_SIZE,
         },
       })
 
@@ -126,7 +134,7 @@ export const Route = createFileRoute('/project_/$projectSlug/repository')({
         priority: deps.priority,
         caseType: deps.type,
         page: deps.page,
-        pageSize: deps.pageSize,
+        pageSize: REPOSITORY_PAGE_SIZE,
       },
     })
 

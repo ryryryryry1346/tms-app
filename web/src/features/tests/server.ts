@@ -58,7 +58,7 @@ const dashboardInput = z.object({
     .enum(['All', 'Functional', 'Regression', 'Smoke', 'E2E', 'UI', 'API'])
     .optional(),
   page: z.number().int().positive().optional(),
-  pageSize: z.number().int().min(25).max(200).optional(),
+  pageSize: z.number().int().min(25).max(30).optional(),
 })
 
 const exportRepositoryCsvInput = dashboardInput.extend({
@@ -367,7 +367,7 @@ export const getDashboardState = createServerFn({ method: 'POST' })
         activities: [],
         pagination: {
           page: data.page ?? 1,
-          pageSize: data.pageSize ?? 100,
+          pageSize: data.pageSize ?? 30,
           totalCases: 0,
           totalPages: 1,
         },
@@ -500,7 +500,7 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
         activities: [],
         pagination: {
           page: data.page ?? 1,
-          pageSize: data.pageSize ?? 100,
+          pageSize: data.pageSize ?? 30,
           totalCases: 0,
           totalPages: 1,
         },
@@ -514,7 +514,7 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
       }
     }
 
-    const pageSize = data.pageSize ?? 100
+    const pageSize = data.pageSize ?? 30
     const page = data.page ?? 1
     const offset = (page - 1) * pageSize
     const statusFilter = data.status ?? 'All'
