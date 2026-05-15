@@ -57,22 +57,6 @@ const CASE_FILTER_OPTIONS: RepositoryCaseFilter[] = [
   'Archived',
 ]
 
-function getCaseFilterChipClass(filter: RepositoryCaseFilter): string {
-  if (filter === 'Ready') {
-    return 'tms-chip-status-ready'
-  }
-
-  if (filter === 'Draft') {
-    return 'tms-chip-status-draft'
-  }
-
-  if (filter === 'Archived') {
-    return 'tms-chip-status-archived'
-  }
-
-  return 'tms-chip-primary'
-}
-
 export function RepositoryToolbar({
   searchValue,
   priorityFilter,
@@ -99,64 +83,68 @@ export function RepositoryToolbar({
         title="Test suites and cases"
         actions={
           <div className="tms-toolbar repository-toolbar__controls justify-end">
-            <label className="repository-toolbar__field">
-              <span className="shrink-0 whitespace-nowrap font-semibold">
-                Search
-              </span>
-              <Input
-                value={searchValue}
-                onChange={(event) => onSearchChange(event.target.value)}
-                className="repository-toolbar__input"
-              />
-            </label>
-            <label className="repository-toolbar__field">
-              <span className="font-semibold">Priority</span>
-              <SelectMenu
-                value={priorityFilter}
-                onValueChange={(value) =>
-                  onPriorityFilterChange(value as RepositoryPriorityFilter)
-                }
-                options={[
-                  { value: 'All', label: 'All' },
-                  ...priorityOptions.map((priority) => ({
-                    value: priority,
-                    label: priority,
-                  })),
-                ]}
-                className="min-w-[96px]"
-                aria-label="Filter by priority"
-              />
-            </label>
-            <label className="repository-toolbar__field">
-              <span className="font-semibold">Type</span>
-              <SelectMenu
-                value={caseTypeFilter}
-                onValueChange={(value) =>
-                  onCaseTypeFilterChange(value as RepositoryCaseTypeFilter)
-                }
-                options={[
-                  { value: 'All', label: 'All' },
-                  ...caseTypeOptions.map((caseType) => ({
-                    value: caseType,
-                    label: caseType,
-                  })),
-                ]}
-                className="min-w-[104px]"
-                aria-label="Filter by type"
-              />
-            </label>
-            <div className="repository-toolbar__chips">
+            <div className="repository-toolbar__group repository-toolbar__group--search">
+              <label className="repository-toolbar__field">
+                <span className="shrink-0 whitespace-nowrap font-semibold">
+                  Search
+                </span>
+                <Input
+                  value={searchValue}
+                  onChange={(event) => onSearchChange(event.target.value)}
+                  className="repository-toolbar__input"
+                />
+              </label>
+            </div>
+            <div className="repository-toolbar__group repository-toolbar__group--filters">
+              <label className="repository-toolbar__field">
+                <span className="font-semibold">Priority</span>
+                <SelectMenu
+                  value={priorityFilter}
+                  onValueChange={(value) =>
+                    onPriorityFilterChange(value as RepositoryPriorityFilter)
+                  }
+                  options={[
+                    { value: 'All', label: 'All' },
+                    ...priorityOptions.map((priority) => ({
+                      value: priority,
+                      label: priority,
+                    })),
+                  ]}
+                  className="min-w-[96px]"
+                  aria-label="Filter by priority"
+                />
+              </label>
+              <label className="repository-toolbar__field">
+                <span className="font-semibold">Type</span>
+                <SelectMenu
+                  value={caseTypeFilter}
+                  onValueChange={(value) =>
+                    onCaseTypeFilterChange(value as RepositoryCaseTypeFilter)
+                  }
+                  options={[
+                    { value: 'All', label: 'All' },
+                    ...caseTypeOptions.map((caseType) => ({
+                      value: caseType,
+                      label: caseType,
+                    })),
+                  ]}
+                  className="min-w-[104px]"
+                  aria-label="Filter by type"
+                />
+              </label>
+            </div>
+            <div className="repository-toolbar__status-segmented" role="group" aria-label="Filter by case status">
               {CASE_FILTER_OPTIONS.map((filter) => (
-                <Button
+                <button
                   key={filter}
+                  type="button"
                   onClick={() => onCaseFilterChange(filter)}
-                  variant={caseFilter === filter ? 'primary' : 'default'}
-                  className={`${
-                    caseFilter === filter ? getCaseFilterChipClass(filter) : ''
+                  className={`repository-toolbar__status-button ${
+                    caseFilter === filter ? 'is-active' : ''
                   }`}
                 >
                   {filter}
-                </Button>
+                </button>
               ))}
             </div>
             <PopoverMenu
@@ -170,7 +158,7 @@ export function RepositoryToolbar({
                   variant="secondary"
                   aria-label="Configure repository table"
                 >
-                  View
+                  Columns
                 </Button>
               }
             >
