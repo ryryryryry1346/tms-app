@@ -724,8 +724,6 @@ function ProjectRepositoryPage() {
 
     return groupedIds
   }, [dashboard.tests])
-  const totalSuites = dashboard.sections.length
-
   const selectedTestIdSet = useMemo(
     () => new Set(selectedTestIds),
     [selectedTestIds],
@@ -1980,21 +1978,6 @@ function ProjectRepositoryPage() {
               </>
             }
           />
-
-          <section className="workspace-toolbar-surface repository-summary-strip">
-            <div className="workspace-toolbar-surface__copy">
-            {[
-              { label: 'Suites', value: totalSuites },
-              { label: 'Cases', value: dashboard.stats.activeCases },
-              { label: 'Ready', value: dashboard.stats.readyCases },
-              { label: 'Archived', value: dashboard.stats.archivedCases },
-            ].map((item) => (
-              <div key={item.label} className="tms-chip repository-summary-strip__chip">
-                <span className="text-[var(--tms-text)]">{item.value}</span> {item.label}
-              </div>
-            ))}
-            </div>
-          </section>
 
           {activeComposer ? (
             <section className="tms-panel mb-6 px-6 py-5">
