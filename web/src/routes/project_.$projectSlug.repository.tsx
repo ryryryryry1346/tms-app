@@ -740,6 +740,21 @@ function ProjectRepositoryPage() {
     }),
     [visibleColumns],
   )
+  const paginationStart =
+    dashboard.pagination.totalCases === 0
+      ? 0
+      : (dashboard.pagination.page - 1) * dashboard.pagination.pageSize + 1
+  const paginationEnd =
+    dashboard.pagination.totalCases === 0
+      ? 0
+      : Math.min(
+          dashboard.pagination.totalCases,
+          paginationStart + dashboard.tests.length - 1,
+        )
+  const paginationSummary =
+    dashboard.pagination.totalCases === 0
+      ? 'No cases'
+      : `Showing ${paginationStart}-${paginationEnd} of ${dashboard.pagination.totalCases}`
   const selectedArchivableTests = selectedTests.filter(
     (test) => test.status !== 'Archived',
   )
@@ -2396,7 +2411,7 @@ function ProjectRepositoryPage() {
                     </div>
                   </div>
                   <div className="repository-browser-table__meta">
-                    {dashboard.pagination.totalCases} visible
+                    {paginationSummary}
                   </div>
                 </div>
                 <div
@@ -2434,6 +2449,7 @@ function ProjectRepositoryPage() {
                         key={test.id}
                         test={test}
                         isSelected={selectedTestIdSet.has(test.id)}
+                        isPreviewActive={previewTestId === test.id}
                         isMenuOpen={openCaseMenuId === test.id}
                         isPending={pendingCaseActionId === test.id}
                         isEditingTitle={editingCaseTitleId === test.id}
@@ -2543,7 +2559,7 @@ function ProjectRepositoryPage() {
               <div className="workspace-toolbar-surface__copy text-sm text-[var(--tms-text-muted)]">
                 Page {dashboard.pagination.page} of {dashboard.pagination.totalPages}
                 <span className="text-[var(--tms-text-soft)]">
-                  {dashboard.tests.length} shown of {dashboard.pagination.totalCases}
+                  {paginationSummary}
                 </span>
               </div>
               <div className="workspace-secondary-actions">

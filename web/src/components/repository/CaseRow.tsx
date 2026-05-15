@@ -36,6 +36,7 @@ export type RepositoryCaseRowTest = {
 type CaseRowProps = {
   test: RepositoryCaseRowTest
   isSelected: boolean
+  isPreviewActive: boolean
   isMenuOpen: boolean
   isPending: boolean
   isEditingTitle: boolean
@@ -51,8 +52,12 @@ type CaseRowProps = {
   onToggleSelection: () => void
   onDragStart: (event: DragEvent<HTMLElement>) => void
   onDragEnd: () => void
-  onDragOver: (event: DragEvent<HTMLElement>, position: 'before' | 'after') => void
-  onDragLeave: () => void
+  onDragOver: (
+    event: DragEvent<HTMLElement>,
+    testId: number,
+    position: 'before' | 'after',
+  ) => void
+  onDragLeave: (testId: number) => void
   onDrop: (event: DragEvent<HTMLElement>) => void
   onTitleEditChange: (value: string) => void
   onStartTitleEdit: () => void
@@ -148,6 +153,7 @@ function getStatusChipClass(status: RepositoryCaseStatus): string {
 export function CaseRow({
   test,
   isSelected,
+  isPreviewActive,
   isMenuOpen,
   isPending,
   isEditingTitle,
@@ -192,6 +198,7 @@ export function CaseRow({
 
   return (
     <article
+      onClick={onPreview}
       onDragOver={(event) => {
         if (draggedTestIds.length === 0) {
           return
@@ -204,12 +211,12 @@ export function CaseRow({
         const position =
           event.clientY - bounds.top > bounds.height / 2 ? 'after' : 'before'
 
-        onDragOver(event, position)
+        onDragOver(event, test.id, position)
       }}
-      onDragLeave={onDragLeave}
+      onDragLeave={() => onDragLeave(test.id)}
       onDrop={onDrop}
       style={rowStyle}
-      className={`tms-table-row repository-case-grid px-3 transition sm:px-4 ${
+      className={`tms-table-row repository-case-grid repository-case-grid--interactive px-3 transition sm:px-4 ${
         density === 'compact' ? 'py-1.5' : 'py-2'
       } ${
         draggedTestIds.includes(test.id)
@@ -218,10 +225,12 @@ export function CaseRow({
             ? dragOverDrop.position === 'before'
               ? 'bg-[var(--tms-primary-soft)] shadow-[inset_0_2px_0_var(--tms-primary)]'
               : 'bg-[var(--tms-primary-soft)] shadow-[inset_0_-2px_0_var(--tms-primary)]'
-            : ''
+            : isPreviewActive
+              ? 'repository-case-grid--active'
+              : ''
       }`}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
         <Checkbox
           checked={isSelected}
           onChange={onToggleSelection}
@@ -240,6 +249,7 @@ export function CaseRow({
       <Link
         to="/test/$testId"
         params={{ testId: test.id.toString() }}
+        onClick={(event) => event.stopPropagation()}
         className="text-xs font-semibold no-underline text-[var(--tms-primary)]"
       >
         #{test.id}
@@ -270,7 +280,10 @@ export function CaseRow({
       ) : (
         <button
           type="button"
-          onClick={onPreview}
+          onClick={(event) => {
+            event.stopPropagation()
+            onPreview()
+          }}
           onDoubleClick={(event) => {
             event.preventDefault()
             event.stopPropagation()
@@ -336,19 +349,21 @@ export function CaseRow({
           aria-label={`Change status for ${test.title}`}
         />
       ) : null}
-      <CaseActionsMenu
-        testId={test.id}
-        isOpen={isMenuOpen}
-        isArchived={isArchived}
-        isPending={isPending}
-        onToggle={onToggleMenu}
-        onClose={onCloseMenu}
-        onPreview={onPreview}
-        onDuplicate={onDuplicate}
-        onRestore={onRestore}
-        onDeletePermanently={onDeletePermanently}
-        onArchive={onArchive}
-      />
+      <div onClick={(event) => event.stopPropagation()}>
+        <CaseActionsMenu
+          testId={test.id}
+          isOpen={isMenuOpen}
+          isArchived={isArchived}
+          isPending={isPending}
+          onToggle={onToggleMenu}
+          onClose={onCloseMenu}
+          onPreview={onPreview}
+          onDuplicate={onDuplicate}
+          onRestore={onRestore}
+          onDeletePermanently={onDeletePermanently}
+          onArchive={onArchive}
+        />
+      </div>
     </article>
   )
 }
