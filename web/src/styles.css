@@ -2627,8 +2627,24 @@ a {
 
 .repository-browser-table {
   min-width: 0;
-  overflow-x: auto;
   padding: 0.875rem;
+}
+
+.repository-browser-table__scroll {
+  max-height: min(58vh, 640px);
+  overflow: auto;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: var(--tms-radius-md);
+  background: var(--tms-surface);
+}
+
+.repository-browser-table__sticky-head {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  border-top: 0;
+  background: var(--tms-surface-soft);
+  box-shadow: 0 1px 0 var(--tms-border-subtle);
 }
 
 .repository-browser-table__header {

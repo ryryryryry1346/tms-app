@@ -2397,142 +2397,146 @@ function ProjectRepositoryPage() {
                     {paginationSummary}
                   </div>
                 </div>
-                <div
-                  className={`tms-table-head repository-case-grid px-3 sm:px-4 ${
-                    tableDensity === 'compact' ? 'py-1.5' : 'py-2'
-                  }`}
-                  style={repositoryGridStyle}
-                >
-                  <span />
-                  <span>ID</span>
-                  <span>Title</span>
-                  {visibleColumns.priority ? <span>Priority</span> : null}
-                  {visibleColumns.type ? <span>Type</span> : null}
-                  {visibleColumns.created ? <span>Created</span> : null}
-                  {visibleColumns.updated ? <span>Updated</span> : null}
-                  {visibleColumns.status ? <span>Status</span> : null}
-                  <span>Actions</span>
+                <div className="repository-browser-table__scroll">
+                  <div
+                    className={`tms-table-head repository-case-grid repository-browser-table__sticky-head px-3 sm:px-4 ${
+                      tableDensity === 'compact' ? 'py-1.5' : 'py-2'
+                    }`}
+                    style={repositoryGridStyle}
+                  >
+                    <span />
+                    <span>ID</span>
+                    <span>Title</span>
+                    {visibleColumns.priority ? <span>Priority</span> : null}
+                    {visibleColumns.type ? <span>Type</span> : null}
+                    {visibleColumns.created ? <span>Created</span> : null}
+                    {visibleColumns.updated ? <span>Updated</span> : null}
+                    {visibleColumns.status ? <span>Status</span> : null}
+                    <span>Actions</span>
+                  </div>
+
+                  {dashboard.sections.length === 0 ? (
+                    <RepositoryEmptyState reason="no-suites" />
+                  ) : dashboard.tests.length === 0 ? (
+                    <RepositoryEmptyState
+                      reason="no-matching-cases"
+                      caseFilter={caseFilter}
+                    />
+                  ) : (
+                    dashboard.tests.map((test) => {
+                      const sectionId = test.sectionId ?? 0
+                      const sectionAllTestIds =
+                        allTestIdsBySectionId.get(sectionId) ?? []
+
+                      return (
+                        <CaseRow
+                          key={test.id}
+                          test={test}
+                          isSelected={selectedTestIdSet.has(test.id)}
+                          isPreviewActive={previewTestId === test.id}
+                          isMenuOpen={openCaseMenuId === test.id}
+                          isPending={pendingCaseActionId === test.id}
+                          isEditingTitle={editingCaseTitleId === test.id}
+                          editingTitleValue={editingCaseTitleValue}
+                          draggedTestIds={draggedTestIds}
+                          dragOverDrop={dragOverTestDrop}
+                          priorityOptions={PRIORITY_OPTIONS}
+                          caseTypeOptions={CASE_TYPE_OPTIONS}
+                          statusOptions={CASE_STATUS_OPTIONS}
+                          visibleColumns={visibleColumns}
+                          density={tableDensity}
+                          formatDate={formatRepositoryDate}
+                          onToggleSelection={() => toggleTestSelection(test.id)}
+                          onDragStart={(event) =>
+                            handleCaseDragStart(event, test.id)
+                          }
+                          onDragEnd={() => {
+                            setDraggedTestIds([])
+                            setDragOverTestDrop(null)
+                          }}
+                          onDragOver={(_event, testId, position) => {
+                            setDragOverTestDrop({
+                              testId,
+                              position,
+                            })
+                          }}
+                          onDragLeave={(testId) => {
+                            setDragOverTestDrop((current) =>
+                              current?.testId === testId ? null : current,
+                            )
+                          }}
+                          onDrop={(event) => {
+                            if (!test.sectionId) {
+                              return
+                            }
+
+                            const position =
+                              dragOverTestDrop?.testId === test.id
+                                ? dragOverTestDrop.position
+                                : 'before'
+
+                            void handleCaseDrop({
+                              event,
+                              suiteId: test.sectionId,
+                              targetTestId: test.id,
+                              position,
+                              currentSuiteTestIds: sectionAllTestIds,
+                            })
+                          }}
+                          onTitleEditChange={setEditingCaseTitleValue}
+                          onStartTitleEdit={() =>
+                            startCaseTitleEdit(test.id, test.title)
+                          }
+                          onSaveTitleEdit={() =>
+                            void saveCaseTitleEdit(test.id, test.title)
+                          }
+                          onCancelTitleEdit={cancelCaseTitleEdit}
+                          onPriorityChange={(priority) => {
+                            if (priority === (test.priority ?? 'Medium')) {
+                              return
+                            }
+
+                            void handleCaseMetadataChange(test.id, { priority })
+                          }}
+                          onCaseTypeChange={(caseType) => {
+                            if (caseType === (test.caseType ?? 'Functional')) {
+                              return
+                            }
+
+                            void handleCaseMetadataChange(test.id, { caseType })
+                          }}
+                          onStatusChange={(status) => {
+                            if (status === (test.status ?? 'Draft')) {
+                              return
+                            }
+
+                            void handleCaseStatusChange(test.id, status)
+                          }}
+                          onToggleMenu={() => {
+                            setCaseActionErrorMessage(null)
+                            setOpenCaseMenuId((current) =>
+                              current === test.id ? null : test.id,
+                            )
+                          }}
+                          onCloseMenu={() => setOpenCaseMenuId(null)}
+                          onPreview={() => openCasePreview(test.id)}
+                          onDuplicate={() => {
+                            void handleCaseDuplicate(test.id)
+                          }}
+                          onRestore={() => {
+                            void handleCaseRestore(test.id)
+                          }}
+                          onDeletePermanently={() => {
+                            void handleCaseDeletePermanently(test.id)
+                          }}
+                          onArchive={() => {
+                            void handleCaseArchive(test.id)
+                          }}
+                        />
+                      )
+                    })
+                  )}
                 </div>
-
-                {dashboard.sections.length === 0 ? (
-                  <RepositoryEmptyState reason="no-suites" />
-                ) : dashboard.tests.length === 0 ? (
-                  <RepositoryEmptyState
-                    reason="no-matching-cases"
-                    caseFilter={caseFilter}
-                  />
-                ) : (
-                  dashboard.tests.map((test) => {
-                    const sectionId = test.sectionId ?? 0
-                    const sectionAllTestIds =
-                      allTestIdsBySectionId.get(sectionId) ?? []
-
-                    return (
-                      <CaseRow
-                        key={test.id}
-                        test={test}
-                        isSelected={selectedTestIdSet.has(test.id)}
-                        isPreviewActive={previewTestId === test.id}
-                        isMenuOpen={openCaseMenuId === test.id}
-                        isPending={pendingCaseActionId === test.id}
-                        isEditingTitle={editingCaseTitleId === test.id}
-                        editingTitleValue={editingCaseTitleValue}
-                        draggedTestIds={draggedTestIds}
-                        dragOverDrop={dragOverTestDrop}
-                        priorityOptions={PRIORITY_OPTIONS}
-                        caseTypeOptions={CASE_TYPE_OPTIONS}
-                        statusOptions={CASE_STATUS_OPTIONS}
-                        visibleColumns={visibleColumns}
-                        density={tableDensity}
-                        formatDate={formatRepositoryDate}
-                        onToggleSelection={() => toggleTestSelection(test.id)}
-                        onDragStart={(event) => handleCaseDragStart(event, test.id)}
-                        onDragEnd={() => {
-                          setDraggedTestIds([])
-                          setDragOverTestDrop(null)
-                        }}
-                        onDragOver={(_event, testId, position) => {
-                          setDragOverTestDrop({
-                            testId,
-                            position,
-                          })
-                        }}
-                        onDragLeave={(testId) => {
-                          setDragOverTestDrop((current) =>
-                            current?.testId === testId ? null : current,
-                          )
-                        }}
-                        onDrop={(event) => {
-                          if (!test.sectionId) {
-                            return
-                          }
-
-                          const position =
-                            dragOverTestDrop?.testId === test.id
-                              ? dragOverTestDrop.position
-                              : 'before'
-
-                          void handleCaseDrop({
-                            event,
-                            suiteId: test.sectionId,
-                            targetTestId: test.id,
-                            position,
-                            currentSuiteTestIds: sectionAllTestIds,
-                          })
-                        }}
-                        onTitleEditChange={setEditingCaseTitleValue}
-                        onStartTitleEdit={() =>
-                          startCaseTitleEdit(test.id, test.title)
-                        }
-                        onSaveTitleEdit={() =>
-                          void saveCaseTitleEdit(test.id, test.title)
-                        }
-                        onCancelTitleEdit={cancelCaseTitleEdit}
-                        onPriorityChange={(priority) => {
-                          if (priority === (test.priority ?? 'Medium')) {
-                            return
-                          }
-
-                          void handleCaseMetadataChange(test.id, { priority })
-                        }}
-                        onCaseTypeChange={(caseType) => {
-                          if (caseType === (test.caseType ?? 'Functional')) {
-                            return
-                          }
-
-                          void handleCaseMetadataChange(test.id, { caseType })
-                        }}
-                        onStatusChange={(status) => {
-                          if (status === (test.status ?? 'Draft')) {
-                            return
-                          }
-
-                          void handleCaseStatusChange(test.id, status)
-                        }}
-                        onToggleMenu={() => {
-                          setCaseActionErrorMessage(null)
-                          setOpenCaseMenuId((current) =>
-                            current === test.id ? null : test.id,
-                          )
-                        }}
-                        onCloseMenu={() => setOpenCaseMenuId(null)}
-                        onPreview={() => openCasePreview(test.id)}
-                        onDuplicate={() => {
-                          void handleCaseDuplicate(test.id)
-                        }}
-                        onRestore={() => {
-                          void handleCaseRestore(test.id)
-                        }}
-                        onDeletePermanently={() => {
-                          void handleCaseDeletePermanently(test.id)
-                        }}
-                        onArchive={() => {
-                          void handleCaseArchive(test.id)
-                        }}
-                      />
-                    )
-                  })
-                )}
                 {dashboard.pagination.totalCases > 0 ? (
                   <div className="repository-browser-table__pagination">
                     <div className="repository-browser-table__pagination-copy">
