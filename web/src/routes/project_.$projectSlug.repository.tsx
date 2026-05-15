@@ -2550,49 +2550,52 @@ function ProjectRepositoryPage() {
                     )
                   })
                 )}
+                {dashboard.pagination.totalCases > 0 ? (
+                  <div className="repository-browser-table__pagination">
+                    <div className="repository-browser-table__pagination-copy">
+                      <strong>{paginationSummary}</strong>
+                      <span>
+                        Page {dashboard.pagination.page} of{' '}
+                        {dashboard.pagination.totalPages}
+                      </span>
+                    </div>
+                    {dashboard.pagination.totalPages > 1 ? (
+                      <div className="repository-browser-table__pagination-actions">
+                        <Button
+                          variant="secondary"
+                          disabled={dashboard.pagination.page <= 1}
+                          onClick={() =>
+                            updateRepositorySearch({
+                              page: Math.max(1, dashboard.pagination.page - 1),
+                            })
+                          }
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          disabled={
+                            dashboard.pagination.page >=
+                            dashboard.pagination.totalPages
+                          }
+                          onClick={() =>
+                            updateRepositorySearch({
+                              page: Math.min(
+                                dashboard.pagination.totalPages,
+                                dashboard.pagination.page + 1,
+                              ),
+                            })
+                          }
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </section>
             </div>
           </RepositoryPanel>
-
-          {dashboard.pagination.totalPages > 1 ? (
-            <section className="workspace-toolbar-surface repository-pagination">
-              <div className="workspace-toolbar-surface__copy text-sm text-[var(--tms-text-muted)]">
-                Page {dashboard.pagination.page} of {dashboard.pagination.totalPages}
-                <span className="text-[var(--tms-text-soft)]">
-                  {paginationSummary}
-                </span>
-              </div>
-              <div className="workspace-secondary-actions">
-                <Button
-                  variant="secondary"
-                  disabled={dashboard.pagination.page <= 1}
-                  onClick={() =>
-                    updateRepositorySearch({
-                      page: Math.max(1, dashboard.pagination.page - 1),
-                    })
-                  }
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="secondary"
-                  disabled={
-                    dashboard.pagination.page >= dashboard.pagination.totalPages
-                  }
-                  onClick={() =>
-                    updateRepositorySearch({
-                      page: Math.min(
-                        dashboard.pagination.totalPages,
-                        dashboard.pagination.page + 1,
-                      ),
-                    })
-                  }
-                >
-                  Next
-                </Button>
-              </div>
-            </section>
-          ) : null}
 
           {previewDrawerTest ? (
             <CasePreviewDrawer
