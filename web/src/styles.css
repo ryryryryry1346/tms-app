@@ -2480,27 +2480,23 @@ a {
 }
 
 .repository-workspace-view .workspace-view__stack {
-  gap: 1rem;
-}
-
-.repository-workspace-view .workspace-page-header {
   gap: 0.75rem;
 }
 
-.repository-workspace-view .workspace-page-header__title {
-  font-size: clamp(1.75rem, 2.4vw, 2.125rem);
+.repository-workspace-view .workspace-page-header {
+  gap: 0.5rem;
 }
 
-.repository-workspace-view .workspace-page-header__description {
-  font-size: 0.875rem;
+.repository-workspace-view .workspace-page-header__title {
+  font-size: clamp(1.625rem, 2.1vw, 2rem);
 }
 
 .repository-workspace-panel {
   display: flex;
   flex-direction: column;
   min-height: 520px;
-  height: calc(100vh - 16rem);
-  max-height: 760px;
+  height: calc(100vh - 12rem);
+  max-height: none;
   overflow: hidden;
 }
 
@@ -2515,6 +2511,10 @@ a {
   min-height: 0;
   overflow: hidden;
   border-top: 1px solid var(--tms-border-subtle);
+}
+
+.repository-browser--with-preview {
+  grid-template-columns: minmax(176px, 216px) minmax(0, 1fr) minmax(320px, 380px);
 }
 
 .repository-browser-tree {
@@ -2756,6 +2756,137 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.repository-preview-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--tms-border-subtle);
+  background: var(--tms-surface);
+}
+
+.repository-preview-panel__header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.875rem 0.875rem 0.625rem;
+  border-bottom: 1px solid var(--tms-border-subtle);
+}
+
+.repository-preview-panel__copy {
+  min-width: 0;
+}
+
+.repository-preview-panel__title {
+  margin: 0.25rem 0 0;
+  color: var(--tms-text);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.repository-preview-panel__badges,
+.repository-preview-panel__actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid var(--tms-border-subtle);
+}
+
+.repository-preview-panel__actions {
+  gap: 0.5rem;
+}
+
+.repository-preview-panel__actions .tms-button {
+  min-height: 1.875rem;
+  padding: 0.3125rem 0.625rem;
+  font-size: 0.75rem;
+}
+
+.repository-preview-panel__body {
+  display: grid;
+  gap: 0.75rem;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.875rem;
+}
+
+.repository-preview-panel__section {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: var(--tms-radius-md);
+  background: var(--tms-surface-soft);
+}
+
+.repository-preview-panel__section h3 {
+  margin: 0;
+  color: var(--tms-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.repository-preview-panel__section .rich-output {
+  color: var(--tms-text);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.repository-preview-panel__state {
+  padding: 0.75rem;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: var(--tms-radius-md);
+  background: var(--tms-surface-soft);
+  color: var(--tms-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.repository-preview-panel__state--danger {
+  border-color: var(--tms-danger-border);
+  background: var(--tms-danger-soft);
+  color: var(--tms-danger);
+}
+
+.repository-preview-panel__muted {
+  margin: 0;
+  color: var(--tms-text-muted);
+  font-size: 0.8125rem;
+}
+
+.repository-preview-panel__activity {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.repository-preview-panel__activity-item {
+  display: grid;
+  gap: 0.125rem;
+  padding: 0.5rem;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: calc(var(--tms-radius-md) - 2px);
+  background: var(--tms-surface);
+  color: var(--tms-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.repository-preview-panel__activity-item small {
+  color: var(--tms-text-soft);
+  font-size: 0.6875rem;
+  font-weight: 600;
 }
 
 .create-edit-actions {

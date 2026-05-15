@@ -6,6 +6,7 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
+import { RichTextEditor } from '../components/RichTextEditor'
 import { z } from 'zod'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { BulkCaseBar } from '../components/repository/BulkCaseBar'
@@ -24,6 +25,7 @@ import {
 } from '../components/repository/CaseRow'
 import { RepositoryToolbar } from '../components/repository/RepositoryToolbar'
 import { Alert } from '../components/ui/Alert'
+import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Checkbox } from '../components/ui/Checkbox'
 import { FileInput } from '../components/ui/FileInput'
@@ -341,6 +343,7 @@ function ProjectRepositoryPage() {
   const [previewExpectedValue, setPreviewExpectedValue] = useState('')
   const [isSavingPreviewContent, setIsSavingPreviewContent] = useState(false)
   const [isUploadingPreviewMedia, setIsUploadingPreviewMedia] = useState(false)
+  const [isSplitPreviewViewport, setIsSplitPreviewViewport] = useState(false)
   const [caseActionErrorMessage, setCaseActionErrorMessage] = useState<
     string | null
   >(null)
@@ -793,11 +796,24 @@ function ProjectRepositoryPage() {
       : dashboard.sections.find((section) => section.id === previewTest.sectionId) ??
         null
   const previewActivities = previewTestDetail?.activities.slice(0, 12) ?? []
+  const shouldShowSplitPreview =
+    isSplitPreviewViewport && previewDrawerTest !== null
+  const splitPreviewTest = shouldShowSplitPreview ? previewDrawerTest : null
   const selectedSuite =
     suiteFilterId === ALL_SUITES_FILTER
       ? null
       : dashboard.sections.find((section) => section.id.toString() === suiteFilterId) ??
         null
+
+  useEffect(() => {
+    const query = window.matchMedia('(min-width: 1180px)')
+    const updatePreviewViewport = () => setIsSplitPreviewViewport(query.matches)
+
+    updatePreviewViewport()
+    query.addEventListener('change', updatePreviewViewport)
+
+    return () => query.removeEventListener('change', updatePreviewViewport)
+  }, [])
 
   useEffect(() => {
     if (!previewTest) {
@@ -1939,7 +1955,7 @@ function ProjectRepositoryPage() {
         <div className="workspace-view__stack">
           <ProjectPageHeader
             projectName={project.name}
-            description="Browse suites, test cases, filters, and bulk repository actions."
+            eyebrow={null}
             actions={
               <>
                 <Button
@@ -2319,7 +2335,11 @@ function ProjectRepositoryPage() {
               <RepositoryErrorBanner message={caseActionErrorMessage} />
             ) : null}
 
-            <div className="repository-browser">
+            <div
+              className={`repository-browser ${
+                shouldShowSplitPreview ? 'repository-browser--with-preview' : ''
+              }`}
+            >
               <RepositorySuiteTree
                 sections={dashboard.sections}
                 suiteStats={dashboard.suiteStats}
@@ -2585,10 +2605,195 @@ function ProjectRepositoryPage() {
                   </div>
                 ) : null}
               </section>
+
+              {splitPreviewTest ? (
+                <aside
+                  className="repository-preview-panel"
+                  aria-label="Test case preview"
+                >
+                  <div className="repository-preview-panel__header">
+                    <div className="repository-preview-panel__copy">
+                      <p className="tms-kicker m-0">
+                        Case #{splitPreviewTest.id}
+                      </p>
+                      <h2 className="repository-preview-panel__title">
+                        {splitPreviewTest.title}
+                      </h2>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setPreviewTestId(null)}
+                    >
+                      Close
+                    </Button>
+                  </div>
+
+                  <div className="repository-preview-panel__badges">
+                    <Badge variant="primary">
+                      {previewSuite?.name ?? 'No suite'}
+                    </Badge>
+                    <Badge
+                      variant={
+                        splitPreviewTest.status === 'Ready'
+                          ? 'statusReady'
+                          : splitPreviewTest.status === 'Archived'
+                          ? 'statusArchived'
+                          : 'statusDraft'
+                      }
+                    >
+                      {splitPreviewTest.status ?? 'Draft'}
+                    </Badge>
+                    <Badge
+                      variant={
+                        splitPreviewTest.priority === 'Critical'
+                          ? 'priorityCritical'
+                          : splitPreviewTest.priority === 'High'
+                          ? 'priorityHigh'
+                          : splitPreviewTest.priority === 'Low'
+                          ? 'priorityLow'
+                          : 'priorityMedium'
+                      }
+                    >
+                      {splitPreviewTest.priority ?? 'Medium'}
+                    </Badge>
+                    <Badge>{splitPreviewTest.caseType ?? 'Functional'}</Badge>
+                  </div>
+
+                  <div className="repository-preview-panel__actions">
+                    <LinkButton
+                      to="/test/$testId"
+                      params={{ testId: splitPreviewTest.id.toString() }}
+                      variant="secondary"
+                    >
+                      Open
+                    </LinkButton>
+                    <LinkButton
+                      to="/edit-test/$testId"
+                      params={{ testId: splitPreviewTest.id.toString() }}
+                      variant="secondary"
+                    >
+                      Full editor
+                    </LinkButton>
+                    {isEditingPreviewContent ? (
+                      <>
+                        <Button
+                          type="button"
+                          disabled={
+                            isSavingPreviewContent || isUploadingPreviewMedia
+                          }
+                          onClick={() => {
+                            void savePreviewContent()
+                          }}
+                          variant="primary"
+                        >
+                          {isSavingPreviewContent ? 'Saving...' : 'Save'}
+                        </Button>
+                        <Button
+                          type="button"
+                          disabled={isSavingPreviewContent}
+                          onClick={cancelPreviewContentEdit}
+                          variant="secondary"
+                        >
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        type="button"
+                        disabled={
+                          isLoadingPreviewDetail ||
+                          Boolean(previewDetailErrorMessage)
+                        }
+                        onClick={startPreviewContentEdit}
+                        variant="primary"
+                      >
+                        Edit content
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="repository-preview-panel__body">
+                    {isEditingPreviewContent ? (
+                      <div className="grid gap-4">
+                        <RichTextEditor
+                          label="Steps"
+                          placeholder="Describe the test steps"
+                          value={previewStepsValue}
+                          onChange={setPreviewStepsValue}
+                          onUploadMedia={uploadPreviewMedia}
+                          isUploading={isUploadingPreviewMedia}
+                        />
+                        <RichTextEditor
+                          label="Expected result"
+                          placeholder="Describe the expected result"
+                          value={previewExpectedValue}
+                          onChange={setPreviewExpectedValue}
+                          onUploadMedia={uploadPreviewMedia}
+                          isUploading={isUploadingPreviewMedia}
+                        />
+                      </div>
+                    ) : isLoadingPreviewDetail ? (
+                      <div className="repository-preview-panel__state">
+                        Loading test case content...
+                      </div>
+                    ) : previewDetailErrorMessage ? (
+                      <div className="repository-preview-panel__state repository-preview-panel__state--danger">
+                        {previewDetailErrorMessage}
+                      </div>
+                    ) : (
+                      <>
+                        <section className="repository-preview-panel__section">
+                          <h3>Steps</h3>
+                          <div
+                            className="rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
+                            onClick={handleRichContentClick}
+                            dangerouslySetInnerHTML={{
+                              __html: splitPreviewTest.steps || '<p>-</p>',
+                            }}
+                          />
+                        </section>
+                        <section className="repository-preview-panel__section">
+                          <h3>Expected result</h3>
+                          <div
+                            className="rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
+                            onClick={handleRichContentClick}
+                            dangerouslySetInnerHTML={{
+                              __html: splitPreviewTest.expected || '<p>-</p>',
+                            }}
+                          />
+                        </section>
+                        <section className="repository-preview-panel__section">
+                          <h3>Activity</h3>
+                          {previewActivities.length === 0 ? (
+                            <p className="repository-preview-panel__muted">
+                              No activity recorded yet.
+                            </p>
+                          ) : (
+                            <div className="repository-preview-panel__activity">
+                              {previewActivities.map((activity) => (
+                                <div
+                                  key={activity.id}
+                                  className="repository-preview-panel__activity-item"
+                                >
+                                  <span>{activity.summary}</span>
+                                  <small>
+                                    {formatRepositoryDateTime(activity.createdAt)}
+                                  </small>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </section>
+                      </>
+                    )}
+                  </div>
+                </aside>
+              ) : null}
             </div>
           </RepositoryPanel>
 
-          {previewDrawerTest ? (
+          {previewDrawerTest && !shouldShowSplitPreview ? (
             <CasePreviewDrawer
               test={previewDrawerTest}
               suite={previewSuite}
@@ -2600,7 +2805,7 @@ function ProjectRepositoryPage() {
               expectedValue={previewExpectedValue}
               isSavingContent={isSavingPreviewContent}
               isUploadingMedia={isUploadingPreviewMedia}
-              isPendingAction={pendingCaseActionId === previewTest.id}
+              isPendingAction={pendingCaseActionId === previewDrawerTest.id}
               onClose={() => setPreviewTestId(null)}
               onStartEdit={startPreviewContentEdit}
               onCancelEdit={cancelPreviewContentEdit}
