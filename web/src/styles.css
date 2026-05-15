@@ -2551,10 +2551,23 @@ a {
   padding: 0;
 }
 
+.repository-browser-tree__search {
+  min-height: 1.875rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
 .repository-browser-tree__list {
   display: grid;
   gap: 0.0625rem;
   overflow: auto;
+}
+
+.repository-browser-tree__empty {
+  padding: 0.5rem;
+  color: var(--tms-text-soft);
+  font-size: 0.75rem;
+  line-height: 1.35;
 }
 
 .repository-browser-tree__suite {
@@ -2699,13 +2712,16 @@ a {
 }
 
 .repository-browser-table__title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
   color: var(--tms-text);
   font-size: 0.9375rem;
   font-weight: 700;
   line-height: 1.2;
 }
 
-.repository-browser-table__meta {
+.repository-browser-table__title-count {
   color: var(--tms-text-soft);
   font-size: 0.75rem;
   font-weight: 600;

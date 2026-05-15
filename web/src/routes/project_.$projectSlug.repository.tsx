@@ -753,6 +753,10 @@ function ProjectRepositoryPage() {
     dashboard.pagination.totalCases === 0
       ? 'No cases'
       : `Showing ${paginationStart}-${paginationEnd} of ${dashboard.pagination.totalCases}`
+  const tableScopeCountLabel =
+    dashboard.pagination.totalCases === 1
+      ? '1 case'
+      : `${dashboard.pagination.totalCases} cases`
   const selectedArchivableTests = selectedTests.filter(
     (test) => test.status !== 'Archived',
   )
@@ -2390,11 +2394,11 @@ function ProjectRepositoryPage() {
                       {selectedSuite ? 'Suite' : 'Repository'}
                     </div>
                     <div className="repository-browser-table__title">
-                      {selectedSuite?.name ?? 'All test cases'}
+                      <span>{selectedSuite?.name ?? 'All test cases'}</span>
+                      <span className="repository-browser-table__title-count">
+                        {tableScopeCountLabel}
+                      </span>
                     </div>
-                  </div>
-                  <div className="repository-browser-table__meta">
-                    {paginationSummary}
                   </div>
                 </div>
                 <div className="repository-browser-table__scroll">

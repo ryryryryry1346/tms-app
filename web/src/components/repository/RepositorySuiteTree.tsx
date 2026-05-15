@@ -1,4 +1,4 @@
-import { type FormEvent } from 'react'
+import { type FormEvent, useMemo, useState } from 'react'
 import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
 import { ConfirmActionAlert } from '../ui/ConfirmActionAlert'
@@ -110,9 +110,20 @@ export function RepositorySuiteTree({
   onToggleSuiteMenu,
   onCloseSuiteMenu,
 }: RepositorySuiteTreeProps) {
+  const [suiteSearchValue, setSuiteSearchValue] = useState('')
   const statsBySectionId = new Map(
     suiteStats.map((stats) => [stats.sectionId, stats]),
   )
+  const normalizedSuiteSearch = suiteSearchValue.trim().toLowerCase()
+  const filteredSections = useMemo(() => {
+    if (!normalizedSuiteSearch) {
+      return sections
+    }
+
+    return sections.filter((section) =>
+      section.name.toLowerCase().includes(normalizedSuiteSearch),
+    )
+  }, [normalizedSuiteSearch, sections])
 
   return (
     <aside className="repository-browser-tree" aria-label="Repository suites">
@@ -130,6 +141,13 @@ export function RepositorySuiteTree({
           +
         </Button>
       </div>
+      <Input
+        value={suiteSearchValue}
+        onChange={(event) => setSuiteSearchValue(event.currentTarget.value)}
+        className="repository-browser-tree__search"
+        placeholder="Search suites"
+        aria-label="Search suites"
+      />
 
       <button
         type="button"
@@ -148,7 +166,7 @@ export function RepositorySuiteTree({
       </button>
 
       <div className="repository-browser-tree__list">
-        {sections.map((section) => {
+        {filteredSections.map((section) => {
           const stats = statsBySectionId.get(section.id)
           const activeCases = stats?.activeCases ?? 0
           const isActive = selectedSuiteId === section.id.toString()
@@ -267,6 +285,11 @@ export function RepositorySuiteTree({
             </div>
           )
         })}
+        {filteredSections.length === 0 ? (
+          <div className="repository-browser-tree__empty">
+            No suites match this search.
+          </div>
+        ) : null}
       </div>
     </aside>
   )
