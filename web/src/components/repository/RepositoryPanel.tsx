@@ -3,11 +3,15 @@ import { Panel } from '../ui/Panel'
 
 type RepositoryPanelProps = {
   children: ReactNode
+  className?: string
 }
 
-export function RepositoryPanel({ children }: RepositoryPanelProps) {
+export function RepositoryPanel({ children, className }: RepositoryPanelProps) {
   return (
-    <Panel id="project-suites" className="overflow-visible">
+    <Panel
+      id="project-suites"
+      className={className ?? 'overflow-visible'}
+    >
       {children}
     </Panel>
   )

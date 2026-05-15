@@ -1930,7 +1930,7 @@ function ProjectRepositoryPage() {
   }
 
   return (
-    <main className="workspace-view">
+    <main className="workspace-view repository-workspace-view">
       <div className="workspace-view__inner">
         <div className="workspace-view__stack">
           <ProjectPageHeader
@@ -2225,7 +2225,7 @@ function ProjectRepositoryPage() {
             </section>
           ) : null}
 
-          <RepositoryPanel>
+          <RepositoryPanel className="repository-workspace-panel">
             <RepositoryToolbar
               searchValue={searchValue}
               priorityFilter={priorityFilter}

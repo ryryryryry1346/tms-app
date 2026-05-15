@@ -2475,10 +2475,45 @@ a {
   font-size: 0.75rem;
 }
 
+.repository-workspace-view .workspace-view__inner {
+  padding-block: 1.125rem 1rem;
+}
+
+.repository-workspace-view .workspace-view__stack {
+  gap: 1rem;
+}
+
+.repository-workspace-view .workspace-page-header {
+  gap: 0.75rem;
+}
+
+.repository-workspace-view .workspace-page-header__title {
+  font-size: clamp(1.75rem, 2.4vw, 2.125rem);
+}
+
+.repository-workspace-view .workspace-page-header__description {
+  font-size: 0.875rem;
+}
+
+.repository-workspace-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
+  height: calc(100vh - 16rem);
+  max-height: 760px;
+  overflow: hidden;
+}
+
+.repository-workspace-panel > .tms-panel-header {
+  flex: 0 0 auto;
+}
+
 .repository-browser {
   display: grid;
   grid-template-columns: minmax(188px, 228px) minmax(0, 1fr);
-  min-height: 520px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
   border-top: 1px solid var(--tms-border-subtle);
 }
 
@@ -2487,6 +2522,7 @@ a {
   flex-direction: column;
   gap: 0.25rem;
   min-width: 0;
+  overflow: hidden auto;
   padding: 0.75rem 0.625rem;
   border-right: 1px solid var(--tms-border-subtle);
   background: color-mix(in oklab, var(--tms-surface-soft) 62%, var(--tms-bg));
@@ -2626,12 +2662,18 @@ a {
 }
 
 .repository-browser-table {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   padding: 0.875rem;
 }
 
 .repository-browser-table__scroll {
-  max-height: min(58vh, 640px);
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
   overflow: auto;
   border: 1px solid var(--tms-border-subtle);
   border-radius: var(--tms-radius-md);
@@ -2649,6 +2691,7 @@ a {
 
 .repository-browser-table__header {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -2670,6 +2713,7 @@ a {
 
 .repository-browser-table__pagination {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
@@ -3056,8 +3100,15 @@ a {
     grid-template-columns: 64px 76px minmax(220px, 1fr) 108px 128px 112px 112px 112px 84px;
   }
 
+  .repository-workspace-panel {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
   .repository-browser {
     grid-template-columns: 1fr;
+    overflow: visible;
   }
 
   .repository-browser-tree {
