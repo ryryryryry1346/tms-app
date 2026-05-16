@@ -356,6 +356,9 @@ function ProjectRepositoryPage() {
   const [isSavingPreviewContent, setIsSavingPreviewContent] = useState(false)
   const [isUploadingPreviewMedia, setIsUploadingPreviewMedia] = useState(false)
   const [isSplitPreviewViewport, setIsSplitPreviewViewport] = useState(false)
+  const [copiedPreviewLinkId, setCopiedPreviewLinkId] = useState<number | null>(
+    null,
+  )
   const [caseActionErrorMessage, setCaseActionErrorMessage] = useState<
     string | null
   >(null)
@@ -816,6 +819,15 @@ function ProjectRepositoryPage() {
   const shouldShowSplitPreview =
     isSplitPreviewViewport && previewDrawerTest !== null
   const splitPreviewTest = shouldShowSplitPreview ? previewDrawerTest : null
+  const previewIndex =
+    previewTestId === null
+      ? -1
+      : dashboard.tests.findIndex((test) => test.id === previewTestId)
+  const previousPreviewTest = previewIndex > 0 ? dashboard.tests[previewIndex - 1] : null
+  const nextPreviewTest =
+    previewIndex >= 0 && previewIndex < dashboard.tests.length - 1
+      ? dashboard.tests[previewIndex + 1]
+      : null
   const selectedSuite =
     suiteFilterId === ALL_SUITES_FILTER
       ? null
@@ -838,15 +850,47 @@ function ProjectRepositoryPage() {
     }
 
     function handleKeyDown(event: KeyboardEvent): void {
+      const target = event.target
+      const isTypingTarget =
+        target instanceof HTMLElement &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+
+      if (isTypingTarget) {
+        return
+      }
+
       if (event.key === 'Escape') {
         closeCasePreview()
+        return
+      }
+
+      if (event.key === 'ArrowUp') {
+        if (!previousPreviewTest) {
+          return
+        }
+
+        event.preventDefault()
+        openCasePreview(previousPreviewTest.id)
+        return
+      }
+
+      if (event.key === 'ArrowDown') {
+        if (!nextPreviewTest) {
+          return
+        }
+
+        event.preventDefault()
+        openCasePreview(nextPreviewTest.id)
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
 
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [previewTest])
+  }, [nextPreviewTest, previewTest, previousPreviewTest])
 
   useEffect(() => {
     let isCancelled = false
@@ -959,6 +1003,33 @@ function ProjectRepositoryPage() {
       }),
       replace: true,
     })
+  }
+
+  function openAdjacentPreview(direction: 'previous' | 'next'): void {
+    const target =
+      direction === 'previous' ? previousPreviewTest : nextPreviewTest
+
+    if (!target) {
+      return
+    }
+
+    openCasePreview(target.id)
+  }
+
+  async function copyPreviewLink(testId: number): Promise<void> {
+    const url = `${window.location.origin}/test/${testId}`
+
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiedPreviewLinkId(testId)
+      window.setTimeout(() => {
+        setCopiedPreviewLinkId((current) => (current === testId ? null : current))
+      }, 1800)
+    } catch (error) {
+      setCaseActionErrorMessage(
+        error instanceof Error ? error.message : 'Failed to copy test case link.',
+      )
+    }
   }
 
   function handleRichContentClick(event: React.MouseEvent<HTMLElement>): void {
@@ -2712,14 +2783,40 @@ function ProjectRepositoryPage() {
                       <h2 className="repository-preview-panel__title">
                         {splitPreviewTest.title}
                       </h2>
+                      <p className="repository-preview-panel__subtitle">
+                        {previewSuite?.name ?? 'No suite'} ·{' '}
+                        {formatRepositoryDateTime(
+                          splitPreviewTest.updatedAt ?? splitPreviewTest.createdAt,
+                        )}
+                      </p>
                     </div>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={closeCasePreview}
-                    >
-                      Close
-                    </Button>
+                    <div className="repository-preview-panel__header-actions">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={!previousPreviewTest}
+                        onClick={() => openAdjacentPreview('previous')}
+                        aria-label="Preview previous test case"
+                      >
+                        ↑
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={!nextPreviewTest}
+                        onClick={() => openAdjacentPreview('next')}
+                        aria-label="Preview next test case"
+                      >
+                        ↓
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={closeCasePreview}
+                      >
+                        Close
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="repository-preview-panel__metadata">
@@ -2817,6 +2914,18 @@ function ProjectRepositoryPage() {
                     >
                       Full editor
                     </LinkButton>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={pendingCaseActionId === splitPreviewTest.id}
+                      onClick={() => {
+                        void copyPreviewLink(splitPreviewTest.id)
+                      }}
+                    >
+                      {copiedPreviewLinkId === splitPreviewTest.id
+                        ? 'Copied'
+                        : 'Copy link'}
+                    </Button>
                     {isEditingPreviewContent ? (
                       <>
                         <Button
@@ -2841,17 +2950,52 @@ function ProjectRepositoryPage() {
                         </Button>
                       </>
                     ) : (
-                      <Button
-                        type="button"
-                        disabled={
-                          isLoadingPreviewDetail ||
-                          Boolean(previewDetailErrorMessage)
-                        }
-                        onClick={startPreviewContentEdit}
-                        variant="primary"
-                      >
-                        Edit content
-                      </Button>
+                      <>
+                        <Button
+                          type="button"
+                          disabled={
+                            isLoadingPreviewDetail ||
+                            Boolean(previewDetailErrorMessage)
+                          }
+                          onClick={startPreviewContentEdit}
+                          variant="primary"
+                        >
+                          Edit content
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={pendingCaseActionId === splitPreviewTest.id}
+                          onClick={() => {
+                            void handleCaseDuplicate(splitPreviewTest.id)
+                          }}
+                        >
+                          Duplicate
+                        </Button>
+                        {(splitPreviewTest.status ?? 'Draft') === 'Archived' ? (
+                          <Button
+                            type="button"
+                            variant="success"
+                            disabled={pendingCaseActionId === splitPreviewTest.id}
+                            onClick={() => {
+                              void handleCaseRestore(splitPreviewTest.id)
+                            }}
+                          >
+                            Restore
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="warning"
+                            disabled={pendingCaseActionId === splitPreviewTest.id}
+                            onClick={() => {
+                              void handleCaseArchive(splitPreviewTest.id)
+                            }}
+                          >
+                            Archive
+                          </Button>
+                        )}
+                      </>
                     )}
                   </div>
 
@@ -2892,12 +3036,29 @@ function ProjectRepositoryPage() {
                         </Suspense>
                       </div>
                     ) : isLoadingPreviewDetail ? (
-                      <div className="repository-preview-panel__state">
-                        Loading test case content...
+                      <div className="repository-preview-panel__skeleton">
+                        <span />
+                        <span />
+                        <span />
+                        <span />
                       </div>
                     ) : previewDetailErrorMessage ? (
                       <div className="repository-preview-panel__state repository-preview-panel__state--danger">
-                        {previewDetailErrorMessage}
+                        <span>{previewDetailErrorMessage}</span>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => {
+                            setPreviewDetailsById((current) => {
+                              const next = { ...current }
+                              delete next[splitPreviewTest.id]
+                              return next
+                            })
+                            setPreviewTestId(splitPreviewTest.id)
+                          }}
+                        >
+                          Retry
+                        </Button>
                       </div>
                     ) : (
                       <>
