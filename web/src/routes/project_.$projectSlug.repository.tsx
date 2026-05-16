@@ -88,8 +88,17 @@ export const Route = createFileRoute('/project_/$projectSlug/repository')({
       .max(REPOSITORY_PAGE_SIZE)
       .optional()
       .catch(REPOSITORY_PAGE_SIZE),
+    previewId: z.coerce.number().int().positive().optional().catch(undefined),
   }),
-  loaderDeps: ({ search }) => search,
+  loaderDeps: ({ search }) => ({
+    q: search.q,
+    suiteId: search.suiteId,
+    status: search.status,
+    priority: search.priority,
+    type: search.type,
+    page: search.page,
+    pageSize: search.pageSize,
+  }),
   loader: async ({ params, deps }) => {
     const projectSlug = params.projectSlug.trim()
 
@@ -316,6 +325,7 @@ function ProjectRepositoryPage() {
   const priorityFilter = search.priority ?? 'All'
   const caseTypeFilter = search.type ?? 'All'
   const suiteFilterId = search.suiteId?.toString() ?? ALL_SUITES_FILTER
+  const searchPreviewId = search.previewId ?? null
   const [selectedTestIds, setSelectedTestIds] = useState<number[]>([])
   const [isApplyingBulkAction, setIsApplyingBulkAction] = useState(false)
   const [isExportingCsv, setIsExportingCsv] = useState(false)
@@ -330,7 +340,9 @@ function ProjectRepositoryPage() {
     null,
   )
   const [editingCaseTitleValue, setEditingCaseTitleValue] = useState('')
-  const [previewTestId, setPreviewTestId] = useState<number | null>(null)
+  const [previewTestId, setPreviewTestId] = useState<number | null>(
+    search.previewId ?? null,
+  )
   const [previewDetailsById, setPreviewDetailsById] = useState<
     Record<number, TestDetail>
   >({})
@@ -356,6 +368,10 @@ function ProjectRepositoryPage() {
   useEffect(() => {
     setDashboard(loaderDashboard)
   }, [loaderDashboard])
+
+  useEffect(() => {
+    setPreviewTestId(searchPreviewId)
+  }, [searchPreviewId])
 
   useEffect(() => {
     setSearchValue(search.q ?? '')
@@ -421,6 +437,7 @@ function ProjectRepositoryPage() {
       type: CaseTypeFilter
       page: number
       pageSize: number
+      previewId: number | undefined
     }>,
   ): void {
     void navigate({
@@ -822,7 +839,7 @@ function ProjectRepositoryPage() {
 
     function handleKeyDown(event: KeyboardEvent): void {
       if (event.key === 'Escape') {
-        setPreviewTestId(null)
+        closeCasePreview()
       }
     }
 
@@ -921,6 +938,27 @@ function ProjectRepositoryPage() {
     setCaseActionErrorMessage(null)
     setOpenCaseMenuId(null)
     setPreviewTestId(testId)
+    void navigate({
+      to: '.',
+      search: (current) => ({
+        ...current,
+        previewId: testId,
+      }),
+      replace: true,
+    })
+  }
+
+  function closeCasePreview(): void {
+    setPreviewTestId(null)
+    setIsEditingPreviewContent(false)
+    void navigate({
+      to: '.',
+      search: (current) => ({
+        ...current,
+        previewId: undefined,
+      }),
+      replace: true,
+    })
   }
 
   function handleRichContentClick(event: React.MouseEvent<HTMLElement>): void {
@@ -1160,6 +1198,23 @@ function ProjectRepositoryPage() {
         caseType: metadata.caseType ?? test.caseType,
         updatedAt,
       }))
+      setPreviewDetailsById((current) => {
+        const detail = current[testId]
+
+        if (!detail) {
+          return current
+        }
+
+        return {
+          ...current,
+          [testId]: {
+            ...detail,
+            priority: metadata.priority ?? detail.priority,
+            caseType: metadata.caseType ?? detail.caseType,
+            updatedAt,
+          },
+        }
+      })
     } catch (error) {
       setCaseActionErrorMessage(
         error instanceof Error
@@ -1200,6 +1255,28 @@ function ProjectRepositoryPage() {
             : null,
         updatedAt,
       }))
+      setPreviewDetailsById((current) => {
+        const detail = current[testId]
+
+        if (!detail) {
+          return current
+        }
+
+        return {
+          ...current,
+          [testId]: {
+            ...detail,
+            status,
+            archivedFromStatus:
+              status === 'Archived'
+                ? detail.status === 'Ready' || detail.status === 'Draft'
+                  ? detail.status
+                  : detail.archivedFromStatus ?? 'Draft'
+                : null,
+            updatedAt,
+          },
+        }
+      })
     } catch (error) {
       setCaseActionErrorMessage(
         error instanceof Error
@@ -1241,6 +1318,22 @@ function ProjectRepositoryPage() {
         title: nextTitle,
         updatedAt: new Date().toISOString(),
       }))
+      setPreviewDetailsById((current) => {
+        const detail = current[testId]
+
+        if (!detail) {
+          return current
+        }
+
+        return {
+          ...current,
+          [testId]: {
+            ...detail,
+            title: nextTitle,
+            updatedAt: new Date().toISOString(),
+          },
+        }
+      })
       cancelCaseTitleEdit()
     } catch (error) {
       setCaseActionErrorMessage(
@@ -2623,41 +2716,90 @@ function ProjectRepositoryPage() {
                     <Button
                       type="button"
                       variant="secondary"
-                      onClick={() => setPreviewTestId(null)}
+                      onClick={closeCasePreview}
                     >
                       Close
                     </Button>
                   </div>
 
-                  <div className="repository-preview-panel__badges">
-                    <Badge variant="primary">
-                      {previewSuite?.name ?? 'No suite'}
-                    </Badge>
-                    <Badge
-                      variant={
-                        splitPreviewTest.status === 'Ready'
-                          ? 'statusReady'
-                          : splitPreviewTest.status === 'Archived'
-                          ? 'statusArchived'
-                          : 'statusDraft'
-                      }
-                    >
-                      {splitPreviewTest.status ?? 'Draft'}
-                    </Badge>
-                    <Badge
-                      variant={
-                        splitPreviewTest.priority === 'Critical'
-                          ? 'priorityCritical'
-                          : splitPreviewTest.priority === 'High'
-                          ? 'priorityHigh'
-                          : splitPreviewTest.priority === 'Low'
-                          ? 'priorityLow'
-                          : 'priorityMedium'
-                      }
-                    >
-                      {splitPreviewTest.priority ?? 'Medium'}
-                    </Badge>
-                    <Badge>{splitPreviewTest.caseType ?? 'Functional'}</Badge>
+                  <div className="repository-preview-panel__metadata">
+                    <div className="repository-preview-panel__metadata-item">
+                      <span>Suite</span>
+                      <Badge variant="primary">
+                        {previewSuite?.name ?? 'No suite'}
+                      </Badge>
+                    </div>
+                    <label className="repository-preview-panel__metadata-item">
+                      <span>Status</span>
+                      <SelectMenu
+                        value={(splitPreviewTest.status ?? 'Draft') as CaseStatusValue}
+                        onValueChange={(value) => {
+                          if (value === (splitPreviewTest.status ?? 'Draft')) {
+                            return
+                          }
+
+                          void handleCaseStatusChange(
+                            splitPreviewTest.id,
+                            value as CaseStatusValue,
+                          )
+                        }}
+                        options={CASE_STATUS_OPTIONS.map((option) => ({
+                          value: option,
+                          label: option,
+                        }))}
+                        disabled={pendingCaseActionId === splitPreviewTest.id}
+                        className="repository-preview-panel__select"
+                        aria-label="Change preview status"
+                      />
+                    </label>
+                    <label className="repository-preview-panel__metadata-item">
+                      <span>Priority</span>
+                      <SelectMenu
+                        value={
+                          (splitPreviewTest.priority ?? 'Medium') as PriorityValue
+                        }
+                        onValueChange={(value) => {
+                          if (value === (splitPreviewTest.priority ?? 'Medium')) {
+                            return
+                          }
+
+                          void handleCaseMetadataChange(splitPreviewTest.id, {
+                            priority: value as PriorityValue,
+                          })
+                        }}
+                        options={PRIORITY_OPTIONS.map((option) => ({
+                          value: option,
+                          label: option,
+                        }))}
+                        disabled={pendingCaseActionId === splitPreviewTest.id}
+                        className="repository-preview-panel__select"
+                        aria-label="Change preview priority"
+                      />
+                    </label>
+                    <label className="repository-preview-panel__metadata-item">
+                      <span>Type</span>
+                      <SelectMenu
+                        value={
+                          (splitPreviewTest.caseType ?? 'Functional') as CaseTypeValue
+                        }
+                        onValueChange={(value) => {
+                          if (value === (splitPreviewTest.caseType ?? 'Functional')) {
+                            return
+                          }
+
+                          void handleCaseMetadataChange(splitPreviewTest.id, {
+                            caseType: value as CaseTypeValue,
+                          })
+                        }}
+                        options={CASE_TYPE_OPTIONS.map((option) => ({
+                          value: option,
+                          label: option,
+                        }))}
+                        disabled={pendingCaseActionId === splitPreviewTest.id}
+                        className="repository-preview-panel__select"
+                        aria-label="Change preview type"
+                      />
+                    </label>
                   </div>
 
                   <div className="repository-preview-panel__actions">
@@ -2806,7 +2948,7 @@ function ProjectRepositoryPage() {
               isSavingContent={isSavingPreviewContent}
               isUploadingMedia={isUploadingPreviewMedia}
               isPendingAction={pendingCaseActionId === previewDrawerTest.id}
-              onClose={() => setPreviewTestId(null)}
+              onClose={closeCasePreview}
               onStartEdit={startPreviewContentEdit}
               onCancelEdit={cancelPreviewContentEdit}
               onSaveContent={() => {

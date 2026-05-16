@@ -2434,12 +2434,15 @@ a {
 }
 
 .repository-case-grid--active {
-  background: color-mix(in oklab, var(--tms-primary-soft) 55%, transparent);
-  box-shadow: inset 2px 0 0 var(--tms-border-focus);
+  background: color-mix(in oklab, var(--tms-primary-soft) 72%, var(--tms-surface));
+  box-shadow:
+    inset 3px 0 0 var(--tms-border-focus),
+    inset 0 1px 0 color-mix(in oklab, var(--tms-border-focus) 22%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, var(--tms-border-focus) 22%, transparent);
 }
 
 .repository-case-grid--active:hover {
-  background: color-mix(in oklab, var(--tms-primary-soft) 70%, transparent);
+  background: color-mix(in oklab, var(--tms-primary-soft) 82%, var(--tms-surface));
 }
 
 .repository-suite-section {
@@ -2790,7 +2793,7 @@ a {
   line-height: 1.25;
 }
 
-.repository-preview-panel__badges,
+.repository-preview-panel__metadata,
 .repository-preview-panel__actions {
   display: flex;
   flex: 0 0 auto;
@@ -2799,6 +2802,38 @@ a {
   gap: 0.375rem;
   padding: 0.625rem 0.875rem;
   border-bottom: 1px solid var(--tms-border-subtle);
+}
+
+.repository-preview-panel__metadata {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.625rem;
+}
+
+.repository-preview-panel__metadata-item {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  color: var(--tms-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.repository-preview-panel__metadata-item > span:first-child {
+  color: var(--tms-text-soft);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.repository-preview-panel__select {
+  width: 100%;
+  min-height: 1.875rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
 }
 
 .repository-preview-panel__actions {
