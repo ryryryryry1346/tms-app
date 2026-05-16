@@ -1008,7 +1008,8 @@ function ProjectRepositoryPage() {
       : dashboard.sections.find((section) => section.id === previewTest.sectionId) ??
         null
   const previewActivities = previewTestDetail?.activities.slice(0, 12) ?? []
-  const shouldShowSplitPreview = isSplitPreviewViewport
+  const shouldShowSplitPreview =
+    isSplitPreviewViewport && previewDrawerTest !== null
   const splitPreviewTest = shouldShowSplitPreview ? previewDrawerTest : null
   const previewIndex =
     previewTestId === null
@@ -2957,8 +2958,6 @@ function ProjectRepositoryPage() {
                   className="repository-preview-panel"
                   aria-label="Test case preview"
                 >
-                  {splitPreviewTest ? (
-                    <>
                   <div className="repository-preview-panel__header">
                     <div className="repository-preview-panel__copy">
                       <p className="tms-kicker m-0">
@@ -3287,22 +3286,6 @@ function ProjectRepositoryPage() {
                       </>
                     )}
                   </div>
-                    </>
-                  ) : (
-                    <div className="repository-preview-panel__empty">
-                      <div className="repository-preview-panel__empty-icon">
-                        <span />
-                      </div>
-                      <div className="repository-preview-panel__empty-copy">
-                        <p className="tms-kicker m-0">Preview</p>
-                        <h2>Select a test case</h2>
-                        <p>
-                          Open a row to preview steps, expected result, metadata,
-                          and actions without leaving the repository.
-                        </p>
-                      </div>
-                    </div>
-                  )}
                 </aside>
               ) : null}
             </div>
