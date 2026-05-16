@@ -68,6 +68,7 @@ type CaseRowProps = {
   onStatusChange: (status: RepositoryCaseStatus) => void
   onToggleMenu: () => void
   onCloseMenu: () => void
+  onPrefetchPreview: () => void
   onPreview: () => void
   onDuplicate: () => void
   onRestore: () => void
@@ -181,6 +182,7 @@ export function CaseRow({
   onStatusChange,
   onToggleMenu,
   onCloseMenu,
+  onPrefetchPreview,
   onPreview,
   onDuplicate,
   onRestore,
@@ -199,6 +201,8 @@ export function CaseRow({
   return (
     <article
       onClick={onPreview}
+      onFocus={onPrefetchPreview}
+      onMouseEnter={onPrefetchPreview}
       onDragOver={(event) => {
         if (draggedTestIds.length === 0) {
           return

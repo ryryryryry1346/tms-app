@@ -5,7 +5,7 @@ import {
   useNavigate,
   useRouter,
 } from '@tanstack/react-router'
-import { Suspense, useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { LazyRichTextEditor } from '../components/RichTextEditor.lazy'
 import { z } from 'zod'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
@@ -346,6 +346,7 @@ function ProjectRepositoryPage() {
   const [previewDetailsById, setPreviewDetailsById] = useState<
     Record<number, TestDetail>
   >({})
+  const prefetchingPreviewIdsRef = useRef<Set<number>>(new Set())
   const [isLoadingPreviewDetail, setIsLoadingPreviewDetail] = useState(false)
   const [previewDetailErrorMessage, setPreviewDetailErrorMessage] = useState<
     string | null
@@ -990,6 +991,39 @@ function ProjectRepositoryPage() {
       }),
       replace: true,
     })
+  }
+
+  function prefetchCasePreview(testId: number): void {
+    if (
+      previewDetailsById[testId] ||
+      prefetchingPreviewIdsRef.current.has(testId)
+    ) {
+      return
+    }
+
+    prefetchingPreviewIdsRef.current.add(testId)
+
+    void getTestDetail({
+      data: {
+        id: testId,
+      },
+    })
+      .then((detail) => {
+        setPreviewDetailsById((current) =>
+          current[detail.id]
+            ? current
+            : {
+                ...current,
+                [detail.id]: detail,
+              },
+        )
+      })
+      .catch(() => {
+        // Prefetch should stay quiet; the selected preview handles visible errors.
+      })
+      .finally(() => {
+        prefetchingPreviewIdsRef.current.delete(testId)
+      })
   }
 
   function closeCasePreview(): void {
@@ -2707,6 +2741,7 @@ function ProjectRepositoryPage() {
                             )
                           }}
                           onCloseMenu={() => setOpenCaseMenuId(null)}
+                          onPrefetchPreview={() => prefetchCasePreview(test.id)}
                           onPreview={() => openCasePreview(test.id)}
                           onDuplicate={() => {
                             void handleCaseDuplicate(test.id)
