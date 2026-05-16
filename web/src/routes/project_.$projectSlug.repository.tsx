@@ -194,6 +194,9 @@ const CASE_TYPE_OPTIONS: CaseTypeValue[] = [
 ]
 const REPOSITORY_COLUMNS_STORAGE_KEY = 'tms.repository.visibleColumns'
 const REPOSITORY_DENSITY_STORAGE_KEY = 'tms.repository.tableDensity'
+const REPOSITORY_PREVIEW_CACHE_LIMIT = 40
+const REPOSITORY_PREVIEW_CACHE_VERSION = 1
+const REPOSITORY_PREVIEW_CACHE_PREFIX = 'tms.repository.preview.'
 
 function normalizeRepositoryVisibleColumns(
   value: unknown,
@@ -272,6 +275,100 @@ function downloadCsvFile(filename: string, csv: string): void {
   URL.revokeObjectURL(url)
 }
 
+function getRepositoryPreviewCacheKey(projectSlug: string): string {
+  return `${REPOSITORY_PREVIEW_CACHE_PREFIX}${projectSlug}`
+}
+
+function readRepositoryPreviewCache(projectSlug: string): {
+  details: Record<number, TestDetail>
+  order: number[]
+} {
+  if (typeof window === 'undefined') {
+    return {
+      details: {},
+      order: [],
+    }
+  }
+
+  try {
+    const rawValue = window.sessionStorage.getItem(
+      getRepositoryPreviewCacheKey(projectSlug),
+    )
+
+    if (!rawValue) {
+      return {
+        details: {},
+        order: [],
+      }
+    }
+
+    const parsedValue = JSON.parse(rawValue) as {
+      version?: number
+      items?: TestDetail[]
+    }
+
+    if (
+      parsedValue.version !== REPOSITORY_PREVIEW_CACHE_VERSION ||
+      !Array.isArray(parsedValue.items)
+    ) {
+      return {
+        details: {},
+        order: [],
+      }
+    }
+
+    const details: Record<number, TestDetail> = {}
+    const order: number[] = []
+
+    for (const item of parsedValue.items) {
+      if (!item || typeof item.id !== 'number') {
+        continue
+      }
+
+      details[item.id] = item
+      order.push(item.id)
+    }
+
+    return {
+      details,
+      order,
+    }
+  } catch {
+    return {
+      details: {},
+      order: [],
+    }
+  }
+}
+
+function writeRepositoryPreviewCache(
+  projectSlug: string,
+  details: Record<number, TestDetail>,
+  order: number[],
+): void {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    const orderedItems = order
+      .filter((id, index, ids) => ids.indexOf(id) === index)
+      .filter((id) => Boolean(details[id]))
+      .slice(-REPOSITORY_PREVIEW_CACHE_LIMIT)
+      .map((id) => details[id])
+
+    window.sessionStorage.setItem(
+      getRepositoryPreviewCacheKey(projectSlug),
+      JSON.stringify({
+        version: REPOSITORY_PREVIEW_CACHE_VERSION,
+        items: orderedItems,
+      }),
+    )
+  } catch {
+    // Preview cache is an optimization only.
+  }
+}
+
 function ProjectRepositoryPage() {
   const loaderData = Route.useLoaderData()
   const search = Route.useSearch()
@@ -280,6 +377,14 @@ function ProjectRepositoryPage() {
   const navigate = useNavigate()
   const [dashboard, setDashboard] = useState(loaderDashboard)
   const projectSlug = project.slug ?? project.id.toString()
+  const initialPreviewCacheRef = useRef<{
+    details: Record<number, TestDetail>
+    order: number[]
+  } | null>(null)
+
+  if (initialPreviewCacheRef.current === null) {
+    initialPreviewCacheRef.current = readRepositoryPreviewCache(projectSlug)
+  }
 
   const [suiteName, setSuiteName] = useState('')
   const [suiteErrorMessage, setSuiteErrorMessage] = useState<string | null>(null)
@@ -345,7 +450,10 @@ function ProjectRepositoryPage() {
   )
   const [previewDetailsById, setPreviewDetailsById] = useState<
     Record<number, TestDetail>
-  >({})
+  >(() => initialPreviewCacheRef.current?.details ?? {})
+  const previewCacheOrderRef = useRef<number[]>(
+    initialPreviewCacheRef.current?.order ?? [],
+  )
   const prefetchingPreviewIdsRef = useRef<Set<number>>(new Set())
   const [isLoadingPreviewDetail, setIsLoadingPreviewDetail] = useState(false)
   const [previewDetailErrorMessage, setPreviewDetailErrorMessage] = useState<
@@ -372,6 +480,21 @@ function ProjectRepositoryPage() {
   useEffect(() => {
     setDashboard(loaderDashboard)
   }, [loaderDashboard])
+
+  useEffect(() => {
+    const cachedPreview = readRepositoryPreviewCache(projectSlug)
+    previewCacheOrderRef.current = cachedPreview.order
+    prefetchingPreviewIdsRef.current.clear()
+    setPreviewDetailsById(cachedPreview.details)
+  }, [projectSlug])
+
+  useEffect(() => {
+    writeRepositoryPreviewCache(
+      projectSlug,
+      previewDetailsById,
+      previewCacheOrderRef.current,
+    )
+  }, [previewDetailsById, projectSlug])
 
   useEffect(() => {
     setPreviewTestId(searchPreviewId)
@@ -468,6 +591,58 @@ function ProjectRepositoryPage() {
         ...currentColumns,
         [column]: !currentColumns[column],
       }
+    })
+  }
+
+  function rememberPreviewDetail(detail: TestDetail): void {
+    previewCacheOrderRef.current = [
+      ...previewCacheOrderRef.current.filter((id) => id !== detail.id),
+      detail.id,
+    ].slice(-REPOSITORY_PREVIEW_CACHE_LIMIT)
+
+    setPreviewDetailsById((current) => ({
+      ...current,
+      [detail.id]: detail,
+    }))
+  }
+
+  function updatePreviewDetail(
+    testId: number,
+    updater: (detail: TestDetail) => TestDetail,
+  ): void {
+    previewCacheOrderRef.current = [
+      ...previewCacheOrderRef.current.filter((id) => id !== testId),
+      testId,
+    ].slice(-REPOSITORY_PREVIEW_CACHE_LIMIT)
+
+    setPreviewDetailsById((current) => {
+      const detail = current[testId]
+
+      if (!detail) {
+        return current
+      }
+
+      return {
+        ...current,
+        [testId]: updater(detail),
+      }
+    })
+  }
+
+  function removePreviewDetails(testIds: number[]): void {
+    const testIdSet = new Set(testIds)
+    previewCacheOrderRef.current = previewCacheOrderRef.current.filter(
+      (id) => !testIdSet.has(id),
+    )
+
+    setPreviewDetailsById((current) => {
+      const next = { ...current }
+
+      for (const id of testIds) {
+        delete next[id]
+      }
+
+      return next
     })
   }
 
@@ -921,10 +1096,7 @@ function ProjectRepositoryPage() {
           return
         }
 
-        setPreviewDetailsById((current) => ({
-          ...current,
-          [detail.id]: detail,
-        }))
+        rememberPreviewDetail(detail)
       })
       .catch((error) => {
         if (isCancelled) {
@@ -1009,14 +1181,7 @@ function ProjectRepositoryPage() {
       },
     })
       .then((detail) => {
-        setPreviewDetailsById((current) =>
-          current[detail.id]
-            ? current
-            : {
-                ...current,
-                [detail.id]: detail,
-              },
-        )
+        rememberPreviewDetail(detail)
       })
       .catch(() => {
         // Prefetch should stay quiet; the selected preview handles visible errors.
@@ -1135,15 +1300,12 @@ function ProjectRepositoryPage() {
         },
       })
 
-      setPreviewDetailsById((current) => ({
-        ...current,
-        [previewTestDetail.id]: {
-          ...previewTestDetail,
-          steps: previewStepsValue,
-          expected: previewExpectedValue,
-          updatedAt: new Date().toISOString(),
-        },
-      }))
+      rememberPreviewDetail({
+        ...previewTestDetail,
+        steps: previewStepsValue,
+        expected: previewExpectedValue,
+        updatedAt: new Date().toISOString(),
+      })
       updateRepositoryTests([previewTestDetail.id], (test) => ({
         ...test,
         updatedAt: new Date().toISOString(),
@@ -1303,23 +1465,12 @@ function ProjectRepositoryPage() {
         caseType: metadata.caseType ?? test.caseType,
         updatedAt,
       }))
-      setPreviewDetailsById((current) => {
-        const detail = current[testId]
-
-        if (!detail) {
-          return current
-        }
-
-        return {
-          ...current,
-          [testId]: {
-            ...detail,
-            priority: metadata.priority ?? detail.priority,
-            caseType: metadata.caseType ?? detail.caseType,
-            updatedAt,
-          },
-        }
-      })
+      updatePreviewDetail(testId, (detail) => ({
+        ...detail,
+        priority: metadata.priority ?? detail.priority,
+        caseType: metadata.caseType ?? detail.caseType,
+        updatedAt,
+      }))
     } catch (error) {
       setCaseActionErrorMessage(
         error instanceof Error
@@ -1360,28 +1511,17 @@ function ProjectRepositoryPage() {
             : null,
         updatedAt,
       }))
-      setPreviewDetailsById((current) => {
-        const detail = current[testId]
-
-        if (!detail) {
-          return current
-        }
-
-        return {
-          ...current,
-          [testId]: {
-            ...detail,
-            status,
-            archivedFromStatus:
-              status === 'Archived'
-                ? detail.status === 'Ready' || detail.status === 'Draft'
-                  ? detail.status
-                  : detail.archivedFromStatus ?? 'Draft'
-                : null,
-            updatedAt,
-          },
-        }
-      })
+      updatePreviewDetail(testId, (detail) => ({
+        ...detail,
+        status,
+        archivedFromStatus:
+          status === 'Archived'
+            ? detail.status === 'Ready' || detail.status === 'Draft'
+              ? detail.status
+              : detail.archivedFromStatus ?? 'Draft'
+            : null,
+        updatedAt,
+      }))
     } catch (error) {
       setCaseActionErrorMessage(
         error instanceof Error
@@ -1423,22 +1563,11 @@ function ProjectRepositoryPage() {
         title: nextTitle,
         updatedAt: new Date().toISOString(),
       }))
-      setPreviewDetailsById((current) => {
-        const detail = current[testId]
-
-        if (!detail) {
-          return current
-        }
-
-        return {
-          ...current,
-          [testId]: {
-            ...detail,
-            title: nextTitle,
-            updatedAt: new Date().toISOString(),
-          },
-        }
-      })
+      updatePreviewDetail(testId, (detail) => ({
+        ...detail,
+        title: nextTitle,
+        updatedAt: new Date().toISOString(),
+      }))
       cancelCaseTitleEdit()
     } catch (error) {
       setCaseActionErrorMessage(
@@ -1516,7 +1645,9 @@ function ProjectRepositoryPage() {
         },
       })
 
-      removeRepositoryTests(selectedArchivedTests.map((test) => test.id))
+      const deletedTestIds = selectedArchivedTests.map((test) => test.id)
+      removeRepositoryTests(deletedTestIds)
+      removePreviewDetails(deletedTestIds)
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
@@ -1983,6 +2114,7 @@ function ProjectRepositoryPage() {
       setOpenCaseMenuId(null)
       setSelectedTestIds((current) => current.filter((id) => id !== testId))
       removeRepositoryTests([testId])
+      removePreviewDetails([testId])
     } catch (error) {
       setCaseActionErrorMessage(
         error instanceof Error
@@ -3084,11 +3216,7 @@ function ProjectRepositoryPage() {
                           type="button"
                           variant="secondary"
                           onClick={() => {
-                            setPreviewDetailsById((current) => {
-                              const next = { ...current }
-                              delete next[splitPreviewTest.id]
-                              return next
-                            })
+                            removePreviewDetails([splitPreviewTest.id])
                             setPreviewTestId(splitPreviewTest.id)
                           }}
                         >
