@@ -96,15 +96,15 @@ export function getRepositoryCaseGridTemplate(
   visibleColumns: RepositoryVisibleColumns,
 ): string {
   return [
-    '66px',
-    '70px',
-    'minmax(220px, 1fr)',
+    '56px',
+    '64px',
+    'minmax(240px, 1fr)',
     visibleColumns.priority ? '104px' : null,
-    visibleColumns.type ? '120px' : null,
-    visibleColumns.created ? '112px' : null,
-    visibleColumns.updated ? '112px' : null,
-    visibleColumns.status ? '108px' : null,
-    '84px',
+    visibleColumns.type ? '118px' : null,
+    visibleColumns.created ? '108px' : null,
+    visibleColumns.updated ? '108px' : null,
+    visibleColumns.status ? '104px' : null,
+    '68px',
   ]
     .filter(Boolean)
     .join(' ')
@@ -234,7 +234,10 @@ export function CaseRow({
               : ''
       }`}
     >
-      <div className="flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
+      <div
+        className="repository-case-row__controls"
+        onClick={(event) => event.stopPropagation()}
+      >
         <Checkbox
           checked={isSelected}
           onChange={onToggleSelection}
@@ -244,7 +247,7 @@ export function CaseRow({
           draggable
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
-          className="inline-flex h-6 w-6 shrink-0 cursor-grab items-center justify-center rounded-md border border-transparent bg-transparent p-0 text-[var(--tms-text-soft)] hover:border-[var(--tms-border-subtle)] hover:bg-[var(--tms-surface-muted)] hover:text-[var(--tms-text-muted)] active:cursor-grabbing"
+          className="repository-case-row__drag-handle"
           aria-label={`Drag test case ${test.id}`}
         >
           <DragHandleIcon />
@@ -293,7 +296,7 @@ export function CaseRow({
             event.stopPropagation()
             onStartTitleEdit()
           }}
-          className="block min-w-0 truncate border-0 bg-transparent p-0 pr-3 text-left text-sm font-medium text-[var(--tms-primary)] hover:underline"
+          className="repository-case-row__title"
           aria-label={`Preview test case ${test.title}`}
         >
           {test.title}
