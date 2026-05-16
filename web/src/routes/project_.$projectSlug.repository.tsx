@@ -5,8 +5,8 @@ import {
   useNavigate,
   useRouter,
 } from '@tanstack/react-router'
-import { useEffect, useMemo, useState } from 'react'
-import { RichTextEditor } from '../components/RichTextEditor'
+import { Suspense, useEffect, useMemo, useState } from 'react'
+import { LazyRichTextEditor } from '../components/RichTextEditor.lazy'
 import { z } from 'zod'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { BulkCaseBar } from '../components/repository/BulkCaseBar'
@@ -2858,22 +2858,38 @@ function ProjectRepositoryPage() {
                   <div className="repository-preview-panel__body">
                     {isEditingPreviewContent ? (
                       <div className="grid gap-4">
-                        <RichTextEditor
-                          label="Steps"
-                          placeholder="Describe the test steps"
-                          value={previewStepsValue}
-                          onChange={setPreviewStepsValue}
-                          onUploadMedia={uploadPreviewMedia}
-                          isUploading={isUploadingPreviewMedia}
-                        />
-                        <RichTextEditor
-                          label="Expected result"
-                          placeholder="Describe the expected result"
-                          value={previewExpectedValue}
-                          onChange={setPreviewExpectedValue}
-                          onUploadMedia={uploadPreviewMedia}
-                          isUploading={isUploadingPreviewMedia}
-                        />
+                        <Suspense
+                          fallback={
+                            <div className="repository-preview-panel__state">
+                              Loading editor...
+                            </div>
+                          }
+                        >
+                          <LazyRichTextEditor
+                            label="Steps"
+                            placeholder="Describe the test steps"
+                            value={previewStepsValue}
+                            onChange={setPreviewStepsValue}
+                            onUploadMedia={uploadPreviewMedia}
+                            isUploading={isUploadingPreviewMedia}
+                          />
+                        </Suspense>
+                        <Suspense
+                          fallback={
+                            <div className="repository-preview-panel__state">
+                              Loading editor...
+                            </div>
+                          }
+                        >
+                          <LazyRichTextEditor
+                            label="Expected result"
+                            placeholder="Describe the expected result"
+                            value={previewExpectedValue}
+                            onChange={setPreviewExpectedValue}
+                            onUploadMedia={uploadPreviewMedia}
+                            isUploading={isUploadingPreviewMedia}
+                          />
+                        </Suspense>
                       </div>
                     ) : isLoadingPreviewDetail ? (
                       <div className="repository-preview-panel__state">

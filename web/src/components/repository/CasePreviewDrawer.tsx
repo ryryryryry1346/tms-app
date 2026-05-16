@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
-import { useState } from 'react'
-import { RichTextEditor } from '../RichTextEditor'
+import { Suspense, useState } from 'react'
+import { LazyRichTextEditor } from '../RichTextEditor.lazy'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { ConfirmActionAlert } from '../ui/ConfirmActionAlert'
@@ -163,22 +163,42 @@ export function CasePreviewDrawer({
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {isEditingContent ? (
             <div className="grid gap-5">
-              <RichTextEditor
-                label="Steps"
-                placeholder="Describe the test steps"
-                value={stepsValue}
-                onChange={onStepsChange}
-                onUploadMedia={onUploadMedia}
-                isUploading={isUploadingMedia}
-              />
-              <RichTextEditor
-                label="Expected result"
-                placeholder="Describe the expected result"
-                value={expectedValue}
-                onChange={onExpectedChange}
-                onUploadMedia={onUploadMedia}
-                isUploading={isUploadingMedia}
-              />
+              <Suspense
+                fallback={
+                  <Panel className="rounded-xl border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-4 shadow-none">
+                    <p className="m-0 text-sm font-semibold text-[var(--tms-text-muted)]">
+                      Loading editor...
+                    </p>
+                  </Panel>
+                }
+              >
+                <LazyRichTextEditor
+                  label="Steps"
+                  placeholder="Describe the test steps"
+                  value={stepsValue}
+                  onChange={onStepsChange}
+                  onUploadMedia={onUploadMedia}
+                  isUploading={isUploadingMedia}
+                />
+              </Suspense>
+              <Suspense
+                fallback={
+                  <Panel className="rounded-xl border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-4 shadow-none">
+                    <p className="m-0 text-sm font-semibold text-[var(--tms-text-muted)]">
+                      Loading editor...
+                    </p>
+                  </Panel>
+                }
+              >
+                <LazyRichTextEditor
+                  label="Expected result"
+                  placeholder="Describe the expected result"
+                  value={expectedValue}
+                  onChange={onExpectedChange}
+                  onUploadMedia={onUploadMedia}
+                  isUploading={isUploadingMedia}
+                />
+              </Suspense>
             </div>
           ) : isLoadingContent ? (
             <Panel className="rounded-xl border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-4 shadow-none">
