@@ -91,7 +91,11 @@ export function SelectMenu({
         </Select.Icon>
       </Select.Trigger>
       <Select.Portal>
-        <Select.Positioner sideOffset={6} align="start">
+        <Select.Positioner
+          className="tms-transient-layer"
+          sideOffset={6}
+          align="start"
+        >
           <Select.Popup className={cx('tms-popover p-1', popupClassName)}>
             <Select.List className="grid gap-1">
               {options.map((option) => (

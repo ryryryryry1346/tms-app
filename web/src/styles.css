@@ -912,8 +912,13 @@ pre code {
   }
 }
 
+.tms-transient-layer {
+  z-index: 80;
+}
+
 .tms-popover {
-  z-index: 50;
+  position: relative;
+  z-index: 1;
   min-width: 11rem;
   border-radius: var(--tms-radius-overlay);
   background: var(--tms-surface);
