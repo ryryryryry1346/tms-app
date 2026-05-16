@@ -65,5 +65,5 @@ Render staging is configured from the repository root via [`render.yaml`](C:/mya
 The working Render start command is:
 
 ```bash
-./node_modules/.bin/srvx --prod --dir . --entry dist/server/server.js --static dist/client
+./node_modules/.bin/srvx --prod --dir . --entry dist/server/server.js --static dist/client --host 0.0.0.0 --port $PORT
 ```
