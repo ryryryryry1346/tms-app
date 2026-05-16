@@ -8,6 +8,7 @@ import { Input } from '../components/ui/Input'
 import { SelectMenu } from '../components/ui/SelectMenu'
 import { uploadTestMedia } from '../features/media/server'
 import { getEditTestFormState, updateTestCase } from '../features/tests/server'
+import { markRepositoryPreviewDetailStale } from '../lib/repositoryPreviewCache'
 
 export const Route = createFileRoute('/edit-test/$testId')({
   loader: async ({ params }) => {
@@ -107,6 +108,7 @@ function EditTestPage() {
         },
       })
 
+      markRepositoryPreviewDetailStale(formState.test.id)
       await navigate({
         to: '/test/$testId',
         params: {

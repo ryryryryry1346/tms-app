@@ -33,6 +33,7 @@ import { Input } from '../components/ui/Input'
 import { LinkButton } from '../components/ui/LinkButton'
 import { SelectMenu } from '../components/ui/SelectMenu'
 import { uploadTestMedia } from '../features/media/server'
+import { getRepositoryPreviewDetailStaleAt } from '../lib/repositoryPreviewCache'
 import {
   createSuite,
   deleteSuite,
@@ -195,8 +196,13 @@ const CASE_TYPE_OPTIONS: CaseTypeValue[] = [
 const REPOSITORY_COLUMNS_STORAGE_KEY = 'tms.repository.visibleColumns'
 const REPOSITORY_DENSITY_STORAGE_KEY = 'tms.repository.tableDensity'
 const REPOSITORY_PREVIEW_CACHE_LIMIT = 40
-const REPOSITORY_PREVIEW_CACHE_VERSION = 1
+const REPOSITORY_PREVIEW_CACHE_VERSION = 2
 const REPOSITORY_PREVIEW_CACHE_PREFIX = 'tms.repository.preview.'
+
+type RepositoryPreviewCacheItem = {
+  cachedAt: number
+  detail: TestDetail
+}
 
 function normalizeRepositoryVisibleColumns(
   value: unknown,
@@ -304,7 +310,7 @@ function readRepositoryPreviewCache(projectSlug: string): {
 
     const parsedValue = JSON.parse(rawValue) as {
       version?: number
-      items?: TestDetail[]
+      items?: RepositoryPreviewCacheItem[]
     }
 
     if (
@@ -321,12 +327,18 @@ function readRepositoryPreviewCache(projectSlug: string): {
     const order: number[] = []
 
     for (const item of parsedValue.items) {
-      if (!item || typeof item.id !== 'number') {
+      if (!item?.detail || typeof item.detail.id !== 'number') {
         continue
       }
 
-      details[item.id] = item
-      order.push(item.id)
+      if (
+        item.cachedAt <= getRepositoryPreviewDetailStaleAt(item.detail.id)
+      ) {
+        continue
+      }
+
+      details[item.detail.id] = item.detail
+      order.push(item.detail.id)
     }
 
     return {
@@ -351,11 +363,15 @@ function writeRepositoryPreviewCache(
   }
 
   try {
-    const orderedItems = order
+    const cachedAt = Date.now()
+    const orderedItems: RepositoryPreviewCacheItem[] = order
       .filter((id, index, ids) => ids.indexOf(id) === index)
       .filter((id) => Boolean(details[id]))
       .slice(-REPOSITORY_PREVIEW_CACHE_LIMIT)
-      .map((id) => details[id])
+      .map((id) => ({
+        cachedAt,
+        detail: details[id],
+      }))
 
     window.sessionStorage.setItem(
       getRepositoryPreviewCacheKey(projectSlug),

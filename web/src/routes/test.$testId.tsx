@@ -16,6 +16,7 @@ import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
 import { SelectMenu } from '../components/ui/SelectMenu'
 import { uploadTestMedia } from '../features/media/server'
+import { markRepositoryPreviewDetailStale } from '../lib/repositoryPreviewCache'
 import {
   archiveTestCase,
   bulkMoveTestCases,
@@ -174,6 +175,7 @@ function TestDetailPage() {
         },
       })
 
+      markRepositoryPreviewDetailStale(test.id)
       await router.invalidate()
     } catch (error) {
       setActionError(
@@ -195,6 +197,7 @@ function TestDetailPage() {
         },
       })
 
+      markRepositoryPreviewDetailStale(test.id)
       await router.invalidate()
     } catch (error) {
       setActionError(
@@ -269,6 +272,7 @@ function TestDetailPage() {
         },
       })
 
+      markRepositoryPreviewDetailStale(test.id)
       setIsEditingContent(false)
       await router.invalidate()
     } catch (error) {
@@ -315,6 +319,7 @@ function TestDetailPage() {
         },
       })
 
+      markRepositoryPreviewDetailStale(test.id)
       setCaseTitle(nextTitle)
       setTitleValue(nextTitle)
       setIsEditingTitle(false)
@@ -343,6 +348,7 @@ function TestDetailPage() {
         },
       })
 
+      markRepositoryPreviewDetailStale(test.id)
       await router.invalidate()
     } catch (error) {
       setActionError(
@@ -369,6 +375,7 @@ function TestDetailPage() {
         },
       })
 
+      markRepositoryPreviewDetailStale(test.id)
       await router.invalidate()
     } catch (error) {
       setActionError(
@@ -395,6 +402,7 @@ function TestDetailPage() {
         },
       })
 
+      markRepositoryPreviewDetailStale(test.id)
       await router.invalidate()
     } catch (error) {
       setActionError(
@@ -421,6 +429,7 @@ function TestDetailPage() {
         },
       })
 
+      markRepositoryPreviewDetailStale(test.id)
       await router.invalidate()
     } catch (error) {
       setActionError(
@@ -442,6 +451,7 @@ function TestDetailPage() {
         },
       })
 
+      markRepositoryPreviewDetailStale(test.id)
       window.location.href = test.projectSlug
         ? `/project/${test.projectSlug}/repository`
         : '/'
