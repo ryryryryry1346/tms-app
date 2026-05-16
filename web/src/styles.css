@@ -2614,7 +2614,7 @@ a {
 }
 
 .repository-browser--with-preview {
-  grid-template-columns: minmax(176px, 216px) minmax(0, 1fr) minmax(320px, 380px);
+  grid-template-columns: minmax(176px, 216px) minmax(0, 1fr) minmax(310px, 360px);
 }
 
 .repository-browser-tree {
@@ -2906,7 +2906,7 @@ a {
   min-height: 0;
   overflow: hidden;
   border-left: 1px solid var(--tms-border-subtle);
-  background: var(--tms-surface);
+  background: color-mix(in oklab, var(--tms-surface-soft) 72%, var(--tms-surface));
 }
 
 .repository-preview-panel__header {
@@ -2914,9 +2914,10 @@ a {
   flex: 0 0 auto;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.875rem 0.875rem 0.625rem;
+  gap: 0.625rem;
+  padding: 0.75rem 0.75rem 0.625rem;
   border-bottom: 1px solid var(--tms-border-subtle);
+  background: var(--tms-surface);
 }
 
 .repository-preview-panel__copy {
@@ -2926,22 +2927,23 @@ a {
 .repository-preview-panel__header-actions {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.25rem;
   flex: 0 0 auto;
 }
 
 .repository-preview-panel__header-actions .tms-button {
-  min-height: 1.75rem;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
+  min-height: 1.625rem;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.6875rem;
 }
 
 .repository-preview-panel__title {
-  margin: 0.25rem 0 0;
+  margin: 0.2rem 0 0;
   color: var(--tms-text);
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 700;
   line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .repository-preview-panel__subtitle {
@@ -2959,15 +2961,16 @@ a {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.625rem 0.875rem;
+  padding: 0.55rem 0.75rem;
   border-bottom: 1px solid var(--tms-border-subtle);
+  background: var(--tms-surface);
 }
 
 .repository-preview-panel__metadata {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: end;
-  gap: 0.625rem;
+  gap: 0.5rem;
 }
 
 .repository-preview-panel__metadata-item {
@@ -2990,8 +2993,8 @@ a {
 
 .repository-preview-panel__select {
   width: 100%;
-  min-height: 1.875rem;
-  padding: 0.25rem 0.5rem;
+  min-height: 1.75rem;
+  padding: 0.2rem 0.5rem;
   font-size: 0.75rem;
 }
 
@@ -3000,26 +3003,26 @@ a {
 }
 
 .repository-preview-panel__actions .tms-button {
-  min-height: 1.875rem;
-  padding: 0.3125rem 0.625rem;
+  min-height: 1.75rem;
+  padding: 0.25rem 0.55rem;
   font-size: 0.75rem;
 }
 
 .repository-preview-panel__body {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.625rem;
   min-height: 0;
   overflow: auto;
-  padding: 0.875rem;
+  padding: 0.75rem;
 }
 
 .repository-preview-panel__section {
   display: grid;
-  gap: 0.5rem;
-  padding: 0.75rem;
+  gap: 0.45rem;
+  padding: 0.675rem;
   border: 1px solid var(--tms-border-subtle);
   border-radius: var(--tms-radius-md);
-  background: var(--tms-surface-soft);
+  background: var(--tms-surface);
 }
 
 .repository-preview-panel__section h3 {
@@ -3035,7 +3038,60 @@ a {
 .repository-preview-panel__section .rich-output {
   color: var(--tms-text);
   font-size: 0.8125rem;
-  line-height: 1.55;
+  line-height: 1.5;
+}
+
+.repository-preview-panel__empty {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.875rem;
+  min-height: 100%;
+  padding: 1.25rem;
+  color: var(--tms-text-muted);
+  text-align: center;
+}
+
+.repository-preview-panel__empty-icon {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: var(--tms-radius-lg);
+  background: var(--tms-surface);
+  box-shadow: var(--tms-shadow-subtle);
+}
+
+.repository-preview-panel__empty-icon span {
+  display: block;
+  width: 1.1rem;
+  height: 1.35rem;
+  border: 1.6px solid var(--tms-text-soft);
+  border-radius: 0.25rem;
+  box-shadow: inset 0 -0.35rem 0 color-mix(in oklab, var(--tms-primary-soft) 64%, transparent);
+}
+
+.repository-preview-panel__empty-copy {
+  display: grid;
+  gap: 0.4rem;
+  max-width: 15.5rem;
+}
+
+.repository-preview-panel__empty-copy h2 {
+  margin: 0;
+  color: var(--tms-text);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.repository-preview-panel__empty-copy p {
+  margin: 0;
+  color: var(--tms-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.45;
 }
 
 .repository-preview-panel__state {
