@@ -302,6 +302,10 @@ pre code {
   font-size: 0.8125rem;
 }
 
+.repository-toolbar__search-input.tms-input {
+  padding-left: 2.5rem;
+}
+
 .repository-toolbar__filter-wrap {
   display: inline-flex;
   align-items: center;

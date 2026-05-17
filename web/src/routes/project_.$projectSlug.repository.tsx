@@ -1074,6 +1074,10 @@ function ProjectRepositoryPage() {
       : dashboard.pagination.totalCases === 1
       ? '1 case'
       : `${dashboard.pagination.totalCases} cases`
+  const repositoryTreeTotalCases =
+    dashboard.stats.activeCases > 0
+      ? dashboard.stats.activeCases
+      : dashboard.pagination.totalCases
   const selectedArchivableTests = selectedTests.filter(
     (test) => test.status !== 'Archived',
   )
@@ -2791,7 +2795,7 @@ function ProjectRepositoryPage() {
                 suiteStats={dashboard.suiteStats}
                 selectedSuiteId={suiteFilterId}
                 allSuitesFilter={ALL_SUITES_FILTER}
-                totalActiveCases={dashboard.stats.activeCases}
+                totalActiveCases={repositoryTreeTotalCases}
                 isLoadingCounts={isLoadingRepositorySummary}
                 editingSuiteId={editingSuiteId}
                 editingSuiteName={editingSuiteName}

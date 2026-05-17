@@ -116,6 +116,7 @@ export function RepositorySuiteTree({
   const statsBySectionId = new Map(
     suiteStats.map((stats) => [stats.sectionId, stats]),
   )
+  const areSuiteCountsPending = isLoadingCounts || suiteStats.length === 0
   const normalizedSuiteSearch = suiteSearchValue.trim().toLowerCase()
   const filteredSections = useMemo(() => {
     if (!normalizedSuiteSearch) {
@@ -220,7 +221,7 @@ export function RepositorySuiteTree({
                       <span className="truncate">{section.name}</span>
                     </span>
                     <span className="repository-browser-tree__count">
-                      {isLoadingCounts ? '...' : activeCases}
+                      {areSuiteCountsPending ? '...' : activeCases}
                     </span>
                   </button>
                   <PopoverMenu
