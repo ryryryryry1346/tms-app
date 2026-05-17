@@ -20,7 +20,6 @@ import {
   DEFAULT_REPOSITORY_VISIBLE_COLUMNS,
   getRepositoryCaseGridTemplate,
   type RepositoryColumnKey,
-  type RepositoryTableDensity,
   type RepositoryVisibleColumns,
 } from '../components/repository/CaseRow'
 import { RepositoryToolbar } from '../components/repository/RepositoryToolbar'
@@ -194,7 +193,6 @@ const CASE_TYPE_OPTIONS: CaseTypeValue[] = [
   'API',
 ]
 const REPOSITORY_COLUMNS_STORAGE_KEY = 'tms.repository.visibleColumns'
-const REPOSITORY_DENSITY_STORAGE_KEY = 'tms.repository.tableDensity'
 const REPOSITORY_PREVIEW_CACHE_LIMIT = 40
 const REPOSITORY_PREVIEW_CACHE_VERSION = 2
 const REPOSITORY_PREVIEW_CACHE_PREFIX = 'tms.repository.preview.'
@@ -440,8 +438,6 @@ function ProjectRepositoryPage() {
   const [searchValue, setSearchValue] = useState(search.q ?? '')
   const [visibleColumns, setVisibleColumns] =
     useState<RepositoryVisibleColumns>(DEFAULT_REPOSITORY_VISIBLE_COLUMNS)
-  const [tableDensity, setTableDensity] =
-    useState<RepositoryTableDensity>('compact')
   const caseFilter = search.status ?? 'All'
   const priorityFilter = search.priority ?? 'All'
   const caseTypeFilter = search.type ?? 'All'
@@ -525,22 +521,14 @@ function ProjectRepositoryPage() {
       const storedColumns = window.localStorage.getItem(
         REPOSITORY_COLUMNS_STORAGE_KEY,
       )
-      const storedDensity = window.localStorage.getItem(
-        REPOSITORY_DENSITY_STORAGE_KEY,
-      )
 
       if (storedColumns) {
         setVisibleColumns(
           normalizeRepositoryVisibleColumns(JSON.parse(storedColumns)),
         )
       }
-
-      if (storedDensity === 'compact' || storedDensity === 'comfortable') {
-        setTableDensity(storedDensity)
-      }
     } catch {
       setVisibleColumns(DEFAULT_REPOSITORY_VISIBLE_COLUMNS)
-      setTableDensity('compact')
     }
   }, [])
 
@@ -550,10 +538,6 @@ function ProjectRepositoryPage() {
       JSON.stringify(visibleColumns),
     )
   }, [visibleColumns])
-
-  useEffect(() => {
-    window.localStorage.setItem(REPOSITORY_DENSITY_STORAGE_KEY, tableDensity)
-  }, [tableDensity])
 
   useEffect(() => {
     const nextSearch = searchValue.trim()
@@ -2600,13 +2584,11 @@ function ProjectRepositoryPage() {
               priorityOptions={PRIORITY_OPTIONS}
               caseTypeOptions={CASE_TYPE_OPTIONS}
               visibleColumns={visibleColumns}
-              density={tableDensity}
               onSearchChange={(value) => {
                 clearBulkConfirmations()
                 setSearchValue(value)
               }}
               onToggleColumn={toggleRepositoryColumn}
-              onDensityChange={setTableDensity}
               onPriorityFilterChange={(value) => {
                 clearBulkConfirmations()
                 updateRepositorySearch({
@@ -2769,9 +2751,7 @@ function ProjectRepositoryPage() {
                 </div>
                 <div className="repository-browser-table__scroll">
                   <div
-                    className={`tms-table-head repository-case-grid repository-browser-table__sticky-head px-3 sm:px-4 ${
-                      tableDensity === 'compact' ? 'py-1.5' : 'py-2'
-                    }`}
+                    className="tms-table-head repository-case-grid repository-browser-table__sticky-head px-3 py-1.5 sm:px-4"
                     style={repositoryGridStyle}
                   >
                     <span />
@@ -2814,7 +2794,6 @@ function ProjectRepositoryPage() {
                           caseTypeOptions={CASE_TYPE_OPTIONS}
                           statusOptions={CASE_STATUS_OPTIONS}
                           visibleColumns={visibleColumns}
-                          density={tableDensity}
                           formatDate={formatRepositoryDate}
                           onToggleSelection={() => toggleTestSelection(test.id)}
                           onDragStart={(event) =>

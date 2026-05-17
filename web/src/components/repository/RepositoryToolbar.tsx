@@ -5,12 +5,10 @@ import {
   PopoverMenu,
   PopoverMenuItem,
   PopoverMenuLabel,
-  PopoverMenuSeparator,
 } from '../ui/PopoverMenu'
 import { SelectMenu } from '../ui/SelectMenu'
 import type {
   RepositoryColumnKey,
-  RepositoryTableDensity,
   RepositoryVisibleColumns,
 } from './CaseRow'
 import { REPOSITORY_COLUMN_LABELS } from './CaseRow'
@@ -39,10 +37,8 @@ type RepositoryToolbarProps = {
   priorityOptions: Exclude<RepositoryPriorityFilter, 'All'>[]
   caseTypeOptions: Exclude<RepositoryCaseTypeFilter, 'All'>[]
   visibleColumns: RepositoryVisibleColumns
-  density: RepositoryTableDensity
   onSearchChange: (value: string) => void
   onToggleColumn: (column: RepositoryColumnKey) => void
-  onDensityChange: (density: RepositoryTableDensity) => void
   onPriorityFilterChange: (value: RepositoryPriorityFilter) => void
   onCaseTypeFilterChange: (value: RepositoryCaseTypeFilter) => void
   onCaseFilterChange: (value: RepositoryCaseFilter) => void
@@ -102,10 +98,8 @@ export function RepositoryToolbar({
   priorityOptions,
   caseTypeOptions,
   visibleColumns,
-  density,
   onSearchChange,
   onToggleColumn,
-  onDensityChange,
   onPriorityFilterChange,
   onCaseTypeFilterChange,
   onCaseFilterChange,
@@ -234,22 +228,6 @@ export function RepositoryToolbar({
             </PopoverMenuItem>
           ),
         )}
-        <PopoverMenuSeparator />
-        <PopoverMenuLabel>Density</PopoverMenuLabel>
-        <PopoverMenuItem onClick={() => onDensityChange('compact')}>
-          <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
-            Compact
-            {density === 'compact' ? <span aria-hidden="true">Active</span> : null}
-          </span>
-        </PopoverMenuItem>
-        <PopoverMenuItem onClick={() => onDensityChange('comfortable')}>
-          <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
-            Comfortable
-            {density === 'comfortable' ? (
-              <span aria-hidden="true">Active</span>
-            ) : null}
-          </span>
-        </PopoverMenuItem>
       </PopoverMenu>
     </div>
   )

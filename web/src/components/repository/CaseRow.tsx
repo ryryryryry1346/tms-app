@@ -21,7 +21,6 @@ export type RepositoryColumnKey =
   | 'updated'
   | 'status'
 export type RepositoryVisibleColumns = Record<RepositoryColumnKey, boolean>
-export type RepositoryTableDensity = 'compact' | 'comfortable'
 
 export type RepositoryCaseRowTest = {
   id: number
@@ -47,7 +46,6 @@ type CaseRowProps = {
   caseTypeOptions: RepositoryCaseType[]
   statusOptions: RepositoryCaseStatus[]
   visibleColumns: RepositoryVisibleColumns
-  density: RepositoryTableDensity
   formatDate: (value: string | null | undefined) => string
   onToggleSelection: () => void
   onDragStart: (event: DragEvent<HTMLElement>) => void
@@ -165,7 +163,6 @@ export function CaseRow({
   caseTypeOptions,
   statusOptions,
   visibleColumns,
-  density,
   formatDate,
   onToggleSelection,
   onDragStart,
@@ -220,9 +217,7 @@ export function CaseRow({
       onDragLeave={() => onDragLeave(test.id)}
       onDrop={onDrop}
       style={rowStyle}
-      className={`tms-table-row repository-case-grid repository-case-grid--interactive px-3 transition sm:px-4 ${
-        density === 'compact' ? 'py-1.5' : 'py-2'
-      } ${
+      className={`tms-table-row repository-case-grid repository-case-grid--interactive px-3 py-1.5 transition sm:px-4 ${
         draggedTestIds.includes(test.id)
           ? 'bg-[var(--tms-surface-muted)] opacity-70'
           : isDropTarget
