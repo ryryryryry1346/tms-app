@@ -29,6 +29,7 @@ type RepositorySuiteTreeProps = {
   selectedSuiteId: string
   allSuitesFilter: string
   totalActiveCases: number
+  isLoadingCounts: boolean
   editingSuiteId: number | null
   editingSuiteName: string
   deleteConfirmSuiteId: number | null
@@ -90,6 +91,7 @@ export function RepositorySuiteTree({
   selectedSuiteId,
   allSuitesFilter,
   totalActiveCases,
+  isLoadingCounts,
   editingSuiteId,
   editingSuiteName,
   deleteConfirmSuiteId,
@@ -162,7 +164,9 @@ export function RepositorySuiteTree({
           <AllCasesIcon />
           <span>All test cases</span>
         </span>
-        <span className="repository-browser-tree__count">{totalActiveCases}</span>
+        <span className="repository-browser-tree__count">
+          {isLoadingCounts ? '...' : totalActiveCases}
+        </span>
       </button>
 
       <div className="repository-browser-tree__list">
@@ -216,7 +220,7 @@ export function RepositorySuiteTree({
                       <span className="truncate">{section.name}</span>
                     </span>
                     <span className="repository-browser-tree__count">
-                      {activeCases}
+                      {isLoadingCounts ? '...' : activeCases}
                     </span>
                   </button>
                   <PopoverMenu

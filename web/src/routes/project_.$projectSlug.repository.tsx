@@ -48,6 +48,7 @@ import {
   deleteArchivedTestCase,
   duplicateTestCase,
   exportRepositoryCasesCsv,
+  getRepositorySummary,
   getRepositoryState,
   getTestDetail,
   importRepositoryCsv,
@@ -397,6 +398,8 @@ function ProjectRepositoryPage() {
   const router = useRouter()
   const navigate = useNavigate()
   const [dashboard, setDashboard] = useState(loaderDashboard)
+  const [isLoadingRepositorySummary, setIsLoadingRepositorySummary] =
+    useState(true)
   const projectSlug = project.slug ?? project.id.toString()
   const initialPreviewCacheRef = useRef<{
     details: Record<number, TestDetail>
@@ -499,6 +502,40 @@ function ProjectRepositoryPage() {
   useEffect(() => {
     setDashboard(loaderDashboard)
   }, [loaderDashboard])
+
+  useEffect(() => {
+    let isCancelled = false
+    setIsLoadingRepositorySummary(true)
+
+    getRepositorySummary({
+      data: {
+        projectSlug,
+      },
+    })
+      .then((summary) => {
+        if (isCancelled) {
+          return
+        }
+
+        setDashboard((current) => ({
+          ...current,
+          suiteStats: summary.suiteStats,
+          stats: summary.stats,
+        }))
+      })
+      .catch(() => {
+        // Summary counts are an enhancement; the repository remains usable.
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsLoadingRepositorySummary(false)
+        }
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [projectSlug])
 
   useEffect(() => {
     const cachedPreview = readRepositoryPreviewCache(projectSlug)
@@ -2681,6 +2718,7 @@ function ProjectRepositoryPage() {
                 selectedSuiteId={suiteFilterId}
                 allSuitesFilter={ALL_SUITES_FILTER}
                 totalActiveCases={dashboard.stats.activeCases}
+                isLoadingCounts={isLoadingRepositorySummary}
                 editingSuiteId={editingSuiteId}
                 editingSuiteName={editingSuiteName}
                 deleteConfirmSuiteId={deleteConfirmSuiteId}

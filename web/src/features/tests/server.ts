@@ -261,6 +261,8 @@ export type RepositoryState = DashboardState & {
   }
 }
 
+export type RepositorySummary = Pick<RepositoryState, 'suiteStats' | 'stats'>
+
 export type RepositoryCsvExport = {
   filename: string
   csv: string
@@ -544,12 +546,7 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
         condition !== undefined,
     )
 
-    const [
-      sectionRows,
-      testRows,
-      filteredCountRows,
-      suiteStatsRows,
-    ] = await Promise.all([
+    const [sectionRows, testRows, filteredCountRows] = await Promise.all([
       db
         .select({
           id: sections.id,
@@ -584,30 +581,8 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
         })
         .from(tests)
         .where(and(...filteredTestConditions)),
-      db
-        .select({
-          sectionId: tests.sectionId,
-          totalCases: count(),
-          activeCases: sql<number>`sum(case when ${tests.status} <> 'Archived' then 1 else 0 end)`,
-          readyCases: sql<number>`sum(case when ${tests.status} = 'Ready' then 1 else 0 end)`,
-          draftCases: sql<number>`sum(case when ${tests.status} = 'Draft' then 1 else 0 end)`,
-          archivedCases: sql<number>`sum(case when ${tests.status} = 'Archived' then 1 else 0 end)`,
-        })
-        .from(tests)
-        .where(eq(tests.projectId, project.id))
-        .groupBy(tests.sectionId),
     ])
     const totalFilteredCases = filteredCountRows[0]?.value ?? 0
-    const stats = suiteStatsRows.reduce(
-      (projectStats, row) => ({
-        totalCases: projectStats.totalCases + Number(row.totalCases ?? 0),
-        activeCases: projectStats.activeCases + Number(row.activeCases ?? 0),
-        readyCases: projectStats.readyCases + Number(row.readyCases ?? 0),
-        archivedCases:
-          projectStats.archivedCases + Number(row.archivedCases ?? 0),
-      }),
-      { totalCases: 0, activeCases: 0, readyCases: 0, archivedCases: 0 },
-    )
 
     return {
       databaseConfigured: true,
@@ -622,6 +597,83 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
         totalCases: totalFilteredCases,
         totalPages: Math.max(1, Math.ceil(totalFilteredCases / pageSize)),
       },
+      suiteStats: [],
+      stats: {
+        totalCases: 0,
+        activeCases: 0,
+        readyCases: 0,
+        archivedCases: 0,
+      },
+    }
+  })
+
+export const getRepositorySummary = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      projectId: z.number().int().positive().optional(),
+      projectSlug: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }): Promise<RepositorySummary> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+    await ensureTestServerDeps()
+
+    const emptySummary: RepositorySummary = {
+      suiteStats: [],
+      stats: {
+        totalCases: 0,
+        activeCases: 0,
+        readyCases: 0,
+        archivedCases: 0,
+      },
+    }
+
+    if (!isDatabaseConfigured()) {
+      return emptySummary
+    }
+
+    const db = getDb()
+    const projectRows = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(
+        data.projectId
+          ? eq(projects.id, data.projectId)
+          : eq(projects.slug, data.projectSlug ?? ''),
+      )
+      .limit(1)
+    const project = projectRows[0]
+
+    if (!project) {
+      return emptySummary
+    }
+
+    const suiteStatsRows = await db
+      .select({
+        sectionId: tests.sectionId,
+        totalCases: count(),
+        activeCases: sql<number>`sum(case when ${tests.status} <> 'Archived' then 1 else 0 end)`,
+        readyCases: sql<number>`sum(case when ${tests.status} = 'Ready' then 1 else 0 end)`,
+        draftCases: sql<number>`sum(case when ${tests.status} = 'Draft' then 1 else 0 end)`,
+        archivedCases: sql<number>`sum(case when ${tests.status} = 'Archived' then 1 else 0 end)`,
+      })
+      .from(tests)
+      .where(eq(tests.projectId, project.id))
+      .groupBy(tests.sectionId)
+
+    const stats = suiteStatsRows.reduce(
+      (projectStats, row) => ({
+        totalCases: projectStats.totalCases + Number(row.totalCases ?? 0),
+        activeCases: projectStats.activeCases + Number(row.activeCases ?? 0),
+        readyCases: projectStats.readyCases + Number(row.readyCases ?? 0),
+        archivedCases:
+          projectStats.archivedCases + Number(row.archivedCases ?? 0),
+      }),
+      { totalCases: 0, activeCases: 0, readyCases: 0, archivedCases: 0 },
+    )
+
+    return {
       suiteStats: suiteStatsRows
         .filter((row) => row.sectionId !== null)
         .map((row) => ({
