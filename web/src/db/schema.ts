@@ -143,6 +143,17 @@ export const tests = mysqlTable(
         table.sectionId,
         table.id,
       ),
+      repositoryFilterOrderIndex: index(
+        'tests_repository_filter_order_idx',
+      ).on(
+        table.projectId,
+        table.status,
+        table.priority,
+        table.caseType,
+        table.sectionId,
+        table.sortOrder,
+        table.id,
+      ),
     }),
   )
 
