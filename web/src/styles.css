@@ -2469,11 +2469,30 @@ a {
     box-shadow 120ms ease;
 }
 
-.repository-case-grid--interactive:hover {
-  background: color-mix(in oklab, var(--tms-surface-muted) 72%, var(--tms-surface));
+.repository-browser-table__scroll article.repository-case-grid--interactive:nth-of-type(even) {
+  background: color-mix(in oklab, var(--tms-surface-soft) 42%, var(--tms-surface));
 }
 
-.repository-case-grid--active {
+.repository-case-grid--interactive:hover {
+  background: color-mix(in oklab, var(--tms-primary-soft) 34%, var(--tms-surface));
+  box-shadow:
+    inset 2px 0 0 color-mix(in oklab, var(--tms-border-focus) 56%, transparent),
+    inset 0 1px 0 color-mix(in oklab, var(--tms-border-focus) 12%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, var(--tms-border-focus) 12%, transparent);
+}
+
+.repository-case-grid--selected,
+.repository-browser-table__scroll article.repository-case-grid--selected:nth-of-type(even) {
+  background: color-mix(in oklab, var(--tms-primary-soft) 42%, var(--tms-surface));
+  box-shadow: inset 2px 0 0 color-mix(in oklab, var(--tms-border-focus) 72%, transparent);
+}
+
+.repository-case-grid--selected:hover {
+  background: color-mix(in oklab, var(--tms-primary-soft) 52%, var(--tms-surface));
+}
+
+.repository-case-grid--active,
+.repository-browser-table__scroll article.repository-case-grid--active:nth-of-type(even) {
   background: color-mix(in oklab, var(--tms-primary-soft) 52%, var(--tms-surface));
   box-shadow:
     inset 2px 0 0 var(--tms-border-focus),

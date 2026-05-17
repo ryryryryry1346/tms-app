@@ -226,6 +226,8 @@ export function CaseRow({
               : 'bg-[var(--tms-primary-soft)] shadow-[inset_0_-2px_0_var(--tms-primary)]'
             : isPreviewActive
               ? 'repository-case-grid--active'
+              : isSelected
+                ? 'repository-case-grid--selected'
               : ''
       }`}
     >
