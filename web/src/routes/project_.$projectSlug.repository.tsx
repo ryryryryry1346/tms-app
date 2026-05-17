@@ -196,6 +196,20 @@ const REPOSITORY_COLUMNS_STORAGE_KEY = 'tms.repository.visibleColumns'
 const REPOSITORY_PREVIEW_CACHE_LIMIT = 40
 const REPOSITORY_PREVIEW_CACHE_VERSION = 2
 const REPOSITORY_PREVIEW_CACHE_PREFIX = 'tms.repository.preview.'
+const REPOSITORY_MONTH_LABELS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
 
 type RepositoryPreviewCacheItem = {
   cachedAt: number
@@ -237,11 +251,7 @@ function formatRepositoryDate(value: string | null | undefined): string {
     return '-'
   }
 
-  return new Intl.DateTimeFormat('en', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(date)
+  return `${REPOSITORY_MONTH_LABELS[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}`
 }
 
 function formatRepositoryDateTime(value: string | null | undefined): string {
@@ -255,13 +265,10 @@ function formatRepositoryDateTime(value: string | null | undefined): string {
     return '-'
   }
 
-  return new Intl.DateTimeFormat('en', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
+  const hours = date.getUTCHours().toString().padStart(2, '0')
+  const minutes = date.getUTCMinutes().toString().padStart(2, '0')
+
+  return `${REPOSITORY_MONTH_LABELS[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}, ${hours}:${minutes}`
 }
 
 function downloadCsvFile(filename: string, csv: string): void {
