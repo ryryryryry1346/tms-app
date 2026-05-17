@@ -58,7 +58,7 @@ const dashboardInput = z.object({
     .enum(['All', 'Functional', 'Regression', 'Smoke', 'E2E', 'UI', 'API'])
     .optional(),
   page: z.number().int().positive().optional(),
-  pageSize: z.number().int().min(25).max(30).optional(),
+  pageSize: z.number().int().min(25).max(100).optional(),
 })
 
 type RepositoryTiming = {

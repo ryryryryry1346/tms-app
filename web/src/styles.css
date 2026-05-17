@@ -3046,6 +3046,30 @@ a {
   gap: 0.5rem;
 }
 
+.repository-browser-table__pagination-controls {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.repository-browser-table__page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--tms-text-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.repository-browser-table__page-size-select.tms-select-menu-trigger {
+  min-height: 2rem;
+  min-width: 8.25rem;
+  padding-block: 0.35rem;
+  font-size: 0.75rem;
+}
+
 .repository-preview-panel {
   display: flex;
   flex-direction: column;

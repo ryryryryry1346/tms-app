@@ -67,7 +67,17 @@ import type {
   TestDetail,
 } from '../features/tests/server'
 
-const REPOSITORY_PAGE_SIZE = 30
+const REPOSITORY_PAGE_SIZE_OPTIONS = [25, 50, 75, 100] as const
+const REPOSITORY_DEFAULT_PAGE_SIZE = REPOSITORY_PAGE_SIZE_OPTIONS[0]
+const REPOSITORY_PAGE_SIZE_VALUES: readonly number[] = REPOSITORY_PAGE_SIZE_OPTIONS
+
+type RepositoryPageSize = (typeof REPOSITORY_PAGE_SIZE_OPTIONS)[number]
+
+function normalizeRepositoryPageSize(value: number | undefined): RepositoryPageSize {
+  return REPOSITORY_PAGE_SIZE_VALUES.includes(value ?? 0)
+    ? (value as RepositoryPageSize)
+    : REPOSITORY_DEFAULT_PAGE_SIZE
+}
 
 export const Route = createFileRoute('/project_/$projectSlug/repository')({
   validateSearch: z.object({
@@ -86,10 +96,9 @@ export const Route = createFileRoute('/project_/$projectSlug/repository')({
     pageSize: z.coerce
       .number()
       .int()
-      .min(REPOSITORY_PAGE_SIZE)
-      .max(REPOSITORY_PAGE_SIZE)
       .optional()
-      .catch(REPOSITORY_PAGE_SIZE),
+      .transform((value) => normalizeRepositoryPageSize(value))
+      .catch(REPOSITORY_DEFAULT_PAGE_SIZE),
     previewId: z.coerce.number().int().positive().optional().catch(undefined),
   }),
   loaderDeps: ({ search }) => ({
@@ -104,6 +113,7 @@ export const Route = createFileRoute('/project_/$projectSlug/repository')({
   loader: async ({ params, deps }) => {
     const loaderStartedAt = Date.now()
     const projectSlug = params.projectSlug.trim()
+    const pageSize = normalizeRepositoryPageSize(deps.pageSize)
 
     if (!projectSlug) {
       throw notFound()
@@ -116,7 +126,7 @@ export const Route = createFileRoute('/project_/$projectSlug/repository')({
         data: {
           projectId: numericProjectId,
           page: deps.page,
-          pageSize: REPOSITORY_PAGE_SIZE,
+          pageSize,
         },
       })
 
@@ -148,7 +158,7 @@ export const Route = createFileRoute('/project_/$projectSlug/repository')({
         priority: deps.priority,
         caseType: deps.type,
         page: deps.page,
-        pageSize: REPOSITORY_PAGE_SIZE,
+        pageSize,
       },
     })
     console.info(
@@ -156,7 +166,7 @@ export const Route = createFileRoute('/project_/$projectSlug/repository')({
         projectSlug,
         totalMs: Date.now() - loaderStartedAt,
         page: deps.page ?? 1,
-        pageSize: REPOSITORY_PAGE_SIZE,
+        pageSize,
         suiteId: deps.suiteId ?? null,
         status: deps.status ?? 'All',
         priority: deps.priority ?? 'All',
@@ -556,6 +566,7 @@ function ProjectRepositoryPage() {
   const priorityFilter = search.priority ?? 'All'
   const caseTypeFilter = search.type ?? 'All'
   const suiteFilterId = search.suiteId?.toString() ?? ALL_SUITES_FILTER
+  const selectedPageSize = normalizeRepositoryPageSize(search.pageSize)
   const searchPreviewId = search.previewId ?? null
   const [selectedTestIds, setSelectedTestIds] = useState<number[]>([])
   const [isApplyingBulkAction, setIsApplyingBulkAction] = useState(false)
@@ -619,7 +630,7 @@ function ProjectRepositoryPage() {
         priority: search.priority,
         caseType: search.type,
         page: search.page,
-        pageSize: REPOSITORY_PAGE_SIZE,
+        pageSize: selectedPageSize,
       },
     })
       .then((pagination) => {
@@ -651,6 +662,7 @@ function ProjectRepositoryPage() {
     search.priority,
     search.type,
     search.page,
+    selectedPageSize,
   ])
 
   useEffect(() => {
@@ -3101,8 +3113,27 @@ function ProjectRepositoryPage() {
                         {dashboard.pagination.totalPages}
                       </span>
                     </div>
-                    {dashboard.pagination.totalPages > 1 ? (
-                      <div className="repository-browser-table__pagination-actions">
+                    <div className="repository-browser-table__pagination-controls">
+                      <label className="repository-browser-table__page-size">
+                        <span>Rows</span>
+                        <SelectMenu
+                          value={String(selectedPageSize)}
+                          onValueChange={(value) =>
+                            updateRepositorySearch({
+                              pageSize: normalizeRepositoryPageSize(Number(value)),
+                              page: 1,
+                            })
+                          }
+                          options={REPOSITORY_PAGE_SIZE_OPTIONS.map((size) => ({
+                            value: String(size),
+                            label: `${size} per page`,
+                          }))}
+                          className="repository-browser-table__page-size-select"
+                          aria-label="Rows per page"
+                        />
+                      </label>
+                      {dashboard.pagination.totalPages > 1 ? (
+                        <div className="repository-browser-table__pagination-actions">
                         <Button
                           variant="secondary"
                           disabled={dashboard.pagination.page <= 1}
@@ -3132,7 +3163,8 @@ function ProjectRepositoryPage() {
                           Next
                         </Button>
                       </div>
-                    ) : null}
+                      ) : null}
+                    </div>
                   </div>
                 ) : null}
               </section>
