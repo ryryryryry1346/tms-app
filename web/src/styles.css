@@ -390,6 +390,73 @@ pre code {
   white-space: nowrap;
 }
 
+.repository-import-upload {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.repository-import-dropzone {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 2.625rem;
+  align-content: center;
+  gap: 0.15rem;
+  border: 1px dashed var(--tms-border);
+  border-radius: var(--tms-radius-control);
+  background: var(--tms-surface);
+  color: var(--tms-text);
+  padding: 0.5rem 0.8rem;
+  box-shadow: var(--tms-shadow-subtle);
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.repository-import-dropzone:hover,
+.repository-import-dropzone--active {
+  border-color: var(--tms-primary-border);
+  background: var(--tms-primary-soft);
+}
+
+.repository-import-dropzone--active {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--tms-primary) 16%, transparent);
+}
+
+.repository-import-dropzone--has-file {
+  border-style: solid;
+}
+
+.repository-import-dropzone__title,
+.repository-import-dropzone__meta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repository-import-dropzone__title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.repository-import-dropzone__meta {
+  color: var(--tms-text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.repository-import-upload__remove.tms-button {
+  align-self: stretch;
+  min-height: 2.625rem;
+}
+
 .tms-button {
   display: inline-flex;
   min-height: var(--tms-control-height);

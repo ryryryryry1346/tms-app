@@ -218,6 +218,86 @@ const CASE_TYPE_OPTIONS: CaseTypeValue[] = [
   'API',
 ]
 const REPOSITORY_COLUMNS_STORAGE_KEY = 'tms.repository.visibleColumns'
+
+function formatImportFileSize(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes} B`
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function CsvUploadDropzone({
+  file,
+  onFileChange,
+}: {
+  file: File | null
+  onFileChange: (file: File | null) => void
+}) {
+  const [isDropActive, setIsDropActive] = useState(false)
+
+  return (
+    <div className="repository-import-upload">
+      <label
+        className={`repository-import-dropzone ${
+          isDropActive ? 'repository-import-dropzone--active' : ''
+        } ${file ? 'repository-import-dropzone--has-file' : ''}`}
+        onDragEnter={(event) => {
+          event.preventDefault()
+          setIsDropActive(true)
+        }}
+        onDragOver={(event) => {
+          event.preventDefault()
+          event.dataTransfer.dropEffect = 'copy'
+          setIsDropActive(true)
+        }}
+        onDragLeave={(event) => {
+          if (
+            !event.currentTarget.contains(event.relatedTarget as Node | null)
+          ) {
+            setIsDropActive(false)
+          }
+        }}
+        onDrop={(event) => {
+          event.preventDefault()
+          setIsDropActive(false)
+          onFileChange(event.dataTransfer.files?.[0] ?? null)
+        }}
+      >
+        <FileInput
+          key={file ? file.name : 'empty-import-file'}
+          accept=".csv,text/csv"
+          onChange={(event) =>
+            onFileChange(event.currentTarget.files?.[0] ?? null)
+          }
+        />
+        <span className="repository-import-dropzone__title">
+          {file ? file.name : 'Choose or drop CSV file'}
+        </span>
+        <span className="repository-import-dropzone__meta">
+          {file
+            ? `${formatImportFileSize(file.size)} selected`
+            : 'Supports TMS CSV and Testmo CSV'}
+        </span>
+      </label>
+      {file ? (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="repository-import-upload__remove"
+          onClick={() => onFileChange(null)}
+        >
+          Remove
+        </Button>
+      ) : null}
+    </div>
+  )
+}
 const REPOSITORY_PREVIEW_CACHE_LIMIT = 40
 const REPOSITORY_PREVIEW_CACHE_VERSION = 2
 const REPOSITORY_PREVIEW_CACHE_PREFIX = 'tms.repository.preview.'
@@ -1980,6 +2060,14 @@ function ProjectRepositoryPage() {
     }
   }
 
+  function handleImportFileSelection(file: File | null): void {
+    setImportFile(file)
+    setImportPreview(null)
+    setImportResult(null)
+    setIsImportConfirming(false)
+    setImportErrorMessage(null)
+  }
+
   async function handleImportConfirm(): Promise<void> {
     if (!importFile || !importPreview) {
       setImportErrorMessage('Preview a CSV file before importing.')
@@ -2514,19 +2602,13 @@ function ProjectRepositoryPage() {
                     aria-label="Import source"
                   />
                 </label>
-                <label className="grid gap-1.5 text-sm font-semibold text-[var(--tms-text)]">
+                <div className="grid gap-1.5 text-sm font-semibold text-[var(--tms-text)]">
                   CSV file
-                  <FileInput
-                    accept=".csv,text/csv"
-                    onChange={(event) => {
-                      setImportFile(event.currentTarget.files?.[0] ?? null)
-                      setImportPreview(null)
-                      setImportResult(null)
-                      setIsImportConfirming(false)
-                      setImportErrorMessage(null)
-                    }}
+                  <CsvUploadDropzone
+                    file={importFile}
+                    onFileChange={handleImportFileSelection}
                   />
-                </label>
+                </div>
                 <div className="flex items-end">
                   <Button
                     type="submit"
