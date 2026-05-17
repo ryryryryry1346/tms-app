@@ -548,7 +548,6 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
       sectionRows,
       testRows,
       filteredCountRows,
-      statsRows,
       suiteStatsRows,
     ] = await Promise.all([
       db
@@ -587,15 +586,6 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
         .where(and(...filteredTestConditions)),
       db
         .select({
-          totalCases: count(),
-          activeCases: sql<number>`sum(case when ${tests.status} <> 'Archived' then 1 else 0 end)`,
-          readyCases: sql<number>`sum(case when ${tests.status} = 'Ready' then 1 else 0 end)`,
-          archivedCases: sql<number>`sum(case when ${tests.status} = 'Archived' then 1 else 0 end)`,
-        })
-        .from(tests)
-        .where(eq(tests.projectId, project.id)),
-      db
-        .select({
           sectionId: tests.sectionId,
           totalCases: count(),
           activeCases: sql<number>`sum(case when ${tests.status} <> 'Archived' then 1 else 0 end)`,
@@ -608,7 +598,16 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
         .groupBy(tests.sectionId),
     ])
     const totalFilteredCases = filteredCountRows[0]?.value ?? 0
-    const stats = statsRows[0]
+    const stats = suiteStatsRows.reduce(
+      (projectStats, row) => ({
+        totalCases: projectStats.totalCases + Number(row.totalCases ?? 0),
+        activeCases: projectStats.activeCases + Number(row.activeCases ?? 0),
+        readyCases: projectStats.readyCases + Number(row.readyCases ?? 0),
+        archivedCases:
+          projectStats.archivedCases + Number(row.archivedCases ?? 0),
+      }),
+      { totalCases: 0, activeCases: 0, readyCases: 0, archivedCases: 0 },
+    )
 
     return {
       databaseConfigured: true,
@@ -633,12 +632,7 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
           draftCases: Number(row.draftCases ?? 0),
           archivedCases: Number(row.archivedCases ?? 0),
         })),
-      stats: {
-        totalCases: Number(stats?.totalCases ?? 0),
-        activeCases: Number(stats?.activeCases ?? 0),
-        readyCases: Number(stats?.readyCases ?? 0),
-        archivedCases: Number(stats?.archivedCases ?? 0),
-      },
+      stats,
     }
   })
 
