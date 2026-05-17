@@ -48,6 +48,7 @@ import {
   deleteArchivedTestCase,
   duplicateTestCase,
   exportRepositoryCasesCsv,
+  getRepositoryCount,
   getRepositorySummary,
   getRepositoryState,
   getTestDetail,
@@ -525,6 +526,52 @@ function ProjectRepositoryPage() {
   useEffect(() => {
     setDashboard(loaderDashboard)
   }, [loaderDashboard])
+
+  useEffect(() => {
+    let isCancelled = false
+
+    getRepositoryCount({
+      data: {
+        projectSlug,
+        search: search.q,
+        suiteId: search.suiteId,
+        status: search.status,
+        priority: search.priority,
+        caseType: search.type,
+        page: search.page,
+        pageSize: REPOSITORY_PAGE_SIZE,
+      },
+    })
+      .then((pagination) => {
+        if (isCancelled) {
+          return
+        }
+
+        setDashboard((current) => ({
+          ...current,
+          pagination: {
+            ...current.pagination,
+            ...pagination,
+            isEstimated: false,
+          },
+        }))
+      })
+      .catch(() => {
+        // Exact counts are not required for the repository to stay usable.
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [
+    projectSlug,
+    search.q,
+    search.suiteId,
+    search.status,
+    search.priority,
+    search.type,
+    search.page,
+  ])
 
   useEffect(() => {
     let isCancelled = false
@@ -1018,9 +1065,13 @@ function ProjectRepositoryPage() {
   const paginationSummary =
     dashboard.pagination.totalCases === 0
       ? 'No cases'
-      : `Showing ${paginationStart}-${paginationEnd} of ${dashboard.pagination.totalCases}`
+      : dashboard.pagination.isEstimated
+        ? `Showing ${paginationStart}-${paginationEnd}`
+        : `Showing ${paginationStart}-${paginationEnd} of ${dashboard.pagination.totalCases}`
   const tableScopeCountLabel =
-    dashboard.pagination.totalCases === 1
+    dashboard.pagination.isEstimated
+      ? `${paginationEnd}+ cases`
+      : dashboard.pagination.totalCases === 1
       ? '1 case'
       : `${dashboard.pagination.totalCases} cases`
   const selectedArchivableTests = selectedTests.filter(

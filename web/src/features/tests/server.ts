@@ -296,6 +296,7 @@ export type RepositoryState = DashboardState & {
     pageSize: number
     totalCases: number
     totalPages: number
+    isEstimated?: boolean
   }
   suiteStats: Array<{
     sectionId: number
@@ -314,6 +315,13 @@ export type RepositoryState = DashboardState & {
 }
 
 export type RepositorySummary = Pick<RepositoryState, 'suiteStats' | 'stats'>
+
+export type RepositoryCount = {
+  page: number
+  pageSize: number
+  totalCases: number
+  totalPages: number
+}
 
 export type RepositoryCsvExport = {
   filename: string
@@ -622,7 +630,7 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
         condition !== undefined,
     )
 
-    const [sectionRows, testRows, filteredCountRows] = await Promise.all([
+    const [sectionRows, pageRows] = await Promise.all([
       timeRepositoryStep(timing, 'suites', () =>
         db
           .select({
@@ -652,24 +660,19 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
           .from(tests)
           .where(and(...filteredTestConditions))
           .orderBy(asc(tests.sectionId), asc(tests.sortOrder), asc(tests.id))
-          .limit(pageSize)
+          .limit(pageSize + 1)
           .offset(offset),
       ),
-      timeRepositoryStep(timing, 'cases-count', () =>
-        db
-          .select({
-            value: count(),
-          })
-          .from(tests)
-          .where(and(...filteredTestConditions)),
-      ),
     ])
-    const totalFilteredCases = filteredCountRows[0]?.value ?? 0
+    const hasMoreCases = pageRows.length > pageSize
+    const testRows = hasMoreCases ? pageRows.slice(0, pageSize) : pageRows
+    const totalFilteredCases = offset + testRows.length + (hasMoreCases ? 1 : 0)
     logRepositoryTiming(timing, 'complete', {
       projectFound: true,
       suiteCount: sectionRows.length,
       caseCount: testRows.length,
       totalFilteredCases,
+      totalCasesEstimated: hasMoreCases,
     })
 
     return {
@@ -683,7 +686,8 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
         page,
         pageSize,
         totalCases: totalFilteredCases,
-        totalPages: Math.max(1, Math.ceil(totalFilteredCases / pageSize)),
+        totalPages: page + (hasMoreCases ? 1 : 0),
+        isEstimated: hasMoreCases,
       },
       suiteStats: [],
       stats: {
@@ -794,6 +798,114 @@ export const getRepositorySummary = createServerFn({ method: 'POST' })
           archivedCases: Number(row.archivedCases ?? 0),
         })),
       stats,
+    }
+  })
+
+export const getRepositoryCount = createServerFn({ method: 'POST' })
+  .inputValidator(dashboardInput)
+  .handler(async ({ data }): Promise<RepositoryCount> => {
+    const timing = startRepositoryTiming('count', {
+      projectId: data.projectId ?? null,
+      projectSlug: data.projectSlug ?? null,
+      suiteId: data.suiteId ?? null,
+      status: data.status ?? 'All',
+      priority: data.priority ?? 'All',
+      caseType: data.caseType ?? 'All',
+      page: data.page ?? 1,
+      pageSize: data.pageSize ?? 30,
+      hasSearch: Boolean(data.search?.trim()),
+    })
+
+    const { requireSessionUser } = await timeRepositoryStep(
+      timing,
+      'auth-import',
+      () => import('../auth/helpers.server'),
+    )
+    await timeRepositoryStep(timing, 'auth-session', () => requireSessionUser())
+    await timeRepositoryStep(timing, 'deps', () => ensureTestServerDeps())
+
+    const pageSize = data.pageSize ?? 30
+    const page = data.page ?? 1
+    const emptyCount = {
+      page,
+      pageSize,
+      totalCases: 0,
+      totalPages: 1,
+    }
+
+    if (!isDatabaseConfigured()) {
+      logRepositoryTiming(timing, 'complete', { databaseConfigured: false })
+      return emptyCount
+    }
+
+    const db = getDb()
+    const projectRows = await timeRepositoryStep(timing, 'project', () =>
+      db
+        .select({ id: projects.id })
+        .from(projects)
+        .where(
+          data.projectId
+            ? eq(projects.id, data.projectId)
+            : eq(projects.slug, data.projectSlug ?? ''),
+        )
+        .limit(1),
+    )
+    const project = projectRows[0]
+
+    if (!project) {
+      logRepositoryTiming(timing, 'complete', { projectFound: false })
+      return emptyCount
+    }
+
+    const statusFilter = data.status ?? 'All'
+    const priorityFilter = data.priority ?? 'All'
+    const caseTypeFilter = data.caseType ?? 'All'
+    const search = data.search?.trim() ?? ''
+    const searchPattern = `%${search}%`
+    const numericSearchId = Number(search)
+    const searchCondition = search
+      ? Number.isInteger(numericSearchId) && numericSearchId > 0
+        ? or(like(tests.title, searchPattern), eq(tests.id, numericSearchId))
+        : like(tests.title, searchPattern)
+      : undefined
+    const filteredTestConditions = [
+      eq(tests.projectId, project.id),
+      statusFilter === 'All'
+        ? sql`${tests.status} <> 'Archived'`
+        : eq(tests.status, statusFilter),
+      data.suiteId ? eq(tests.sectionId, data.suiteId) : undefined,
+      priorityFilter !== 'All' ? eq(tests.priority, priorityFilter) : undefined,
+      caseTypeFilter !== 'All' ? eq(tests.caseType, caseTypeFilter) : undefined,
+      searchCondition,
+    ].filter(
+      (
+        condition,
+      ): condition is Exclude<typeof condition, undefined> =>
+        condition !== undefined,
+    )
+
+    const countRows = await timeRepositoryStep(timing, 'cases-count', () =>
+      db
+        .select({
+          value: count(),
+        })
+        .from(tests)
+        .where(and(...filteredTestConditions)),
+    )
+    const totalCases = countRows[0]?.value ?? 0
+    const totalPages = Math.max(1, Math.ceil(totalCases / pageSize))
+
+    logRepositoryTiming(timing, 'complete', {
+      projectFound: true,
+      totalCases,
+      totalPages,
+    })
+
+    return {
+      page,
+      pageSize,
+      totalCases,
+      totalPages,
     }
   })
 
