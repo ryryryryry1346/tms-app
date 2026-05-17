@@ -630,7 +630,7 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
         condition !== undefined,
     )
 
-    const [sectionRows, pageRows] = await Promise.all([
+    const [sectionRows, pageRows, suiteStatsRows] = await Promise.all([
       timeRepositoryStep(timing, 'suites', () =>
         db
           .select({
@@ -663,15 +663,42 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
           .limit(pageSize + 1)
           .offset(offset),
       ),
+      timeRepositoryStep(timing, 'suite-summary', () =>
+        db
+          .select({
+            sectionId: tests.sectionId,
+            totalCases: count(),
+            activeCases: sql<number>`sum(case when ${tests.status} <> 'Archived' then 1 else 0 end)`,
+            readyCases: sql<number>`sum(case when ${tests.status} = 'Ready' then 1 else 0 end)`,
+            draftCases: sql<number>`sum(case when ${tests.status} = 'Draft' then 1 else 0 end)`,
+            archivedCases: sql<number>`sum(case when ${tests.status} = 'Archived' then 1 else 0 end)`,
+          })
+          .from(tests)
+          .where(eq(tests.projectId, project.id))
+          .groupBy(tests.sectionId),
+      ),
     ])
     const hasMoreCases = pageRows.length > pageSize
     const testRows = hasMoreCases ? pageRows.slice(0, pageSize) : pageRows
     const totalFilteredCases = offset + testRows.length + (hasMoreCases ? 1 : 0)
+    const stats = suiteStatsRows.reduce(
+      (projectStats, row) => ({
+        totalCases: projectStats.totalCases + Number(row.totalCases ?? 0),
+        activeCases: projectStats.activeCases + Number(row.activeCases ?? 0),
+        readyCases: projectStats.readyCases + Number(row.readyCases ?? 0),
+        archivedCases:
+          projectStats.archivedCases + Number(row.archivedCases ?? 0),
+      }),
+      { totalCases: 0, activeCases: 0, readyCases: 0, archivedCases: 0 },
+    )
+
     logRepositoryTiming(timing, 'complete', {
       projectFound: true,
       suiteCount: sectionRows.length,
       caseCount: testRows.length,
+      suiteStatsCount: suiteStatsRows.length,
       totalFilteredCases,
+      totalCases: stats.totalCases,
       totalCasesEstimated: hasMoreCases,
     })
 
@@ -689,13 +716,17 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
         totalPages: page + (hasMoreCases ? 1 : 0),
         isEstimated: hasMoreCases,
       },
-      suiteStats: [],
-      stats: {
-        totalCases: 0,
-        activeCases: 0,
-        readyCases: 0,
-        archivedCases: 0,
-      },
+      suiteStats: suiteStatsRows
+        .filter((row) => row.sectionId !== null)
+        .map((row) => ({
+          sectionId: row.sectionId ?? 0,
+          totalCases: Number(row.totalCases ?? 0),
+          activeCases: Number(row.activeCases ?? 0),
+          readyCases: Number(row.readyCases ?? 0),
+          draftCases: Number(row.draftCases ?? 0),
+          archivedCases: Number(row.archivedCases ?? 0),
+        })),
+      stats,
     }
   })
 
