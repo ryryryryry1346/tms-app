@@ -101,6 +101,7 @@ export const Route = createFileRoute('/project_/$projectSlug/repository')({
     pageSize: search.pageSize,
   }),
   loader: async ({ params, deps }) => {
+    const loaderStartedAt = Date.now()
     const projectSlug = params.projectSlug.trim()
 
     if (!projectSlug) {
@@ -149,6 +150,19 @@ export const Route = createFileRoute('/project_/$projectSlug/repository')({
         pageSize: REPOSITORY_PAGE_SIZE,
       },
     })
+    console.info(
+      `[repository-timing] route-loader state-loaded ${JSON.stringify({
+        projectSlug,
+        totalMs: Date.now() - loaderStartedAt,
+        page: deps.page ?? 1,
+        pageSize: REPOSITORY_PAGE_SIZE,
+        suiteId: deps.suiteId ?? null,
+        status: deps.status ?? 'All',
+        priority: deps.priority ?? 'All',
+        caseType: deps.type ?? 'All',
+        hasSearch: Boolean(deps.q?.trim()),
+      })}`,
+    )
 
     const project =
       dashboard.projects.find((item) => item.slug === projectSlug) ?? null
@@ -159,10 +173,19 @@ export const Route = createFileRoute('/project_/$projectSlug/repository')({
       throw notFound()
     }
 
-    return {
+    const result = {
       project,
       dashboard,
     }
+    console.info(
+      `[repository-timing] route-loader complete ${JSON.stringify({
+        projectSlug,
+        totalMs: Date.now() - loaderStartedAt,
+        cases: dashboard.tests.length,
+        suites: dashboard.sections.length,
+      })}`,
+    )
+    return result
   },
   component: ProjectRepositoryPage,
 })

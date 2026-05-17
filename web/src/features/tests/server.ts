@@ -61,6 +61,58 @@ const dashboardInput = z.object({
   pageSize: z.number().int().min(25).max(30).optional(),
 })
 
+type RepositoryTiming = {
+  scope: string
+  startedAt: number
+  meta: Record<string, unknown>
+  steps: Array<{ step: string; ms: number; ok: boolean }>
+}
+
+function startRepositoryTiming(
+  scope: string,
+  meta: Record<string, unknown> = {},
+): RepositoryTiming {
+  return {
+    scope,
+    startedAt: Date.now(),
+    meta,
+    steps: [],
+  }
+}
+
+async function timeRepositoryStep<T>(
+  timing: RepositoryTiming,
+  step: string,
+  run: () => Promise<T>,
+): Promise<T> {
+  const startedAt = Date.now()
+
+  try {
+    const value = await run()
+    timing.steps.push({ step, ms: Date.now() - startedAt, ok: true })
+    return value
+  } catch (error) {
+    timing.steps.push({ step, ms: Date.now() - startedAt, ok: false })
+    logRepositoryTiming(timing, 'failed', { failedStep: step })
+    throw error
+  }
+}
+
+function logRepositoryTiming(
+  timing: RepositoryTiming,
+  event: 'complete' | 'failed',
+  extra: Record<string, unknown> = {},
+): void {
+  console.info(
+    `[repository-timing] ${timing.scope} ${event} ${JSON.stringify({
+      ...timing.meta,
+      ...extra,
+      totalMs: Date.now() - timing.startedAt,
+      steps: timing.steps,
+    })}`,
+  )
+}
+
 const exportRepositoryCsvInput = dashboardInput.extend({
   ids: z.array(z.number().int().positive()).optional(),
 })
@@ -450,11 +502,28 @@ export const getDashboardState = createServerFn({ method: 'POST' })
 export const getRepositoryState = createServerFn({ method: 'POST' })
   .inputValidator(dashboardInput)
   .handler(async ({ data }): Promise<RepositoryState> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
-    await ensureTestServerDeps()
+    const timing = startRepositoryTiming('state', {
+      projectId: data.projectId ?? null,
+      projectSlug: data.projectSlug ?? null,
+      suiteId: data.suiteId ?? null,
+      status: data.status ?? 'All',
+      priority: data.priority ?? 'All',
+      caseType: data.caseType ?? 'All',
+      page: data.page ?? 1,
+      pageSize: data.pageSize ?? 30,
+      hasSearch: Boolean(data.search?.trim()),
+    })
+
+    const { requireSessionUser } = await timeRepositoryStep(
+      timing,
+      'auth-import',
+      () => import('../auth/helpers.server'),
+    )
+    await timeRepositoryStep(timing, 'auth-session', () => requireSessionUser())
+    await timeRepositoryStep(timing, 'deps', () => ensureTestServerDeps())
 
     if (!isDatabaseConfigured()) {
+      logRepositoryTiming(timing, 'complete', { databaseConfigured: false })
       return {
         databaseConfigured: false,
         projects: [],
@@ -486,14 +555,21 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
       return rows[0] ?? null
     }
 
-    let project = await loadProject()
+    let project = await timeRepositoryStep(timing, 'project', () =>
+      loadProject(),
+    )
 
     if (!project && data.projectSlug) {
-      await ensureProjectSlugs()
-      project = await loadProject()
+      await timeRepositoryStep(timing, 'ensure-project-slugs', () =>
+        ensureProjectSlugs(),
+      )
+      project = await timeRepositoryStep(timing, 'project-after-slugs', () =>
+        loadProject(),
+      )
     }
 
     if (!project) {
+      logRepositoryTiming(timing, 'complete', { projectFound: false })
       return {
         databaseConfigured: true,
         projects: [],
@@ -547,42 +623,54 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
     )
 
     const [sectionRows, testRows, filteredCountRows] = await Promise.all([
-      db
-        .select({
-          id: sections.id,
-          name: sections.name,
-          projectId: sections.projectId,
-        })
-        .from(sections)
-        .where(eq(sections.projectId, project.id))
-        .orderBy(asc(sections.id)),
-      db
-        .select({
-          id: tests.id,
-          title: tests.title,
-          status: tests.status,
-          priority: tests.priority,
-          caseType: tests.caseType,
-          archivedFromStatus: tests.archivedFromStatus,
-          sectionId: tests.sectionId,
-          projectId: tests.projectId,
-          sortOrder: tests.sortOrder,
-          createdAt: tests.createdAt,
-          updatedAt: tests.updatedAt,
-        })
-        .from(tests)
-        .where(and(...filteredTestConditions))
-        .orderBy(asc(tests.sectionId), asc(tests.sortOrder), asc(tests.id))
-        .limit(pageSize)
-        .offset(offset),
-      db
-        .select({
-          value: count(),
-        })
-        .from(tests)
-        .where(and(...filteredTestConditions)),
+      timeRepositoryStep(timing, 'suites', () =>
+        db
+          .select({
+            id: sections.id,
+            name: sections.name,
+            projectId: sections.projectId,
+          })
+          .from(sections)
+          .where(eq(sections.projectId, project.id))
+          .orderBy(asc(sections.id)),
+      ),
+      timeRepositoryStep(timing, 'cases-page', () =>
+        db
+          .select({
+            id: tests.id,
+            title: tests.title,
+            status: tests.status,
+            priority: tests.priority,
+            caseType: tests.caseType,
+            archivedFromStatus: tests.archivedFromStatus,
+            sectionId: tests.sectionId,
+            projectId: tests.projectId,
+            sortOrder: tests.sortOrder,
+            createdAt: tests.createdAt,
+            updatedAt: tests.updatedAt,
+          })
+          .from(tests)
+          .where(and(...filteredTestConditions))
+          .orderBy(asc(tests.sectionId), asc(tests.sortOrder), asc(tests.id))
+          .limit(pageSize)
+          .offset(offset),
+      ),
+      timeRepositoryStep(timing, 'cases-count', () =>
+        db
+          .select({
+            value: count(),
+          })
+          .from(tests)
+          .where(and(...filteredTestConditions)),
+      ),
     ])
     const totalFilteredCases = filteredCountRows[0]?.value ?? 0
+    logRepositoryTiming(timing, 'complete', {
+      projectFound: true,
+      suiteCount: sectionRows.length,
+      caseCount: testRows.length,
+      totalFilteredCases,
+    })
 
     return {
       databaseConfigured: true,
@@ -615,9 +703,18 @@ export const getRepositorySummary = createServerFn({ method: 'POST' })
     }),
   )
   .handler(async ({ data }): Promise<RepositorySummary> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
-    await ensureTestServerDeps()
+    const timing = startRepositoryTiming('summary', {
+      projectId: data.projectId ?? null,
+      projectSlug: data.projectSlug ?? null,
+    })
+
+    const { requireSessionUser } = await timeRepositoryStep(
+      timing,
+      'auth-import',
+      () => import('../auth/helpers.server'),
+    )
+    await timeRepositoryStep(timing, 'auth-session', () => requireSessionUser())
+    await timeRepositoryStep(timing, 'deps', () => ensureTestServerDeps())
 
     const emptySummary: RepositorySummary = {
       suiteStats: [],
@@ -630,37 +727,43 @@ export const getRepositorySummary = createServerFn({ method: 'POST' })
     }
 
     if (!isDatabaseConfigured()) {
+      logRepositoryTiming(timing, 'complete', { databaseConfigured: false })
       return emptySummary
     }
 
     const db = getDb()
-    const projectRows = await db
-      .select({ id: projects.id })
-      .from(projects)
-      .where(
-        data.projectId
-          ? eq(projects.id, data.projectId)
-          : eq(projects.slug, data.projectSlug ?? ''),
-      )
-      .limit(1)
+    const projectRows = await timeRepositoryStep(timing, 'project', () =>
+      db
+        .select({ id: projects.id })
+        .from(projects)
+        .where(
+          data.projectId
+            ? eq(projects.id, data.projectId)
+            : eq(projects.slug, data.projectSlug ?? ''),
+        )
+        .limit(1),
+    )
     const project = projectRows[0]
 
     if (!project) {
+      logRepositoryTiming(timing, 'complete', { projectFound: false })
       return emptySummary
     }
 
-    const suiteStatsRows = await db
-      .select({
-        sectionId: tests.sectionId,
-        totalCases: count(),
-        activeCases: sql<number>`sum(case when ${tests.status} <> 'Archived' then 1 else 0 end)`,
-        readyCases: sql<number>`sum(case when ${tests.status} = 'Ready' then 1 else 0 end)`,
-        draftCases: sql<number>`sum(case when ${tests.status} = 'Draft' then 1 else 0 end)`,
-        archivedCases: sql<number>`sum(case when ${tests.status} = 'Archived' then 1 else 0 end)`,
-      })
-      .from(tests)
-      .where(eq(tests.projectId, project.id))
-      .groupBy(tests.sectionId)
+    const suiteStatsRows = await timeRepositoryStep(timing, 'suite-summary', () =>
+      db
+        .select({
+          sectionId: tests.sectionId,
+          totalCases: count(),
+          activeCases: sql<number>`sum(case when ${tests.status} <> 'Archived' then 1 else 0 end)`,
+          readyCases: sql<number>`sum(case when ${tests.status} = 'Ready' then 1 else 0 end)`,
+          draftCases: sql<number>`sum(case when ${tests.status} = 'Draft' then 1 else 0 end)`,
+          archivedCases: sql<number>`sum(case when ${tests.status} = 'Archived' then 1 else 0 end)`,
+        })
+        .from(tests)
+        .where(eq(tests.projectId, project.id))
+        .groupBy(tests.sectionId),
+    )
 
     const stats = suiteStatsRows.reduce(
       (projectStats, row) => ({
@@ -672,6 +775,12 @@ export const getRepositorySummary = createServerFn({ method: 'POST' })
       }),
       { totalCases: 0, activeCases: 0, readyCases: 0, archivedCases: 0 },
     )
+
+    logRepositoryTiming(timing, 'complete', {
+      projectFound: true,
+      suiteStatsCount: suiteStatsRows.length,
+      totalCases: stats.totalCases,
+    })
 
     return {
       suiteStats: suiteStatsRows
