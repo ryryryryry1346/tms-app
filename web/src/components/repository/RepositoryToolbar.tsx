@@ -200,33 +200,39 @@ export function RepositoryToolbar({
       >
         <PopoverMenuLabel>Columns</PopoverMenuLabel>
         {(Object.keys(REPOSITORY_COLUMN_LABELS) as RepositoryColumnKey[]).map(
-          (column) => (
-            <PopoverMenuItem
-              key={column}
-              onClick={(event) => {
-                event.preventDefault()
+          (column) => {
+            const isChecked = visibleColumns[column]
+            const isLocked = isChecked && visibleColumnCount <= 1
 
-                if (visibleColumns[column] && visibleColumnCount <= 1) {
-                  return
-                }
+            return (
+              <PopoverMenuItem
+                key={column}
+                role="menuitemcheckbox"
+                aria-checked={isChecked}
+                disabled={isLocked}
+                onClick={(event) => {
+                  event.preventDefault()
 
-                onToggleColumn(column)
-              }}
-              className="justify-start gap-2"
-            >
-              <span
-                aria-hidden="true"
-                className={`inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border text-[0.625rem] leading-none ${
-                  visibleColumns[column]
-                    ? 'border-[var(--tms-primary)] bg-[var(--tms-primary)] text-[var(--tms-text-inverse)]'
-                    : 'border-[var(--tms-border)] bg-[var(--tms-surface)]'
-                }`}
+                  if (isLocked) {
+                    return
+                  }
+
+                  onToggleColumn(column)
+                }}
+                className="repository-column-menu-item"
               >
-                {visibleColumns[column] ? 'x' : ''}
-              </span>
-              {REPOSITORY_COLUMN_LABELS[column]}
-            </PopoverMenuItem>
-          ),
+                <span
+                  aria-hidden="true"
+                  className={`repository-column-checkbox ${
+                    isChecked ? 'repository-column-checkbox--checked' : ''
+                  }`}
+                />
+                <span className="repository-column-menu-item__label">
+                  {REPOSITORY_COLUMN_LABELS[column]}
+                </span>
+              </PopoverMenuItem>
+            )
+          },
         )}
       </PopoverMenu>
     </div>
