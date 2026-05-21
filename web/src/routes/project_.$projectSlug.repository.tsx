@@ -405,6 +405,28 @@ function hasRepositoryRichContent(value: string | null | undefined): boolean {
   return text.length > 0
 }
 
+function isRepositoryPreviewDetailFresh(
+  detail: TestDetail | undefined,
+  test: DashboardTest | null,
+): boolean {
+  if (!detail) {
+    return false
+  }
+
+  if (!test?.updatedAt || !detail.updatedAt) {
+    return true
+  }
+
+  const detailUpdatedAt = new Date(detail.updatedAt).getTime()
+  const testUpdatedAt = new Date(test.updatedAt).getTime()
+
+  if (Number.isNaN(detailUpdatedAt) || Number.isNaN(testUpdatedAt)) {
+    return detail.updatedAt === test.updatedAt
+  }
+
+  return detailUpdatedAt >= testUpdatedAt
+}
+
 function downloadCsvFile(filename: string, csv: string): void {
   const blob = new Blob([`\uFEFF${csv}`], {
     type: 'text/csv;charset=utf-8',
@@ -851,6 +873,35 @@ function ProjectRepositoryPage() {
         ...current,
         [testId]: updater(detail),
       }
+    })
+  }
+
+  function updatePreviewDetails(
+    testIds: number[],
+    updater: (detail: TestDetail) => TestDetail,
+  ): void {
+    const testIdSet = new Set(testIds)
+    previewCacheOrderRef.current = [
+      ...previewCacheOrderRef.current.filter((id) => !testIdSet.has(id)),
+      ...testIds,
+    ].slice(-REPOSITORY_PREVIEW_CACHE_LIMIT)
+
+    setPreviewDetailsById((current) => {
+      let didUpdate = false
+      const next = { ...current }
+
+      for (const testId of testIds) {
+        const detail = current[testId]
+
+        if (!detail) {
+          continue
+        }
+
+        next[testId] = updater(detail)
+        didUpdate = true
+      }
+
+      return didUpdate ? next : current
     })
   }
 
@@ -1325,7 +1376,9 @@ function ProjectRepositoryPage() {
       return
     }
 
-    if (previewDetailsById[previewTestId]) {
+    const cachedPreviewDetail = previewDetailsById[previewTestId]
+
+    if (isRepositoryPreviewDetailFresh(cachedPreviewDetail, previewTest)) {
       setIsLoadingPreviewDetail(false)
       setPreviewDetailErrorMessage(null)
       return
@@ -1366,7 +1419,7 @@ function ProjectRepositoryPage() {
     return () => {
       isCancelled = true
     }
-  }, [previewDetailsById, previewTestId])
+  }, [previewDetailsById, previewTest, previewTestId])
 
   useEffect(() => {
     if (!previewTestDetail) {
@@ -1548,15 +1601,17 @@ function ProjectRepositoryPage() {
         },
       })
 
+      const updatedAt = new Date().toISOString()
+
       rememberPreviewDetail({
         ...previewTestDetail,
         steps: previewStepsValue,
         expected: previewExpectedValue,
-        updatedAt: new Date().toISOString(),
+        updatedAt,
       })
       updateRepositoryTests([previewTestDetail.id], (test) => ({
         ...test,
-        updatedAt: new Date().toISOString(),
+        updatedAt,
       }))
       setIsEditingPreviewContent(false)
     } catch (error) {
@@ -1634,6 +1689,17 @@ function ProjectRepositoryPage() {
             : null,
         updatedAt,
       }))
+      updatePreviewDetails(statusUpdateIds, (detail) => ({
+        ...detail,
+        status,
+        archivedFromStatus:
+          status === 'Archived'
+            ? detail.status === 'Ready' || detail.status === 'Draft'
+              ? detail.status
+              : detail.archivedFromStatus ?? 'Draft'
+            : null,
+        updatedAt,
+      }))
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
@@ -1674,6 +1740,12 @@ function ProjectRepositoryPage() {
         ...test,
         priority: metadata.priority ?? test.priority,
         caseType: metadata.caseType ?? test.caseType,
+        updatedAt,
+      }))
+      updatePreviewDetails(selectedTestIds, (detail) => ({
+        ...detail,
+        priority: metadata.priority ?? detail.priority,
+        caseType: metadata.caseType ?? detail.caseType,
         updatedAt,
       }))
       setSelectedTestIds([])
@@ -1806,15 +1878,16 @@ function ProjectRepositoryPage() {
         },
       })
 
+      const updatedAt = new Date().toISOString()
       updateRepositoryTests([testId], (test) => ({
         ...test,
         title: nextTitle,
-        updatedAt: new Date().toISOString(),
+        updatedAt,
       }))
       updatePreviewDetail(testId, (detail) => ({
         ...detail,
         title: nextTitle,
-        updatedAt: new Date().toISOString(),
+        updatedAt,
       }))
       cancelCaseTitleEdit()
     } catch (error) {
@@ -1856,11 +1929,18 @@ function ProjectRepositoryPage() {
       adjustSuiteStatsForStatusChanges(selectedTestIds, (test) =>
         test.archivedFromStatus ?? 'Draft',
       )
+      const updatedAt = new Date().toISOString()
       updateRepositoryTests(selectedTestIds, (test) => ({
         ...test,
         status: test.archivedFromStatus ?? 'Draft',
         archivedFromStatus: null,
-        updatedAt: new Date().toISOString(),
+        updatedAt,
+      }))
+      updatePreviewDetails(selectedTestIds, (detail) => ({
+        ...detail,
+        status: detail.archivedFromStatus ?? 'Draft',
+        archivedFromStatus: null,
+        updatedAt,
       }))
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
@@ -1946,6 +2026,18 @@ function ProjectRepositoryPage() {
       setIsBulkDeleteConfirming(false)
       setDraggedTestIds([])
       setDragOverTestDrop(null)
+      updatePreviewDetails(testIds, (detail) => {
+        const targetSuite = dashboard.sections.find(
+          (section) => section.id === targetSuiteId,
+        )
+
+        return {
+          ...detail,
+          sectionId: targetSuiteId,
+          sectionName: targetSuite?.name ?? detail.sectionName,
+          updatedAt: new Date().toISOString(),
+        }
+      })
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
@@ -1988,6 +2080,18 @@ function ProjectRepositoryPage() {
       setIsBulkDeleteConfirming(false)
       setDraggedTestIds([])
       setDragOverTestDrop(null)
+      updatePreviewDetails(testIds, (detail) => {
+        const targetSuite = dashboard.sections.find(
+          (section) => section.id === targetSuiteId,
+        )
+
+        return {
+          ...detail,
+          sectionId: targetSuiteId,
+          sectionName: targetSuite?.name ?? detail.sectionName,
+          updatedAt: new Date().toISOString(),
+        }
+      })
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
@@ -2307,6 +2411,7 @@ function ProjectRepositoryPage() {
       setOpenCaseMenuId(null)
       setSelectedTestIds((current) => current.filter((id) => id !== testId))
       adjustSuiteStatsForStatusChanges([testId], () => 'Archived')
+      const updatedAt = new Date().toISOString()
       updateRepositoryTests([testId], (test) => ({
         ...test,
         status: 'Archived',
@@ -2314,7 +2419,16 @@ function ProjectRepositoryPage() {
           test.status === 'Ready' || test.status === 'Draft'
             ? test.status
             : test.archivedFromStatus ?? 'Draft',
-        updatedAt: new Date().toISOString(),
+        updatedAt,
+      }))
+      updatePreviewDetail(testId, (detail) => ({
+        ...detail,
+        status: 'Archived',
+        archivedFromStatus:
+          detail.status === 'Ready' || detail.status === 'Draft'
+            ? detail.status
+            : detail.archivedFromStatus ?? 'Draft',
+        updatedAt,
       }))
     } catch (error) {
       setCaseActionErrorMessage(
@@ -2341,11 +2455,18 @@ function ProjectRepositoryPage() {
       adjustSuiteStatsForStatusChanges([testId], (test) =>
         test.archivedFromStatus ?? 'Draft',
       )
+      const updatedAt = new Date().toISOString()
       updateRepositoryTests([testId], (test) => ({
         ...test,
         status: test.archivedFromStatus ?? 'Draft',
         archivedFromStatus: null,
-        updatedAt: new Date().toISOString(),
+        updatedAt,
+      }))
+      updatePreviewDetail(testId, (detail) => ({
+        ...detail,
+        status: detail.archivedFromStatus ?? 'Draft',
+        archivedFromStatus: null,
+        updatedAt,
       }))
     } catch (error) {
       setCaseActionErrorMessage(
