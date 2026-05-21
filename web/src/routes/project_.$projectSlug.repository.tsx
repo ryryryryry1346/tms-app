@@ -285,13 +285,18 @@ function CsvUploadDropzone({
             onFileChange(event.currentTarget.files?.[0] ?? null)
           }
         />
-        <span className="repository-import-dropzone__title">
-          {file ? file.name : 'Choose or drop CSV file'}
+        <span className="repository-import-dropzone__icon" aria-hidden="true">
+          CSV
         </span>
-        <span className="repository-import-dropzone__meta">
-          {file
-            ? `${formatImportFileSize(file.size)} selected`
-            : 'Supports TMS CSV and Testmo CSV'}
+        <span className="repository-import-dropzone__copy">
+          <span className="repository-import-dropzone__title">
+            {file ? file.name : 'Choose CSV file'}
+          </span>
+          <span className="repository-import-dropzone__meta">
+            {file
+              ? `${formatImportFileSize(file.size)} selected`
+              : 'Drop a TMS or Testmo CSV here, or click to browse'}
+          </span>
         </span>
       </label>
       {file ? (
@@ -1183,6 +1188,16 @@ function ProjectRepositoryPage() {
         } more`
       : importPreview.missingSuites.join(', ')
     : ''
+  const importReadyToCreate =
+    importPreview !== null && importPreview.errorRows === 0
+  const importReviewMessage =
+    importPreview === null
+      ? ''
+      : importPreview.errorRows > 0
+        ? `${importPreview.errorRows} rows are blocked by validation errors.`
+        : importPreview.warningRows > 0
+          ? `${importPreview.warningRows} rows have warnings but can be imported.`
+          : 'CSV is ready to import.'
   const previewTest =
     previewTestId === null
       ? null
@@ -2583,66 +2598,77 @@ function ProjectRepositoryPage() {
           ) : null}
 
           {isImportPanelOpen ? (
-            <section className="tms-panel mb-6 px-4 py-4 sm:px-5">
+            <section className="repository-import-panel tms-panel mb-6 px-4 py-4 sm:px-5">
               <form
-                className="grid gap-3 lg:grid-cols-[180px_minmax(0,1fr)_140px]"
+                className="repository-import-form"
                 onSubmit={(event) => {
                   void handleImportPreview(event)
                 }}
               >
-                <div className="lg:col-span-3">
-                  <div className="text-base font-semibold text-[var(--tms-text)]">
-                    Import CSV
+                <div className="repository-import-form__header">
+                  <div>
+                    <div className="text-base font-semibold text-[var(--tms-text)]">
+                      Import CSV
+                    </div>
+                    <div className="mt-1 text-sm text-[var(--tms-text-muted)]">
+                      Upload, preview, validate, then confirm before anything is
+                      written to the repository.
+                    </div>
                   </div>
-                  <div className="mt-1 text-sm text-[var(--tms-text-muted)]">
-                    Preview, validate, confirm, then create test cases.
-                  </div>
+                  {importFile ? (
+                    <span className="tms-chip">
+                      {importFile.name}
+                    </span>
+                  ) : null}
                 </div>
-                <label className="grid gap-1.5 text-sm font-semibold text-[var(--tms-text)]">
-                  Source
-                  <SelectMenu
-                    value={importSource}
-                    onValueChange={(value) => {
-                      setImportSource(value as RepositoryImportPanelSource)
-                      setImportPreview(null)
-                    }}
-                    options={[
-                      { value: 'auto', label: 'Auto detect' },
-                      { value: 'native', label: 'TMS CSV' },
-                      { value: 'testmo', label: 'Testmo CSV' },
-                    ]}
-                    aria-label="Import source"
-                  />
-                </label>
-                <div className="grid gap-1.5 text-sm font-semibold text-[var(--tms-text)]">
-                  CSV file
+
+                <div className="repository-import-form__upload">
                   <CsvUploadDropzone
                     file={importFile}
                     onFileChange={handleImportFileSelection}
                   />
                 </div>
-                <div className="flex items-end">
+
+                <div className="repository-import-form__settings">
+                  <label className="grid gap-1.5 text-sm font-semibold text-[var(--tms-text)]">
+                    Source
+                    <SelectMenu
+                      value={importSource}
+                      onValueChange={(value) => {
+                        setImportSource(value as RepositoryImportPanelSource)
+                        setImportPreview(null)
+                      }}
+                      options={[
+                        { value: 'auto', label: 'Auto detect' },
+                        { value: 'native', label: 'TMS CSV' },
+                        { value: 'testmo', label: 'Testmo CSV' },
+                      ]}
+                      aria-label="Import source"
+                    />
+                  </label>
+                  <label className="repository-import-form__checkbox">
+                    <Checkbox
+                      checked={createMissingImportSuites}
+                      onChange={(event) => {
+                        setCreateMissingImportSuites(event.currentTarget.checked)
+                        setImportPreview(null)
+                        setImportResult(null)
+                        setIsImportConfirming(false)
+                      }}
+                    />
+                    <span>
+                      Create missing suites
+                      <small>Required for importing Testmo folder trees.</small>
+                    </span>
+                  </label>
                   <Button
                     type="submit"
                     disabled={isParsingImport || !importFile}
                     variant="primary"
-                    className="w-full"
                   >
-                    {isParsingImport ? 'Parsing...' : 'Preview'}
+                    {isParsingImport ? 'Parsing...' : 'Preview import'}
                   </Button>
                 </div>
-                <label className="flex items-center gap-2 text-sm text-[var(--tms-text)] lg:col-span-3">
-                  <Checkbox
-                    checked={createMissingImportSuites}
-                    onChange={(event) => {
-                      setCreateMissingImportSuites(event.currentTarget.checked)
-                      setImportPreview(null)
-                      setImportResult(null)
-                      setIsImportConfirming(false)
-                    }}
-                  />
-                  Create missing suites during import
-                </label>
               </form>
 
               {importErrorMessage ? (
@@ -2663,33 +2689,46 @@ function ProjectRepositoryPage() {
 
               {importPreview ? (
                 <div className="mt-4 grid gap-3">
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--tms-text-muted)]">
-                    <span className="tms-chip">
-                      {importPreview.totalRows} rows
-                    </span>
-                    <span className="tms-chip tms-chip-status-ready">
-                      {importPreview.validRows} valid
-                    </span>
-                    <span className="tms-chip tms-chip-status-draft">
-                      {importPreview.warningRows} warnings
-                    </span>
-                    <span className="tms-chip tms-chip-status-archived">
-                      {importPreview.errorRows} errors
-                    </span>
-                    <span className="tms-chip">
-                      {importPreview.duplicateRows} duplicates
-                    </span>
-                    <span className="tms-chip">
-                      {importPreview.missingSuites.length} missing suites
-                    </span>
-                    <span>
-                      Detected: {importPreview.detectedSource === 'testmo' ? 'Testmo CSV' : 'TMS CSV'}
-                    </span>
+                  <div className="repository-import-summary">
+                    <div className="repository-import-summary__item">
+                      <span>Rows</span>
+                      <strong>{importPreview.totalRows}</strong>
+                    </div>
+                    <div className="repository-import-summary__item is-ready">
+                      <span>Valid</span>
+                      <strong>{importPreview.validRows}</strong>
+                    </div>
+                    <div className="repository-import-summary__item is-warning">
+                      <span>Warnings</span>
+                      <strong>{importPreview.warningRows}</strong>
+                    </div>
+                    <div className="repository-import-summary__item is-danger">
+                      <span>Errors</span>
+                      <strong>{importPreview.errorRows}</strong>
+                    </div>
+                    <div className="repository-import-summary__item">
+                      <span>Duplicates</span>
+                      <strong>{importPreview.duplicateRows}</strong>
+                    </div>
+                    <div className="repository-import-summary__item">
+                      <span>Detected</span>
+                      <strong>
+                        {importPreview.detectedSource === 'testmo'
+                          ? 'Testmo'
+                          : 'TMS'}
+                      </strong>
+                    </div>
                   </div>
+                  <Alert variant={importReadyToCreate ? 'info' : 'warning'}>
+                    {importReviewMessage}
+                    {importPreview.duplicateRows > 0
+                      ? ' Duplicate rows are warnings and will still create new cases if confirmed.'
+                      : ''}
+                  </Alert>
                   {importPreview.missingSuites.length > 0 ? (
                     <Alert
                       variant={
-                        createMissingImportSuites && importPreview.errorRows === 0
+                        createMissingImportSuites
                           ? 'info'
                           : 'warning'
                       }
@@ -2701,7 +2740,7 @@ function ProjectRepositoryPage() {
                     </Alert>
                   ) : null}
                   <div className="overflow-x-auto rounded-[var(--tms-radius-md)] border border-[var(--tms-border-subtle)]">
-                    <div className="grid min-w-[980px] grid-cols-[70px_1.2fr_1fr_100px_110px_110px_1.4fr] border-b border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
+                    <div className="repository-import-preview-row repository-import-preview-row--head">
                       <span>Row</span>
                       <span>Title</span>
                       <span>Suite</span>
@@ -2713,7 +2752,13 @@ function ProjectRepositoryPage() {
                     {importPreview.previewRows.map((row) => (
                       <div
                         key={row.rowNumber}
-                        className="grid min-w-[980px] grid-cols-[70px_1.2fr_1fr_100px_110px_110px_1.4fr] gap-0 border-b border-[var(--tms-border-subtle)] px-3 py-2 text-sm last:border-b-0"
+                        className={`repository-import-preview-row ${
+                          row.errors.length > 0
+                            ? 'repository-import-preview-row--error'
+                            : row.warnings.length > 0
+                              ? 'repository-import-preview-row--warning'
+                              : ''
+                        }`}
                       >
                         <span className="text-[var(--tms-text-muted)]">
                           {row.rowNumber}
@@ -2725,16 +2770,25 @@ function ProjectRepositoryPage() {
                         <span>{row.status}</span>
                         <span>{row.priority}</span>
                         <span>{row.caseType}</span>
-                        <span className="min-w-0 text-[var(--tms-text-muted)]">
-                          {[
-                            ...row.errors,
-                            ...row.warnings,
-                            row.duplicate !== 'none'
-                              ? `Duplicate: ${row.duplicate}`
-                              : '',
-                          ]
-                            .filter(Boolean)
-                            .join(' ') || 'OK'}
+                        <span className="repository-import-preview-row__notes">
+                          {row.errors.length > 0 ? (
+                            <span className="tms-chip tms-chip-danger">Error</span>
+                          ) : row.warnings.length > 0 ? (
+                            <span className="tms-chip tms-chip-warning">Warning</span>
+                          ) : (
+                            <span className="tms-chip tms-chip-success">OK</span>
+                          )}
+                          <span className="min-w-0 truncate">
+                            {[
+                              ...row.errors,
+                              ...row.warnings,
+                              row.duplicate !== 'none'
+                                ? `Duplicate: ${row.duplicate}`
+                                : '',
+                            ]
+                              .filter(Boolean)
+                              .join(' ') || 'Ready'}
+                          </span>
                         </span>
                       </div>
                     ))}
@@ -2778,7 +2832,7 @@ function ProjectRepositoryPage() {
                         <Button
                           type="button"
                           variant="primary"
-                          disabled={importPreview.errorRows > 0 || isImportingCsv}
+                          disabled={!importReadyToCreate || isImportingCsv}
                           onClick={() => setIsImportConfirming(true)}
                         >
                           Continue to import

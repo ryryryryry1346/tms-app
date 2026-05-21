@@ -397,18 +397,71 @@ pre code {
   min-width: 0;
 }
 
-.repository-import-dropzone {
+.repository-import-panel {
+  overflow: visible;
+}
+
+.repository-import-form {
   display: grid;
+  gap: 1rem;
+}
+
+.repository-import-form__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.repository-import-form__upload {
+  min-width: 0;
+}
+
+.repository-import-form__settings {
+  display: grid;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.repository-import-form__checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  color: var(--tms-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.repository-import-form__checkbox small {
+  display: block;
+  margin-top: 0.125rem;
+  color: var(--tms-text-muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+@media (min-width: 1024px) {
+  .repository-import-form {
+    grid-template-columns: minmax(0, 1fr) 18rem;
+  }
+
+  .repository-import-form__header {
+    grid-column: 1 / -1;
+  }
+}
+
+.repository-import-dropzone {
+  display: flex;
+  align-items: center;
   flex: 1 1 auto;
   min-width: 0;
-  min-height: 2.625rem;
-  align-content: center;
-  gap: 0.15rem;
+  min-height: 4.5rem;
+  gap: 0.75rem;
   border: 1px dashed var(--tms-border);
   border-radius: var(--tms-radius-control);
   background: var(--tms-surface);
   color: var(--tms-text);
-  padding: 0.5rem 0.8rem;
+  padding: 0.8rem 0.9rem;
   box-shadow: var(--tms-shadow-subtle);
   cursor: pointer;
   transition:
@@ -429,6 +482,28 @@ pre code {
 
 .repository-import-dropzone--has-file {
   border-style: solid;
+}
+
+.repository-import-dropzone__icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: var(--tms-radius-sm);
+  background: var(--tms-surface-soft);
+  color: var(--tms-primary);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.repository-import-dropzone__copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
 }
 
 .repository-import-dropzone__title,
@@ -454,7 +529,87 @@ pre code {
 
 .repository-import-upload__remove.tms-button {
   align-self: stretch;
-  min-height: 2.625rem;
+  min-height: 4.5rem;
+}
+
+.repository-import-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.repository-import-summary__item {
+  display: grid;
+  gap: 0.2rem;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: var(--tms-radius-md);
+  background: var(--tms-surface-soft);
+  padding: 0.75rem;
+}
+
+.repository-import-summary__item span {
+  color: var(--tms-text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.repository-import-summary__item strong {
+  color: var(--tms-text);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.repository-import-summary__item.is-ready strong {
+  color: var(--tms-success);
+}
+
+.repository-import-summary__item.is-warning strong {
+  color: var(--tms-warning);
+}
+
+.repository-import-summary__item.is-danger strong {
+  color: var(--tms-danger);
+}
+
+.repository-import-preview-row {
+  display: grid;
+  min-width: 980px;
+  grid-template-columns: 70px 1.2fr 1fr 100px 110px 110px 1.4fr;
+  gap: 0;
+  border-bottom: 1px solid var(--tms-border-subtle);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.repository-import-preview-row:last-child {
+  border-bottom: 0;
+}
+
+.repository-import-preview-row--head {
+  background: var(--tms-surface-soft);
+  color: var(--tms-text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.repository-import-preview-row--error {
+  background: color-mix(in oklab, var(--tms-danger-soft) 35%, var(--tms-surface));
+}
+
+.repository-import-preview-row--warning {
+  background: color-mix(in oklab, var(--tms-warning-soft) 35%, var(--tms-surface));
+}
+
+.repository-import-preview-row__notes {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--tms-text-muted);
 }
 
 .tms-button {
