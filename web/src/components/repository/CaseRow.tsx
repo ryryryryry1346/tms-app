@@ -204,6 +204,7 @@ export function CaseRow({
       onClick={onPreview}
       onFocus={onPrefetchPreview}
       onMouseEnter={onPrefetchPreview}
+      aria-current={isPreviewActive ? 'true' : undefined}
       onDragOver={(event) => {
         if (draggedTestIds.length === 0) {
           return
@@ -299,6 +300,7 @@ export function CaseRow({
           }}
           className="repository-case-row__title"
           aria-label={`Preview test case ${test.title}`}
+          aria-current={isPreviewActive ? 'true' : undefined}
         >
           {test.title}
         </button>

@@ -3237,7 +3237,7 @@ function ProjectRepositoryPage() {
                         {splitPreviewTest.title}
                       </h2>
                       <p className="repository-preview-panel__subtitle">
-                        {previewSuite?.name ?? 'No suite'} ·{' '}
+                        {previewSuite?.name ?? 'No suite'} /{' '}
                         {formatRepositoryDateTime(
                           splitPreviewTest.updatedAt ?? splitPreviewTest.createdAt,
                         )}
@@ -3251,7 +3251,7 @@ function ProjectRepositoryPage() {
                         onClick={() => openAdjacentPreview('previous')}
                         aria-label="Preview previous test case"
                       >
-                        ↑
+                        Prev
                       </Button>
                       <Button
                         type="button"
@@ -3260,7 +3260,7 @@ function ProjectRepositoryPage() {
                         onClick={() => openAdjacentPreview('next')}
                         aria-label="Preview next test case"
                       >
-                        ↓
+                        Next
                       </Button>
                       <Button
                         type="button"
