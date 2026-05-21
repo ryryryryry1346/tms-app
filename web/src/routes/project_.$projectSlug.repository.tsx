@@ -391,6 +391,20 @@ function formatRepositoryDateTime(value: string | null | undefined): string {
   return `${REPOSITORY_MONTH_LABELS[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}, ${hours}:${minutes}`
 }
 
+function hasRepositoryRichContent(value: string | null | undefined): boolean {
+  if (!value) {
+    return false
+  }
+
+  const text = value
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  return text.length > 0
+}
+
 function downloadCsvFile(filename: string, csv: string): void {
   const blob = new Blob([`\uFEFF${csv}`], {
     type: 'text/csv;charset=utf-8',
@@ -1225,6 +1239,10 @@ function ProjectRepositoryPage() {
   const shouldShowSplitPreview =
     isSplitPreviewViewport && previewDrawerTest !== null
   const splitPreviewTest = shouldShowSplitPreview ? previewDrawerTest : null
+  const splitPreviewHasSteps = hasRepositoryRichContent(splitPreviewTest?.steps)
+  const splitPreviewHasExpected = hasRepositoryRichContent(
+    splitPreviewTest?.expected,
+  )
   const previewIndex =
     previewTestId === null
       ? -1
@@ -3490,6 +3508,7 @@ function ProjectRepositoryPage() {
                       </div>
                     ) : isLoadingPreviewDetail ? (
                       <div className="repository-preview-panel__skeleton">
+                        <strong>Loading preview</strong>
                         <span />
                         <span />
                         <span />
@@ -3497,6 +3516,7 @@ function ProjectRepositoryPage() {
                       </div>
                     ) : previewDetailErrorMessage ? (
                       <div className="repository-preview-panel__state repository-preview-panel__state--danger">
+                        <strong>Preview could not load</strong>
                         <span>{previewDetailErrorMessage}</span>
                         <Button
                           type="button"
@@ -3513,23 +3533,35 @@ function ProjectRepositoryPage() {
                       <>
                         <section className="repository-preview-panel__section">
                           <h3>Steps</h3>
-                          <div
-                            className="rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
-                            onClick={handleRichContentClick}
-                            dangerouslySetInnerHTML={{
-                              __html: splitPreviewTest.steps || '<p>-</p>',
-                            }}
-                          />
+                          {splitPreviewHasSteps ? (
+                            <div
+                              className="rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
+                              onClick={handleRichContentClick}
+                              dangerouslySetInnerHTML={{
+                                __html: splitPreviewTest.steps ?? '',
+                              }}
+                            />
+                          ) : (
+                            <p className="repository-preview-panel__muted">
+                              No steps yet.
+                            </p>
+                          )}
                         </section>
                         <section className="repository-preview-panel__section">
                           <h3>Expected result</h3>
-                          <div
-                            className="rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
-                            onClick={handleRichContentClick}
-                            dangerouslySetInnerHTML={{
-                              __html: splitPreviewTest.expected || '<p>-</p>',
-                            }}
-                          />
+                          {splitPreviewHasExpected ? (
+                            <div
+                              className="rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
+                              onClick={handleRichContentClick}
+                              dangerouslySetInnerHTML={{
+                                __html: splitPreviewTest.expected ?? '',
+                              }}
+                            />
+                          ) : (
+                            <p className="repository-preview-panel__muted">
+                              No expected result yet.
+                            </p>
+                          )}
                         </section>
                         <section className="repository-preview-panel__section">
                           <h3>Activity</h3>
