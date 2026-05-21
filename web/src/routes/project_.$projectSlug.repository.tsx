@@ -1164,7 +1164,8 @@ function ProjectRepositoryPage() {
       ? 'No cases'
       : dashboard.pagination.isEstimated
         ? `Showing ${paginationStart}-${paginationEnd}`
-        : `Showing ${paginationStart}-${paginationEnd} of ${dashboard.pagination.totalCases}`
+        : `Showing ${paginationStart}-${paginationEnd} of ${dashboard.pagination.totalCases} cases`
+  const paginationPageSummary = `Page ${dashboard.pagination.page} of ${dashboard.pagination.totalPages}`
   const tableScopeCountLabel =
     dashboard.pagination.isEstimated
       ? `${paginationEnd}+ cases`
@@ -3162,12 +3163,11 @@ function ProjectRepositoryPage() {
                   <div className="repository-browser-table__pagination">
                     <div className="repository-browser-table__pagination-copy">
                       <strong>{paginationSummary}</strong>
-                      <span>
-                        Page {dashboard.pagination.page} of{' '}
-                        {dashboard.pagination.totalPages}
-                      </span>
                     </div>
                     <div className="repository-browser-table__pagination-controls">
+                      <span className="repository-browser-table__page-copy">
+                        {paginationPageSummary}
+                      </span>
                       <label className="repository-browser-table__page-size">
                         <span>Rows</span>
                         <SelectMenu

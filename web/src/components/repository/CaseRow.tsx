@@ -93,16 +93,20 @@ export const DEFAULT_REPOSITORY_VISIBLE_COLUMNS: RepositoryVisibleColumns = {
 export function getRepositoryCaseGridTemplate(
   visibleColumns: RepositoryVisibleColumns,
 ): string {
+  const visibleMetadataCount = Object.values(visibleColumns).filter(Boolean).length
+  const titleColumn =
+    visibleMetadataCount <= 2 ? 'minmax(360px, 1fr)' : 'minmax(260px, 1fr)'
+
   return [
-    '56px',
-    '64px',
-    'minmax(240px, 1fr)',
+    '48px',
+    '58px',
+    titleColumn,
     visibleColumns.priority ? '104px' : null,
     visibleColumns.type ? '118px' : null,
     visibleColumns.created ? '108px' : null,
     visibleColumns.updated ? '108px' : null,
     visibleColumns.status ? '104px' : null,
-    '68px',
+    '64px',
   ]
     .filter(Boolean)
     .join(' ')

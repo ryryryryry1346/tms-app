@@ -2740,7 +2740,7 @@ a {
 }
 
 .repository-case-grid {
-  grid-template-columns: 56px 64px minmax(240px, 1fr) 104px 118px 108px 108px 104px 68px;
+  grid-template-columns: 48px 58px minmax(260px, 1fr) 104px 118px 108px 108px 104px 64px;
 }
 
 .repository-case-grid--interactive {
@@ -3193,6 +3193,13 @@ a {
 .repository-browser-table__pagination-copy strong {
   color: var(--tms-text-muted);
   font-weight: 700;
+}
+
+.repository-browser-table__page-copy {
+  color: var(--tms-text-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .repository-browser-table__pagination-actions {
@@ -3801,7 +3808,7 @@ a {
   }
 
   .repository-case-grid {
-    grid-template-columns: 64px 76px minmax(220px, 1fr) 108px 128px 112px 112px 112px 84px;
+    grid-template-columns: 56px 68px minmax(240px, 1fr) 108px 128px 112px 112px 112px 76px;
   }
 
   .repository-workspace-panel {
