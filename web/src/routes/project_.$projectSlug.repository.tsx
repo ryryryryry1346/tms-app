@@ -203,6 +203,12 @@ export const Route = createFileRoute('/project_/$projectSlug/repository')({
 
 type ComposerKind = 'suite' | null
 type RepositoryImportPanelSource = RepositoryImportSource
+type RepositoryImportPreviewFilter =
+  | 'all'
+  | 'valid'
+  | 'warnings'
+  | 'errors'
+  | 'duplicates'
 type CaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
 type CaseStatusValue = Exclude<CaseFilter, 'All'>
 type PriorityFilter = 'All' | 'Low' | 'Medium' | 'High' | 'Critical'
@@ -228,6 +234,16 @@ const CASE_TYPE_OPTIONS: CaseTypeValue[] = [
   'API',
 ]
 const REPOSITORY_COLUMNS_STORAGE_KEY = 'tms.repository.visibleColumns'
+const IMPORT_PREVIEW_FILTERS: Array<{
+  value: RepositoryImportPreviewFilter
+  label: string
+}> = [
+  { value: 'all', label: 'All' },
+  { value: 'valid', label: 'Valid' },
+  { value: 'warnings', label: 'Warnings' },
+  { value: 'errors', label: 'Errors' },
+  { value: 'duplicates', label: 'Duplicates' },
+]
 
 function formatImportFileSize(bytes: number): string {
   if (bytes < 1024) {
@@ -295,7 +311,7 @@ function CsvUploadDropzone({
           <span className="repository-import-dropzone__meta">
             {file
               ? `${formatImportFileSize(file.size)} selected`
-              : 'Drop a TMS or Testmo CSV here, or click to browse'}
+              : 'Drop a TMS, Testmo, or generic CSV here. Click anywhere in this box to browse.'}
           </span>
         </span>
       </label>
@@ -577,6 +593,8 @@ function ProjectRepositoryPage() {
   const [importResult, setImportResult] = useState<RepositoryImportResult | null>(
     null,
   )
+  const [importPreviewFilter, setImportPreviewFilter] =
+    useState<RepositoryImportPreviewFilter>('all')
   const [createMissingImportSuites, setCreateMissingImportSuites] =
     useState(true)
   const [isImportConfirming, setIsImportConfirming] = useState(false)
@@ -1264,6 +1282,49 @@ function ProjectRepositoryPage() {
         : importPreview.warningRows > 0
           ? `${importPreview.warningRows} rows have warnings but can be imported.`
           : 'CSV is ready to import.'
+  const importWizardStep =
+    importResult !== null
+      ? 4
+      : isImportConfirming
+        ? 3
+        : importPreview !== null
+          ? 2
+          : 1
+  const importVisiblePreviewRows =
+    importPreview?.previewRows.filter((row) => {
+      if (importPreviewFilter === 'valid') {
+        return row.errors.length === 0 && row.warnings.length === 0
+      }
+
+      if (importPreviewFilter === 'warnings') {
+        return row.warnings.length > 0
+      }
+
+      if (importPreviewFilter === 'errors') {
+        return row.errors.length > 0
+      }
+
+      if (importPreviewFilter === 'duplicates') {
+        return row.duplicate !== 'none'
+      }
+
+      return true
+    }) ?? []
+  const importPreviewFilterCounts: Record<RepositoryImportPreviewFilter, number> = {
+    all: importPreview?.previewRows.length ?? 0,
+    valid:
+      importPreview?.previewRows.filter(
+        (row) => row.errors.length === 0 && row.warnings.length === 0,
+      ).length ?? 0,
+    warnings:
+      importPreview?.previewRows.filter((row) => row.warnings.length > 0).length ??
+      0,
+    errors:
+      importPreview?.previewRows.filter((row) => row.errors.length > 0).length ?? 0,
+    duplicates:
+      importPreview?.previewRows.filter((row) => row.duplicate !== 'none').length ??
+      0,
+  }
   const previewTest =
     previewTestId === null
       ? null
@@ -2184,6 +2245,7 @@ function ProjectRepositoryPage() {
     setImportPreview(null)
     setImportResult(null)
     setIsImportConfirming(false)
+    setImportPreviewFilter('all')
     setIsParsingImport(true)
 
     try {
@@ -2215,6 +2277,7 @@ function ProjectRepositoryPage() {
     setImportPreview(null)
     setImportResult(null)
     setIsImportConfirming(false)
+    setImportPreviewFilter('all')
     setImportErrorMessage(null)
   }
 
@@ -2762,6 +2825,32 @@ function ProjectRepositoryPage() {
                   ) : null}
                 </div>
 
+                <div
+                  className="repository-import-steps"
+                  aria-label="CSV import progress"
+                >
+                  {[
+                    { step: 1, label: 'Upload' },
+                    { step: 2, label: 'Preview' },
+                    { step: 3, label: 'Confirm' },
+                    { step: 4, label: 'Done' },
+                  ].map((item) => (
+                    <span
+                      key={item.step}
+                      className={`repository-import-step ${
+                        importWizardStep === item.step
+                          ? 'is-active'
+                          : importWizardStep > item.step
+                            ? 'is-complete'
+                            : ''
+                      }`}
+                    >
+                      <span>{item.step}</span>
+                      {item.label}
+                    </span>
+                  ))}
+                </div>
+
                 <div className="repository-import-form__upload">
                   <CsvUploadDropzone
                     file={importFile}
@@ -2859,6 +2948,30 @@ function ProjectRepositoryPage() {
                       </strong>
                     </div>
                   </div>
+                  <div className="repository-import-preview-toolbar">
+                    <div className="repository-import-preview-toolbar__title">
+                      Preview rows
+                      <span>
+                        Showing {importVisiblePreviewRows.length} of{' '}
+                        {importPreview.previewRows.length} previewed rows
+                      </span>
+                    </div>
+                    <div className="repository-import-preview-filters">
+                      {IMPORT_PREVIEW_FILTERS.map((filter) => (
+                        <button
+                          key={filter.value}
+                          type="button"
+                          className={`repository-import-preview-filter ${
+                            importPreviewFilter === filter.value ? 'is-active' : ''
+                          }`}
+                          onClick={() => setImportPreviewFilter(filter.value)}
+                        >
+                          {filter.label}
+                          <span>{importPreviewFilterCounts[filter.value]}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <Alert variant={importReadyToCreate ? 'info' : 'warning'}>
                     {importReviewMessage}
                     {importPreview.duplicateRows > 0
@@ -2889,7 +3002,7 @@ function ProjectRepositoryPage() {
                       <span>Type</span>
                       <span>Notes</span>
                     </div>
-                    {importPreview.previewRows.map((row) => (
+                    {importVisiblePreviewRows.map((row) => (
                       <div
                         key={row.rowNumber}
                         className={`repository-import-preview-row ${
@@ -2933,18 +3046,28 @@ function ProjectRepositoryPage() {
                       </div>
                     ))}
                   </div>
+                  {importVisiblePreviewRows.length === 0 ? (
+                    <div className="repository-import-empty-preview">
+                      No rows match this preview filter.
+                    </div>
+                  ) : null}
                   {importPreview.totalRows > importPreview.previewRows.length ? (
                     <div className="text-xs text-[var(--tms-text-muted)]">
                       Showing first {importPreview.previewRows.length} rows only.
                     </div>
                   ) : null}
-                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--tms-radius-md)] border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-3 py-3">
-                    <div className="text-sm text-[var(--tms-text-muted)]">
+                  <div className="repository-import-confirm">
+                    <div>
+                      <div className="repository-import-confirm__title">
+                        {isImportConfirming ? 'Confirm import' : 'Ready for review'}
+                      </div>
+                      <div className="repository-import-confirm__copy">
                       {importPreview.errorRows > 0
                         ? 'Import is blocked until CSV errors are resolved.'
                         : isImportConfirming
                           ? `Confirm import of ${importPreview.validRows} cases.`
                           : 'Review the preview before creating test cases.'}
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {isImportConfirming ? (

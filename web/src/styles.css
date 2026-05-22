@@ -417,6 +417,61 @@ pre code {
   min-width: 0;
 }
 
+.repository-import-steps {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: var(--tms-radius-control);
+  background: var(--tms-surface-soft);
+}
+
+.repository-import-step {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.45rem;
+  border-right: 1px solid var(--tms-border-subtle);
+  color: var(--tms-text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.55rem 0.7rem;
+}
+
+.repository-import-step:last-child {
+  border-right: 0;
+}
+
+.repository-import-step span {
+  display: inline-flex;
+  width: 1.25rem;
+  height: 1.25rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: 999px;
+  background: var(--tms-surface);
+  color: var(--tms-text-muted);
+  font-size: 0.68rem;
+}
+
+.repository-import-step.is-active {
+  background: var(--tms-primary-soft);
+  color: var(--tms-primary);
+}
+
+.repository-import-step.is-active span,
+.repository-import-step.is-complete span {
+  border-color: var(--tms-primary-border);
+  background: var(--tms-primary);
+  color: var(--tms-text-inverse);
+}
+
+.repository-import-step.is-complete {
+  color: var(--tms-text);
+}
+
 .repository-import-form__settings {
   display: grid;
   align-items: end;
@@ -573,6 +628,68 @@ pre code {
   color: var(--tms-danger);
 }
 
+.repository-import-preview-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: var(--tms-radius-md);
+  background: var(--tms-surface);
+  padding: 0.65rem;
+}
+
+.repository-import-preview-toolbar__title {
+  display: grid;
+  gap: 0.1rem;
+  color: var(--tms-text);
+  font-size: 0.8125rem;
+  font-weight: 750;
+}
+
+.repository-import-preview-toolbar__title span {
+  color: var(--tms-text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.repository-import-preview-filters {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.repository-import-preview-filter {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: var(--tms-radius-control);
+  background: var(--tms-surface);
+  color: var(--tms-text);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0 0.6rem;
+}
+
+.repository-import-preview-filter:hover {
+  background: var(--tms-hover);
+}
+
+.repository-import-preview-filter.is-active {
+  border-color: var(--tms-primary-border);
+  background: var(--tms-primary-soft);
+  color: var(--tms-primary);
+}
+
+.repository-import-preview-filter span {
+  color: var(--tms-text-muted);
+  font-size: 0.68rem;
+}
+
 .repository-import-preview-row {
   display: grid;
   min-width: 980px;
@@ -610,6 +727,40 @@ pre code {
   align-items: center;
   gap: 0.45rem;
   color: var(--tms-text-muted);
+}
+
+.repository-import-empty-preview {
+  border: 1px dashed var(--tms-border-subtle);
+  border-radius: var(--tms-radius-md);
+  color: var(--tms-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 1rem;
+  text-align: center;
+}
+
+.repository-import-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: var(--tms-radius-md);
+  background: var(--tms-surface-soft);
+  padding: 0.8rem;
+}
+
+.repository-import-confirm__title {
+  color: var(--tms-text);
+  font-size: 0.8125rem;
+  font-weight: 750;
+}
+
+.repository-import-confirm__copy {
+  margin-top: 0.15rem;
+  color: var(--tms-text-muted);
+  font-size: 0.8125rem;
 }
 
 .tms-button {
