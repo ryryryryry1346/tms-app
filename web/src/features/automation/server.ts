@@ -89,6 +89,10 @@ const revokeProjectApiTokenInput = projectAutomationInput.extend({
   tokenId: z.number().int().positive(),
 })
 
+const automationRunDetailInput = projectAutomationInput.extend({
+  runId: z.number().int().positive(),
+})
+
 export type AutomationResultStatus =
   | 'passed'
   | 'failed'
@@ -137,6 +141,50 @@ export type ProjectApiTokenSummary = {
   status: string
   lastUsedAt: string | null
   createdAt: string
+}
+
+export type AutomationRunListItem = {
+  id: number
+  name: string
+  status: string
+  environment: string | null
+  branch: string | null
+  commitSha: string | null
+  ciBuildUrl: string | null
+  triggerSource: string
+  startedAt: string | null
+  finishedAt: string | null
+  durationMs: number
+  totalCount: number
+  passedCount: number
+  failedCount: number
+  skippedCount: number
+  blockedCount: number
+  unknownCount: number
+  createdAt: string
+}
+
+export type AutomationRunResultItem = {
+  id: number
+  name: string
+  suite: string | null
+  filePath: string | null
+  status: string
+  durationMs: number
+  manualTestId: number | null
+  caseKey: string | null
+  errorMessage: string | null
+  stackTrace: string | null
+  stdout: string | null
+  stderr: string | null
+  retryCount: number
+  startedAt: string | null
+}
+
+export type AutomationRunDetail = AutomationRunListItem & {
+  rawFormat: string
+  rawReport: string | null
+  results: AutomationRunResultItem[]
 }
 
 export const importAutomationJunitXml = createServerFn({ method: 'POST' })
@@ -270,6 +318,126 @@ export const revokeProjectApiToken = createServerFn({ method: 'POST' })
       )
 
     return { ok: true }
+  })
+
+export const getAutomationRuns = createServerFn({ method: 'POST' })
+  .inputValidator(projectAutomationInput)
+  .handler(async ({ data }): Promise<{ runs: AutomationRunListItem[] }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+    await ensureAutomationServerDeps()
+
+    if (!isDatabaseConfigured()) {
+      return { runs: [] }
+    }
+
+    const db = getDb()
+    const rows = await db
+      .select({
+        id: automationRuns.id,
+        name: automationRuns.name,
+        status: automationRuns.status,
+        environment: automationRuns.environment,
+        branch: automationRuns.branch,
+        commitSha: automationRuns.commitSha,
+        ciBuildUrl: automationRuns.ciBuildUrl,
+        triggerSource: automationRuns.triggerSource,
+        startedAt: automationRuns.startedAt,
+        finishedAt: automationRuns.finishedAt,
+        durationMs: automationRuns.durationMs,
+        totalCount: automationRuns.totalCount,
+        passedCount: automationRuns.passedCount,
+        failedCount: automationRuns.failedCount,
+        skippedCount: automationRuns.skippedCount,
+        blockedCount: automationRuns.blockedCount,
+        unknownCount: automationRuns.unknownCount,
+        createdAt: automationRuns.createdAt,
+      })
+      .from(automationRuns)
+      .where(eq(automationRuns.projectId, data.projectId))
+      .orderBy(desc(automationRuns.id))
+      .limit(100)
+
+    return { runs: rows }
+  })
+
+export const getAutomationRunDetail = createServerFn({ method: 'POST' })
+  .inputValidator(automationRunDetailInput)
+  .handler(async ({ data }): Promise<{ run: AutomationRunDetail }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+    await ensureAutomationServerDeps()
+
+    if (!isDatabaseConfigured()) {
+      throw new Error('Database is not configured.')
+    }
+
+    const db = getDb()
+    const runRows = await db
+      .select({
+        id: automationRuns.id,
+        name: automationRuns.name,
+        status: automationRuns.status,
+        environment: automationRuns.environment,
+        branch: automationRuns.branch,
+        commitSha: automationRuns.commitSha,
+        ciBuildUrl: automationRuns.ciBuildUrl,
+        triggerSource: automationRuns.triggerSource,
+        rawFormat: automationRuns.rawFormat,
+        rawReport: automationRuns.rawReport,
+        startedAt: automationRuns.startedAt,
+        finishedAt: automationRuns.finishedAt,
+        durationMs: automationRuns.durationMs,
+        totalCount: automationRuns.totalCount,
+        passedCount: automationRuns.passedCount,
+        failedCount: automationRuns.failedCount,
+        skippedCount: automationRuns.skippedCount,
+        blockedCount: automationRuns.blockedCount,
+        unknownCount: automationRuns.unknownCount,
+        createdAt: automationRuns.createdAt,
+      })
+      .from(automationRuns)
+      .where(
+        and(
+          eq(automationRuns.id, data.runId),
+          eq(automationRuns.projectId, data.projectId),
+        ),
+      )
+      .limit(1)
+
+    const run = runRows[0]
+
+    if (!run) {
+      throw new Error('Automation run was not found.')
+    }
+
+    const results = await db
+      .select({
+        id: automationTestResults.id,
+        name: automationTestResults.name,
+        suite: automationTestResults.suite,
+        filePath: automationTestResults.filePath,
+        status: automationTestResults.status,
+        durationMs: automationTestResults.durationMs,
+        manualTestId: automationTestResults.manualTestId,
+        caseKey: automationTestResults.caseKey,
+        errorMessage: automationTestResults.errorMessage,
+        stackTrace: automationTestResults.stackTrace,
+        stdout: automationTestResults.stdout,
+        stderr: automationTestResults.stderr,
+        retryCount: automationTestResults.retryCount,
+        startedAt: automationTestResults.startedAt,
+      })
+      .from(automationTestResults)
+      .where(eq(automationTestResults.runId, data.runId))
+      .orderBy(desc(automationTestResults.status), desc(automationTestResults.id))
+
+    return {
+      run: {
+        ...run,
+        results,
+      },
+    }
   })
 
 export async function importJunitAutomationRun(

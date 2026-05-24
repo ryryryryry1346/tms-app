@@ -27,7 +27,9 @@ import { Route as ProjectProjectSlugDocsRouteImport } from './routes/project.$pr
 import { Route as ProjectProjectSlugAutomationRouteImport } from './routes/project.$projectSlug.automation'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ProjectProjectSlugDocsDocIdRouteImport } from './routes/project_.$projectSlug.docs_.$docId'
+import { Route as ProjectProjectSlugAutomationRunsRouteImport } from './routes/project.$projectSlug.automation.runs'
 import { Route as ApiProjectsProjectIdAutomationRunsRouteImport } from './routes/api/projects.$projectId.automation-runs'
+import { Route as ProjectProjectSlugAutomationRunsRunIdRouteImport } from './routes/project.$projectSlug.automation.runs.$runId'
 import { Route as ApiProjectsProjectIdAutomationRunsImportJunitRouteImport } from './routes/api/projects.$projectId.automation-runs.import.junit'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -124,11 +126,23 @@ const ProjectProjectSlugDocsDocIdRoute =
     path: '/project/$projectSlug/docs/$docId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ProjectProjectSlugAutomationRunsRoute =
+  ProjectProjectSlugAutomationRunsRouteImport.update({
+    id: '/runs',
+    path: '/runs',
+    getParentRoute: () => ProjectProjectSlugAutomationRoute,
+  } as any)
 const ApiProjectsProjectIdAutomationRunsRoute =
   ApiProjectsProjectIdAutomationRunsRouteImport.update({
     id: '/api/projects/$projectId/automation-runs',
     path: '/api/projects/$projectId/automation-runs',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const ProjectProjectSlugAutomationRunsRunIdRoute =
+  ProjectProjectSlugAutomationRunsRunIdRouteImport.update({
+    id: '/$runId',
+    path: '/$runId',
+    getParentRoute: () => ProjectProjectSlugAutomationRunsRoute,
   } as any)
 const ApiProjectsProjectIdAutomationRunsImportJunitRoute =
   ApiProjectsProjectIdAutomationRunsImportJunitRouteImport.update({
@@ -150,13 +164,15 @@ export interface FileRoutesByFullPath {
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/project/$projectSlug/automation': typeof ProjectProjectSlugAutomationRoute
+  '/project/$projectSlug/automation': typeof ProjectProjectSlugAutomationRouteWithChildren
   '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRoute
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/api/projects/$projectId/automation-runs': typeof ApiProjectsProjectIdAutomationRunsRouteWithChildren
+  '/project/$projectSlug/automation/runs': typeof ProjectProjectSlugAutomationRunsRouteWithChildren
   '/project/$projectSlug/docs/$docId': typeof ProjectProjectSlugDocsDocIdRoute
+  '/project/$projectSlug/automation/runs/$runId': typeof ProjectProjectSlugAutomationRunsRunIdRoute
   '/api/projects/$projectId/automation-runs/import/junit': typeof ApiProjectsProjectIdAutomationRunsImportJunitRoute
 }
 export interface FileRoutesByTo {
@@ -172,13 +188,15 @@ export interface FileRoutesByTo {
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/project/$projectSlug/automation': typeof ProjectProjectSlugAutomationRoute
+  '/project/$projectSlug/automation': typeof ProjectProjectSlugAutomationRouteWithChildren
   '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRoute
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/api/projects/$projectId/automation-runs': typeof ApiProjectsProjectIdAutomationRunsRouteWithChildren
+  '/project/$projectSlug/automation/runs': typeof ProjectProjectSlugAutomationRunsRouteWithChildren
   '/project/$projectSlug/docs/$docId': typeof ProjectProjectSlugDocsDocIdRoute
+  '/project/$projectSlug/automation/runs/$runId': typeof ProjectProjectSlugAutomationRunsRunIdRoute
   '/api/projects/$projectId/automation-runs/import/junit': typeof ApiProjectsProjectIdAutomationRunsImportJunitRoute
 }
 export interface FileRoutesById {
@@ -195,13 +213,15 @@ export interface FileRoutesById {
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/project/$projectSlug/automation': typeof ProjectProjectSlugAutomationRoute
+  '/project/$projectSlug/automation': typeof ProjectProjectSlugAutomationRouteWithChildren
   '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRoute
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
   '/project_/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/api/projects/$projectId/automation-runs': typeof ApiProjectsProjectIdAutomationRunsRouteWithChildren
+  '/project/$projectSlug/automation/runs': typeof ProjectProjectSlugAutomationRunsRouteWithChildren
   '/project_/$projectSlug/docs_/$docId': typeof ProjectProjectSlugDocsDocIdRoute
+  '/project/$projectSlug/automation/runs/$runId': typeof ProjectProjectSlugAutomationRunsRunIdRoute
   '/api/projects/$projectId/automation-runs/import/junit': typeof ApiProjectsProjectIdAutomationRunsImportJunitRoute
 }
 export interface FileRouteTypes {
@@ -225,7 +245,9 @@ export interface FileRouteTypes {
     | '/project/$projectSlug/runs'
     | '/project/$projectSlug/repository'
     | '/api/projects/$projectId/automation-runs'
+    | '/project/$projectSlug/automation/runs'
     | '/project/$projectSlug/docs/$docId'
+    | '/project/$projectSlug/automation/runs/$runId'
     | '/api/projects/$projectId/automation-runs/import/junit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -247,7 +269,9 @@ export interface FileRouteTypes {
     | '/project/$projectSlug/runs'
     | '/project/$projectSlug/repository'
     | '/api/projects/$projectId/automation-runs'
+    | '/project/$projectSlug/automation/runs'
     | '/project/$projectSlug/docs/$docId'
+    | '/project/$projectSlug/automation/runs/$runId'
     | '/api/projects/$projectId/automation-runs/import/junit'
   id:
     | '__root__'
@@ -269,7 +293,9 @@ export interface FileRouteTypes {
     | '/project/$projectSlug/runs'
     | '/project_/$projectSlug/repository'
     | '/api/projects/$projectId/automation-runs'
+    | '/project/$projectSlug/automation/runs'
     | '/project_/$projectSlug/docs_/$docId'
+    | '/project/$projectSlug/automation/runs/$runId'
     | '/api/projects/$projectId/automation-runs/import/junit'
   fileRoutesById: FileRoutesById
 }
@@ -419,12 +445,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectProjectSlugDocsDocIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/project/$projectSlug/automation/runs': {
+      id: '/project/$projectSlug/automation/runs'
+      path: '/runs'
+      fullPath: '/project/$projectSlug/automation/runs'
+      preLoaderRoute: typeof ProjectProjectSlugAutomationRunsRouteImport
+      parentRoute: typeof ProjectProjectSlugAutomationRoute
+    }
     '/api/projects/$projectId/automation-runs': {
       id: '/api/projects/$projectId/automation-runs'
       path: '/api/projects/$projectId/automation-runs'
       fullPath: '/api/projects/$projectId/automation-runs'
       preLoaderRoute: typeof ApiProjectsProjectIdAutomationRunsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/project/$projectSlug/automation/runs/$runId': {
+      id: '/project/$projectSlug/automation/runs/$runId'
+      path: '/$runId'
+      fullPath: '/project/$projectSlug/automation/runs/$runId'
+      preLoaderRoute: typeof ProjectProjectSlugAutomationRunsRunIdRouteImport
+      parentRoute: typeof ProjectProjectSlugAutomationRunsRoute
     }
     '/api/projects/$projectId/automation-runs/import/junit': {
       id: '/api/projects/$projectId/automation-runs/import/junit'
@@ -436,15 +476,46 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ProjectProjectSlugAutomationRunsRouteChildren {
+  ProjectProjectSlugAutomationRunsRunIdRoute: typeof ProjectProjectSlugAutomationRunsRunIdRoute
+}
+
+const ProjectProjectSlugAutomationRunsRouteChildren: ProjectProjectSlugAutomationRunsRouteChildren =
+  {
+    ProjectProjectSlugAutomationRunsRunIdRoute:
+      ProjectProjectSlugAutomationRunsRunIdRoute,
+  }
+
+const ProjectProjectSlugAutomationRunsRouteWithChildren =
+  ProjectProjectSlugAutomationRunsRoute._addFileChildren(
+    ProjectProjectSlugAutomationRunsRouteChildren,
+  )
+
+interface ProjectProjectSlugAutomationRouteChildren {
+  ProjectProjectSlugAutomationRunsRoute: typeof ProjectProjectSlugAutomationRunsRouteWithChildren
+}
+
+const ProjectProjectSlugAutomationRouteChildren: ProjectProjectSlugAutomationRouteChildren =
+  {
+    ProjectProjectSlugAutomationRunsRoute:
+      ProjectProjectSlugAutomationRunsRouteWithChildren,
+  }
+
+const ProjectProjectSlugAutomationRouteWithChildren =
+  ProjectProjectSlugAutomationRoute._addFileChildren(
+    ProjectProjectSlugAutomationRouteChildren,
+  )
+
 interface ProjectProjectSlugRouteChildren {
-  ProjectProjectSlugAutomationRoute: typeof ProjectProjectSlugAutomationRoute
+  ProjectProjectSlugAutomationRoute: typeof ProjectProjectSlugAutomationRouteWithChildren
   ProjectProjectSlugDocsRoute: typeof ProjectProjectSlugDocsRoute
   ProjectProjectSlugReportsRoute: typeof ProjectProjectSlugReportsRoute
   ProjectProjectSlugRunsRoute: typeof ProjectProjectSlugRunsRoute
 }
 
 const ProjectProjectSlugRouteChildren: ProjectProjectSlugRouteChildren = {
-  ProjectProjectSlugAutomationRoute: ProjectProjectSlugAutomationRoute,
+  ProjectProjectSlugAutomationRoute:
+    ProjectProjectSlugAutomationRouteWithChildren,
   ProjectProjectSlugDocsRoute: ProjectProjectSlugDocsRoute,
   ProjectProjectSlugReportsRoute: ProjectProjectSlugReportsRoute,
   ProjectProjectSlugRunsRoute: ProjectProjectSlugRunsRoute,

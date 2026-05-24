@@ -7,6 +7,7 @@ import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Input } from '../components/ui/Input'
+import { LinkButton } from '../components/ui/LinkButton'
 import { Panel } from '../components/ui/Panel'
 import {
   createProjectApiToken,
@@ -240,9 +241,17 @@ function ProjectAutomationPage() {
             projectName={project.name}
             description="Connect CI/CD pipelines and upload automation test results into this project."
             actions={
-              <Badge variant="primary">
-                {activeTokenCount} active token{activeTokenCount === 1 ? '' : 's'}
-              </Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="primary">
+                  {activeTokenCount} active token{activeTokenCount === 1 ? '' : 's'}
+                </Badge>
+                <LinkButton
+                  to="/project/$projectSlug/automation/runs"
+                  params={{ projectSlug: project.slug ?? project.id.toString() }}
+                >
+                  Open runs
+                </LinkButton>
+              </div>
             }
           />
 
