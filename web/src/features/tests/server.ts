@@ -358,6 +358,7 @@ export type RepositoryImportPreview = {
   filename: string
   source: RepositoryImportSource
   detectedSource: Exclude<RepositoryImportSource, 'auto'>
+  availableColumns: string[]
   totalRows: number
   columnMappings: RepositoryImportColumnMapping[]
   previewRows: RepositoryImportPreviewRow[]
@@ -1250,6 +1251,47 @@ function getCsvValue(
   return ''
 }
 
+function getCsvValueByHeader(
+  headers: string[],
+  row: string[],
+  headerName: string | null | undefined,
+): string {
+  if (!headerName) {
+    return ''
+  }
+
+  const normalizedHeaderName = normalizeHeader(headerName)
+  const index = headers.findIndex(
+    (header) => normalizeHeader(header ?? '') === normalizedHeaderName,
+  )
+
+  if (index < 0) {
+    return ''
+  }
+
+  return row[index]?.trim() ?? ''
+}
+
+function getMappedCsvValue({
+  headers,
+  row,
+  field,
+  fallbackNames,
+  mappingByField,
+}: {
+  headers: string[]
+  row: string[]
+  field: string
+  fallbackNames: string[]
+  mappingByField?: Map<string, string | null>
+}): string {
+  if (mappingByField?.has(field)) {
+    return getCsvValueByHeader(headers, row, mappingByField.get(field))
+  }
+
+  return getCsvValue(headers, row, fallbackNames)
+}
+
 function findCsvHeader(headers: string[], names: string[]): string | null {
   const normalizedNames = names.map(normalizeHeader)
 
@@ -1263,6 +1305,7 @@ function findCsvHeader(headers: string[], names: string[]): string | null {
 function buildImportColumnMappings(
   headers: string[],
   source: Exclude<RepositoryImportSource, 'auto'>,
+  requestedMappings?: RepositoryImportColumnMapping[],
 ): RepositoryImportColumnMapping[] {
   const mappingConfig =
     source === 'testmo'
@@ -1355,9 +1398,23 @@ function buildImportColumnMappings(
           },
         ]
 
+  const normalizedHeaders = new Map(
+    headers.map((header) => [normalizeHeader(header), header]),
+  )
+  const requestedMappingByField = new Map(
+    (requestedMappings ?? []).map((mapping) => [
+      mapping.field,
+      mapping.sourceColumn
+        ? normalizedHeaders.get(normalizeHeader(mapping.sourceColumn)) ?? null
+        : null,
+    ]),
+  )
+
   return mappingConfig.map((item) => ({
     field: item.field,
-    sourceColumn: findCsvHeader(headers, item.names),
+    sourceColumn: requestedMappingByField.has(item.field)
+      ? requestedMappingByField.get(item.field) ?? null
+      : findCsvHeader(headers, item.names),
     required: item.required,
     fallback: item.fallback,
   }))
@@ -1465,6 +1522,7 @@ function mapImportRow({
   existingTitleKeys,
   fileTitleKeys,
   createMissingSuites,
+  columnMappings,
 }: {
   headers: string[]
   row: string[]
@@ -1474,35 +1532,111 @@ function mapImportRow({
   existingTitleKeys: Set<string>
   fileTitleKeys: Set<string>
   createMissingSuites: boolean
+  columnMappings?: RepositoryImportColumnMapping[]
 }): RepositoryImportPreviewRow {
   const warnings: string[] = []
   const errors: string[] = []
+  const mappingByField = columnMappings
+    ? new Map(columnMappings.map((mapping) => [mapping.field, mapping.sourceColumn]))
+    : undefined
   const title =
     source === 'testmo'
-      ? getCsvValue(headers, row, ['Case'])
-      : getCsvValue(headers, row, ['title', 'case', 'name'])
+      ? getMappedCsvValue({
+          headers,
+          row,
+          field: 'Title',
+          fallbackNames: ['Case'],
+          mappingByField,
+        })
+      : getMappedCsvValue({
+          headers,
+          row,
+          field: 'Title',
+          fallbackNames: ['title', 'case', 'name'],
+          mappingByField,
+        })
   const suite =
     source === 'testmo'
-      ? getCsvValue(headers, row, ['Folder', 'Suite']) || 'Imported'
-      : getCsvValue(headers, row, ['suite', 'folder', 'section']) || 'Imported'
-  const rawPriority = getCsvValue(headers, row, ['priority'])
+      ? getMappedCsvValue({
+          headers,
+          row,
+          field: 'Suite',
+          fallbackNames: ['Folder', 'Suite'],
+          mappingByField,
+        }) || 'Imported'
+      : getMappedCsvValue({
+          headers,
+          row,
+          field: 'Suite',
+          fallbackNames: ['suite', 'folder', 'section'],
+          mappingByField,
+        }) || 'Imported'
+  const rawPriority = getMappedCsvValue({
+    headers,
+    row,
+    field: 'Priority',
+    fallbackNames: ['priority'],
+    mappingByField,
+  })
   const rawType =
     source === 'testmo'
-      ? getCsvValue(headers, row, ['Template'])
-      : getCsvValue(headers, row, ['type', 'case_type', 'template'])
+      ? getMappedCsvValue({
+          headers,
+          row,
+          field: 'Type',
+          fallbackNames: ['Template'],
+          mappingByField,
+        })
+      : getMappedCsvValue({
+          headers,
+          row,
+          field: 'Type',
+          fallbackNames: ['type', 'case_type', 'template'],
+          mappingByField,
+        })
   const rawStatus =
     source === 'testmo'
       ? ''
-      : getCsvValue(headers, row, ['status', 'state'])
+      : getMappedCsvValue({
+          headers,
+          row,
+          field: 'Status',
+          fallbackNames: ['status', 'state'],
+          mappingByField,
+        })
   const rawState = getCsvValue(headers, row, ['State'])
   const steps =
     source === 'testmo'
-      ? getCsvValue(headers, row, ['Steps (Step)'])
-      : getCsvValue(headers, row, ['steps', 'steps (step)', 'step'])
+      ? getMappedCsvValue({
+          headers,
+          row,
+          field: 'Steps',
+          fallbackNames: ['Steps (Step)'],
+          mappingByField,
+        })
+      : getMappedCsvValue({
+          headers,
+          row,
+          field: 'Steps',
+          fallbackNames: ['steps', 'steps (step)', 'step'],
+          mappingByField,
+        })
   const expected =
     source === 'testmo'
-      ? getCsvValue(headers, row, ['Steps (Expected)', 'Expected'])
-      : getCsvValue(headers, row, ['expected', 'expected_result', 'steps (expected)'])
+      ? getMappedCsvValue({
+          headers,
+          row,
+          field: 'Expected result',
+          fallbackNames: ['Steps (Expected)', 'Expected'],
+          mappingByField,
+        })
+      : getMappedCsvValue({
+          headers,
+          row,
+          field: 'Expected result',
+          fallbackNames: ['expected', 'expected_result', 'steps (expected)'],
+          mappingByField,
+        })
   const priority = normalizeImportPriority(rawPriority)
   const caseType = normalizeImportType(rawType)
   const status = normalizeImportStatus(rawStatus, rawState)
@@ -1563,11 +1697,13 @@ async function buildRepositoryImportPreview({
   projectId,
   requestedSource,
   createMissingSuites,
+  requestedMappings,
 }: {
   file: File
   projectId: number
   requestedSource: RepositoryImportSource
   createMissingSuites: boolean
+  requestedMappings?: RepositoryImportColumnMapping[]
 }): Promise<RepositoryImportPlan> {
   const text = await file.text()
   const parsed = parseCsv(text)
@@ -1578,6 +1714,11 @@ async function buildRepositoryImportPreview({
 
   const detectedSource = detectImportSource(parsed.headers)
   const source = requestedSource === 'auto' ? detectedSource : requestedSource
+  const columnMappings = buildImportColumnMappings(
+    parsed.headers,
+    source,
+    requestedMappings,
+  )
   const db = getDb()
   const [sectionRows, existingCaseRows] = await Promise.all([
     db
@@ -1621,6 +1762,7 @@ async function buildRepositoryImportPreview({
       existingTitleKeys,
       fileTitleKeys,
       createMissingSuites,
+      columnMappings,
     }),
   )
   const missingSuites = Array.from(
@@ -1642,8 +1784,9 @@ async function buildRepositoryImportPreview({
       filename: file.name,
       source: requestedSource,
       detectedSource,
+      availableColumns: parsed.headers,
       totalRows: mappedRows.length,
-      columnMappings: buildImportColumnMappings(parsed.headers, source),
+      columnMappings,
       previewRows: mappedRows.slice(0, 50),
       validRows: mappedRows.length - errorRows,
       warningRows,
@@ -1652,6 +1795,43 @@ async function buildRepositoryImportPreview({
       duplicateRows,
     },
     rows: mappedRows,
+  }
+}
+
+function readRepositoryImportMappings(data: unknown): RepositoryImportColumnMapping[] | undefined {
+  if (!(data instanceof FormData)) {
+    return undefined
+  }
+
+  const mappingValue = data.get('columnMappings')
+
+  if (typeof mappingValue !== 'string' || !mappingValue.trim()) {
+    return undefined
+  }
+
+  try {
+    const parsed = JSON.parse(mappingValue) as RepositoryImportColumnMapping[]
+
+    if (!Array.isArray(parsed)) {
+      return undefined
+    }
+
+    return parsed
+      .filter((mapping) => typeof mapping?.field === 'string')
+      .map((mapping) => ({
+        field: mapping.field,
+        sourceColumn:
+          typeof mapping.sourceColumn === 'string' && mapping.sourceColumn
+            ? mapping.sourceColumn
+            : null,
+        required: Boolean(mapping.required),
+        fallback:
+          typeof mapping.fallback === 'string' && mapping.fallback
+            ? mapping.fallback
+            : null,
+      }))
+  } catch {
+    return undefined
   }
 }
 
@@ -1705,12 +1885,14 @@ export const previewRepositoryImportCsv = createServerFn({ method: 'POST' }).han
     const createMissingSuites =
       data instanceof FormData &&
       String(data.get('createMissingSuites') ?? 'true') === 'true'
+    const requestedMappings = readRepositoryImportMappings(data)
 
     const plan = await buildRepositoryImportPreview({
       file,
       projectId,
       requestedSource,
       createMissingSuites,
+      requestedMappings,
     })
 
     return plan.preview
@@ -1730,11 +1912,13 @@ export const importRepositoryCsv = createServerFn({ method: 'POST' }).handler(
     const createMissingSuites =
       maybeFormData instanceof FormData &&
       String(maybeFormData.get('createMissingSuites') ?? 'false') === 'true'
+    const requestedMappings = readRepositoryImportMappings(maybeFormData)
     const { preview, rows } = await buildRepositoryImportPreview({
       file,
       projectId,
       requestedSource,
       createMissingSuites,
+      requestedMappings,
     })
 
     if (preview.errorRows > 0) {

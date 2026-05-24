@@ -802,6 +802,13 @@ pre code {
   font-weight: 500;
 }
 
+.repository-import-mapping__actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .repository-import-mapping__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
@@ -810,11 +817,19 @@ pre code {
 
 .repository-import-mapping__item {
   display: grid;
-  gap: 0.15rem;
+  gap: 0.45rem;
   border: 1px solid var(--tms-border-subtle);
   border-radius: var(--tms-radius-sm);
   background: var(--tms-surface-soft);
   padding: 0.55rem 0.65rem;
+}
+
+.repository-import-mapping__item > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .repository-import-mapping__item span {
@@ -823,6 +838,12 @@ pre code {
   font-weight: 750;
   letter-spacing: 0.07em;
   text-transform: uppercase;
+}
+
+.repository-import-mapping__item small {
+  color: var(--tms-danger-text);
+  font-size: 0.68rem;
+  font-weight: 700;
 }
 
 .repository-import-mapping__item strong {

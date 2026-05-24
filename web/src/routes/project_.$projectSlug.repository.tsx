@@ -61,6 +61,7 @@ import {
 } from '../features/tests/server'
 import type {
   DashboardTest,
+  RepositoryImportColumnMapping,
   RepositoryImportPreview,
   RepositoryImportResult,
   RepositoryImportSource,
@@ -590,6 +591,10 @@ function ProjectRepositoryPage() {
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importPreview, setImportPreview] =
     useState<RepositoryImportPreview | null>(null)
+  const [importColumnMappings, setImportColumnMappings] = useState<
+    RepositoryImportColumnMapping[]
+  >([])
+  const [isImportMappingDirty, setIsImportMappingDirty] = useState(false)
   const [importResult, setImportResult] = useState<RepositoryImportResult | null>(
     null,
   )
@@ -1274,11 +1279,15 @@ function ProjectRepositoryPage() {
     : ''
   const importReadyToCreate =
     importPreview !== null && importPreview.errorRows === 0
+  const importReadyToContinue =
+    importReadyToCreate && !isImportMappingDirty
   const importReviewMessage =
     importPreview === null
       ? ''
       : importPreview.errorRows > 0
         ? `${importPreview.errorRows} rows are blocked by validation errors.`
+        : isImportMappingDirty
+          ? 'Column mapping changed. Apply mapping before continuing.'
         : importPreview.warningRows > 0
           ? `${importPreview.warningRows} rows have warnings but can be imported.`
           : 'CSV is ready to import.'
@@ -2267,7 +2276,14 @@ function ProjectRepositoryPage() {
     event: React.FormEvent<HTMLFormElement>,
   ): Promise<void> {
     event.preventDefault()
+    await previewImportWithMapping(
+      importColumnMappings.length > 0 ? importColumnMappings : undefined,
+    )
+  }
 
+  async function previewImportWithMapping(
+    columnMappings?: RepositoryImportColumnMapping[],
+  ): Promise<void> {
     if (!importFile) {
       setImportErrorMessage('Choose a CSV file first.')
       return
@@ -2289,12 +2305,17 @@ function ProjectRepositoryPage() {
         'createMissingSuites',
         createMissingImportSuites ? 'true' : 'false',
       )
+      if (columnMappings && columnMappings.length > 0) {
+        formData.append('columnMappings', JSON.stringify(columnMappings))
+      }
 
       const result = await previewRepositoryImportCsv({
         data: formData,
       })
 
       setImportPreview(result)
+      setImportColumnMappings(result.columnMappings)
+      setIsImportMappingDirty(false)
     } catch (error) {
       setImportErrorMessage(
         error instanceof Error ? error.message : 'Failed to preview CSV import.',
@@ -2307,6 +2328,8 @@ function ProjectRepositoryPage() {
   function handleImportFileSelection(file: File | null): void {
     setImportFile(file)
     setImportPreview(null)
+    setImportColumnMappings([])
+    setIsImportMappingDirty(false)
     setImportResult(null)
     setIsImportConfirming(false)
     setImportPreviewFilter('all')
@@ -2324,6 +2347,11 @@ function ProjectRepositoryPage() {
       return
     }
 
+    if (isImportMappingDirty) {
+      setImportErrorMessage('Apply column mapping before importing.')
+      return
+    }
+
     setImportErrorMessage(null)
     setImportResult(null)
     setIsImportingCsv(true)
@@ -2337,6 +2365,9 @@ function ProjectRepositoryPage() {
         'createMissingSuites',
         createMissingImportSuites ? 'true' : 'false',
       )
+      if (importColumnMappings.length > 0) {
+        formData.append('columnMappings', JSON.stringify(importColumnMappings))
+      }
 
       const result = await importRepositoryCsv({
         data: formData,
@@ -2345,6 +2376,8 @@ function ProjectRepositoryPage() {
       setImportResult(result)
       setIsImportConfirming(false)
       setImportPreview(null)
+      setImportColumnMappings([])
+      setIsImportMappingDirty(false)
       setImportFile(null)
       await router.invalidate()
     } catch (error) {
@@ -2354,6 +2387,22 @@ function ProjectRepositoryPage() {
     } finally {
       setIsImportingCsv(false)
     }
+  }
+
+  function handleImportMappingChange(field: string, sourceColumn: string): void {
+    setImportColumnMappings((currentMappings) =>
+      currentMappings.map((mapping) =>
+        mapping.field === field
+          ? {
+              ...mapping,
+              sourceColumn: sourceColumn || null,
+            }
+          : mapping,
+      ),
+    )
+    setIsImportMappingDirty(true)
+    setIsImportConfirming(false)
+    setImportErrorMessage(null)
   }
 
   function handleCaseDragStart(
@@ -2898,6 +2947,8 @@ function ProjectRepositoryPage() {
                       onValueChange={(value) => {
                         setImportSource(value as RepositoryImportPanelSource)
                         setImportPreview(null)
+                        setImportColumnMappings([])
+                        setIsImportMappingDirty(false)
                         setImportResult(null)
                         setIsImportConfirming(false)
                         setImportPreviewFilter('all')
@@ -2916,6 +2967,8 @@ function ProjectRepositoryPage() {
                       onChange={(event) => {
                         setCreateMissingImportSuites(event.currentTarget.checked)
                         setImportPreview(null)
+                        setImportColumnMappings([])
+                        setIsImportMappingDirty(false)
                         setImportResult(null)
                         setIsImportConfirming(false)
                       }}
@@ -2965,6 +3018,8 @@ function ProjectRepositoryPage() {
                         onClick={() => {
                           setImportFile(null)
                           setImportPreview(null)
+                          setImportColumnMappings([])
+                          setIsImportMappingDirty(false)
                           setImportResult(null)
                           setIsImportConfirming(false)
                           setImportPreviewFilter('all')
@@ -3141,17 +3196,32 @@ function ProjectRepositoryPage() {
                       <div>
                         <strong>Column mapping</strong>
                         <span>
-                          Confirm how CSV columns will become TMS case fields.
+                          Match CSV columns to TMS fields before confirmation.
                         </span>
                       </div>
-                      <Badge variant="default">
-                        {importPreview.detectedSource === 'testmo'
-                          ? 'Testmo mapping'
-                          : 'TMS mapping'}
-                      </Badge>
+                      <div className="repository-import-mapping__actions">
+                        <Badge variant={isImportMappingDirty ? 'warning' : 'default'}>
+                          {isImportMappingDirty
+                            ? 'Mapping changed'
+                            : importPreview.detectedSource === 'testmo'
+                              ? 'Testmo mapping'
+                              : 'TMS mapping'}
+                        </Badge>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          disabled={!isImportMappingDirty || isParsingImport}
+                          onClick={() => {
+                            void previewImportWithMapping(importColumnMappings)
+                          }}
+                        >
+                          {isParsingImport ? 'Applying...' : 'Apply mapping'}
+                        </Button>
+                      </div>
                     </div>
                     <div className="repository-import-mapping__grid">
-                      {importPreview.columnMappings.map((mapping) => (
+                      {importColumnMappings.map((mapping) => (
                         <div
                           key={mapping.field}
                           className={`repository-import-mapping__item ${
@@ -3160,13 +3230,32 @@ function ProjectRepositoryPage() {
                               : ''
                           }`}
                         >
-                          <span>{mapping.field}</span>
-                          <strong>
-                            {mapping.sourceColumn ??
-                              (mapping.fallback
-                                ? `Default: ${mapping.fallback}`
-                                : 'Missing')}
-                          </strong>
+                          <div>
+                            <span>{mapping.field}</span>
+                            {mapping.required ? <small>Required</small> : null}
+                          </div>
+                          <SelectMenu
+                            value={mapping.sourceColumn ?? '__none__'}
+                            onValueChange={(value) =>
+                              handleImportMappingChange(
+                                mapping.field,
+                                value === '__none__' ? '' : value,
+                              )
+                            }
+                            options={[
+                              {
+                                value: '__none__',
+                                label: mapping.fallback
+                                  ? `Use default: ${mapping.fallback}`
+                                  : 'Do not map',
+                              },
+                              ...importPreview.availableColumns.map((column) => ({
+                                value: column,
+                                label: column,
+                              })),
+                            ]}
+                            aria-label={`${mapping.field} CSV column`}
+                          />
                         </div>
                       ))}
                     </div>
@@ -3289,7 +3378,9 @@ function ProjectRepositoryPage() {
                           ? 'Import is blocked until CSV errors are resolved.'
                           : isImportConfirming
                             ? 'This action will create new repository cases from the reviewed rows.'
-                            : 'Review mapping, warnings, and duplicates before creating test cases.'}
+                            : isImportMappingDirty
+                              ? 'Apply the updated column mapping to refresh validation.'
+                              : 'Review mapping, warnings, and duplicates before creating test cases.'}
                       </div>
                       <div className="repository-import-confirm__metrics">
                         {importConfirmSummary.map((item) => (
@@ -3329,7 +3420,7 @@ function ProjectRepositoryPage() {
                         <Button
                           type="button"
                           variant="primary"
-                          disabled={!importReadyToCreate || isImportingCsv}
+                          disabled={!importReadyToContinue || isImportingCsv}
                           onClick={() => setIsImportConfirming(true)}
                         >
                           Continue to import
