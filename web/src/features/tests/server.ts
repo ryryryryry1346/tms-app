@@ -371,7 +371,22 @@ export type RepositoryImportPreview = {
 export type RepositoryImportResult = {
   importedCases: number
   createdSuites: number
+  createdSuitesList: string[]
   skippedRows: number
+  duplicateRows: number
+  warningRows: number
+  createdCases: Array<{
+    id: number
+    rowNumber: number
+    title: string
+    suite: string
+    status: RepositoryImportPreviewRow['status']
+  }>
+  failedRows: Array<{
+    rowNumber: number
+    title: string
+    reason: string
+  }>
 }
 
 type RepositoryImportPlan = {
@@ -1736,6 +1751,7 @@ export const importRepositoryCsv = createServerFn({ method: 'POST' }).handler(
       sectionRows.map((section) => [section.name.trim().toLowerCase(), section]),
     )
     let createdSuites = 0
+    const createdSuitesList: string[] = []
 
     for (const suiteName of preview.missingSuites) {
       if (!createMissingSuites) {
@@ -1751,6 +1767,7 @@ export const importRepositoryCsv = createServerFn({ method: 'POST' }).handler(
         name: suiteName,
       })
       createdSuites += 1
+      createdSuitesList.push(suiteName)
     }
 
     const suiteIds = Array.from(sectionByName.values()).map((section) => section.id)
@@ -1769,48 +1786,78 @@ export const importRepositoryCsv = createServerFn({ method: 'POST' }).handler(
       sortRows.map((row) => [row.sectionId, Number(row.maxSortOrder ?? 0)]),
     )
     let importedCases = 0
+    const createdCases: RepositoryImportResult['createdCases'] = []
+    const failedRows: RepositoryImportResult['failedRows'] = []
     const importedRows = rows
 
     for (const row of importedRows) {
       const section = sectionByName.get(row.suite.trim().toLowerCase())
 
       if (!section) {
+        failedRows.push({
+          rowNumber: row.rowNumber,
+          title: row.title || 'Untitled',
+          reason: `Suite "${row.suite}" was not found.`,
+        })
         continue
       }
 
       const nextSortOrder = (nextSortOrderBySuite.get(section.id) ?? 0) + 10
       nextSortOrderBySuite.set(section.id, nextSortOrder)
-      const result = await db.insert(tests).values({
-        title: row.title,
-        steps: row.steps,
-        expected: row.expected,
-        status: row.status,
-        priority: row.priority,
-        caseType: row.caseType,
-        sectionId: section.id,
-        projectId,
-        sortOrder: nextSortOrder,
-        createdAt: now,
-        updatedAt: now,
-      })
-      const testId = result[0].insertId
+      try {
+        const result = await db.insert(tests).values({
+          title: row.title,
+          steps: row.steps,
+          expected: row.expected,
+          status: row.status,
+          priority: row.priority,
+          caseType: row.caseType,
+          sectionId: section.id,
+          projectId,
+          sortOrder: nextSortOrder,
+          createdAt: now,
+          updatedAt: now,
+        })
+        const testId = result[0].insertId
 
-      await logTestCaseActivity({
-        db,
-        testId,
-        projectId,
-        actor: user,
-        action: 'created',
-        summary: `Imported from ${preview.filename}.`,
-        createdAt: now,
-      })
-      importedCases += 1
+        await logTestCaseActivity({
+          db,
+          testId,
+          projectId,
+          actor: user,
+          action: 'created',
+          summary: `Imported from ${preview.filename}.`,
+          createdAt: now,
+        })
+        importedCases += 1
+        createdCases.push({
+          id: testId,
+          rowNumber: row.rowNumber,
+          title: row.title,
+          suite: section.name,
+          status: row.status,
+        })
+      } catch (error) {
+        failedRows.push({
+          rowNumber: row.rowNumber,
+          title: row.title || 'Untitled',
+          reason:
+            error instanceof Error
+              ? error.message
+              : 'Failed to create this test case.',
+        })
+      }
     }
 
     return {
       importedCases,
       createdSuites,
+      createdSuitesList,
       skippedRows: preview.totalRows - importedCases,
+      duplicateRows: preview.duplicateRows,
+      warningRows: preview.warningRows,
+      createdCases: createdCases.slice(0, 25),
+      failedRows: failedRows.slice(0, 25),
     }
   },
 )

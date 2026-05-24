@@ -2942,13 +2942,166 @@ function ProjectRepositoryPage() {
               ) : null}
 
               {importResult ? (
-                <Alert variant="success" className="mt-3">
-                  Imported {importResult.importedCases} cases
-                  {importResult.createdSuites > 0
-                    ? ` and created ${importResult.createdSuites} suites`
-                    : ''}
-                  .
-                </Alert>
+                <div className="repository-import-result">
+                  <div className="repository-import-result__header">
+                    <div>
+                      <span className="repository-import-result__eyebrow">
+                        Import complete
+                      </span>
+                      <strong>
+                        {importResult.failedRows.length > 0
+                          ? 'Import finished with row-level issues'
+                          : 'CSV import finished successfully'}
+                      </strong>
+                      <p>
+                        Review what was created before continuing work in the
+                        repository.
+                      </p>
+                    </div>
+                    <div className="repository-import-result__actions">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => {
+                          setImportFile(null)
+                          setImportPreview(null)
+                          setImportResult(null)
+                          setIsImportConfirming(false)
+                          setImportPreviewFilter('all')
+                          setImportErrorMessage(null)
+                        }}
+                      >
+                        Start new import
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        onClick={() => {
+                          setIsImportPanelOpen(false)
+                          setImportResult(null)
+                        }}
+                      >
+                        Back to repository
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="repository-import-result__metrics">
+                    <div className="repository-import-result__metric is-ready">
+                      <span>Created cases</span>
+                      <strong>{importResult.importedCases}</strong>
+                    </div>
+                    <div className="repository-import-result__metric">
+                      <span>Created suites</span>
+                      <strong>{importResult.createdSuites}</strong>
+                    </div>
+                    <div
+                      className={`repository-import-result__metric ${
+                        importResult.warningRows > 0 ? 'is-warning' : ''
+                      }`}
+                    >
+                      <span>Warnings</span>
+                      <strong>{importResult.warningRows}</strong>
+                    </div>
+                    <div
+                      className={`repository-import-result__metric ${
+                        importResult.duplicateRows > 0 ? 'is-warning' : ''
+                      }`}
+                    >
+                      <span>Duplicate warnings</span>
+                      <strong>{importResult.duplicateRows}</strong>
+                    </div>
+                    <div
+                      className={`repository-import-result__metric ${
+                        importResult.failedRows.length > 0 ? 'is-danger' : ''
+                      }`}
+                    >
+                      <span>Failed rows</span>
+                      <strong>{importResult.failedRows.length}</strong>
+                    </div>
+                  </div>
+                  {importResult.createdSuitesList.length > 0 ? (
+                    <div className="repository-import-result__section">
+                      <strong>Suites created</strong>
+                      <div className="repository-import-result__chips">
+                        {importResult.createdSuitesList.slice(0, 12).map((suite) => (
+                          <span key={suite} className="tms-chip">
+                            {suite}
+                          </span>
+                        ))}
+                        {importResult.createdSuitesList.length > 12 ? (
+                          <span className="tms-chip">
+                            +{importResult.createdSuitesList.length - 12} more
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+                  {importResult.createdCases.length > 0 ? (
+                    <div className="repository-import-result__section">
+                      <strong>Created cases</strong>
+                      <div className="repository-import-result-table">
+                        <div className="repository-import-result-row repository-import-result-row--head">
+                          <span>ID</span>
+                          <span>Title</span>
+                          <span>Suite</span>
+                          <span>Status</span>
+                          <span>Open</span>
+                        </div>
+                        {importResult.createdCases.map((test) => (
+                          <div
+                            key={test.id}
+                            className="repository-import-result-row"
+                          >
+                            <span>#{test.id}</span>
+                            <span className="min-w-0 truncate font-semibold">
+                              {test.title}
+                            </span>
+                            <span className="min-w-0 truncate">{test.suite}</span>
+                            <span>{test.status}</span>
+                            <LinkButton
+                              to="/test/$testId"
+                              params={{ testId: test.id.toString() }}
+                              variant="secondary"
+                              size="sm"
+                            >
+                              Open
+                            </LinkButton>
+                          </div>
+                        ))}
+                      </div>
+                      {importResult.importedCases > importResult.createdCases.length ? (
+                        <p className="repository-import-result__note">
+                          Showing first {importResult.createdCases.length} created
+                          cases.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {importResult.failedRows.length > 0 ? (
+                    <div className="repository-import-result__section">
+                      <strong>Rows needing attention</strong>
+                      <div className="repository-import-result-table">
+                        <div className="repository-import-result-row repository-import-result-row--head repository-import-result-row--failed">
+                          <span>Row</span>
+                          <span>Title</span>
+                          <span>Reason</span>
+                        </div>
+                        {importResult.failedRows.map((row) => (
+                          <div
+                            key={`${row.rowNumber}-${row.title}`}
+                            className="repository-import-result-row repository-import-result-row--failed"
+                          >
+                            <span>{row.rowNumber}</span>
+                            <span className="min-w-0 truncate font-semibold">
+                              {row.title}
+                            </span>
+                            <span className="min-w-0 truncate">{row.reason}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
               ) : null}
 
               {importPreview ? (

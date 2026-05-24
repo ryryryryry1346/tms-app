@@ -628,6 +628,146 @@ pre code {
   color: var(--tms-danger);
 }
 
+.repository-import-result {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 0.9rem;
+  border: 1px solid var(--tms-success-border);
+  border-radius: var(--tms-radius-md);
+  background: color-mix(in oklab, var(--tms-success-soft) 42%, var(--tms-surface));
+  padding: 0.9rem;
+}
+
+.repository-import-result__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.repository-import-result__header > div:first-child {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.repository-import-result__eyebrow {
+  color: var(--tms-success);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.repository-import-result__header strong,
+.repository-import-result__section > strong {
+  color: var(--tms-text);
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.repository-import-result__header p,
+.repository-import-result__note {
+  margin: 0;
+  color: var(--tms-text-muted);
+  font-size: 0.8125rem;
+}
+
+.repository-import-result__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.repository-import-result__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.repository-import-result__metric {
+  display: grid;
+  gap: 0.2rem;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: var(--tms-radius-md);
+  background: var(--tms-surface);
+  padding: 0.65rem 0.7rem;
+}
+
+.repository-import-result__metric span {
+  color: var(--tms-text-muted);
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.repository-import-result__metric strong {
+  color: var(--tms-text);
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.repository-import-result__metric.is-ready strong {
+  color: var(--tms-success);
+}
+
+.repository-import-result__metric.is-warning strong {
+  color: var(--tms-warning);
+}
+
+.repository-import-result__metric.is-danger strong {
+  color: var(--tms-danger);
+}
+
+.repository-import-result__section {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.repository-import-result__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.repository-import-result-table {
+  overflow: hidden;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: var(--tms-radius-md);
+  background: var(--tms-surface);
+}
+
+.repository-import-result-row {
+  display: grid;
+  grid-template-columns: 80px minmax(12rem, 1fr) minmax(8rem, 0.45fr) 96px 76px;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--tms-border-subtle);
+  padding: 0.55rem 0.7rem;
+  color: var(--tms-text);
+  font-size: 0.8125rem;
+}
+
+.repository-import-result-row:last-child {
+  border-bottom: 0;
+}
+
+.repository-import-result-row--head {
+  background: var(--tms-surface-soft);
+  color: var(--tms-text-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.repository-import-result-row--failed {
+  grid-template-columns: 80px minmax(12rem, 0.6fr) minmax(14rem, 1fr);
+  background: color-mix(in oklab, var(--tms-danger-soft) 40%, var(--tms-surface));
+}
+
 .repository-import-mapping {
   display: grid;
   gap: 0.65rem;
