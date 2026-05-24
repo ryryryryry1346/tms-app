@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Badge } from '../components/ui/Badge'
+import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Input } from '../components/ui/Input'
 import { LinkButton } from '../components/ui/LinkButton'
@@ -13,6 +14,7 @@ import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import {
   getAutomationRuns,
   type AutomationRunListItem,
+  type AutomationRunResultSummary,
 } from '../features/automation/server'
 import { getDashboardState } from '../features/tests/server'
 
@@ -75,6 +77,7 @@ export const Route = createFileRoute('/project/$projectSlug/automation/runs')({
     return {
       project,
       runs: automationState.runs,
+      recentResults: automationState.recentResults,
     }
   },
   component: AutomationRunsPage,
@@ -82,6 +85,20 @@ export const Route = createFileRoute('/project/$projectSlug/automation/runs')({
 
 const RUN_TABLE_COLUMNS =
   'minmax(260px,1.8fr) minmax(160px,1fr) 90px 80px 80px 80px 120px'
+
+type QuickFilter = 'all' | 'failed' | 'latest-ci' | 'latest'
+
+type FlakyTestSummary = {
+  key: string
+  name: string
+  suite: string
+  total: number
+  passed: number
+  failed: number
+  lastStatus: string
+  flakyRate: number
+  averageDurationMs: number
+}
 
 function formatDate(value: string | null): string {
   if (!value) {
@@ -150,6 +167,85 @@ function humanizeStatus(status: string): string {
     .replace(/^\w/, (letter) => letter.toUpperCase())
 }
 
+function isFailedRun(run: AutomationRunListItem): boolean {
+  return (
+    run.status === 'failed' ||
+    run.status === 'needs_review' ||
+    run.failedCount > 0 ||
+    run.blockedCount > 0
+  )
+}
+
+function isCiRun(run: AutomationRunListItem): boolean {
+  return run.triggerSource === 'ci' || Boolean(run.ciBuildUrl)
+}
+
+function isFailedResult(status: string): boolean {
+  return status === 'failed' || status === 'blocked'
+}
+
+function getPassRate(run: AutomationRunListItem): number {
+  if (run.totalCount === 0) {
+    return 0
+  }
+
+  return Math.round((run.passedCount / run.totalCount) * 100)
+}
+
+function getFlakyTests(
+  results: AutomationRunResultSummary[],
+): FlakyTestSummary[] {
+  const grouped = new Map<string, FlakyTestSummary>()
+
+  for (const result of results) {
+    const suite = result.suite ?? 'No suite'
+    const key = `${suite}::${result.name}`
+    const existing =
+      grouped.get(key) ??
+      ({
+        key,
+        name: result.name,
+        suite,
+        total: 0,
+        passed: 0,
+        failed: 0,
+        lastStatus: result.status,
+        flakyRate: 0,
+        averageDurationMs: 0,
+      } satisfies FlakyTestSummary)
+
+    existing.total += 1
+    existing.averageDurationMs += result.durationMs
+
+    if (result.status === 'passed') {
+      existing.passed += 1
+    }
+
+    if (isFailedResult(result.status)) {
+      existing.failed += 1
+    }
+
+    grouped.set(key, existing)
+  }
+
+  return Array.from(grouped.values())
+    .map((item) => ({
+      ...item,
+      flakyRate: item.total === 0 ? 0 : Math.round((item.failed / item.total) * 100),
+      averageDurationMs:
+        item.total === 0 ? 0 : Math.round(item.averageDurationMs / item.total),
+    }))
+    .filter((item) => item.passed > 0 && item.failed > 0)
+    .sort((first, second) => {
+      if (second.failed !== first.failed) {
+        return second.failed - first.failed
+      }
+
+      return second.flakyRate - first.flakyRate
+    })
+    .slice(0, 5)
+}
+
 function ResultBar({ run }: { run: AutomationRunListItem }) {
   const total = Math.max(run.totalCount, 1)
   const passedWidth = (run.passedCount / total) * 100
@@ -191,10 +287,108 @@ function ResultBar({ run }: { run: AutomationRunListItem }) {
   )
 }
 
+function AutomationTrendChart({ runs }: { runs: AutomationRunListItem[] }) {
+  const trendRuns = runs.slice(0, 12).reverse()
+
+  if (trendRuns.length === 0) {
+    return (
+      <EmptyState
+        title="No trend yet"
+        description="Recent CI/API imports will appear here after automation results are uploaded."
+      />
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex h-32 items-end gap-2">
+        {trendRuns.map((run) => {
+          const passRate = getPassRate(run)
+          const failedRate =
+            run.totalCount === 0
+              ? 0
+              : Math.round(((run.failedCount + run.blockedCount) / run.totalCount) * 100)
+
+          return (
+            <div key={run.id} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+              <div className="relative h-24 w-full overflow-hidden rounded-md border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)]">
+                <div
+                  className="absolute bottom-0 left-0 w-full bg-[var(--tms-success)]"
+                  style={{ height: `${Math.max(passRate, run.totalCount === 0 ? 0 : 4)}%` }}
+                />
+                {failedRate > 0 ? (
+                  <div
+                    className="absolute bottom-0 left-0 w-full bg-[var(--tms-danger)]"
+                    style={{ height: `${Math.max(failedRate, 4)}%` }}
+                  />
+                ) : null}
+              </div>
+              <span className="max-w-full truncate text-[11px] text-[var(--tms-text-muted)]">
+                #{run.id}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+      <div className="flex flex-wrap gap-3 text-xs text-[var(--tms-text-muted)]">
+        <span className="inline-flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-[var(--tms-success)]" />
+          Passed
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-[var(--tms-danger)]" />
+          Failed / blocked
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function FlakyTestsPanel({ tests }: { tests: FlakyTestSummary[] }) {
+  if (tests.length === 0) {
+    return (
+      <EmptyState
+        title="No flaky tests detected"
+        description="Tests become flaky when recent history contains both passing and failing results."
+      />
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      {tests.map((test) => (
+        <div
+          key={test.key}
+          className="rounded-md border border-[var(--tms-border-subtle)] px-3 py-2"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
+                {test.name}
+              </div>
+              <div className="truncate text-xs text-[var(--tms-text-muted)]">
+                {test.suite}
+              </div>
+            </div>
+            <Badge variant="warning">{test.flakyRate}% flaky</Badge>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2 text-xs text-[var(--tms-text-muted)]">
+            <span>{test.failed} failures</span>
+            <span>{test.passed} passes</span>
+            <span>last {humanizeStatus(test.lastStatus)}</span>
+            <span>avg {formatDuration(test.averageDurationMs)}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function AutomationRunsPage() {
-  const { project, runs } = Route.useLoaderData()
+  const { project, runs, recentResults } = Route.useLoaderData()
   const projectSlug = project.slug ?? project.id.toString()
   const [query, setQuery] = useState('')
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>('all')
   const [statusFilter, setStatusFilter] = useState('All')
   const [environmentFilter, setEnvironmentFilter] = useState('All')
   const [branchFilter, setBranchFilter] = useState('All')
@@ -219,7 +413,23 @@ function AutomationRunsPage() {
   const filteredRuns = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
 
-    return runs.filter((run) => {
+    const quickFilteredRuns = runs.filter((run, index) => {
+      if (quickFilter === 'failed') {
+        return isFailedRun(run)
+      }
+
+      if (quickFilter === 'latest-ci') {
+        return isCiRun(run) && index < 10
+      }
+
+      if (quickFilter === 'latest') {
+        return index < 10
+      }
+
+      return true
+    })
+
+    return quickFilteredRuns.filter((run) => {
       const matchesQuery =
         normalizedQuery.length === 0 ||
         run.name.toLowerCase().includes(normalizedQuery) ||
@@ -232,7 +442,21 @@ function AutomationRunsPage() {
 
       return matchesQuery && matchesStatus && matchesEnvironment && matchesBranch
     })
-  }, [branchFilter, environmentFilter, query, runs, statusFilter])
+  }, [branchFilter, environmentFilter, query, quickFilter, runs, statusFilter])
+
+  const flakyTests = useMemo(() => getFlakyTests(recentResults), [recentResults])
+  const failedRuns = useMemo(() => runs.filter(isFailedRun), [runs])
+  const latestCiRuns = useMemo(() => runs.filter(isCiRun).slice(0, 10), [runs])
+  const quickFilters: Array<{
+    id: QuickFilter
+    label: string
+    count: number
+  }> = [
+    { id: 'all', label: 'All runs', count: runs.length },
+    { id: 'failed', label: 'Failed', count: failedRuns.length },
+    { id: 'latest-ci', label: 'Latest CI', count: latestCiRuns.length },
+    { id: 'latest', label: 'Latest 10', count: Math.min(runs.length, 10) },
+  ]
 
   const latestRun = runs[0] ?? null
   const totalRuns = runs.length
@@ -303,6 +527,38 @@ function AutomationRunsPage() {
             />
           </div>
 
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
+            <Panel>
+              <div className="border-b border-[var(--tms-border-subtle)] px-4 py-3">
+                <WorkspaceSectionHeader
+                  title="Run trend"
+                  description="Pass and failure shape across the latest automation imports."
+                  action={<Badge>{Math.min(runs.length, 12)} runs</Badge>}
+                />
+              </div>
+              <div className="p-4">
+                <AutomationTrendChart runs={runs} />
+              </div>
+            </Panel>
+
+            <Panel>
+              <div className="border-b border-[var(--tms-border-subtle)] px-4 py-3">
+                <WorkspaceSectionHeader
+                  title="Flaky tests"
+                  description="Tests with both passing and failing recent results."
+                  action={
+                    <Badge variant={flakyTests.length > 0 ? 'warning' : 'success'}>
+                      {flakyTests.length} found
+                    </Badge>
+                  }
+                />
+              </div>
+              <div className="p-4">
+                <FlakyTestsPanel tests={flakyTests} />
+              </div>
+            </Panel>
+          </div>
+
           <Panel>
             <div className="border-b border-[var(--tms-border-subtle)] px-4 py-4">
               <WorkspaceSectionHeader
@@ -310,7 +566,19 @@ function AutomationRunsPage() {
                 description="Track CI/API imports, execution health, and failed automated checks."
                 action={<Badge>{filteredRuns.length} shown</Badge>}
               />
-              <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(240px,1fr)_160px_160px_160px]">
+              <div className="mt-4 flex flex-wrap gap-2">
+                {quickFilters.map((filter) => (
+                  <Button
+                    key={filter.id}
+                    size="sm"
+                    variant={quickFilter === filter.id ? 'primary' : 'secondary'}
+                    onClick={() => setQuickFilter(filter.id)}
+                  >
+                    {filter.label} · {filter.count}
+                  </Button>
+                ))}
+              </div>
+              <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(240px,1fr)_160px_160px_160px]">
                 <Input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}

@@ -164,6 +164,16 @@ export type AutomationRunListItem = {
   createdAt: string
 }
 
+export type AutomationRunResultSummary = {
+  id: number
+  runId: number
+  name: string
+  suite: string | null
+  status: string
+  durationMs: number
+  createdAt: string
+}
+
 export type AutomationRunResultItem = {
   id: number
   name: string
@@ -322,44 +332,66 @@ export const revokeProjectApiToken = createServerFn({ method: 'POST' })
 
 export const getAutomationRuns = createServerFn({ method: 'POST' })
   .inputValidator(projectAutomationInput)
-  .handler(async ({ data }): Promise<{ runs: AutomationRunListItem[] }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
-    await ensureAutomationServerDeps()
+  .handler(
+    async ({
+      data,
+    }): Promise<{
+      runs: AutomationRunListItem[]
+      recentResults: AutomationRunResultSummary[]
+    }> => {
+      const { requireSessionUser } = await import('../auth/helpers.server')
+      await requireSessionUser()
+      await ensureAutomationServerDeps()
 
-    if (!isDatabaseConfigured()) {
-      return { runs: [] }
-    }
+      if (!isDatabaseConfigured()) {
+        return { runs: [], recentResults: [] }
+      }
 
-    const db = getDb()
-    const rows = await db
-      .select({
-        id: automationRuns.id,
-        name: automationRuns.name,
-        status: automationRuns.status,
-        environment: automationRuns.environment,
-        branch: automationRuns.branch,
-        commitSha: automationRuns.commitSha,
-        ciBuildUrl: automationRuns.ciBuildUrl,
-        triggerSource: automationRuns.triggerSource,
-        startedAt: automationRuns.startedAt,
-        finishedAt: automationRuns.finishedAt,
-        durationMs: automationRuns.durationMs,
-        totalCount: automationRuns.totalCount,
-        passedCount: automationRuns.passedCount,
-        failedCount: automationRuns.failedCount,
-        skippedCount: automationRuns.skippedCount,
-        blockedCount: automationRuns.blockedCount,
-        unknownCount: automationRuns.unknownCount,
-        createdAt: automationRuns.createdAt,
-      })
-      .from(automationRuns)
-      .where(eq(automationRuns.projectId, data.projectId))
-      .orderBy(desc(automationRuns.id))
-      .limit(100)
+      const db = getDb()
+      const rows = await db
+        .select({
+          id: automationRuns.id,
+          name: automationRuns.name,
+          status: automationRuns.status,
+          environment: automationRuns.environment,
+          branch: automationRuns.branch,
+          commitSha: automationRuns.commitSha,
+          ciBuildUrl: automationRuns.ciBuildUrl,
+          triggerSource: automationRuns.triggerSource,
+          startedAt: automationRuns.startedAt,
+          finishedAt: automationRuns.finishedAt,
+          durationMs: automationRuns.durationMs,
+          totalCount: automationRuns.totalCount,
+          passedCount: automationRuns.passedCount,
+          failedCount: automationRuns.failedCount,
+          skippedCount: automationRuns.skippedCount,
+          blockedCount: automationRuns.blockedCount,
+          unknownCount: automationRuns.unknownCount,
+          createdAt: automationRuns.createdAt,
+        })
+        .from(automationRuns)
+        .where(eq(automationRuns.projectId, data.projectId))
+        .orderBy(desc(automationRuns.id))
+        .limit(100)
 
-    return { runs: rows }
-  })
+      const recentResults = await db
+        .select({
+          id: automationTestResults.id,
+          runId: automationTestResults.runId,
+          name: automationTestResults.name,
+          suite: automationTestResults.suite,
+          status: automationTestResults.status,
+          durationMs: automationTestResults.durationMs,
+          createdAt: automationTestResults.createdAt,
+        })
+        .from(automationTestResults)
+        .where(eq(automationTestResults.projectId, data.projectId))
+        .orderBy(desc(automationTestResults.id))
+        .limit(500)
+
+      return { runs: rows, recentResults }
+    },
+  )
 
 export const getAutomationRunDetail = createServerFn({ method: 'POST' })
   .inputValidator(automationRunDetailInput)
