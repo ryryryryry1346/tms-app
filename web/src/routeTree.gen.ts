@@ -24,6 +24,7 @@ import { Route as ProjectProjectSlugRepositoryRouteImport } from './routes/proje
 import { Route as ProjectProjectSlugRunsRouteImport } from './routes/project.$projectSlug.runs'
 import { Route as ProjectProjectSlugReportsRouteImport } from './routes/project.$projectSlug.reports'
 import { Route as ProjectProjectSlugDocsRouteImport } from './routes/project.$projectSlug.docs'
+import { Route as ProjectProjectSlugAutomationRouteImport } from './routes/project.$projectSlug.automation'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ProjectProjectSlugDocsDocIdRouteImport } from './routes/project_.$projectSlug.docs_.$docId'
 import { Route as ApiProjectsProjectIdAutomationRunsRouteImport } from './routes/api/projects.$projectId.automation-runs'
@@ -106,6 +107,12 @@ const ProjectProjectSlugDocsRoute = ProjectProjectSlugDocsRouteImport.update({
   path: '/docs',
   getParentRoute: () => ProjectProjectSlugRoute,
 } as any)
+const ProjectProjectSlugAutomationRoute =
+  ProjectProjectSlugAutomationRouteImport.update({
+    id: '/automation',
+    path: '/automation',
+    getParentRoute: () => ProjectProjectSlugRoute,
+  } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -143,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/project/$projectSlug/automation': typeof ProjectProjectSlugAutomationRoute
   '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRoute
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
@@ -164,6 +172,7 @@ export interface FileRoutesByTo {
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/project/$projectSlug/automation': typeof ProjectProjectSlugAutomationRoute
   '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRoute
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
@@ -186,6 +195,7 @@ export interface FileRoutesById {
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/project/$projectSlug/automation': typeof ProjectProjectSlugAutomationRoute
   '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRoute
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
@@ -209,6 +219,7 @@ export interface FileRouteTypes {
     | '/run/$runId'
     | '/test/$testId'
     | '/api/auth/$'
+    | '/project/$projectSlug/automation'
     | '/project/$projectSlug/docs'
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/runs'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/run/$runId'
     | '/test/$testId'
     | '/api/auth/$'
+    | '/project/$projectSlug/automation'
     | '/project/$projectSlug/docs'
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/runs'
@@ -251,6 +263,7 @@ export interface FileRouteTypes {
     | '/run/$runId'
     | '/test/$testId'
     | '/api/auth/$'
+    | '/project/$projectSlug/automation'
     | '/project/$projectSlug/docs'
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/runs'
@@ -385,6 +398,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectProjectSlugDocsRouteImport
       parentRoute: typeof ProjectProjectSlugRoute
     }
+    '/project/$projectSlug/automation': {
+      id: '/project/$projectSlug/automation'
+      path: '/automation'
+      fullPath: '/project/$projectSlug/automation'
+      preLoaderRoute: typeof ProjectProjectSlugAutomationRouteImport
+      parentRoute: typeof ProjectProjectSlugRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -417,12 +437,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface ProjectProjectSlugRouteChildren {
+  ProjectProjectSlugAutomationRoute: typeof ProjectProjectSlugAutomationRoute
   ProjectProjectSlugDocsRoute: typeof ProjectProjectSlugDocsRoute
   ProjectProjectSlugReportsRoute: typeof ProjectProjectSlugReportsRoute
   ProjectProjectSlugRunsRoute: typeof ProjectProjectSlugRunsRoute
 }
 
 const ProjectProjectSlugRouteChildren: ProjectProjectSlugRouteChildren = {
+  ProjectProjectSlugAutomationRoute: ProjectProjectSlugAutomationRoute,
   ProjectProjectSlugDocsRoute: ProjectProjectSlugDocsRoute,
   ProjectProjectSlugReportsRoute: ProjectProjectSlugReportsRoute,
   ProjectProjectSlugRunsRoute: ProjectProjectSlugRunsRoute,

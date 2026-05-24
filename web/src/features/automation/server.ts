@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
 let and: typeof import('drizzle-orm')['and']
+let desc: typeof import('drizzle-orm')['desc']
 let eq: typeof import('drizzle-orm')['eq']
 let getDb: typeof import('../../db/client')['getDb']
 let isDatabaseConfigured: typeof import('../../db/client')['isDatabaseConfigured']
@@ -24,6 +25,7 @@ async function ensureAutomationServerDeps(): Promise<void> {
   ])
 
   and = drizzle.and
+  desc = drizzle.desc
   eq = drizzle.eq
   getDb = dbClient.getDb
   isDatabaseConfigured = dbClient.isDatabaseConfigured
@@ -75,6 +77,18 @@ const automationJsonImportInput = z.object({
     .min(1),
 })
 
+const projectAutomationInput = z.object({
+  projectId: z.number().int().positive(),
+})
+
+const createProjectApiTokenInput = projectAutomationInput.extend({
+  name: z.string().trim().min(1).max(255).optional(),
+})
+
+const revokeProjectApiTokenInput = projectAutomationInput.extend({
+  tokenId: z.number().int().positive(),
+})
+
 export type AutomationResultStatus =
   | 'passed'
   | 'failed'
@@ -116,6 +130,15 @@ export type AutomationImportResult = {
   linkedManualCases: number
 }
 
+export type ProjectApiTokenSummary = {
+  id: number
+  name: string
+  tokenPrefix: string
+  status: string
+  lastUsedAt: string | null
+  createdAt: string
+}
+
 export const importAutomationJunitXml = createServerFn({ method: 'POST' })
   .inputValidator(automationJunitImportInput)
   .handler(async ({ data }): Promise<AutomationImportResult> => {
@@ -134,6 +157,119 @@ export const importAutomationJson = createServerFn({ method: 'POST' })
     await ensureAutomationServerDeps()
 
     return importJsonAutomationRun(data)
+  })
+
+export const getProjectApiTokens = createServerFn({ method: 'POST' })
+  .inputValidator(projectAutomationInput)
+  .handler(async ({ data }): Promise<{ tokens: ProjectApiTokenSummary[] }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+    await ensureAutomationServerDeps()
+
+    if (!isDatabaseConfigured()) {
+      return { tokens: [] }
+    }
+
+    const db = getDb()
+    const tokens = await db
+      .select({
+        id: projectApiTokens.id,
+        name: projectApiTokens.name,
+        tokenPrefix: projectApiTokens.tokenPrefix,
+        status: projectApiTokens.status,
+        lastUsedAt: projectApiTokens.lastUsedAt,
+        createdAt: projectApiTokens.createdAt,
+      })
+      .from(projectApiTokens)
+      .where(eq(projectApiTokens.projectId, data.projectId))
+      .orderBy(desc(projectApiTokens.id))
+
+    return { tokens }
+  })
+
+export const createProjectApiToken = createServerFn({ method: 'POST' })
+  .inputValidator(createProjectApiTokenInput)
+  .handler(
+    async ({
+      data,
+    }): Promise<{ token: string; tokenRecord: ProjectApiTokenSummary }> => {
+      const { requireSessionUser } = await import('../auth/helpers.server')
+      await requireSessionUser()
+      await ensureAutomationServerDeps()
+
+      if (!isDatabaseConfigured()) {
+        throw new Error('Database is not configured.')
+      }
+
+      const db = getDb()
+      const projectRows = await db
+        .select({ id: projects.id })
+        .from(projects)
+        .where(eq(projects.id, data.projectId))
+        .limit(1)
+
+      if (!projectRows[0]) {
+        throw new Error('Project was not found.')
+      }
+
+      const now = new Date().toISOString()
+      const token = await createProjectApiTokenValue()
+      const tokenHash = await hashProjectApiToken(token)
+      const tokenPrefix = token.slice(0, 12)
+      const tokenName = data.name ?? 'CI import token'
+
+      const insertResult = await db.insert(projectApiTokens).values({
+        projectId: data.projectId,
+        name: tokenName,
+        tokenHash,
+        tokenPrefix,
+        status: 'active',
+        lastUsedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      })
+
+      const tokenId = insertResult[0].insertId
+
+      return {
+        token,
+        tokenRecord: {
+          id: tokenId,
+          name: tokenName,
+          tokenPrefix,
+          status: 'active',
+          lastUsedAt: null,
+          createdAt: now,
+        },
+      }
+    },
+  )
+
+export const revokeProjectApiToken = createServerFn({ method: 'POST' })
+  .inputValidator(revokeProjectApiTokenInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+    await ensureAutomationServerDeps()
+
+    if (!isDatabaseConfigured()) {
+      throw new Error('Database is not configured.')
+    }
+
+    await getDb()
+      .update(projectApiTokens)
+      .set({
+        status: 'revoked',
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(projectApiTokens.id, data.tokenId),
+          eq(projectApiTokens.projectId, data.projectId),
+        ),
+      )
+
+    return { ok: true }
   })
 
 export async function importJunitAutomationRun(
@@ -269,6 +405,12 @@ export async function hashProjectApiToken(token: string): Promise<string> {
   const crypto = await import('node:crypto')
 
   return crypto.createHash('sha256').update(token).digest('hex')
+}
+
+async function createProjectApiTokenValue(): Promise<string> {
+  const crypto = await import('node:crypto')
+
+  return `tms_${crypto.randomBytes(24).toString('base64url')}`
 }
 
 async function createAutomationRunFromResults({

@@ -37,6 +37,7 @@ type NavItem = {
     | '/project/$projectSlug'
     | '/project/$projectSlug/repository'
     | '/project/$projectSlug/runs'
+    | '/project/$projectSlug/automation'
     | '/project/$projectSlug/docs'
     | '/project/$projectSlug/reports'
   params?: {
@@ -101,6 +102,10 @@ function getHeaderCopy(
 
   if (pathname.startsWith('/project/') && pathname.endsWith('/runs')) {
     return { label: projectLabel, title: 'Runs' }
+  }
+
+  if (pathname.startsWith('/project/') && pathname.endsWith('/automation')) {
+    return { label: projectLabel, title: 'Automation' }
   }
 
   if (pathname.startsWith('/project/') && pathname.includes('/docs')) {
@@ -382,6 +387,13 @@ export default function AppShell({ user, children }: AppShellProps) {
           matchPath: `/project/${projectSlug}/runs`,
           additionalMatchPaths: ['/run/'],
           icon: <PlayCircle size={16} strokeWidth={2} />,
+        },
+        {
+          label: 'Automation',
+          to: '/project/$projectSlug/automation',
+          params: { projectSlug },
+          matchPath: `/project/${projectSlug}/automation`,
+          icon: <CircleDot size={16} strokeWidth={2} />,
         },
         {
           label: 'Docs',
