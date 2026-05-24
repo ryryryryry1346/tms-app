@@ -225,6 +225,173 @@ export const projectDocs = mysqlTable(
   }),
 )
 
+export const automationRuns = mysqlTable(
+  'automation_runs',
+  {
+    id: int('id').autoincrement().primaryKey(),
+    projectId: int('project_id').notNull(),
+    externalId: varchar('external_id', { length: 255 }),
+    name: text('name').notNull(),
+    status: varchar('status', { length: 32 }).notNull().default('unknown'),
+    environment: varchar('environment', { length: 128 }),
+    branch: varchar('branch', { length: 255 }),
+    commitSha: varchar('commit_sha', { length: 128 }),
+    ciBuildUrl: text('ci_build_url'),
+    triggerSource: varchar('trigger_source', { length: 32 })
+      .notNull()
+      .default('api'),
+    rawFormat: varchar('raw_format', { length: 64 }).notNull().default('junit'),
+    rawReport: text('raw_report'),
+    totalCount: int('total_count').notNull().default(0),
+    passedCount: int('passed_count').notNull().default(0),
+    failedCount: int('failed_count').notNull().default(0),
+    skippedCount: int('skipped_count').notNull().default(0),
+    blockedCount: int('blocked_count').notNull().default(0),
+    unknownCount: int('unknown_count').notNull().default(0),
+    durationMs: int('duration_ms').notNull().default(0),
+    startedAt: varchar('started_at', { length: 32 }),
+    finishedAt: varchar('finished_at', { length: 32 }),
+    createdAt: varchar('created_at', { length: 32 }).notNull(),
+    updatedAt: varchar('updated_at', { length: 32 }).notNull(),
+  },
+  (table) => ({
+    projectIdIndex: index('automation_runs_project_id_idx').on(table.projectId),
+    statusIndex: index('automation_runs_status_idx').on(
+      table.projectId,
+      table.status,
+    ),
+    startedAtIndex: index('automation_runs_started_at_idx').on(
+      table.projectId,
+      table.startedAt,
+    ),
+    externalIdUnique: uniqueIndex('automation_runs_project_external_unique').on(
+      table.projectId,
+      table.externalId,
+    ),
+  }),
+)
+
+export const automationTestResults = mysqlTable(
+  'automation_test_results',
+  {
+    id: int('id').autoincrement().primaryKey(),
+    runId: int('run_id').notNull(),
+    projectId: int('project_id').notNull(),
+    externalId: varchar('external_id', { length: 255 }),
+    name: varchar('name', { length: 512 }).notNull(),
+    suite: varchar('suite', { length: 255 }),
+    filePath: text('file_path'),
+    status: varchar('status', { length: 32 }).notNull().default('unknown'),
+    durationMs: int('duration_ms').notNull().default(0),
+    manualTestId: int('manual_test_id'),
+    caseKey: varchar('case_key', { length: 128 }),
+    errorMessage: text('error_message'),
+    stackTrace: text('stack_trace'),
+    stdout: text('stdout'),
+    stderr: text('stderr'),
+    retryCount: int('retry_count').notNull().default(0),
+    startedAt: varchar('started_at', { length: 32 }),
+    createdAt: varchar('created_at', { length: 32 }).notNull(),
+  },
+  (table) => ({
+    runIdIndex: index('automation_results_run_id_idx').on(table.runId),
+    projectStatusIndex: index('automation_results_project_status_idx').on(
+      table.projectId,
+      table.status,
+    ),
+    projectSuiteIndex: index('automation_results_project_suite_idx').on(
+      table.projectId,
+      table.suite,
+    ),
+    projectNameIndex: index('automation_results_project_name_idx').on(
+      table.projectId,
+      table.name,
+    ),
+    manualTestIndex: index('automation_results_manual_test_idx').on(
+      table.manualTestId,
+    ),
+  }),
+)
+
+export const automationAttachments = mysqlTable(
+  'automation_attachments',
+  {
+    id: int('id').autoincrement().primaryKey(),
+    resultId: int('result_id'),
+    runId: int('run_id').notNull(),
+    projectId: int('project_id').notNull(),
+    name: varchar('name', { length: 255 }).notNull(),
+    type: varchar('type', { length: 64 }),
+    url: text('url').notNull(),
+    contentType: varchar('content_type', { length: 128 }),
+    sizeBytes: int('size_bytes'),
+    createdAt: varchar('created_at', { length: 32 }).notNull(),
+  },
+  (table) => ({
+    resultIdIndex: index('automation_attachments_result_id_idx').on(
+      table.resultId,
+    ),
+    runIdIndex: index('automation_attachments_run_id_idx').on(table.runId),
+    projectIdIndex: index('automation_attachments_project_id_idx').on(
+      table.projectId,
+    ),
+  }),
+)
+
+export const automationTestCaseLinks = mysqlTable(
+  'automation_test_case_links',
+  {
+    id: int('id').autoincrement().primaryKey(),
+    projectId: int('project_id').notNull(),
+    resultId: int('result_id'),
+    testId: int('test_id').notNull(),
+    automationSuite: varchar('automation_suite', { length: 255 }),
+    automationName: varchar('automation_name', { length: 512 }).notNull(),
+    createdAt: varchar('created_at', { length: 32 }).notNull(),
+    updatedAt: varchar('updated_at', { length: 32 }).notNull(),
+  },
+  (table) => ({
+    resultIdIndex: index('automation_links_result_id_idx').on(table.resultId),
+    testIdIndex: index('automation_links_test_id_idx').on(table.testId),
+    projectSuiteIndex: index('automation_links_project_suite_idx').on(
+      table.projectId,
+      table.automationSuite,
+    ),
+    resultTestUnique: uniqueIndex('automation_links_result_test_unique').on(
+      table.resultId,
+      table.testId,
+    ),
+  }),
+)
+
+export const projectApiTokens = mysqlTable(
+  'project_api_tokens',
+  {
+    id: int('id').autoincrement().primaryKey(),
+    projectId: int('project_id').notNull(),
+    name: varchar('name', { length: 255 }).notNull(),
+    tokenHash: varchar('token_hash', { length: 255 }).notNull(),
+    tokenPrefix: varchar('token_prefix', { length: 32 }).notNull(),
+    status: varchar('status', { length: 32 }).notNull().default('active'),
+    lastUsedAt: varchar('last_used_at', { length: 32 }),
+    createdAt: varchar('created_at', { length: 32 }).notNull(),
+    updatedAt: varchar('updated_at', { length: 32 }).notNull(),
+  },
+  (table) => ({
+    projectIdIndex: index('project_api_tokens_project_id_idx').on(
+      table.projectId,
+    ),
+    tokenHashUnique: uniqueIndex('project_api_tokens_hash_unique').on(
+      table.tokenHash,
+    ),
+    tokenPrefixIndex: index('project_api_tokens_prefix_idx').on(
+      table.tokenPrefix,
+    ),
+  }),
+)
+
 export type Project = typeof projects.$inferSelect
 export type NewProject = typeof projects.$inferInsert
 export type AuthUser = typeof user.$inferSelect
+export type AutomationRun = typeof automationRuns.$inferSelect
+export type AutomationTestResult = typeof automationTestResults.$inferSelect
