@@ -8,6 +8,7 @@ let isDatabaseConfigured: typeof import('../../db/client')['isDatabaseConfigured
 let automationRuns: typeof import('../../db/schema')['automationRuns']
 let automationTestResults: typeof import('../../db/schema')['automationTestResults']
 let automationTestCaseLinks: typeof import('../../db/schema')['automationTestCaseLinks']
+let projectApiTokens: typeof import('../../db/schema')['projectApiTokens']
 let projects: typeof import('../../db/schema')['projects']
 let tests: typeof import('../../db/schema')['tests']
 
@@ -29,6 +30,7 @@ async function ensureAutomationServerDeps(): Promise<void> {
   automationRuns = schema.automationRuns
   automationTestResults = schema.automationTestResults
   automationTestCaseLinks = schema.automationTestCaseLinks
+  projectApiTokens = schema.projectApiTokens
   projects = schema.projects
   tests = schema.tests
 }
@@ -43,6 +45,34 @@ const automationJunitImportInput = z.object({
   ciBuildUrl: z.string().trim().max(2048).optional(),
   triggerSource: z.enum(['manual', 'ci', 'api']).optional(),
   xml: z.string().trim().min(1),
+})
+
+const automationJsonImportInput = z.object({
+  projectId: z.number().int().positive(),
+  externalId: z.string().trim().min(1).max(255).optional(),
+  name: z.string().trim().min(1),
+  environment: z.string().trim().max(128).optional(),
+  branch: z.string().trim().max(255).optional(),
+  commitSha: z.string().trim().max(128).optional(),
+  ciBuildUrl: z.string().trim().max(2048).optional(),
+  triggerSource: z.enum(['manual', 'ci', 'api']).optional(),
+  results: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(512),
+        suite: z.string().trim().max(255).optional(),
+        filePath: z.string().trim().max(2048).optional(),
+        status: z.enum(['passed', 'failed', 'skipped', 'blocked', 'unknown']),
+        durationMs: z.number().int().min(0).optional(),
+        caseId: z.union([z.string(), z.number()]).optional(),
+        errorMessage: z.string().optional(),
+        stackTrace: z.string().optional(),
+        stdout: z.string().optional(),
+        stderr: z.string().optional(),
+        startedAt: z.string().trim().max(32).optional(),
+      }),
+    )
+    .min(1),
 })
 
 export type AutomationResultStatus =
@@ -96,20 +126,181 @@ export const importAutomationJunitXml = createServerFn({ method: 'POST' })
     return importJunitAutomationRun(data)
   })
 
+export const importAutomationJson = createServerFn({ method: 'POST' })
+  .inputValidator(automationJsonImportInput)
+  .handler(async ({ data }): Promise<AutomationImportResult> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+    await ensureAutomationServerDeps()
+
+    return importJsonAutomationRun(data)
+  })
+
 export async function importJunitAutomationRun(
-  input: z.infer<typeof automationJunitImportInput>,
+  input: z.input<typeof automationJunitImportInput>,
 ): Promise<AutomationImportResult> {
+  const data = automationJunitImportInput.parse(input)
+
   await ensureAutomationServerDeps()
 
   if (!isDatabaseConfigured()) {
     throw new Error('Database is not configured.')
   }
 
+  const parsedResults = parseJunitXml(data.xml)
+
+  if (parsedResults.length === 0) {
+    throw new Error('JUnit XML does not contain test cases.')
+  }
+
+  return createAutomationRunFromResults({
+    projectId: data.projectId,
+    externalId: data.externalId,
+    name: data.name,
+    environment: data.environment,
+    branch: data.branch,
+    commitSha: data.commitSha,
+    ciBuildUrl: data.ciBuildUrl,
+    triggerSource: data.triggerSource ?? 'api',
+    rawFormat: 'junit',
+    rawReport: data.xml,
+    parsedResults,
+  })
+}
+
+export async function importJsonAutomationRun(
+  input: z.input<typeof automationJsonImportInput>,
+): Promise<AutomationImportResult> {
+  const data = automationJsonImportInput.parse(input)
+
+  await ensureAutomationServerDeps()
+
+  if (!isDatabaseConfigured()) {
+    throw new Error('Database is not configured.')
+  }
+
+  const parsedResults = data.results.map((result): ParsedJunitResult => {
+    const caseKey = normalizeCaseKey(result.caseId)
+
+    return {
+      name: truncate(result.name, 512),
+      suite: result.suite ? truncate(result.suite, 255) : null,
+      filePath: result.filePath ?? null,
+      status: result.status,
+      durationMs: result.durationMs ?? 0,
+      caseKey,
+      manualTestId: caseKey ? Number(caseKey.replace(/\D/g, '')) : null,
+      errorMessage: result.errorMessage ? truncate(result.errorMessage, 2000) : null,
+      stackTrace: result.stackTrace ?? null,
+      stdout: result.stdout ?? null,
+      stderr: result.stderr ?? null,
+      startedAt: result.startedAt ?? null,
+    }
+  })
+
+  return createAutomationRunFromResults({
+    projectId: data.projectId,
+    externalId: data.externalId,
+    name: data.name,
+    environment: data.environment,
+    branch: data.branch,
+    commitSha: data.commitSha,
+    ciBuildUrl: data.ciBuildUrl,
+    triggerSource: data.triggerSource ?? 'api',
+    rawFormat: 'json',
+    rawReport: JSON.stringify(data),
+    parsedResults,
+  })
+}
+
+export async function assertProjectApiToken(
+  projectId: number,
+  authorizationHeader: string | null,
+): Promise<void> {
+  await ensureAutomationServerDeps()
+
+  if (!isDatabaseConfigured()) {
+    throw new Error('Database is not configured.')
+  }
+
+  const token = readBearerToken(authorizationHeader)
+
+  if (!token) {
+    throw new Response(
+      JSON.stringify({ error: 'Missing Authorization: Bearer token.' }),
+      {
+        status: 401,
+        headers: { 'content-type': 'application/json' },
+      },
+    )
+  }
+
+  const tokenHash = await hashProjectApiToken(token)
+  const db = getDb()
+  const rows = await db
+    .select({ id: projectApiTokens.id })
+    .from(projectApiTokens)
+    .where(
+      and(
+        eq(projectApiTokens.projectId, projectId),
+        eq(projectApiTokens.tokenHash, tokenHash),
+        eq(projectApiTokens.status, 'active'),
+      ),
+    )
+    .limit(1)
+
+  if (!rows[0]) {
+    throw new Response(JSON.stringify({ error: 'Invalid project API token.' }), {
+      status: 401,
+      headers: { 'content-type': 'application/json' },
+    })
+  }
+
+  await db
+    .update(projectApiTokens)
+    .set({
+      lastUsedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(projectApiTokens.id, rows[0].id))
+}
+
+export async function hashProjectApiToken(token: string): Promise<string> {
+  const crypto = await import('node:crypto')
+
+  return crypto.createHash('sha256').update(token).digest('hex')
+}
+
+async function createAutomationRunFromResults({
+  projectId,
+  externalId,
+  name,
+  environment,
+  branch,
+  commitSha,
+  ciBuildUrl,
+  triggerSource,
+  rawFormat,
+  rawReport,
+  parsedResults,
+}: {
+  projectId: number
+  externalId?: string
+  name?: string
+  environment?: string
+  branch?: string
+  commitSha?: string
+  ciBuildUrl?: string
+  triggerSource: 'manual' | 'ci' | 'api'
+  rawFormat: 'junit' | 'json'
+  rawReport: string
+  parsedResults: ParsedJunitResult[]
+}): Promise<AutomationImportResult> {
   const db = getDb()
   const projectRows = await db
     .select({ id: projects.id, name: projects.name })
     .from(projects)
-    .where(eq(projects.id, input.projectId))
+    .where(eq(projects.id, projectId))
     .limit(1)
   const project = projectRows[0]
 
@@ -117,28 +308,22 @@ export async function importJunitAutomationRun(
     throw new Error('Project was not found.')
   }
 
-  const parsedResults = parseJunitXml(input.xml)
-
-  if (parsedResults.length === 0) {
-    throw new Error('JUnit XML does not contain test cases.')
-  }
-
   const now = new Date().toISOString()
   const counters = calculateCounters(parsedResults)
   const runStatus = calculateRunStatus(counters)
-  const runName = input.name ?? buildRunName(project.name, now)
+  const runName = name ?? buildRunName(project.name, now)
   const startedAt = parsedResults.find((result) => result.startedAt)?.startedAt ?? now
   const finishedAt = now
 
-  const existingRun = input.externalId
+  const existingRun = externalId
     ? (
         await db
           .select({ id: automationRuns.id })
           .from(automationRuns)
           .where(
             and(
-              eq(automationRuns.projectId, input.projectId),
-              eq(automationRuns.externalId, input.externalId),
+              eq(automationRuns.projectId, projectId),
+              eq(automationRuns.externalId, externalId),
             ),
           )
           .limit(1)
@@ -161,13 +346,13 @@ export async function importJunitAutomationRun(
       .set({
         name: runName,
         status: runStatus,
-        environment: input.environment,
-        branch: input.branch,
-        commitSha: input.commitSha,
-        ciBuildUrl: input.ciBuildUrl,
-        triggerSource: input.triggerSource ?? 'api',
-        rawFormat: 'junit',
-        rawReport: input.xml,
+        environment,
+        branch,
+        commitSha,
+        ciBuildUrl,
+        triggerSource,
+        rawFormat,
+        rawReport,
         totalCount: counters.totalCount,
         passedCount: counters.passedCount,
         failedCount: counters.failedCount,
@@ -182,17 +367,17 @@ export async function importJunitAutomationRun(
       .where(eq(automationRuns.id, runId))
   } else {
     const insertResult = await db.insert(automationRuns).values({
-      projectId: input.projectId,
-      externalId: input.externalId,
+      projectId,
+      externalId,
       name: runName,
       status: runStatus,
-      environment: input.environment,
-      branch: input.branch,
-      commitSha: input.commitSha,
-      ciBuildUrl: input.ciBuildUrl,
-      triggerSource: input.triggerSource ?? 'api',
-      rawFormat: 'junit',
-      rawReport: input.xml,
+      environment,
+      branch,
+      commitSha,
+      ciBuildUrl,
+      triggerSource,
+      rawFormat,
+      rawReport,
       totalCount: counters.totalCount,
       passedCount: counters.passedCount,
       failedCount: counters.failedCount,
@@ -218,7 +403,7 @@ export async function importJunitAutomationRun(
     const manualRows = await db
       .select({ id: tests.id })
       .from(tests)
-      .where(eq(tests.projectId, input.projectId))
+      .where(eq(tests.projectId, projectId))
 
     for (const row of manualRows) {
       if (linkableManualIds.includes(row.id)) {
@@ -236,7 +421,7 @@ export async function importJunitAutomationRun(
         : null
     const insertResult = await db.insert(automationTestResults).values({
       runId,
-      projectId: input.projectId,
+      projectId,
       externalId: buildResultExternalId(result),
       name: truncate(result.name, 512),
       suite: result.suite ? truncate(result.suite, 255) : null,
@@ -258,7 +443,7 @@ export async function importJunitAutomationRun(
     if (manualTestId) {
       linkedManualCases += 1
       await db.insert(automationTestCaseLinks).values({
-        projectId: input.projectId,
+        projectId,
         resultId,
         testId: manualTestId,
         automationSuite: result.suite ? truncate(result.suite, 255) : null,
@@ -480,6 +665,37 @@ function detectCaseKey(text: string): string | null {
   }
 
   return `TMS-${match[1]}`
+}
+
+function normalizeCaseKey(caseId: string | number | undefined): string | null {
+  if (typeof caseId === 'number' && Number.isInteger(caseId) && caseId > 0) {
+    return `TMS-${caseId}`
+  }
+
+  if (typeof caseId !== 'string') {
+    return null
+  }
+
+  const tmsMatch = caseId.match(/\bTMS-(\d+)\b/i)
+
+  if (tmsMatch) {
+    return `TMS-${tmsMatch[1]}`
+  }
+
+  const numericMatch = caseId.match(/\b(\d+)\b/)
+
+  return numericMatch ? `TMS-${numericMatch[1]}` : null
+}
+
+function readBearerToken(authorizationHeader: string | null): string | null {
+  if (!authorizationHeader) {
+    return null
+  }
+
+  const match = authorizationHeader.match(/^Bearer\s+(.+)$/i)
+  const token = match?.[1]?.trim()
+
+  return token || null
 }
 
 function stripXml(value: string): string {

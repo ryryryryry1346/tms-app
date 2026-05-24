@@ -26,6 +26,8 @@ import { Route as ProjectProjectSlugReportsRouteImport } from './routes/project.
 import { Route as ProjectProjectSlugDocsRouteImport } from './routes/project.$projectSlug.docs'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ProjectProjectSlugDocsDocIdRouteImport } from './routes/project_.$projectSlug.docs_.$docId'
+import { Route as ApiProjectsProjectIdAutomationRunsRouteImport } from './routes/api/projects.$projectId.automation-runs'
+import { Route as ApiProjectsProjectIdAutomationRunsImportJunitRouteImport } from './routes/api/projects.$projectId.automation-runs.import.junit'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -115,6 +117,18 @@ const ProjectProjectSlugDocsDocIdRoute =
     path: '/project/$projectSlug/docs/$docId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiProjectsProjectIdAutomationRunsRoute =
+  ApiProjectsProjectIdAutomationRunsRouteImport.update({
+    id: '/api/projects/$projectId/automation-runs',
+    path: '/api/projects/$projectId/automation-runs',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiProjectsProjectIdAutomationRunsImportJunitRoute =
+  ApiProjectsProjectIdAutomationRunsImportJunitRouteImport.update({
+    id: '/import/junit',
+    path: '/import/junit',
+    getParentRoute: () => ApiProjectsProjectIdAutomationRunsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -133,7 +147,9 @@ export interface FileRoutesByFullPath {
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
+  '/api/projects/$projectId/automation-runs': typeof ApiProjectsProjectIdAutomationRunsRouteWithChildren
   '/project/$projectSlug/docs/$docId': typeof ProjectProjectSlugDocsDocIdRoute
+  '/api/projects/$projectId/automation-runs/import/junit': typeof ApiProjectsProjectIdAutomationRunsImportJunitRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -152,7 +168,9 @@ export interface FileRoutesByTo {
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
+  '/api/projects/$projectId/automation-runs': typeof ApiProjectsProjectIdAutomationRunsRouteWithChildren
   '/project/$projectSlug/docs/$docId': typeof ProjectProjectSlugDocsDocIdRoute
+  '/api/projects/$projectId/automation-runs/import/junit': typeof ApiProjectsProjectIdAutomationRunsImportJunitRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -172,7 +190,9 @@ export interface FileRoutesById {
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
   '/project_/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
+  '/api/projects/$projectId/automation-runs': typeof ApiProjectsProjectIdAutomationRunsRouteWithChildren
   '/project_/$projectSlug/docs_/$docId': typeof ProjectProjectSlugDocsDocIdRoute
+  '/api/projects/$projectId/automation-runs/import/junit': typeof ApiProjectsProjectIdAutomationRunsImportJunitRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -193,7 +213,9 @@ export interface FileRouteTypes {
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/runs'
     | '/project/$projectSlug/repository'
+    | '/api/projects/$projectId/automation-runs'
     | '/project/$projectSlug/docs/$docId'
+    | '/api/projects/$projectId/automation-runs/import/junit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -212,7 +234,9 @@ export interface FileRouteTypes {
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/runs'
     | '/project/$projectSlug/repository'
+    | '/api/projects/$projectId/automation-runs'
     | '/project/$projectSlug/docs/$docId'
+    | '/api/projects/$projectId/automation-runs/import/junit'
   id:
     | '__root__'
     | '/'
@@ -231,7 +255,9 @@ export interface FileRouteTypes {
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/runs'
     | '/project_/$projectSlug/repository'
+    | '/api/projects/$projectId/automation-runs'
     | '/project_/$projectSlug/docs_/$docId'
+    | '/api/projects/$projectId/automation-runs/import/junit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -248,6 +274,7 @@ export interface RootRouteChildren {
   TestTestIdRoute: typeof TestTestIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ProjectProjectSlugRepositoryRoute: typeof ProjectProjectSlugRepositoryRoute
+  ApiProjectsProjectIdAutomationRunsRoute: typeof ApiProjectsProjectIdAutomationRunsRouteWithChildren
   ProjectProjectSlugDocsDocIdRoute: typeof ProjectProjectSlugDocsDocIdRoute
 }
 
@@ -372,6 +399,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectProjectSlugDocsDocIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/projects/$projectId/automation-runs': {
+      id: '/api/projects/$projectId/automation-runs'
+      path: '/api/projects/$projectId/automation-runs'
+      fullPath: '/api/projects/$projectId/automation-runs'
+      preLoaderRoute: typeof ApiProjectsProjectIdAutomationRunsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/projects/$projectId/automation-runs/import/junit': {
+      id: '/api/projects/$projectId/automation-runs/import/junit'
+      path: '/import/junit'
+      fullPath: '/api/projects/$projectId/automation-runs/import/junit'
+      preLoaderRoute: typeof ApiProjectsProjectIdAutomationRunsImportJunitRouteImport
+      parentRoute: typeof ApiProjectsProjectIdAutomationRunsRoute
+    }
   }
 }
 
@@ -390,6 +431,21 @@ const ProjectProjectSlugRouteChildren: ProjectProjectSlugRouteChildren = {
 const ProjectProjectSlugRouteWithChildren =
   ProjectProjectSlugRoute._addFileChildren(ProjectProjectSlugRouteChildren)
 
+interface ApiProjectsProjectIdAutomationRunsRouteChildren {
+  ApiProjectsProjectIdAutomationRunsImportJunitRoute: typeof ApiProjectsProjectIdAutomationRunsImportJunitRoute
+}
+
+const ApiProjectsProjectIdAutomationRunsRouteChildren: ApiProjectsProjectIdAutomationRunsRouteChildren =
+  {
+    ApiProjectsProjectIdAutomationRunsImportJunitRoute:
+      ApiProjectsProjectIdAutomationRunsImportJunitRoute,
+  }
+
+const ApiProjectsProjectIdAutomationRunsRouteWithChildren =
+  ApiProjectsProjectIdAutomationRunsRoute._addFileChildren(
+    ApiProjectsProjectIdAutomationRunsRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -404,6 +460,8 @@ const rootRouteChildren: RootRouteChildren = {
   TestTestIdRoute: TestTestIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ProjectProjectSlugRepositoryRoute: ProjectProjectSlugRepositoryRoute,
+  ApiProjectsProjectIdAutomationRunsRoute:
+    ApiProjectsProjectIdAutomationRunsRouteWithChildren,
   ProjectProjectSlugDocsDocIdRoute: ProjectProjectSlugDocsDocIdRoute,
 }
 export const routeTree = rootRouteImport
