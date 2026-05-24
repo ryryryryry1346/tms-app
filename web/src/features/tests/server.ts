@@ -331,6 +331,13 @@ export type RepositoryCsvExport = {
 
 export type RepositoryImportSource = 'auto' | 'native' | 'testmo'
 
+export type RepositoryImportColumnMapping = {
+  field: string
+  sourceColumn: string | null
+  required: boolean
+  fallback: string | null
+}
+
 export type RepositoryImportPreviewRow = {
   rowNumber: number
   title: string
@@ -352,6 +359,7 @@ export type RepositoryImportPreview = {
   source: RepositoryImportSource
   detectedSource: Exclude<RepositoryImportSource, 'auto'>
   totalRows: number
+  columnMappings: RepositoryImportColumnMapping[]
   previewRows: RepositoryImportPreviewRow[]
   validRows: number
   warningRows: number
@@ -1227,6 +1235,119 @@ function getCsvValue(
   return ''
 }
 
+function findCsvHeader(headers: string[], names: string[]): string | null {
+  const normalizedNames = names.map(normalizeHeader)
+
+  return (
+    headers.find((header) =>
+      normalizedNames.includes(normalizeHeader(header ?? '')),
+    ) ?? null
+  )
+}
+
+function buildImportColumnMappings(
+  headers: string[],
+  source: Exclude<RepositoryImportSource, 'auto'>,
+): RepositoryImportColumnMapping[] {
+  const mappingConfig =
+    source === 'testmo'
+      ? [
+          {
+            field: 'Title',
+            names: ['Case'],
+            required: true,
+            fallback: null,
+          },
+          {
+            field: 'Suite',
+            names: ['Folder', 'Suite'],
+            required: false,
+            fallback: 'Imported',
+          },
+          {
+            field: 'Status',
+            names: ['State'],
+            required: false,
+            fallback: 'Draft',
+          },
+          {
+            field: 'Priority',
+            names: ['Priority'],
+            required: false,
+            fallback: 'Medium',
+          },
+          {
+            field: 'Type',
+            names: ['Template'],
+            required: false,
+            fallback: 'Functional',
+          },
+          {
+            field: 'Steps',
+            names: ['Steps (Step)'],
+            required: false,
+            fallback: 'Empty',
+          },
+          {
+            field: 'Expected result',
+            names: ['Steps (Expected)', 'Expected'],
+            required: false,
+            fallback: 'Empty',
+          },
+        ]
+      : [
+          {
+            field: 'Title',
+            names: ['title', 'case', 'name'],
+            required: true,
+            fallback: null,
+          },
+          {
+            field: 'Suite',
+            names: ['suite', 'folder', 'section'],
+            required: false,
+            fallback: 'Imported',
+          },
+          {
+            field: 'Status',
+            names: ['status', 'state'],
+            required: false,
+            fallback: 'Draft',
+          },
+          {
+            field: 'Priority',
+            names: ['priority'],
+            required: false,
+            fallback: 'Medium',
+          },
+          {
+            field: 'Type',
+            names: ['type', 'case_type', 'template'],
+            required: false,
+            fallback: 'Functional',
+          },
+          {
+            field: 'Steps',
+            names: ['steps', 'steps (step)', 'step'],
+            required: false,
+            fallback: 'Empty',
+          },
+          {
+            field: 'Expected result',
+            names: ['expected', 'expected_result', 'steps (expected)'],
+            required: false,
+            fallback: 'Empty',
+          },
+        ]
+
+  return mappingConfig.map((item) => ({
+    field: item.field,
+    sourceColumn: findCsvHeader(headers, item.names),
+    required: item.required,
+    fallback: item.fallback,
+  }))
+}
+
 function stripHtml(value: string): string {
   return value
     .replace(/<br\s*\/?>/gi, '\n')
@@ -1507,6 +1628,7 @@ async function buildRepositoryImportPreview({
       source: requestedSource,
       detectedSource,
       totalRows: mappedRows.length,
+      columnMappings: buildImportColumnMappings(parsed.headers, source),
       previewRows: mappedRows.slice(0, 50),
       validRows: mappedRows.length - errorRows,
       warningRows,

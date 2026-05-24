@@ -1325,6 +1325,38 @@ function ProjectRepositoryPage() {
       importPreview?.previewRows.filter((row) => row.duplicate !== 'none').length ??
       0,
   }
+  const importConfirmSummary = importPreview
+    ? [
+        {
+          label: 'Cases to create',
+          value: importPreview.validRows,
+          tone: 'ready',
+        },
+        {
+          label: 'Blocked rows',
+          value: importPreview.errorRows,
+          tone: importPreview.errorRows > 0 ? 'danger' : 'muted',
+        },
+        {
+          label: 'Warnings',
+          value: importPreview.warningRows,
+          tone: importPreview.warningRows > 0 ? 'warning' : 'muted',
+        },
+        {
+          label: 'Duplicate warnings',
+          value: importPreview.duplicateRows,
+          tone: importPreview.duplicateRows > 0 ? 'warning' : 'muted',
+        },
+        {
+          label: 'Suites to create',
+          value: createMissingImportSuites ? importPreview.missingSuites.length : 0,
+          tone:
+            createMissingImportSuites && importPreview.missingSuites.length > 0
+              ? 'ready'
+              : 'muted',
+        },
+      ]
+    : []
   const previewTest =
     previewTestId === null
       ? null
@@ -2866,6 +2898,9 @@ function ProjectRepositoryPage() {
                       onValueChange={(value) => {
                         setImportSource(value as RepositoryImportPanelSource)
                         setImportPreview(null)
+                        setImportResult(null)
+                        setIsImportConfirming(false)
+                        setImportPreviewFilter('all')
                       }}
                       options={[
                         { value: 'auto', label: 'Auto detect' },
@@ -2946,6 +2981,41 @@ function ProjectRepositoryPage() {
                           ? 'Testmo'
                           : 'TMS'}
                       </strong>
+                    </div>
+                  </div>
+                  <div className="repository-import-mapping">
+                    <div className="repository-import-mapping__header">
+                      <div>
+                        <strong>Column mapping</strong>
+                        <span>
+                          Confirm how CSV columns will become TMS case fields.
+                        </span>
+                      </div>
+                      <Badge variant="default">
+                        {importPreview.detectedSource === 'testmo'
+                          ? 'Testmo mapping'
+                          : 'TMS mapping'}
+                      </Badge>
+                    </div>
+                    <div className="repository-import-mapping__grid">
+                      {importPreview.columnMappings.map((mapping) => (
+                        <div
+                          key={mapping.field}
+                          className={`repository-import-mapping__item ${
+                            !mapping.sourceColumn && mapping.required
+                              ? 'is-missing'
+                              : ''
+                          }`}
+                        >
+                          <span>{mapping.field}</span>
+                          <strong>
+                            {mapping.sourceColumn ??
+                              (mapping.fallback
+                                ? `Default: ${mapping.fallback}`
+                                : 'Missing')}
+                          </strong>
+                        </div>
+                      ))}
                     </div>
                   </div>
                   <div className="repository-import-preview-toolbar">
@@ -3062,11 +3132,22 @@ function ProjectRepositoryPage() {
                         {isImportConfirming ? 'Confirm import' : 'Ready for review'}
                       </div>
                       <div className="repository-import-confirm__copy">
-                      {importPreview.errorRows > 0
-                        ? 'Import is blocked until CSV errors are resolved.'
-                        : isImportConfirming
-                          ? `Confirm import of ${importPreview.validRows} cases.`
-                          : 'Review the preview before creating test cases.'}
+                        {importPreview.errorRows > 0
+                          ? 'Import is blocked until CSV errors are resolved.'
+                          : isImportConfirming
+                            ? 'This action will create new repository cases from the reviewed rows.'
+                            : 'Review mapping, warnings, and duplicates before creating test cases.'}
+                      </div>
+                      <div className="repository-import-confirm__metrics">
+                        {importConfirmSummary.map((item) => (
+                          <span
+                            key={item.label}
+                            className={`repository-import-confirm__metric is-${item.tone}`}
+                          >
+                            <strong>{item.value}</strong>
+                            {item.label}
+                          </span>
+                        ))}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
