@@ -147,6 +147,26 @@ function ProjectAutomationPage() {
   const { projectSlug } = Route.useParams()
   const location = useLocation()
   const automationRootPath = `/project/${projectSlug}/automation`
+  const currentPath = location.pathname.replace(/\/+$/, '')
+
+  if (currentPath !== automationRootPath) {
+    return <Outlet />
+  }
+
+  return <ProjectAutomationIndex project={project} initialTokens={initialTokens} />
+}
+
+function ProjectAutomationIndex({
+  project,
+  initialTokens,
+}: {
+  project: {
+    id: number
+    name: string
+    slug: string | null
+  }
+  initialTokens: ProjectApiTokenSummary[]
+}) {
   const [tokens, setTokens] = useState<ProjectApiTokenSummary[]>(initialTokens)
   const [tokenName, setTokenName] = useState('')
   const [newToken, setNewToken] = useState<string | null>(null)
@@ -158,10 +178,6 @@ function ProjectAutomationPage() {
   const junitEndpoint = `${origin}/api/projects/${project.id}/automation-runs/import/junit`
   const jsonEndpoint = `${origin}/api/projects/${project.id}/automation-runs`
   const runsHref = `/project/${project.slug ?? project.id.toString()}/automation/runs`
-
-  if (location.pathname !== automationRootPath) {
-    return <Outlet />
-  }
 
   const curlExample = `curl -X POST "${junitEndpoint}" \\
   -H "Authorization: Bearer <project-api-token>" \\

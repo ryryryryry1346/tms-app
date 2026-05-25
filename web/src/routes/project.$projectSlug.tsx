@@ -83,14 +83,12 @@ export const Route = createFileRoute('/project/$projectSlug')({
 
 function ProjectOverviewPage() {
   const { project, dashboard, runs } = Route.useLoaderData()
+  const { projectSlug: routeProjectSlug } = Route.useParams()
   const location = useLocation()
+  const projectRootPath = `/project/${routeProjectSlug}`
+  const currentPath = location.pathname.replace(/\/+$/, '')
 
-  if (
-    location.pathname.endsWith('/runs') ||
-    location.pathname.endsWith('/repository') ||
-    location.pathname.includes('/docs') ||
-    location.pathname.endsWith('/reports')
-  ) {
+  if (currentPath !== projectRootPath) {
     return <Outlet />
   }
 
