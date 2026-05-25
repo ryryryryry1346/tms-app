@@ -100,6 +100,21 @@ type FlakyTestSummary = {
   averageDurationMs: number
 }
 
+const MONTH_LABELS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
+
 function formatDate(value: string | null): string {
   if (!value) {
     return 'Not set'
@@ -111,12 +126,10 @@ function formatDate(value: string | null): string {
     return value.slice(0, 16)
   }
 
-  return new Intl.DateTimeFormat('en', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
+  const hours = String(date.getUTCHours()).padStart(2, '0')
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0')
+
+  return `${MONTH_LABELS[date.getUTCMonth()]} ${date.getUTCDate()}, ${hours}:${minutes}`
 }
 
 function formatDuration(durationMs: number): string {

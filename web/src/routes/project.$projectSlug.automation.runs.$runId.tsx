@@ -89,6 +89,21 @@ const RESULT_FILTERS = ['All', 'failed', 'passed', 'skipped', 'blocked', 'unknow
 const RESULT_TABLE_COLUMNS =
   'minmax(280px,2fr) minmax(180px,1fr) 110px 100px minmax(180px,1fr) minmax(220px,1.2fr)'
 
+const MONTH_LABELS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
+
 function formatDate(value: string | null): string {
   if (!value) {
     return 'Not set'
@@ -100,12 +115,10 @@ function formatDate(value: string | null): string {
     return value.slice(0, 16)
   }
 
-  return new Intl.DateTimeFormat('en', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
+  const hours = String(date.getUTCHours()).padStart(2, '0')
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0')
+
+  return `${MONTH_LABELS[date.getUTCMonth()]} ${date.getUTCDate()}, ${hours}:${minutes}`
 }
 
 function formatDuration(durationMs: number): string {

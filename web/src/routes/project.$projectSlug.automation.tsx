@@ -1,5 +1,5 @@
 import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Alert } from '../components/ui/Alert'
@@ -81,6 +81,21 @@ export const Route = createFileRoute('/project/$projectSlug/automation')({
   component: ProjectAutomationPage,
 })
 
+const MONTH_LABELS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
+
 function formatDate(value: string | null): string {
   if (!value) {
     return 'Never'
@@ -92,11 +107,7 @@ function formatDate(value: string | null): string {
     return value.slice(0, 10)
   }
 
-  return new Intl.DateTimeFormat('en', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(date)
+  return `${MONTH_LABELS[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}`
 }
 
 function CodeBlock({
@@ -133,11 +144,8 @@ function ProjectAutomationPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [revokingTokenId, setRevokingTokenId] = useState<number | null>(null)
+  const [origin, setOrigin] = useState('https://tms-app-web-staging.onrender.com')
   const activeTokenCount = tokens.filter((token) => token.status === 'active').length
-  const origin =
-    typeof window === 'undefined'
-      ? 'https://tms-app-web-staging.onrender.com'
-      : window.location.origin
   const junitEndpoint = `${origin}/api/projects/${project.id}/automation-runs/import/junit`
   const jsonEndpoint = `${origin}/api/projects/${project.id}/automation-runs`
   const runsHref = `/project/${project.slug ?? project.id.toString()}/automation/runs`
@@ -179,6 +187,10 @@ function ProjectAutomationPage() {
       }
     ]
   }'`
+
+  useEffect(() => {
+    setOrigin(window.location.origin)
+  }, [])
 
   async function copyText(value: string): Promise<void> {
     await navigator.clipboard?.writeText(value)
