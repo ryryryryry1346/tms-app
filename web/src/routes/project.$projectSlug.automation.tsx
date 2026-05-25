@@ -4,11 +4,11 @@ import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
-import { Button } from '../components/ui/Button'
+import { Button, buttonVariants } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Input } from '../components/ui/Input'
-import { LinkButton } from '../components/ui/LinkButton'
 import { Panel } from '../components/ui/Panel'
+import { cx } from '../components/ui/utils'
 import {
   createProjectApiToken,
   getProjectApiTokens,
@@ -258,9 +258,9 @@ function ProjectAutomationPage() {
                 <Badge variant="primary">
                   {activeTokenCount} active token{activeTokenCount === 1 ? '' : 's'}
                 </Badge>
-                <LinkButton to={runsHref}>
+                <a className={cx(buttonVariants({ variant: 'default' }), 'no-underline')} href={runsHref}>
                   Open runs
-                </LinkButton>
+                </a>
               </div>
             }
           />
