@@ -1,4 +1,10 @@
-import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
+import {
+  Outlet,
+  createFileRoute,
+  notFound,
+  redirect,
+  useLocation,
+} from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
@@ -399,6 +405,37 @@ function FlakyTestsPanel({ tests }: { tests: FlakyTestSummary[] }) {
 
 function AutomationRunsPage() {
   const { project, runs, recentResults } = Route.useLoaderData()
+  const { projectSlug: routeProjectSlug } = Route.useParams()
+  const location = useLocation()
+  const automationRunsPath = `/project/${routeProjectSlug}/automation/runs`
+  const currentPath = location.pathname.replace(/\/+$/, '')
+
+  if (currentPath !== automationRunsPath) {
+    return <Outlet />
+  }
+
+  return (
+    <AutomationRunsIndex
+      project={project}
+      runs={runs}
+      recentResults={recentResults}
+    />
+  )
+}
+
+function AutomationRunsIndex({
+  project,
+  runs,
+  recentResults,
+}: {
+  project: {
+    id: number
+    name: string
+    slug: string | null
+  }
+  runs: AutomationRunListItem[]
+  recentResults: AutomationRunResultSummary[]
+}) {
   const projectSlug = project.slug ?? project.id.toString()
   const [query, setQuery] = useState('')
   const [quickFilter, setQuickFilter] = useState<QuickFilter>('all')
