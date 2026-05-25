@@ -1,4 +1,10 @@
-import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
+import {
+  Outlet,
+  createFileRoute,
+  notFound,
+  redirect,
+  useLocation,
+} from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
@@ -138,6 +144,9 @@ function CodeBlock({
 
 function ProjectAutomationPage() {
   const { project, tokens: initialTokens } = Route.useLoaderData()
+  const { projectSlug } = Route.useParams()
+  const location = useLocation()
+  const automationRootPath = `/project/${projectSlug}/automation`
   const [tokens, setTokens] = useState<ProjectApiTokenSummary[]>(initialTokens)
   const [tokenName, setTokenName] = useState('')
   const [newToken, setNewToken] = useState<string | null>(null)
@@ -149,6 +158,11 @@ function ProjectAutomationPage() {
   const junitEndpoint = `${origin}/api/projects/${project.id}/automation-runs/import/junit`
   const jsonEndpoint = `${origin}/api/projects/${project.id}/automation-runs`
   const runsHref = `/project/${project.slug ?? project.id.toString()}/automation/runs`
+
+  if (location.pathname !== automationRootPath) {
+    return <Outlet />
+  }
+
   const curlExample = `curl -X POST "${junitEndpoint}" \\
   -H "Authorization: Bearer <project-api-token>" \\
   -F "file=@junit.xml" \\
