@@ -101,12 +101,12 @@ function getHeaderCopy(
     return { label: projectLabel, title: 'Repository' }
   }
 
-  if (pathname.startsWith('/project/') && pathname.endsWith('/runs')) {
-    return { label: projectLabel, title: 'Runs' }
-  }
-
   if (pathname.startsWith('/project/') && pathname.includes('/automation')) {
     return { label: projectLabel, title: 'Automation' }
+  }
+
+  if (pathname.startsWith('/project/') && pathname.endsWith('/runs')) {
+    return { label: projectLabel, title: 'Runs' }
   }
 
   if (pathname.startsWith('/project/') && pathname.includes('/docs')) {

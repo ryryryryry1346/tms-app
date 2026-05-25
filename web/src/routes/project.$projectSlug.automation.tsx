@@ -140,6 +140,7 @@ function ProjectAutomationPage() {
       : window.location.origin
   const junitEndpoint = `${origin}/api/projects/${project.id}/automation-runs/import/junit`
   const jsonEndpoint = `${origin}/api/projects/${project.id}/automation-runs`
+  const runsHref = `/project/${project.slug ?? project.id.toString()}/automation/runs`
   const curlExample = `curl -X POST "${junitEndpoint}" \\
   -H "Authorization: Bearer <project-api-token>" \\
   -F "file=@junit.xml" \\
@@ -245,10 +246,7 @@ function ProjectAutomationPage() {
                 <Badge variant="primary">
                   {activeTokenCount} active token{activeTokenCount === 1 ? '' : 's'}
                 </Badge>
-                <LinkButton
-                  to="/project/$projectSlug/automation/runs"
-                  params={{ projectSlug: project.slug ?? project.id.toString() }}
-                >
+                <LinkButton to={runsHref}>
                   Open runs
                 </LinkButton>
               </div>
