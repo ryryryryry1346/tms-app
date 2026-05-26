@@ -4,6 +4,8 @@ import { z } from 'zod'
 let and: typeof import('drizzle-orm')['and']
 let desc: typeof import('drizzle-orm')['desc']
 let eq: typeof import('drizzle-orm')['eq']
+let like: typeof import('drizzle-orm')['like']
+let or: typeof import('drizzle-orm')['or']
 let getDb: typeof import('../../db/client')['getDb']
 let isDatabaseConfigured: typeof import('../../db/client')['isDatabaseConfigured']
 let automationRuns: typeof import('../../db/schema')['automationRuns']
@@ -11,6 +13,7 @@ let automationTestResults: typeof import('../../db/schema')['automationTestResul
 let automationTestCaseLinks: typeof import('../../db/schema')['automationTestCaseLinks']
 let projectApiTokens: typeof import('../../db/schema')['projectApiTokens']
 let projects: typeof import('../../db/schema')['projects']
+let sections: typeof import('../../db/schema')['sections']
 let tests: typeof import('../../db/schema')['tests']
 
 async function ensureAutomationServerDeps(): Promise<void> {
@@ -27,6 +30,8 @@ async function ensureAutomationServerDeps(): Promise<void> {
   and = drizzle.and
   desc = drizzle.desc
   eq = drizzle.eq
+  like = drizzle.like
+  or = drizzle.or
   getDb = dbClient.getDb
   isDatabaseConfigured = dbClient.isDatabaseConfigured
   automationRuns = schema.automationRuns
@@ -34,6 +39,7 @@ async function ensureAutomationServerDeps(): Promise<void> {
   automationTestCaseLinks = schema.automationTestCaseLinks
   projectApiTokens = schema.projectApiTokens
   projects = schema.projects
+  sections = schema.sections
   tests = schema.tests
 }
 
@@ -91,6 +97,18 @@ const revokeProjectApiTokenInput = projectAutomationInput.extend({
 
 const automationRunDetailInput = projectAutomationInput.extend({
   runId: z.number().int().positive(),
+})
+
+const automationResultLinkInput = automationRunDetailInput.extend({
+  resultId: z.number().int().positive(),
+})
+
+const automationResultManualCaseLinkInput = automationResultLinkInput.extend({
+  manualTestId: z.number().int().positive(),
+})
+
+const automationManualCaseSearchInput = projectAutomationInput.extend({
+  query: z.string().trim().max(255).optional(),
 })
 
 export type AutomationResultStatus =
@@ -189,12 +207,20 @@ export type AutomationRunResultItem = {
   stderr: string | null
   retryCount: number
   startedAt: string | null
+  suggestedManualCase: AutomationManualCaseOption | null
 }
 
 export type AutomationRunDetail = AutomationRunListItem & {
   rawFormat: string
   rawReport: string | null
   results: AutomationRunResultItem[]
+}
+
+export type AutomationManualCaseOption = {
+  id: number
+  title: string
+  suiteName: string | null
+  status: string | null
 }
 
 export const importAutomationJunitXml = createServerFn({ method: 'POST' })
@@ -464,12 +490,238 @@ export const getAutomationRunDetail = createServerFn({ method: 'POST' })
       .where(eq(automationTestResults.runId, data.runId))
       .orderBy(desc(automationTestResults.status), desc(automationTestResults.id))
 
+    const manualCandidates = await db
+      .select({
+        id: tests.id,
+        title: tests.title,
+        status: tests.status,
+        suiteName: sections.name,
+      })
+      .from(tests)
+      .leftJoin(sections, eq(sections.id, tests.sectionId))
+      .where(eq(tests.projectId, data.projectId))
+
+    const manualCasesById = new Map<number, AutomationManualCaseOption>()
+    const manualCasesByTitle = new Map<string, AutomationManualCaseOption>()
+
+    for (const manualCase of manualCandidates) {
+      const option = {
+        id: manualCase.id,
+        title: manualCase.title,
+        suiteName: manualCase.suiteName ?? null,
+        status: manualCase.status ?? null,
+      }
+
+      manualCasesById.set(option.id, option)
+      manualCasesByTitle.set(normalizeLookupText(option.title), option)
+    }
+
     return {
       run: {
         ...run,
-        results,
+        results: results.map((result) => {
+          const caseKeyId = result.caseKey
+            ? Number(result.caseKey.replace(/\D/g, ''))
+            : null
+          const suggestedManualCase =
+            result.manualTestId !== null
+              ? null
+              : caseKeyId && manualCasesById.has(caseKeyId)
+                ? manualCasesById.get(caseKeyId) ?? null
+                : manualCasesByTitle.get(normalizeLookupText(result.name)) ??
+                  null
+
+          return {
+            ...result,
+            suggestedManualCase,
+          }
+        }),
       },
     }
+  })
+
+export const searchManualTestCasesForAutomation = createServerFn({ method: 'POST' })
+  .inputValidator(automationManualCaseSearchInput)
+  .handler(
+    async ({
+      data,
+    }): Promise<{ cases: AutomationManualCaseOption[] }> => {
+      const { requireSessionUser } = await import('../auth/helpers.server')
+      await requireSessionUser()
+      await ensureAutomationServerDeps()
+
+      if (!isDatabaseConfigured()) {
+        return { cases: [] }
+      }
+
+      const search = data.query?.trim() ?? ''
+      const numericId = Number(search.replace(/^#|^TMS-/i, ''))
+      const searchPattern = `%${search}%`
+      const searchCondition = search
+        ? Number.isInteger(numericId) && numericId > 0
+          ? or(like(tests.title, searchPattern), eq(tests.id, numericId))
+          : like(tests.title, searchPattern)
+        : undefined
+
+      const whereConditions = [
+        eq(tests.projectId, data.projectId),
+        searchCondition,
+      ].filter(
+        (
+          condition,
+        ): condition is Exclude<typeof condition, undefined> =>
+          condition !== undefined,
+      )
+
+      const rows = await getDb()
+        .select({
+          id: tests.id,
+          title: tests.title,
+          status: tests.status,
+          suiteName: sections.name,
+        })
+        .from(tests)
+        .leftJoin(sections, eq(sections.id, tests.sectionId))
+        .where(and(...whereConditions))
+        .orderBy(desc(tests.updatedAt), desc(tests.id))
+        .limit(10)
+
+      return {
+        cases: rows.map((row) => ({
+          id: row.id,
+          title: row.title,
+          suiteName: row.suiteName ?? null,
+          status: row.status ?? null,
+        })),
+      }
+    },
+  )
+
+export const linkAutomationResultToManualCase = createServerFn({ method: 'POST' })
+  .inputValidator(automationResultManualCaseLinkInput)
+  .handler(
+    async ({
+      data,
+    }): Promise<{ manualCase: AutomationManualCaseOption }> => {
+      const { requireSessionUser } = await import('../auth/helpers.server')
+      await requireSessionUser()
+      await ensureAutomationServerDeps()
+
+      if (!isDatabaseConfigured()) {
+        throw new Error('Database is not configured.')
+      }
+
+      const db = getDb()
+      const [result] = await db
+        .select({
+          id: automationTestResults.id,
+          name: automationTestResults.name,
+          suite: automationTestResults.suite,
+        })
+        .from(automationTestResults)
+        .where(
+          and(
+            eq(automationTestResults.id, data.resultId),
+            eq(automationTestResults.runId, data.runId),
+            eq(automationTestResults.projectId, data.projectId),
+          ),
+        )
+        .limit(1)
+
+      if (!result) {
+        throw new Error('Automation result was not found.')
+      }
+
+      const [manualCase] = await db
+        .select({
+          id: tests.id,
+          title: tests.title,
+          status: tests.status,
+          suiteName: sections.name,
+        })
+        .from(tests)
+        .leftJoin(sections, eq(sections.id, tests.sectionId))
+        .where(and(eq(tests.id, data.manualTestId), eq(tests.projectId, data.projectId)))
+        .limit(1)
+
+      if (!manualCase) {
+        throw new Error('Manual test case was not found in this project.')
+      }
+
+      const now = new Date().toISOString()
+
+      await db
+        .update(automationTestResults)
+        .set({
+          manualTestId: manualCase.id,
+        })
+        .where(eq(automationTestResults.id, result.id))
+
+      await db
+        .delete(automationTestCaseLinks)
+        .where(eq(automationTestCaseLinks.resultId, result.id))
+
+      await db.insert(automationTestCaseLinks).values({
+        projectId: data.projectId,
+        resultId: result.id,
+        testId: manualCase.id,
+        automationSuite: result.suite,
+        automationName: result.name,
+        createdAt: now,
+        updatedAt: now,
+      })
+
+      return {
+        manualCase: {
+          id: manualCase.id,
+          title: manualCase.title,
+          suiteName: manualCase.suiteName ?? null,
+          status: manualCase.status ?? null,
+        },
+      }
+    },
+  )
+
+export const unlinkAutomationResultFromManualCase = createServerFn({ method: 'POST' })
+  .inputValidator(automationResultLinkInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+    await ensureAutomationServerDeps()
+
+    if (!isDatabaseConfigured()) {
+      throw new Error('Database is not configured.')
+    }
+
+    const db = getDb()
+    const [result] = await db
+      .select({ id: automationTestResults.id })
+      .from(automationTestResults)
+      .where(
+        and(
+          eq(automationTestResults.id, data.resultId),
+          eq(automationTestResults.runId, data.runId),
+          eq(automationTestResults.projectId, data.projectId),
+        ),
+      )
+      .limit(1)
+
+    if (!result) {
+      throw new Error('Automation result was not found.')
+    }
+
+    await db
+      .update(automationTestResults)
+      .set({
+        manualTestId: null,
+      })
+      .where(eq(automationTestResults.id, result.id))
+
+    await db
+      .delete(automationTestCaseLinks)
+      .where(eq(automationTestCaseLinks.resultId, result.id))
+
+    return { ok: true }
   })
 
 export async function importJunitAutomationRun(
@@ -1027,6 +1279,10 @@ function normalizeCaseKey(caseId: string | number | undefined): string | null {
   const numericMatch = caseId.match(/\b(\d+)\b/)
 
   return numericMatch ? `TMS-${numericMatch[1]}` : null
+}
+
+function normalizeLookupText(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toLowerCase()
 }
 
 function readBearerToken(authorizationHeader: string | null): string | null {

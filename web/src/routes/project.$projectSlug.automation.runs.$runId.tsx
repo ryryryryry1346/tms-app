@@ -5,12 +5,17 @@ import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHea
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
+import { Input } from '../components/ui/Input'
 import { LinkButton } from '../components/ui/LinkButton'
 import { MetricCard } from '../components/ui/MetricCard'
 import { Panel } from '../components/ui/Panel'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import {
   getAutomationRunDetail,
+  linkAutomationResultToManualCase,
+  searchManualTestCasesForAutomation,
+  unlinkAutomationResultFromManualCase,
+  type AutomationManualCaseOption,
   type AutomationRunDetail,
   type AutomationRunResultItem,
 } from '../features/automation/server'
@@ -86,6 +91,7 @@ export const Route = createFileRoute(
 })
 
 const RESULT_FILTERS = ['All', 'failed', 'passed', 'skipped', 'blocked', 'unknown']
+const RESULT_LINK_FILTERS = ['All', 'linked', 'unlinked'] as const
 const RESULT_TABLE_COLUMNS =
   'minmax(280px,2fr) minmax(180px,1fr) 110px 100px minmax(180px,1fr) minmax(220px,1.2fr)'
 
@@ -241,6 +247,13 @@ function getResultDiagnosticText(result: AutomationRunResultItem): string {
   )
 }
 
+function hasManualCaseOverride(
+  overrides: Record<number, AutomationManualCaseOption | null>,
+  resultId: number,
+): boolean {
+  return Object.prototype.hasOwnProperty.call(overrides, resultId)
+}
+
 function DiagnosticBlock({
   title,
   value,
@@ -268,6 +281,8 @@ function AutomationRunDetailPage() {
   const { project, run } = Route.useLoaderData()
   const projectSlug = project.slug ?? project.id.toString()
   const [activeFilter, setActiveFilter] = useState('All')
+  const [linkFilter, setLinkFilter] =
+    useState<(typeof RESULT_LINK_FILTERS)[number]>('All')
   const failedResults = useMemo(
     () => run.results.filter((result) => isFailureResult(result)),
     [run.results],
@@ -275,14 +290,42 @@ function AutomationRunDetailPage() {
   const [selectedResultId, setSelectedResultId] = useState<number | null>(
     failedResults[0]?.id ?? run.results[0]?.id ?? null,
   )
+  const [manualCaseOverrides, setManualCaseOverrides] = useState<
+    Record<number, AutomationManualCaseOption | null>
+  >({})
+  const [caseSearch, setCaseSearch] = useState('')
+  const [caseOptions, setCaseOptions] = useState<AutomationManualCaseOption[]>(
+    [],
+  )
+  const [caseLinkStatus, setCaseLinkStatus] = useState<string | null>(null)
+  const [caseLinkError, setCaseLinkError] = useState<string | null>(null)
+  const linkedCount = useMemo(
+    () => run.results.filter((result) => getLinkedManualCase(result)).length,
+    [manualCaseOverrides, run.results],
+  )
+  const suggestedCount = useMemo(
+    () =>
+      run.results.filter(
+        (result) => !getLinkedManualCase(result) && result.suggestedManualCase,
+      ).length,
+    [manualCaseOverrides, run.results],
+  )
 
   const filteredResults = useMemo(() => {
-    if (activeFilter === 'All') {
-      return run.results
+    let nextResults = run.results
+
+    if (activeFilter !== 'All') {
+      nextResults = nextResults.filter((result) => result.status === activeFilter)
     }
 
-    return run.results.filter((result) => result.status === activeFilter)
-  }, [activeFilter, run.results])
+    if (linkFilter === 'linked') {
+      nextResults = nextResults.filter((result) => getLinkedManualCase(result))
+    } else if (linkFilter === 'unlinked') {
+      nextResults = nextResults.filter((result) => !getLinkedManualCase(result))
+    }
+
+    return nextResults
+  }, [activeFilter, linkFilter, manualCaseOverrides, run.results])
 
   const selectedResult = useMemo(() => {
     return (
@@ -292,6 +335,124 @@ function AutomationRunDetailPage() {
       null
     )
   }, [failedResults, run.results, selectedResultId])
+
+  function getLinkedManualCase(
+    result: AutomationRunResultItem,
+  ): AutomationManualCaseOption | null {
+    if (hasManualCaseOverride(manualCaseOverrides, result.id)) {
+      return manualCaseOverrides[result.id]
+    }
+
+    if (!result.manualTestId) {
+      return null
+    }
+
+    return {
+      id: result.manualTestId,
+      title: `Manual case #${result.manualTestId}`,
+      suiteName: null,
+      status: null,
+    }
+  }
+
+  const selectedManualCase = selectedResult
+    ? getLinkedManualCase(selectedResult)
+    : null
+
+  async function handleSearchManualCases() {
+    const query = caseSearch.trim()
+
+    setCaseLinkError(null)
+    setCaseLinkStatus('Searching manual cases...')
+
+    try {
+      const result = await searchManualTestCasesForAutomation({
+        data: {
+          projectId: project.id,
+          query,
+        },
+      })
+      setCaseOptions(result.cases)
+      setCaseLinkStatus(
+        result.cases.length > 0 ? null : 'No matching manual cases found.',
+      )
+    } catch (error) {
+      setCaseLinkStatus(null)
+      setCaseLinkError(
+        error instanceof Error
+          ? error.message
+          : 'Could not search manual cases.',
+      )
+    }
+  }
+
+  async function handleLinkManualCase(
+    manualCaseId: number,
+    targetResult: AutomationRunResultItem | null = selectedResult,
+  ) {
+    if (!targetResult) {
+      return
+    }
+
+    setCaseLinkError(null)
+    setCaseLinkStatus('Linking manual case...')
+
+    try {
+      const result = await linkAutomationResultToManualCase({
+        data: {
+          projectId: project.id,
+          runId: run.id,
+          resultId: targetResult.id,
+          manualTestId: manualCaseId,
+        },
+      })
+
+      setManualCaseOverrides((current) => ({
+        ...current,
+        [targetResult.id]: result.manualCase,
+      }))
+      setCaseOptions([])
+      setCaseSearch('')
+      setCaseLinkStatus('Manual case linked.')
+    } catch (error) {
+      setCaseLinkStatus(null)
+      setCaseLinkError(
+        error instanceof Error ? error.message : 'Could not link manual case.',
+      )
+    }
+  }
+
+  async function handleUnlinkManualCase() {
+    if (!selectedResult) {
+      return
+    }
+
+    setCaseLinkError(null)
+    setCaseLinkStatus('Unlinking manual case...')
+
+    try {
+      await unlinkAutomationResultFromManualCase({
+        data: {
+          projectId: project.id,
+          runId: run.id,
+          resultId: selectedResult.id,
+        },
+      })
+
+      setManualCaseOverrides((current) => ({
+        ...current,
+        [selectedResult.id]: null,
+      }))
+      setCaseLinkStatus('Manual case unlinked.')
+    } catch (error) {
+      setCaseLinkStatus(null)
+      setCaseLinkError(
+        error instanceof Error
+          ? error.message
+          : 'Could not unlink manual case.',
+      )
+    }
+  }
 
   return (
     <main className="workspace-view">
@@ -354,20 +515,49 @@ function AutomationRunDetailPage() {
               <div className="border-b border-[var(--tms-border-subtle)] px-4 py-4">
                 <WorkspaceSectionHeader
                   title="Results"
-                  description="Inspect automated tests, linked manual cases, and failure output."
-                  action={<Badge>{filteredResults.length} shown</Badge>}
+                  description="Inspect automated tests, linked manual cases, suggestions, and failure output."
+                  action={
+                    <div className="flex flex-wrap gap-2">
+                      <Badge>
+                        {linkedCount}/{run.results.length} linked
+                      </Badge>
+                      {suggestedCount > 0 ? (
+                        <Badge variant="primary">{suggestedCount} suggested</Badge>
+                      ) : null}
+                      <Badge>{filteredResults.length} shown</Badge>
+                    </div>
+                  }
                 />
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {RESULT_FILTERS.map((filter) => (
-                    <Button
-                      key={filter}
-                      size="sm"
-                      variant={filter === activeFilter ? 'primary' : 'secondary'}
-                      onClick={() => setActiveFilter(filter)}
-                    >
-                      {filter === 'All' ? 'All' : humanizeStatus(filter)}
-                    </Button>
-                  ))}
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <div className="flex flex-wrap gap-2">
+                    {RESULT_FILTERS.map((filter) => (
+                      <Button
+                        key={filter}
+                        size="sm"
+                        variant={filter === activeFilter ? 'primary' : 'secondary'}
+                        onClick={() => setActiveFilter(filter)}
+                      >
+                        {filter === 'All' ? 'All' : humanizeStatus(filter)}
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="h-6 w-px bg-[var(--tms-border-subtle)]" />
+                  <div className="flex flex-wrap gap-2">
+                    {RESULT_LINK_FILTERS.map((filter) => (
+                      <Button
+                        key={filter}
+                        size="sm"
+                        variant={filter === linkFilter ? 'primary' : 'secondary'}
+                        onClick={() => setLinkFilter(filter)}
+                      >
+                        {filter === 'All'
+                          ? 'All links'
+                          : filter === 'linked'
+                            ? 'Linked'
+                            : 'Unlinked'}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -393,62 +583,82 @@ function AutomationRunDetailPage() {
                       <span>Manual case</span>
                       <span>Error preview</span>
                     </TableHead>
-                    {filteredResults.map((result) => (
-                      <TableRow
-                        key={result.id}
-                        columns={RESULT_TABLE_COLUMNS}
-                        minWidth="1080px"
-                        padding="sm"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setSelectedResultId(result.id)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault()
-                            setSelectedResultId(result.id)
+                    {filteredResults.map((result) => {
+                      const linkedManualCase = getLinkedManualCase(result)
+                      const suggestedManualCase = result.suggestedManualCase
+
+                      return (
+                        <TableRow
+                          key={result.id}
+                          columns={RESULT_TABLE_COLUMNS}
+                          minWidth="1080px"
+                          padding="sm"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelectedResultId(result.id)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault()
+                              setSelectedResultId(result.id)
+                            }
+                          }}
+                          className={
+                            result.id === selectedResult?.id
+                              ? 'cursor-pointer bg-[var(--state-selected)]'
+                              : 'cursor-pointer'
                           }
-                        }}
-                        className={
-                          result.id === selectedResult?.id
-                            ? 'cursor-pointer bg-[var(--state-selected)]'
-                            : 'cursor-pointer'
-                        }
-                      >
-                        <div className="min-w-0">
-                          <div className="truncate font-semibold text-[var(--tms-text)]">
-                            {result.name}
-                          </div>
-                          {result.filePath ? (
-                            <div className="mt-1 truncate text-xs text-[var(--tms-text-muted)]">
-                              {result.filePath}
+                        >
+                          <div className="min-w-0">
+                            <div className="truncate font-semibold text-[var(--tms-text)]">
+                              {result.name}
                             </div>
-                          ) : null}
-                        </div>
-                        <span className="truncate text-[var(--tms-text-muted)]">
-                          {result.suite ?? 'No suite'}
-                        </span>
-                        <Badge variant={getStatusBadgeVariant(result.status)}>
-                          {humanizeStatus(result.status)}
-                        </Badge>
-                        <span className="text-[var(--tms-text-muted)]">
-                          {formatDuration(result.durationMs)}
-                        </span>
-                        {result.manualTestId ? (
-                          <LinkButton
-                            size="sm"
-                            to="/test/$testId"
-                            params={{ testId: String(result.manualTestId) }}
-                          >
-                            #{result.manualTestId}
-                          </LinkButton>
-                        ) : (
-                          <span className="text-[var(--tms-text-muted)]">
-                            {result.caseKey ?? 'Unlinked'}
+                            {result.filePath ? (
+                              <div className="mt-1 truncate text-xs text-[var(--tms-text-muted)]">
+                                {result.filePath}
+                              </div>
+                            ) : null}
+                          </div>
+                          <span className="truncate text-[var(--tms-text-muted)]">
+                            {result.suite ?? 'No suite'}
                           </span>
-                        )}
-                        <ResultErrorPreview result={result} />
-                      </TableRow>
-                    ))}
+                          <Badge variant={getStatusBadgeVariant(result.status)}>
+                            {humanizeStatus(result.status)}
+                          </Badge>
+                          <span className="text-[var(--tms-text-muted)]">
+                            {formatDuration(result.durationMs)}
+                          </span>
+                          {linkedManualCase ? (
+                            <LinkButton
+                              size="sm"
+                              to="/test/$testId"
+                              params={{ testId: String(linkedManualCase.id) }}
+                            >
+                              #{linkedManualCase.id}
+                            </LinkButton>
+                          ) : suggestedManualCase ? (
+                            <button
+                              type="button"
+                              className="text-left text-sm font-semibold text-[var(--tms-primary)] hover:underline"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                setSelectedResultId(result.id)
+                                void handleLinkManualCase(
+                                  suggestedManualCase.id,
+                                  result,
+                                )
+                              }}
+                            >
+                              Suggested #{suggestedManualCase.id}
+                            </button>
+                          ) : (
+                            <span className="text-[var(--tms-text-muted)]">
+                              {result.caseKey ?? 'Unlinked'}
+                            </span>
+                          )}
+                          <ResultErrorPreview result={result} />
+                        </TableRow>
+                      )
+                    })}
                   </TableShell>
                 </div>
               )}
@@ -607,22 +817,141 @@ function AutomationRunDetailPage() {
                       <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
                         Manual case
                       </div>
-                      <div className="mt-2">
-                        {selectedResult.manualTestId ? (
-                          <LinkButton
-                            size="sm"
-                            to="/test/$testId"
-                            params={{ testId: String(selectedResult.manualTestId) }}
-                          >
-                            Open case #{selectedResult.manualTestId}
-                          </LinkButton>
+                      <div className="mt-2 space-y-3">
+                        {selectedManualCase ? (
+                          <div className="space-y-3">
+                            <div className="rounded-lg border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] p-3">
+                              <div className="font-semibold text-[var(--tms-text)]">
+                                #{selectedManualCase.id} {selectedManualCase.title}
+                              </div>
+                              <div className="mt-1 flex flex-wrap gap-2 text-xs text-[var(--tms-text-muted)]">
+                                {selectedManualCase.suiteName ? (
+                                  <span>{selectedManualCase.suiteName}</span>
+                                ) : null}
+                                {selectedManualCase.status ? (
+                                  <span>{selectedManualCase.status}</span>
+                                ) : null}
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <LinkButton
+                                size="sm"
+                                to="/test/$testId"
+                                params={{ testId: String(selectedManualCase.id) }}
+                              >
+                                Open case
+                              </LinkButton>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={handleUnlinkManualCase}
+                              >
+                                Unlink
+                              </Button>
+                            </div>
+                          </div>
                         ) : (
-                          <span className="text-[var(--tms-text-muted)]">
-                            {selectedResult.caseKey
-                              ? `Detected key ${selectedResult.caseKey}, not linked yet.`
-                              : 'Automation-only result. No manual test case is linked.'}
-                          </span>
+                          <div className="space-y-3">
+                            <span className="block text-[var(--tms-text-muted)]">
+                              {selectedResult.caseKey
+                                ? `Detected key ${selectedResult.caseKey}, not linked yet.`
+                                : 'Automation-only result. Search and link a manual test case if this automated test covers one.'}
+                            </span>
+                            {selectedResult.suggestedManualCase ? (
+                              <div className="rounded-lg border border-[var(--tms-border-focus)] bg-[var(--state-selected)] p-3">
+                                <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
+                                  Suggested match
+                                </div>
+                                <div className="mt-1 font-semibold text-[var(--tms-text)]">
+                                  #{selectedResult.suggestedManualCase.id}{' '}
+                                  {selectedResult.suggestedManualCase.title}
+                                </div>
+                                <div className="mt-1 flex flex-wrap gap-2 text-xs text-[var(--tms-text-muted)]">
+                                  {selectedResult.suggestedManualCase.suiteName ? (
+                                    <span>
+                                      {selectedResult.suggestedManualCase.suiteName}
+                                    </span>
+                                  ) : null}
+                                  {selectedResult.suggestedManualCase.status ? (
+                                    <span>
+                                      {selectedResult.suggestedManualCase.status}
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  className="mt-3"
+                                  onClick={() =>
+                                    void handleLinkManualCase(
+                                      selectedResult.suggestedManualCase!.id,
+                                    )
+                                  }
+                                >
+                                  Link suggested case
+                                </Button>
+                              </div>
+                            ) : null}
+                            <div className="flex gap-2">
+                              <Input
+                                size="sm"
+                                value={caseSearch}
+                                placeholder="Search title, #123, TMS-123"
+                                onChange={(event) =>
+                                  setCaseSearch(event.currentTarget.value)
+                                }
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter') {
+                                    event.preventDefault()
+                                    void handleSearchManualCases()
+                                  }
+                                }}
+                              />
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => void handleSearchManualCases()}
+                              >
+                                Search
+                              </Button>
+                            </div>
+                            {caseOptions.length > 0 ? (
+                              <div className="space-y-2">
+                                {caseOptions.map((manualCase) => (
+                                  <button
+                                    key={manualCase.id}
+                                    type="button"
+                                    className="w-full rounded-lg border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] p-3 text-left transition hover:bg-[var(--tms-hover)]"
+                                    onClick={() =>
+                                      void handleLinkManualCase(manualCase.id)
+                                    }
+                                  >
+                                    <div className="font-semibold text-[var(--tms-text)]">
+                                      #{manualCase.id} {manualCase.title}
+                                    </div>
+                                    <div className="mt-1 flex flex-wrap gap-2 text-xs text-[var(--tms-text-muted)]">
+                                      {manualCase.suiteName ? (
+                                        <span>{manualCase.suiteName}</span>
+                                      ) : null}
+                                      {manualCase.status ? (
+                                        <span>{manualCase.status}</span>
+                                      ) : null}
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
                         )}
+                        {caseLinkStatus ? (
+                          <div className="text-xs font-semibold text-[var(--tms-text-muted)]">
+                            {caseLinkStatus}
+                          </div>
+                        ) : null}
+                        {caseLinkError ? (
+                          <div className="rounded-lg border border-[var(--tms-danger-border)] bg-[var(--tms-danger-soft)] px-3 py-2 text-xs font-semibold text-[var(--tms-danger)]">
+                            {caseLinkError}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
 
