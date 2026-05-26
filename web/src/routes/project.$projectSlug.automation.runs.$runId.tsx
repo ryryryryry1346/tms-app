@@ -1,5 +1,5 @@
 import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Badge } from '../components/ui/Badge'
@@ -90,7 +90,15 @@ export const Route = createFileRoute(
   component: AutomationRunDetailPage,
 })
 
-const RESULT_FILTERS = ['All', 'failed', 'passed', 'skipped', 'blocked', 'unknown']
+const RESULT_FILTERS = [
+  'All',
+  'Failures',
+  'failed',
+  'passed',
+  'skipped',
+  'blocked',
+  'unknown',
+] as const
 const RESULT_LINK_FILTERS = ['All', 'linked', 'unlinked'] as const
 const RESULT_TABLE_COLUMNS =
   'minmax(280px,2fr) minmax(180px,1fr) 110px 100px minmax(180px,1fr) minmax(220px,1.2fr)'
@@ -247,6 +255,21 @@ function getResultDiagnosticText(result: AutomationRunResultItem): string {
   )
 }
 
+function getFailureDiagnostics(result: AutomationRunResultItem): string {
+  return [
+    `Test: ${result.name}`,
+    `Suite: ${result.suite ?? 'No suite'}`,
+    `Status: ${humanizeStatus(result.status)}`,
+    `Duration: ${formatDuration(result.durationMs)}`,
+    result.errorMessage ? `\nError message:\n${result.errorMessage}` : null,
+    result.stackTrace ? `\nStack trace:\n${result.stackTrace}` : null,
+    result.stderr ? `\nstderr:\n${result.stderr}` : null,
+    result.stdout ? `\nstdout:\n${result.stdout}` : null,
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
+
 function hasManualCaseOverride(
   overrides: Record<number, AutomationManualCaseOption | null>,
   resultId: number,
@@ -299,6 +322,9 @@ function AutomationRunDetailPage() {
   )
   const [caseLinkStatus, setCaseLinkStatus] = useState<string | null>(null)
   const [caseLinkError, setCaseLinkError] = useState<string | null>(null)
+  const [diagnosticCopyStatus, setDiagnosticCopyStatus] = useState<
+    string | null
+  >(null)
   const linkedCount = useMemo(
     () => run.results.filter((result) => getLinkedManualCase(result)).length,
     [manualCaseOverrides, run.results],
@@ -310,11 +336,23 @@ function AutomationRunDetailPage() {
       ).length,
     [manualCaseOverrides, run.results],
   )
+  const failedSuiteCount = useMemo(() => {
+    return new Set(
+      failedResults.map((result) => result.suite ?? 'No suite'),
+    ).size
+  }, [failedResults])
+  const unlinkedFailureCount = useMemo(
+    () =>
+      failedResults.filter((result) => !getLinkedManualCase(result)).length,
+    [failedResults, manualCaseOverrides],
+  )
 
   const filteredResults = useMemo(() => {
     let nextResults = run.results
 
-    if (activeFilter !== 'All') {
+    if (activeFilter === 'Failures') {
+      nextResults = nextResults.filter((result) => isFailureResult(result))
+    } else if (activeFilter !== 'All') {
       nextResults = nextResults.filter((result) => result.status === activeFilter)
     }
 
@@ -358,6 +396,10 @@ function AutomationRunDetailPage() {
   const selectedManualCase = selectedResult
     ? getLinkedManualCase(selectedResult)
     : null
+
+  useEffect(() => {
+    setDiagnosticCopyStatus(null)
+  }, [selectedResultId])
 
   async function handleSearchManualCases() {
     const query = caseSearch.trim()
@@ -454,6 +496,22 @@ function AutomationRunDetailPage() {
     }
   }
 
+  async function handleCopySelectedDiagnostics() {
+    if (!selectedResult) {
+      return
+    }
+
+    const text = getFailureDiagnostics(selectedResult)
+    setDiagnosticCopyStatus(null)
+
+    try {
+      await navigator.clipboard.writeText(text)
+      setDiagnosticCopyStatus('Copied diagnostics.')
+    } catch {
+      setDiagnosticCopyStatus('Copy failed. Select the diagnostic text manually.')
+    }
+  }
+
   return (
     <main className="workspace-view">
       <div className="workspace-view__inner">
@@ -537,7 +595,9 @@ function AutomationRunDetailPage() {
                         variant={filter === activeFilter ? 'primary' : 'secondary'}
                         onClick={() => setActiveFilter(filter)}
                       >
-                        {filter === 'All' ? 'All' : humanizeStatus(filter)}
+                        {filter === 'All' || filter === 'Failures'
+                          ? filter
+                          : humanizeStatus(filter)}
                       </Button>
                     ))}
                   </div>
@@ -745,41 +805,95 @@ function AutomationRunDetailPage() {
                     description="This run has no failed or blocked automated tests."
                   />
                 ) : (
-                  <div className="space-y-2">
-                    {failedResults.map((result) => (
-                      <button
-                        key={result.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedResultId(result.id)
-                          setActiveFilter('All')
-                        }}
-                        className={`w-full rounded-xl border p-3 text-left transition ${
-                          result.id === selectedResult?.id
-                            ? 'border-[var(--tms-border-focus)] bg-[var(--state-selected)]'
-                            : 'border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] hover:bg-[var(--tms-hover)]'
-                        }`}
+                  <div className="space-y-4">
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <div className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] p-3">
+                        <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
+                          Failures
+                        </div>
+                        <div className="mt-1 text-xl font-semibold text-[var(--tms-danger)]">
+                          {failedResults.length}
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] p-3">
+                        <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
+                          Suites
+                        </div>
+                        <div className="mt-1 text-xl font-semibold text-[var(--tms-text)]">
+                          {failedSuiteCount}
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] p-3">
+                        <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
+                          Unlinked
+                        </div>
+                        <div className="mt-1 text-xl font-semibold text-[var(--tms-warning)]">
+                          {unlinkedFailureCount}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant={activeFilter === 'Failures' ? 'primary' : 'secondary'}
+                        onClick={() => setActiveFilter('Failures')}
                       >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0 truncate font-semibold text-[var(--tms-text)]">
-                            {result.name}
+                        Show failures in table
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={
+                          linkFilter === 'unlinked' ? 'primary' : 'secondary'
+                        }
+                        onClick={() => {
+                          setActiveFilter('Failures')
+                          setLinkFilter('unlinked')
+                        }}
+                      >
+                        Triage unlinked failures
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {failedResults.map((result) => (
+                        <button
+                          key={result.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedResultId(result.id)
+                            setActiveFilter('Failures')
+                          }}
+                          className={`w-full rounded-xl border p-3 text-left transition ${
+                            result.id === selectedResult?.id
+                              ? 'border-[var(--tms-border-focus)] bg-[var(--state-selected)]'
+                              : 'border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] hover:bg-[var(--tms-hover)]'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0 truncate font-semibold text-[var(--tms-text)]">
+                              {result.name}
+                            </div>
+                            <Badge variant={getStatusBadgeVariant(result.status)}>
+                              {humanizeStatus(result.status)}
+                            </Badge>
                           </div>
-                          <Badge variant={getStatusBadgeVariant(result.status)}>
-                            {humanizeStatus(result.status)}
-                          </Badge>
-                        </div>
-                        <div className="mt-1 flex flex-wrap gap-2 text-xs text-[var(--tms-text-muted)]">
-                          <span>{result.suite ?? 'No suite'}</span>
-                          <span>{formatDuration(result.durationMs)}</span>
-                          {result.retryCount > 0 ? (
-                            <span>{result.retryCount} retries</span>
-                          ) : null}
-                        </div>
-                        <div className="mt-2 line-clamp-2 text-sm text-[var(--tms-text-muted)]">
-                          {getResultDiagnosticText(result)}
-                        </div>
-                      </button>
-                    ))}
+                          <div className="mt-1 flex flex-wrap gap-2 text-xs text-[var(--tms-text-muted)]">
+                            <span>{result.suite ?? 'No suite'}</span>
+                            <span>{formatDuration(result.durationMs)}</span>
+                            {getLinkedManualCase(result) ? (
+                              <span>linked</span>
+                            ) : (
+                              <span>unlinked</span>
+                            )}
+                            {result.retryCount > 0 ? (
+                              <span>{result.retryCount} retries</span>
+                            ) : null}
+                          </div>
+                          <div className="mt-2 line-clamp-2 text-sm text-[var(--tms-text-muted)]">
+                            {getResultDiagnosticText(result)}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </Panel>
@@ -811,6 +925,29 @@ function AutomationRunDetailPage() {
                         {selectedResult.suite ?? 'No suite'}
                         {selectedResult.filePath ? ` · ${selectedResult.filePath}` : ''}
                       </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => void handleCopySelectedDiagnostics()}
+                        >
+                          Copy diagnostics
+                        </Button>
+                        {selectedManualCase ? (
+                          <LinkButton
+                            size="sm"
+                            to="/test/$testId"
+                            params={{ testId: String(selectedManualCase.id) }}
+                          >
+                            Open manual case
+                          </LinkButton>
+                        ) : null}
+                      </div>
+                      {diagnosticCopyStatus ? (
+                        <div className="mt-2 text-xs font-semibold text-[var(--tms-text-muted)]">
+                          {diagnosticCopyStatus}
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] p-3 text-sm">
