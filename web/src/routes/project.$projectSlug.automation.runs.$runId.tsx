@@ -227,10 +227,54 @@ function ResultErrorPreview({ result }: { result: AutomationRunResultItem }) {
   )
 }
 
+function isFailureResult(result: AutomationRunResultItem): boolean {
+  return result.status === 'failed' || result.status === 'blocked'
+}
+
+function getResultDiagnosticText(result: AutomationRunResultItem): string {
+  return (
+    result.errorMessage ??
+    result.stackTrace ??
+    result.stderr ??
+    result.stdout ??
+    'No diagnostic output captured for this result.'
+  )
+}
+
+function DiagnosticBlock({
+  title,
+  value,
+}: {
+  title: string
+  value: string | null
+}) {
+  if (!value) {
+    return null
+  }
+
+  return (
+    <div>
+      <div className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
+        {title}
+      </div>
+      <pre className="max-h-72 overflow-auto rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] p-3 text-xs leading-6 text-[var(--tms-text)]">
+        <code>{value}</code>
+      </pre>
+    </div>
+  )
+}
+
 function AutomationRunDetailPage() {
   const { project, run } = Route.useLoaderData()
   const projectSlug = project.slug ?? project.id.toString()
   const [activeFilter, setActiveFilter] = useState('All')
+  const failedResults = useMemo(
+    () => run.results.filter((result) => isFailureResult(result)),
+    [run.results],
+  )
+  const [selectedResultId, setSelectedResultId] = useState<number | null>(
+    failedResults[0]?.id ?? run.results[0]?.id ?? null,
+  )
 
   const filteredResults = useMemo(() => {
     if (activeFilter === 'All') {
@@ -240,7 +284,14 @@ function AutomationRunDetailPage() {
     return run.results.filter((result) => result.status === activeFilter)
   }, [activeFilter, run.results])
 
-  const failedResults = run.results.filter((result) => result.status === 'failed')
+  const selectedResult = useMemo(() => {
+    return (
+      run.results.find((result) => result.id === selectedResultId) ??
+      failedResults[0] ??
+      run.results[0] ??
+      null
+    )
+  }, [failedResults, run.results, selectedResultId])
 
   return (
     <main className="workspace-view">
@@ -298,7 +349,7 @@ function AutomationRunDetailPage() {
             </div>
           </Panel>
 
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
             <Panel>
               <div className="border-b border-[var(--tms-border-subtle)] px-4 py-4">
                 <WorkspaceSectionHeader
@@ -348,6 +399,20 @@ function AutomationRunDetailPage() {
                         columns={RESULT_TABLE_COLUMNS}
                         minWidth="1080px"
                         padding="sm"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedResultId(result.id)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            setSelectedResultId(result.id)
+                          }
+                        }}
+                        className={
+                          result.id === selectedResult?.id
+                            ? 'cursor-pointer bg-[var(--state-selected)]'
+                            : 'cursor-pointer'
+                        }
                       >
                         <div className="min-w-0">
                           <div className="truncate font-semibold text-[var(--tms-text)]">
@@ -459,31 +524,133 @@ function AutomationRunDetailPage() {
 
               <Panel className="px-5 py-5">
                 <WorkspaceSectionHeader
-                  title="Failures"
-                  description="Fast path to the most important debugging output."
+                  title="Failure focus"
+                  description="Start with broken tests, then jump into the exact diagnostic output."
+                  action={<Badge variant="runFailed">{failedResults.length} failing</Badge>}
                   className="mb-4"
                 />
                 {failedResults.length === 0 ? (
                   <EmptyState
                     title="No failures"
-                    description="This run has no failed automated tests."
+                    description="This run has no failed or blocked automated tests."
                   />
                 ) : (
-                  <div className="space-y-3">
-                    {failedResults.slice(0, 5).map((result) => (
-                      <div
+                  <div className="space-y-2">
+                    {failedResults.map((result) => (
+                      <button
                         key={result.id}
-                        className="rounded-xl border border-[var(--tms-border-subtle)] p-3"
+                        type="button"
+                        onClick={() => {
+                          setSelectedResultId(result.id)
+                          setActiveFilter('All')
+                        }}
+                        className={`w-full rounded-xl border p-3 text-left transition ${
+                          result.id === selectedResult?.id
+                            ? 'border-[var(--tms-border-focus)] bg-[var(--state-selected)]'
+                            : 'border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] hover:bg-[var(--tms-hover)]'
+                        }`}
                       >
-                        <div className="font-semibold text-[var(--tms-text)]">
-                          {result.name}
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0 truncate font-semibold text-[var(--tms-text)]">
+                            {result.name}
+                          </div>
+                          <Badge variant={getStatusBadgeVariant(result.status)}>
+                            {humanizeStatus(result.status)}
+                          </Badge>
                         </div>
-                        <div className="mt-1 line-clamp-3 text-sm text-[var(--tms-text-muted)]">
-                          {result.errorMessage ?? result.stackTrace ?? 'No error output'}
+                        <div className="mt-1 flex flex-wrap gap-2 text-xs text-[var(--tms-text-muted)]">
+                          <span>{result.suite ?? 'No suite'}</span>
+                          <span>{formatDuration(result.durationMs)}</span>
+                          {result.retryCount > 0 ? (
+                            <span>{result.retryCount} retries</span>
+                          ) : null}
                         </div>
-                      </div>
+                        <div className="mt-2 line-clamp-2 text-sm text-[var(--tms-text-muted)]">
+                          {getResultDiagnosticText(result)}
+                        </div>
+                      </button>
                     ))}
                   </div>
+                )}
+              </Panel>
+
+              <Panel className="px-5 py-5">
+                <WorkspaceSectionHeader
+                  title="Selected result"
+                  description="Error message, stack trace, logs, and manual case context."
+                  className="mb-4"
+                />
+                {selectedResult ? (
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={getStatusBadgeVariant(selectedResult.status)}>
+                          {humanizeStatus(selectedResult.status)}
+                        </Badge>
+                        <span className="text-sm font-semibold text-[var(--tms-text-muted)]">
+                          {formatDuration(selectedResult.durationMs)}
+                        </span>
+                        {selectedResult.retryCount > 0 ? (
+                          <Badge>{selectedResult.retryCount} retries</Badge>
+                        ) : null}
+                      </div>
+                      <h2 className="mt-3 break-words text-lg font-semibold text-[var(--tms-text)]">
+                        {selectedResult.name}
+                      </h2>
+                      <div className="mt-1 text-sm text-[var(--tms-text-muted)]">
+                        {selectedResult.suite ?? 'No suite'}
+                        {selectedResult.filePath ? ` · ${selectedResult.filePath}` : ''}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] p-3 text-sm">
+                      <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
+                        Manual case
+                      </div>
+                      <div className="mt-2">
+                        {selectedResult.manualTestId ? (
+                          <LinkButton
+                            size="sm"
+                            to="/test/$testId"
+                            params={{ testId: String(selectedResult.manualTestId) }}
+                          >
+                            Open case #{selectedResult.manualTestId}
+                          </LinkButton>
+                        ) : (
+                          <span className="text-[var(--tms-text-muted)]">
+                            {selectedResult.caseKey
+                              ? `Detected key ${selectedResult.caseKey}, not linked yet.`
+                              : 'Automation-only result. No manual test case is linked.'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <DiagnosticBlock
+                      title="Error message"
+                      value={selectedResult.errorMessage}
+                    />
+                    <DiagnosticBlock
+                      title="Stack trace"
+                      value={selectedResult.stackTrace}
+                    />
+                    <DiagnosticBlock title="stderr" value={selectedResult.stderr} />
+                    <DiagnosticBlock title="stdout" value={selectedResult.stdout} />
+                    {!selectedResult.errorMessage &&
+                    !selectedResult.stackTrace &&
+                    !selectedResult.stderr &&
+                    !selectedResult.stdout ? (
+                      <EmptyState
+                        title="No diagnostics"
+                        description="The importer did not receive error output, stdout, or stderr for this result."
+                      />
+                    ) : null}
+                  </div>
+                ) : (
+                  <EmptyState
+                    title="No result selected"
+                    description="Select a result from the table to inspect details."
+                  />
                 )}
               </Panel>
 
