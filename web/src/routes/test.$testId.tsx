@@ -15,6 +15,10 @@ import { ConfirmActionAlert } from '../components/ui/ConfirmActionAlert'
 import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
 import { SelectMenu } from '../components/ui/SelectMenu'
+import {
+  getAutomationHistoryForTestCase,
+  type AutomationTestCaseHistory,
+} from '../features/automation/server'
 import { uploadTestMedia } from '../features/media/server'
 import { markRepositoryPreviewDetailStale } from '../lib/repositoryPreviewCache'
 import {
@@ -38,11 +42,28 @@ export const Route = createFileRoute('/test/$testId')({
       throw notFound()
     }
 
-    return getTestDetail({
+    const test = await getTestDetail({
       data: {
         id: testId,
       },
     })
+
+    const automationHistory =
+      test.projectId === null
+        ? null
+        : (
+            await getAutomationHistoryForTestCase({
+              data: {
+                projectId: test.projectId,
+                testId: test.id,
+              },
+            })
+          ).history
+
+    return {
+      ...test,
+      automationHistory,
+    }
   },
   component: TestDetailPage,
 })
@@ -117,6 +138,160 @@ function getPriorityVariant(
   }
 
   return 'priorityMedium'
+}
+
+function getAutomationStatusVariant(
+  status: string | null,
+): 'runPassed' | 'runFailed' | 'runBlocked' | 'runNotRun' | 'primary' {
+  if (status === 'passed') {
+    return 'runPassed'
+  }
+
+  if (status === 'failed' || status === 'needs_review') {
+    return 'runFailed'
+  }
+
+  if (status === 'blocked') {
+    return 'runBlocked'
+  }
+
+  if (status === 'skipped' || status === 'unknown') {
+    return 'runNotRun'
+  }
+
+  return 'primary'
+}
+
+function formatAutomationStatus(status: string | null): string {
+  if (!status) {
+    return 'No runs'
+  }
+
+  return status
+    .replaceAll('_', ' ')
+    .replace(/^\w/, (letter) => letter.toUpperCase())
+}
+
+function formatAutomationDuration(durationMs: number): string {
+  if (durationMs <= 0) {
+    return '0s'
+  }
+
+  if (durationMs < 1000) {
+    return `${durationMs}ms`
+  }
+
+  const seconds = Math.round(durationMs / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+
+  if (minutes === 0) {
+    return `${seconds}s`
+  }
+
+  return `${minutes}m ${remainingSeconds}s`
+}
+
+function AutomationHistoryBlock({
+  history,
+  projectSlug,
+}: {
+  history: AutomationTestCaseHistory | null
+  projectSlug: string | null
+}) {
+  return (
+    <section className="mt-6 border-t border-[var(--tms-border-subtle)] pt-5">
+      <WorkspaceSectionHeader
+        dense
+        title="Automation history"
+        className="mb-3"
+      />
+      {!history || history.totalResults === 0 ? (
+        <p className="m-0 text-sm text-[var(--tms-text-muted)]">
+          No automation results linked yet.
+        </p>
+      ) : (
+        <div className="grid gap-3">
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] px-3 py-2">
+              <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-soft)]">
+                Latest
+              </div>
+              <Badge
+                variant={getAutomationStatusVariant(history.latestStatus)}
+                className="mt-2"
+              >
+                {formatAutomationStatus(history.latestStatus)}
+              </Badge>
+            </div>
+            <div className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] px-3 py-2">
+              <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-soft)]">
+                Pass rate
+              </div>
+              <div className="mt-1 text-lg font-semibold text-[var(--tms-text)]">
+                {history.passRate}%
+              </div>
+            </div>
+            <div className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] px-3 py-2">
+              <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-soft)]">
+                Results
+              </div>
+              <div className="mt-1 text-lg font-semibold text-[var(--tms-text)]">
+                {history.totalResults}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            {history.results.map((result) => (
+              <div
+                key={result.id}
+                className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] px-3 py-2"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    {projectSlug ? (
+                      <Link
+                        to="/project/$projectSlug/automation/runs/$runId"
+                        params={{
+                          projectSlug,
+                          runId: result.runId.toString(),
+                        }}
+                        className="block truncate text-sm font-semibold text-[var(--tms-primary)] no-underline hover:underline"
+                      >
+                        {result.runName}
+                      </Link>
+                    ) : (
+                      <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
+                        {result.runName}
+                      </div>
+                    )}
+                    <div className="mt-1 truncate text-xs text-[var(--tms-text-muted)]">
+                      {result.suite ?? 'Automation'} -{' '}
+                      {formatDetailDate(result.startedAt ?? result.runCreatedAt)}
+                    </div>
+                  </div>
+                  <Badge variant={getAutomationStatusVariant(result.status)}>
+                    {formatAutomationStatus(result.status)}
+                  </Badge>
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[var(--tms-text-muted)]">
+                  <span>{formatAutomationDuration(result.durationMs)}</span>
+                  {result.environment ? <span>{result.environment}</span> : null}
+                  {result.branch ? <span>{result.branch}</span> : null}
+                </div>
+                {result.errorMessage ? (
+                  <div className="mt-2 line-clamp-2 text-xs text-[var(--tms-danger)]">
+                    {result.errorMessage}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  )
 }
 
 function handleRichContentClick(event: React.MouseEvent<HTMLElement>): void {
@@ -848,6 +1023,11 @@ function TestDetailPage() {
                     </div>
                   </div>
               </EditingSurfaceSection>
+
+              <AutomationHistoryBlock
+                history={test.automationHistory}
+                projectSlug={test.projectSlug}
+              />
 
               <section className="mt-6 border-t border-[var(--tms-border-subtle)] pt-5">
                 <WorkspaceSectionHeader

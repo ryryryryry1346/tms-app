@@ -192,6 +192,38 @@ export type AutomationRunResultSummary = {
   createdAt: string
 }
 
+export type AutomationHistoryResult = {
+  id: number
+  runId: number
+  runName: string
+  runStatus: string
+  environment: string | null
+  branch: string | null
+  commitSha: string | null
+  runCreatedAt: string
+  name: string
+  suite: string | null
+  status: string
+  durationMs: number
+  errorMessage: string | null
+  startedAt: string | null
+}
+
+export type AutomationTestCaseHistory = {
+  totalResults: number
+  passedCount: number
+  failedCount: number
+  skippedCount: number
+  blockedCount: number
+  unknownCount: number
+  passRate: number
+  latestStatus: string | null
+  latestRunId: number | null
+  latestRunName: string | null
+  latestRunAt: string | null
+  results: AutomationHistoryResult[]
+}
+
 export type AutomationRunResultItem = {
   id: number
   name: string
@@ -539,6 +571,133 @@ export const getAutomationRunDetail = createServerFn({ method: 'POST' })
       },
     }
   })
+
+export const getAutomationHistoryForTestCase = createServerFn({ method: 'POST' })
+  .inputValidator(
+    projectAutomationInput.extend({
+      testId: z.number().int().positive(),
+    }),
+  )
+  .handler(
+    async ({
+      data,
+    }): Promise<{ history: AutomationTestCaseHistory }> => {
+      const { requireSessionUser } = await import('../auth/helpers.server')
+      await requireSessionUser()
+      await ensureAutomationServerDeps()
+
+      const emptyHistory: AutomationTestCaseHistory = {
+        totalResults: 0,
+        passedCount: 0,
+        failedCount: 0,
+        skippedCount: 0,
+        blockedCount: 0,
+        unknownCount: 0,
+        passRate: 0,
+        latestStatus: null,
+        latestRunId: null,
+        latestRunName: null,
+        latestRunAt: null,
+        results: [],
+      }
+
+      if (!isDatabaseConfigured()) {
+        return { history: emptyHistory }
+      }
+
+      const db = getDb()
+      const [manualCase] = await db
+        .select({ id: tests.id })
+        .from(tests)
+        .where(and(eq(tests.id, data.testId), eq(tests.projectId, data.projectId)))
+        .limit(1)
+
+      if (!manualCase) {
+        return { history: emptyHistory }
+      }
+
+      const rows = await db
+        .select({
+          id: automationTestResults.id,
+          runId: automationTestResults.runId,
+          runName: automationRuns.name,
+          runStatus: automationRuns.status,
+          environment: automationRuns.environment,
+          branch: automationRuns.branch,
+          commitSha: automationRuns.commitSha,
+          runCreatedAt: automationRuns.createdAt,
+          name: automationTestResults.name,
+          suite: automationTestResults.suite,
+          status: automationTestResults.status,
+          durationMs: automationTestResults.durationMs,
+          errorMessage: automationTestResults.errorMessage,
+          startedAt: automationTestResults.startedAt,
+        })
+        .from(automationTestResults)
+        .leftJoin(
+          automationTestCaseLinks,
+          eq(automationTestCaseLinks.resultId, automationTestResults.id),
+        )
+        .innerJoin(automationRuns, eq(automationRuns.id, automationTestResults.runId))
+        .where(
+          and(
+            eq(automationTestResults.projectId, data.projectId),
+            or(
+              eq(automationTestResults.manualTestId, data.testId),
+              eq(automationTestCaseLinks.testId, data.testId),
+            ),
+          ),
+        )
+        .orderBy(desc(automationRuns.id), desc(automationTestResults.id))
+        .limit(50)
+
+      const counters = rows.reduce(
+        (accumulator, row) => {
+          accumulator.totalResults += 1
+
+          if (row.status === 'passed') {
+            accumulator.passedCount += 1
+          } else if (row.status === 'failed') {
+            accumulator.failedCount += 1
+          } else if (row.status === 'skipped') {
+            accumulator.skippedCount += 1
+          } else if (row.status === 'blocked') {
+            accumulator.blockedCount += 1
+          } else {
+            accumulator.unknownCount += 1
+          }
+
+          return accumulator
+        },
+        {
+          totalResults: 0,
+          passedCount: 0,
+          failedCount: 0,
+          skippedCount: 0,
+          blockedCount: 0,
+          unknownCount: 0,
+        },
+      )
+
+      const latest = rows[0] ?? null
+      const passRate =
+        counters.totalResults === 0
+          ? 0
+          : Math.round((counters.passedCount / counters.totalResults) * 100)
+
+      return {
+        history: {
+          ...counters,
+          passRate,
+          latestStatus: latest?.status ?? null,
+          latestRunId: latest?.runId ?? null,
+          latestRunName: latest?.runName ?? null,
+          latestRunAt: latest?.startedAt ?? latest?.runCreatedAt ?? null,
+          results: rows.slice(0, 10),
+        },
+      }
+    },
+  )
 
 export const searchManualTestCasesForAutomation = createServerFn({ method: 'POST' })
   .inputValidator(automationManualCaseSearchInput)
