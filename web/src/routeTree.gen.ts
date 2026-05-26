@@ -28,6 +28,7 @@ import { Route as ProjectProjectSlugAutomationRouteImport } from './routes/proje
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ProjectProjectSlugDocsDocIdRouteImport } from './routes/project_.$projectSlug.docs_.$docId'
 import { Route as ProjectProjectSlugAutomationRunsRouteImport } from './routes/project.$projectSlug.automation.runs'
+import { Route as ProjectProjectSlugAutomationFlakyRouteImport } from './routes/project.$projectSlug.automation.flaky'
 import { Route as ApiProjectsProjectIdAutomationRunsRouteImport } from './routes/api/projects.$projectId.automation-runs'
 import { Route as ProjectProjectSlugAutomationRunsRunIdRouteImport } from './routes/project.$projectSlug.automation.runs.$runId'
 import { Route as ApiProjectsProjectIdAutomationRunsImportJunitRouteImport } from './routes/api/projects.$projectId.automation-runs.import.junit'
@@ -132,6 +133,12 @@ const ProjectProjectSlugAutomationRunsRoute =
     path: '/runs',
     getParentRoute: () => ProjectProjectSlugAutomationRoute,
   } as any)
+const ProjectProjectSlugAutomationFlakyRoute =
+  ProjectProjectSlugAutomationFlakyRouteImport.update({
+    id: '/flaky',
+    path: '/flaky',
+    getParentRoute: () => ProjectProjectSlugAutomationRoute,
+  } as any)
 const ApiProjectsProjectIdAutomationRunsRoute =
   ApiProjectsProjectIdAutomationRunsRouteImport.update({
     id: '/api/projects/$projectId/automation-runs',
@@ -170,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/api/projects/$projectId/automation-runs': typeof ApiProjectsProjectIdAutomationRunsRouteWithChildren
+  '/project/$projectSlug/automation/flaky': typeof ProjectProjectSlugAutomationFlakyRoute
   '/project/$projectSlug/automation/runs': typeof ProjectProjectSlugAutomationRunsRouteWithChildren
   '/project/$projectSlug/docs/$docId': typeof ProjectProjectSlugDocsDocIdRoute
   '/project/$projectSlug/automation/runs/$runId': typeof ProjectProjectSlugAutomationRunsRunIdRoute
@@ -194,6 +202,7 @@ export interface FileRoutesByTo {
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/api/projects/$projectId/automation-runs': typeof ApiProjectsProjectIdAutomationRunsRouteWithChildren
+  '/project/$projectSlug/automation/flaky': typeof ProjectProjectSlugAutomationFlakyRoute
   '/project/$projectSlug/automation/runs': typeof ProjectProjectSlugAutomationRunsRouteWithChildren
   '/project/$projectSlug/docs/$docId': typeof ProjectProjectSlugDocsDocIdRoute
   '/project/$projectSlug/automation/runs/$runId': typeof ProjectProjectSlugAutomationRunsRunIdRoute
@@ -219,6 +228,7 @@ export interface FileRoutesById {
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
   '/project_/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/api/projects/$projectId/automation-runs': typeof ApiProjectsProjectIdAutomationRunsRouteWithChildren
+  '/project/$projectSlug/automation/flaky': typeof ProjectProjectSlugAutomationFlakyRoute
   '/project/$projectSlug/automation/runs': typeof ProjectProjectSlugAutomationRunsRouteWithChildren
   '/project_/$projectSlug/docs_/$docId': typeof ProjectProjectSlugDocsDocIdRoute
   '/project/$projectSlug/automation/runs/$runId': typeof ProjectProjectSlugAutomationRunsRunIdRoute
@@ -245,6 +255,7 @@ export interface FileRouteTypes {
     | '/project/$projectSlug/runs'
     | '/project/$projectSlug/repository'
     | '/api/projects/$projectId/automation-runs'
+    | '/project/$projectSlug/automation/flaky'
     | '/project/$projectSlug/automation/runs'
     | '/project/$projectSlug/docs/$docId'
     | '/project/$projectSlug/automation/runs/$runId'
@@ -269,6 +280,7 @@ export interface FileRouteTypes {
     | '/project/$projectSlug/runs'
     | '/project/$projectSlug/repository'
     | '/api/projects/$projectId/automation-runs'
+    | '/project/$projectSlug/automation/flaky'
     | '/project/$projectSlug/automation/runs'
     | '/project/$projectSlug/docs/$docId'
     | '/project/$projectSlug/automation/runs/$runId'
@@ -293,6 +305,7 @@ export interface FileRouteTypes {
     | '/project/$projectSlug/runs'
     | '/project_/$projectSlug/repository'
     | '/api/projects/$projectId/automation-runs'
+    | '/project/$projectSlug/automation/flaky'
     | '/project/$projectSlug/automation/runs'
     | '/project_/$projectSlug/docs_/$docId'
     | '/project/$projectSlug/automation/runs/$runId'
@@ -452,6 +465,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectProjectSlugAutomationRunsRouteImport
       parentRoute: typeof ProjectProjectSlugAutomationRoute
     }
+    '/project/$projectSlug/automation/flaky': {
+      id: '/project/$projectSlug/automation/flaky'
+      path: '/flaky'
+      fullPath: '/project/$projectSlug/automation/flaky'
+      preLoaderRoute: typeof ProjectProjectSlugAutomationFlakyRouteImport
+      parentRoute: typeof ProjectProjectSlugAutomationRoute
+    }
     '/api/projects/$projectId/automation-runs': {
       id: '/api/projects/$projectId/automation-runs'
       path: '/api/projects/$projectId/automation-runs'
@@ -492,11 +512,14 @@ const ProjectProjectSlugAutomationRunsRouteWithChildren =
   )
 
 interface ProjectProjectSlugAutomationRouteChildren {
+  ProjectProjectSlugAutomationFlakyRoute: typeof ProjectProjectSlugAutomationFlakyRoute
   ProjectProjectSlugAutomationRunsRoute: typeof ProjectProjectSlugAutomationRunsRouteWithChildren
 }
 
 const ProjectProjectSlugAutomationRouteChildren: ProjectProjectSlugAutomationRouteChildren =
   {
+    ProjectProjectSlugAutomationFlakyRoute:
+      ProjectProjectSlugAutomationFlakyRoute,
     ProjectProjectSlugAutomationRunsRoute:
       ProjectProjectSlugAutomationRunsRouteWithChildren,
   }

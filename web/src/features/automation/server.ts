@@ -192,6 +192,29 @@ export type AutomationRunResultSummary = {
   createdAt: string
 }
 
+export type AutomationFlakyTestItem = {
+  key: string
+  name: string
+  suite: string | null
+  totalCount: number
+  passedCount: number
+  failedCount: number
+  skippedCount: number
+  blockedCount: number
+  flakyRate: number
+  averageDurationMs: number
+  lastStatus: string
+  lastRunId: number
+  lastRunName: string
+  lastRunAt: string
+  lastFailureAt: string | null
+  lastFailureRunId: number | null
+  lastFailureRunName: string | null
+  lastFailureMessage: string | null
+  linkedManualTestId: number | null
+  recommendation: 'review' | 'quarantine' | 'stable'
+}
+
 export type AutomationHistoryResult = {
   id: number
   runId: number
@@ -448,6 +471,172 @@ export const getAutomationRuns = createServerFn({ method: 'POST' })
         .limit(500)
 
       return { runs: rows, recentResults }
+    },
+  )
+
+export const getAutomationFlakyTests = createServerFn({ method: 'POST' })
+  .inputValidator(projectAutomationInput)
+  .handler(
+    async ({ data }): Promise<{ tests: AutomationFlakyTestItem[] }> => {
+      const { requireSessionUser } = await import('../auth/helpers.server')
+      await requireSessionUser()
+      await ensureAutomationServerDeps()
+
+      if (!isDatabaseConfigured()) {
+        return { tests: [] }
+      }
+
+      const rows = await getDb()
+        .select({
+          id: automationTestResults.id,
+          runId: automationTestResults.runId,
+          runName: automationRuns.name,
+          runCreatedAt: automationRuns.createdAt,
+          name: automationTestResults.name,
+          suite: automationTestResults.suite,
+          status: automationTestResults.status,
+          durationMs: automationTestResults.durationMs,
+          manualTestId: automationTestResults.manualTestId,
+          errorMessage: automationTestResults.errorMessage,
+          createdAt: automationTestResults.createdAt,
+        })
+        .from(automationTestResults)
+        .innerJoin(automationRuns, eq(automationRuns.id, automationTestResults.runId))
+        .where(eq(automationTestResults.projectId, data.projectId))
+        .orderBy(desc(automationTestResults.id))
+        .limit(2000)
+
+      type FlakyAccumulator = {
+        key: string
+        name: string
+        suite: string | null
+        totalCount: number
+        passedCount: number
+        failedCount: number
+        skippedCount: number
+        blockedCount: number
+        durationTotalMs: number
+        lastStatus: string
+        lastRunId: number
+        lastRunName: string
+        lastRunAt: string
+        lastFailureAt: string | null
+        lastFailureRunId: number | null
+        lastFailureRunName: string | null
+        lastFailureMessage: string | null
+        linkedManualTestId: number | null
+      }
+
+      const grouped = new Map<string, FlakyAccumulator>()
+
+      for (const row of rows) {
+        const suite = row.suite ?? null
+        const key = `${suite ?? 'No suite'}::${row.name}`
+        const existing =
+          grouped.get(key) ??
+          ({
+            key,
+            name: row.name,
+            suite,
+            totalCount: 0,
+            passedCount: 0,
+            failedCount: 0,
+            skippedCount: 0,
+            blockedCount: 0,
+            durationTotalMs: 0,
+            lastStatus: row.status,
+            lastRunId: row.runId,
+            lastRunName: row.runName,
+            lastRunAt: row.runCreatedAt,
+            lastFailureAt: null,
+            lastFailureRunId: null,
+            lastFailureRunName: null,
+            lastFailureMessage: null,
+            linkedManualTestId: row.manualTestId,
+          } satisfies FlakyAccumulator)
+
+        existing.totalCount += 1
+        existing.durationTotalMs += row.durationMs
+
+        if (row.status === 'passed') {
+          existing.passedCount += 1
+        } else if (row.status === 'failed') {
+          existing.failedCount += 1
+        } else if (row.status === 'blocked') {
+          existing.blockedCount += 1
+        } else if (row.status === 'skipped') {
+          existing.skippedCount += 1
+        }
+
+        if (!existing.linkedManualTestId && row.manualTestId) {
+          existing.linkedManualTestId = row.manualTestId
+        }
+
+        if (
+          (row.status === 'failed' || row.status === 'blocked') &&
+          existing.lastFailureAt === null
+        ) {
+          existing.lastFailureAt = row.createdAt
+          existing.lastFailureRunId = row.runId
+          existing.lastFailureRunName = row.runName
+          existing.lastFailureMessage = row.errorMessage
+        }
+
+        grouped.set(key, existing)
+      }
+
+      const tests = Array.from(grouped.values())
+        .filter((item) => item.passedCount > 0 && item.failedCount + item.blockedCount > 0)
+        .map((item): AutomationFlakyTestItem => {
+          const unstableCount = item.failedCount + item.blockedCount
+          const flakyRate =
+            item.totalCount === 0
+              ? 0
+              : Math.round((unstableCount / item.totalCount) * 100)
+          const averageDurationMs =
+            item.totalCount === 0
+              ? 0
+              : Math.round(item.durationTotalMs / item.totalCount)
+          const recommendation =
+            flakyRate >= 40 || item.failedCount >= 3
+              ? 'quarantine'
+              : item.lastStatus === 'passed'
+                ? 'stable'
+                : 'review'
+
+          return {
+            key: item.key,
+            name: item.name,
+            suite: item.suite,
+            totalCount: item.totalCount,
+            passedCount: item.passedCount,
+            failedCount: item.failedCount,
+            skippedCount: item.skippedCount,
+            blockedCount: item.blockedCount,
+            flakyRate,
+            averageDurationMs,
+            lastStatus: item.lastStatus,
+            lastRunId: item.lastRunId,
+            lastRunName: item.lastRunName,
+            lastRunAt: item.lastRunAt,
+            lastFailureAt: item.lastFailureAt,
+            lastFailureRunId: item.lastFailureRunId,
+            lastFailureRunName: item.lastFailureRunName,
+            lastFailureMessage: item.lastFailureMessage,
+            linkedManualTestId: item.linkedManualTestId,
+            recommendation,
+          }
+        })
+        .sort((first, second) => {
+          if (second.flakyRate !== first.flakyRate) {
+            return second.flakyRate - first.flakyRate
+          }
+
+          return second.failedCount + second.blockedCount - (first.failedCount + first.blockedCount)
+        })
+        .slice(0, 100)
+
+      return { tests }
     },
   )
 

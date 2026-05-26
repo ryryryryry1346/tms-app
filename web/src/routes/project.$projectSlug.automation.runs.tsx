@@ -597,9 +597,18 @@ function AutomationRunsIndex({
                   title="Flaky tests"
                   description="Tests with both passing and failing recent results."
                   action={
-                    <Badge variant={flakyTests.length > 0 ? 'warning' : 'success'}>
-                      {flakyTests.length} found
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={flakyTests.length > 0 ? 'warning' : 'success'}>
+                        {flakyTests.length} found
+                      </Badge>
+                      <LinkButton
+                        size="sm"
+                        to="/project/$projectSlug/automation/flaky"
+                        params={{ projectSlug }}
+                      >
+                        Open
+                      </LinkButton>
+                    </div>
                   }
                 />
               </div>
