@@ -13,7 +13,6 @@ import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Input } from '../components/ui/Input'
 import { LinkButton } from '../components/ui/LinkButton'
-import { MetricCard } from '../components/ui/MetricCard'
 import { Panel } from '../components/ui/Panel'
 import { Select } from '../components/ui/Select'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
@@ -90,7 +89,7 @@ export const Route = createFileRoute('/project/$projectSlug/automation/runs')({
 })
 
 const RUN_TABLE_COLUMNS =
-  'minmax(260px,1.8fr) minmax(160px,1fr) 90px 80px 80px 80px 120px'
+  'minmax(260px,1.6fr) 110px 110px 110px 120px minmax(150px,0.9fr) minmax(130px,0.8fr) 90px'
 
 type QuickFilter = 'all' | 'failed' | 'latest-ci' | 'latest'
 
@@ -203,14 +202,6 @@ function isFailedResult(status: string): boolean {
   return status === 'failed' || status === 'blocked'
 }
 
-function getPassRate(run: AutomationRunListItem): number {
-  if (run.totalCount === 0) {
-    return 0
-  }
-
-  return Math.round((run.passedCount / run.totalCount) * 100)
-}
-
 function getFlakyTests(
   results: AutomationRunResultSummary[],
 ): FlakyTestSummary[] {
@@ -306,103 +297,6 @@ function ResultBar({ run }: { run: AutomationRunListItem }) {
   )
 }
 
-function AutomationTrendChart({ runs }: { runs: AutomationRunListItem[] }) {
-  const trendRuns = runs.slice(0, 12).reverse()
-
-  if (trendRuns.length === 0) {
-    return (
-      <EmptyState
-        title="No trend yet"
-        description="Recent CI/API imports will appear here after automation results are uploaded."
-      />
-    )
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex h-32 items-end gap-2">
-        {trendRuns.map((run) => {
-          const passRate = getPassRate(run)
-          const failedRate =
-            run.totalCount === 0
-              ? 0
-              : Math.round(((run.failedCount + run.blockedCount) / run.totalCount) * 100)
-
-          return (
-            <div key={run.id} className="flex min-w-0 flex-1 flex-col items-center gap-2">
-              <div className="relative h-24 w-full overflow-hidden rounded-md border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)]">
-                <div
-                  className="absolute bottom-0 left-0 w-full bg-[var(--tms-success)]"
-                  style={{ height: `${Math.max(passRate, run.totalCount === 0 ? 0 : 4)}%` }}
-                />
-                {failedRate > 0 ? (
-                  <div
-                    className="absolute bottom-0 left-0 w-full bg-[var(--tms-danger)]"
-                    style={{ height: `${Math.max(failedRate, 4)}%` }}
-                  />
-                ) : null}
-              </div>
-              <span className="max-w-full truncate text-[11px] text-[var(--tms-text-muted)]">
-                #{run.id}
-              </span>
-            </div>
-          )
-        })}
-      </div>
-      <div className="flex flex-wrap gap-3 text-xs text-[var(--tms-text-muted)]">
-        <span className="inline-flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-[var(--tms-success)]" />
-          Passed
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-[var(--tms-danger)]" />
-          Failed / blocked
-        </span>
-      </div>
-    </div>
-  )
-}
-
-function FlakyTestsPanel({ tests }: { tests: FlakyTestSummary[] }) {
-  if (tests.length === 0) {
-    return (
-      <EmptyState
-        title="No flaky tests detected"
-        description="Tests become flaky when recent history contains both passing and failing results."
-      />
-    )
-  }
-
-  return (
-    <div className="space-y-2">
-      {tests.map((test) => (
-        <div
-          key={test.key}
-          className="rounded-md border border-[var(--tms-border-subtle)] px-3 py-2"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
-                {test.name}
-              </div>
-              <div className="truncate text-xs text-[var(--tms-text-muted)]">
-                {test.suite}
-              </div>
-            </div>
-            <Badge variant="warning">{test.flakyRate}% flaky</Badge>
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2 text-xs text-[var(--tms-text-muted)]">
-            <span>{test.failed} failures</span>
-            <span>{test.passed} passes</span>
-            <span>last {humanizeStatus(test.lastStatus)}</span>
-            <span>avg {formatDuration(test.averageDurationMs)}</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 function AutomationRunsPage() {
   const { project, runs, recentResults } = Route.useLoaderData()
   const { projectSlug: routeProjectSlug } = Route.useParams()
@@ -442,6 +336,7 @@ function AutomationRunsIndex({
   const [statusFilter, setStatusFilter] = useState('All')
   const [environmentFilter, setEnvironmentFilter] = useState('All')
   const [branchFilter, setBranchFilter] = useState('All')
+  const [sourceFilter, setSourceFilter] = useState('All')
 
   const environments = useMemo(
     () =>
@@ -456,6 +351,13 @@ function AutomationRunsIndex({
     () =>
       Array.from(
         new Set(runs.map((run) => run.branch).filter((value): value is string => Boolean(value))),
+      ),
+    [runs],
+  )
+  const sources = useMemo(
+    () =>
+      Array.from(
+        new Set(runs.map((run) => run.triggerSource).filter((value): value is string => Boolean(value))),
       ),
     [runs],
   )
@@ -489,12 +391,23 @@ function AutomationRunsIndex({
       const matchesEnvironment =
         environmentFilter === 'All' || run.environment === environmentFilter
       const matchesBranch = branchFilter === 'All' || run.branch === branchFilter
+      const matchesSource = sourceFilter === 'All' || run.triggerSource === sourceFilter
 
-      return matchesQuery && matchesStatus && matchesEnvironment && matchesBranch
+      return (
+        matchesQuery &&
+        matchesStatus &&
+        matchesEnvironment &&
+        matchesBranch &&
+        matchesSource
+      )
     })
-  }, [branchFilter, environmentFilter, query, quickFilter, runs, statusFilter])
+  }, [branchFilter, environmentFilter, query, quickFilter, runs, sourceFilter, statusFilter])
 
   const flakyTests = useMemo(() => getFlakyTests(recentResults), [recentResults])
+  const failedResults = useMemo(
+    () => recentResults.filter((result) => isFailedResult(result.status)).slice(0, 4),
+    [recentResults],
+  )
   const failedRuns = useMemo(() => runs.filter(isFailedRun), [runs])
   const latestCiRuns = useMemo(() => runs.filter(isCiRun).slice(0, 10), [runs])
   const quickFilters: Array<{
@@ -513,6 +426,7 @@ function AutomationRunsIndex({
   const totalResults = runs.reduce((sum, run) => sum + run.totalCount, 0)
   const totalPassed = runs.reduce((sum, run) => sum + run.passedCount, 0)
   const totalFailed = runs.reduce((sum, run) => sum + run.failedCount, 0)
+  const totalSkipped = runs.reduce((sum, run) => sum + run.skippedCount, 0)
   const passRate =
     totalResults === 0 ? '0%' : `${Math.round((totalPassed / totalResults) * 100)}%`
   const averageDuration =
@@ -541,108 +455,95 @@ function AutomationRunsIndex({
             }
           />
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-            <MetricCard
-              density="compact"
-              label="Runs"
-              value={totalRuns}
-              helper="Last 100 imports"
-            />
-            <MetricCard
-              density="compact"
-              label="Latest"
-              value={latestRun ? humanizeStatus(latestRun.status) : 'None'}
-              tone={latestRun?.status === 'failed' ? 'danger' : 'primary'}
-              helper={latestRun ? formatDate(latestRun.startedAt) : 'No runs yet'}
-            />
-            <MetricCard
-              density="compact"
-              label="Pass rate"
-              value={passRate}
-              tone="success"
-              helper={`${totalPassed}/${totalResults} passed`}
-            />
-            <MetricCard
-              density="compact"
-              label="Failed"
-              value={totalFailed}
-              tone={totalFailed > 0 ? 'danger' : 'muted'}
-              helper="Across listed runs"
-            />
-            <MetricCard
-              density="compact"
-              label="Avg duration"
-              value={averageDuration}
-              helper="Per run"
-            />
-          </div>
-
-          <div className="grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
-            <Panel>
-              <div className="border-b border-[var(--tms-border-subtle)] px-4 py-3">
-                <WorkspaceSectionHeader
-                  title="Run trend"
-                  description="Pass and failure shape across the latest automation imports."
-                  action={<Badge>{Math.min(runs.length, 12)} runs</Badge>}
-                />
+          <div className="grid overflow-hidden rounded-[var(--tms-radius-panel)] border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] shadow-sm md:grid-cols-3 xl:grid-cols-6">
+            {[
+              { label: 'Runs', value: totalRuns, helper: 'Last imports' },
+              {
+                label: 'Latest',
+                value: latestRun ? humanizeStatus(latestRun.status) : 'None',
+                helper: latestRun ? formatDate(latestRun.startedAt) : 'No runs yet',
+                tone:
+                  latestRun && isFailedRun(latestRun)
+                    ? 'text-[var(--tms-danger)]'
+                    : 'text-[var(--tms-text)]',
+              },
+              {
+                label: 'Pass rate',
+                value: passRate,
+                helper: `${totalPassed}/${totalResults} passed`,
+                tone: 'text-[var(--tms-success)]',
+              },
+              {
+                label: 'Failed',
+                value: totalFailed,
+                helper: 'Across runs',
+                tone:
+                  totalFailed > 0
+                    ? 'text-[var(--tms-danger)]'
+                    : 'text-[var(--tms-text)]',
+              },
+              {
+                label: 'Skipped',
+                value: totalSkipped,
+                helper: 'Not executed',
+                tone: 'text-[var(--tms-text-muted)]',
+              },
+              { label: 'Avg duration', value: averageDuration, helper: 'Per run' },
+            ].map((metric) => (
+              <div
+                key={metric.label}
+                className="border-b border-r border-[var(--tms-border-subtle)] px-4 py-3 last:border-r-0 md:[&:nth-child(3n)]:border-r-0 xl:[&:nth-child(3n)]:border-r xl:[&:nth-child(6n)]:border-r-0"
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
+                  {metric.label}
+                </div>
+                <div className={`mt-1 text-2xl font-semibold ${metric.tone ?? 'text-[var(--tms-text)]'}`}>
+                  {metric.value}
+                </div>
+                <div className="mt-1 truncate text-xs text-[var(--tms-text-muted)]">
+                  {metric.helper}
+                </div>
               </div>
-              <div className="p-4">
-                <AutomationTrendChart runs={runs} />
-              </div>
-            </Panel>
-
-            <Panel>
-              <div className="border-b border-[var(--tms-border-subtle)] px-4 py-3">
-                <WorkspaceSectionHeader
-                  title="Flaky tests"
-                  description="Tests with both passing and failing recent results."
-                  action={
-                    <div className="flex items-center gap-2">
-                      <Badge variant={flakyTests.length > 0 ? 'warning' : 'success'}>
-                        {flakyTests.length} found
-                      </Badge>
-                      <LinkButton
-                        size="sm"
-                        to="/project/$projectSlug/automation/flaky"
-                        params={{ projectSlug }}
-                      >
-                        Open
-                      </LinkButton>
-                    </div>
-                  }
-                />
-              </div>
-              <div className="p-4">
-                <FlakyTestsPanel tests={flakyTests} />
-              </div>
-            </Panel>
+            ))}
           </div>
 
           <Panel>
-            <div className="border-b border-[var(--tms-border-subtle)] px-4 py-4">
+            <div className="border-b border-[var(--tms-border-subtle)] px-4 py-3">
               <WorkspaceSectionHeader
                 title="Automation runs"
-                description="Track CI/API imports, execution health, and failed automated checks."
-                action={<Badge>{filteredRuns.length} shown</Badge>}
+                description="Track CI/API imports, execution health, and failed checks."
+                action={
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <Badge>{filteredRuns.length} shown</Badge>
+                    <LinkButton
+                      size="sm"
+                      to="/project/$projectSlug/automation/flaky"
+                      params={{ projectSlug }}
+                    >
+                      Flaky tests
+                    </LinkButton>
+                  </div>
+                }
               />
-              <div className="mt-4 flex flex-wrap gap-2">
-                {quickFilters.map((filter) => (
-                  <Button
-                    key={filter.id}
-                    size="sm"
-                    variant={quickFilter === filter.id ? 'primary' : 'secondary'}
-                    onClick={() => setQuickFilter(filter.id)}
-                  >
-                    {filter.label} · {filter.count}
-                  </Button>
-                ))}
-              </div>
-              <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(240px,1fr)_160px_160px_160px]">
+              <div className="mt-3 grid items-end gap-2 xl:grid-cols-[minmax(260px,1fr)_auto_150px_150px_150px_140px]">
                 <Input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search by run name or commit..."
                 />
+                <div className="flex h-10 items-center overflow-hidden rounded-[var(--tms-radius-control)] border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] p-1">
+                  {quickFilters.map((filter) => (
+                    <Button
+                      key={filter.id}
+                      size="sm"
+                      variant={quickFilter === filter.id ? 'primary' : 'secondary'}
+                      className="h-8 whitespace-nowrap border-0 shadow-none"
+                      onClick={() => setQuickFilter(filter.id)}
+                    >
+                      {filter.label} / {filter.count}
+                    </Button>
+                  ))}
+                </div>
                 <Select
                   value={statusFilter}
                   onChange={(event) => setStatusFilter(event.target.value)}
@@ -676,6 +577,17 @@ function AutomationRunsIndex({
                     </option>
                   ))}
                 </Select>
+                <Select
+                  value={sourceFilter}
+                  onChange={(event) => setSourceFilter(event.target.value)}
+                >
+                  <option value="All">All sources</option>
+                  {sources.map((source) => (
+                    <option key={source} value={source}>
+                      {humanizeStatus(source)}
+                    </option>
+                  ))}
+                </Select>
               </div>
             </div>
 
@@ -687,68 +599,155 @@ function AutomationRunsIndex({
                 />
               </div>
             ) : (
-              <div className="p-4">
-                <TableShell surface="panel">
-                  <TableHead
-                    columns={RUN_TABLE_COLUMNS}
-                    minWidth="1050px"
-                    padding="sm"
-                  >
-                    <span>Run</span>
-                    <span>Progress</span>
-                    <span>Passed</span>
-                    <span>Failed</span>
-                    <span>Skipped</span>
-                    <span>Duration</span>
-                    <span>Actions</span>
-                  </TableHead>
-                  {filteredRuns.map((run) => (
-                    <TableRow
-                      key={run.id}
+              <div className="grid xl:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="min-w-0 border-r border-[var(--tms-border-subtle)] p-4">
+                  <TableShell surface="panel">
+                    <TableHead
                       columns={RUN_TABLE_COLUMNS}
-                      minWidth="1050px"
+                      minWidth="1180px"
                       padding="sm"
                     >
-                      <div className="min-w-0">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span className="truncate font-semibold text-[var(--tms-text)]">
-                            {run.name}
-                          </span>
-                          <Badge variant={getStatusBadgeVariant(run.status)}>
-                            {humanizeStatus(run.status)}
-                          </Badge>
-                        </div>
-                        <div className="mt-1 flex flex-wrap gap-2 text-xs text-[var(--tms-text-muted)]">
-                          <span>#{run.id}</span>
-                          <span>{run.environment ?? 'No env'}</span>
-                          <span>{run.branch ?? 'No branch'}</span>
-                          <span>{formatDate(run.startedAt)}</span>
-                        </div>
-                      </div>
-                      <ResultBar run={run} />
-                      <span className="font-semibold text-[var(--tms-success)]">
-                        {run.passedCount}
-                      </span>
-                      <span className="font-semibold text-[var(--tms-danger)]">
-                        {run.failedCount}
-                      </span>
-                      <span className="text-[var(--tms-text-muted)]">
-                        {run.skippedCount}
-                      </span>
-                      <span className="text-[var(--tms-text-muted)]">
-                        {formatDuration(run.durationMs)}
-                      </span>
-                      <LinkButton
-                        size="sm"
-                        variant="primary"
-                        to="/project/$projectSlug/automation/runs/$runId"
-                        params={{ projectSlug, runId: String(run.id) }}
+                      <span>Run</span>
+                      <span>Status</span>
+                      <span>Source</span>
+                      <span>Branch</span>
+                      <span>Started</span>
+                      <span>Progress</span>
+                      <span>Results</span>
+                      <span>Actions</span>
+                    </TableHead>
+                    {filteredRuns.map((run) => (
+                      <TableRow
+                        key={run.id}
+                        columns={RUN_TABLE_COLUMNS}
+                        minWidth="1180px"
+                        padding="sm"
                       >
-                        Open
-                      </LinkButton>
-                    </TableRow>
-                  ))}
-                </TableShell>
+                        <div className="min-w-0">
+                          <div className="truncate font-semibold text-[var(--tms-text)]">
+                            {run.name}
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-2 text-xs text-[var(--tms-text-muted)]">
+                            <span>#{run.id}</span>
+                            <span>{run.environment ?? 'No env'}</span>
+                            <span>
+                              {run.commitSha
+                                ? run.commitSha.slice(0, 7)
+                                : 'No commit'}
+                            </span>
+                          </div>
+                        </div>
+                        <Badge variant={getStatusBadgeVariant(run.status)}>
+                          {humanizeStatus(run.status)}
+                        </Badge>
+                        <span className="text-xs font-medium text-[var(--tms-text-muted)]">
+                          {humanizeStatus(run.triggerSource)}
+                        </span>
+                        <span className="truncate text-xs text-[var(--tms-text-muted)]">
+                          {run.branch ?? 'No branch'}
+                        </span>
+                        <span className="text-xs text-[var(--tms-text-muted)]">
+                          {formatDate(run.startedAt)}
+                        </span>
+                        <ResultBar run={run} />
+                        <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                          <span className="text-[var(--tms-success)]">
+                            {run.passedCount} passed
+                          </span>
+                          <span className="text-[var(--tms-danger)]">
+                            {run.failedCount} failed
+                          </span>
+                          <span className="text-[var(--tms-text-muted)]">
+                            {run.skippedCount} skipped
+                          </span>
+                        </div>
+                        <LinkButton
+                          size="sm"
+                          variant="primary"
+                          to="/project/$projectSlug/automation/runs/$runId"
+                          params={{ projectSlug, runId: String(run.id) }}
+                        >
+                          Open
+                        </LinkButton>
+                      </TableRow>
+                    ))}
+                  </TableShell>
+                </div>
+                <aside className="space-y-3 p-4">
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-sm font-semibold text-[var(--tms-text)]">
+                        Failure focus
+                      </h3>
+                      <Badge
+                        variant={failedResults.length > 0 ? 'danger' : 'success'}
+                      >
+                        {failedResults.length} recent
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-[var(--tms-text-muted)]">
+                      Recent failed or blocked automated checks.
+                    </p>
+                  </div>
+                  {failedResults.length === 0 ? (
+                    <EmptyState
+                      title="No recent failures"
+                      description="Failed and blocked results will appear here after CI imports."
+                    />
+                  ) : (
+                    <div className="space-y-2">
+                      {failedResults.map((result) => (
+                        <div
+                          key={result.id}
+                          className="rounded-md border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] p-3"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
+                                {result.name}
+                              </div>
+                              <div className="mt-1 truncate text-xs text-[var(--tms-text-muted)]">
+                                {result.suite ?? 'No suite'}
+                              </div>
+                            </div>
+                            <Badge variant={getStatusBadgeVariant(result.status)}>
+                              {humanizeStatus(result.status)}
+                            </Badge>
+                          </div>
+                          <div className="mt-3 flex items-center justify-between gap-2 text-xs text-[var(--tms-text-muted)]">
+                            <span>{formatDuration(result.durationMs)}</span>
+                            <LinkButton
+                              size="sm"
+                              to="/project/$projectSlug/automation/runs/$runId"
+                              params={{
+                                projectSlug,
+                                runId: String(result.runId),
+                              }}
+                            >
+                              Open run
+                            </LinkButton>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="rounded-md border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] p-3">
+                    <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
+                      Flaky watch
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-[var(--tms-text)]">
+                      {flakyTests.length} flaky tests
+                    </div>
+                    <LinkButton
+                      className="mt-3"
+                      size="sm"
+                      to="/project/$projectSlug/automation/flaky"
+                      params={{ projectSlug }}
+                    >
+                      Review flaky tests
+                    </LinkButton>
+                  </div>
+                </aside>
               </div>
             )}
           </Panel>
