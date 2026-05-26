@@ -7,7 +7,6 @@ import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Input } from '../components/ui/Input'
 import { LinkButton } from '../components/ui/LinkButton'
-import { MetricCard } from '../components/ui/MetricCard'
 import { Panel } from '../components/ui/Panel'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import {
@@ -512,6 +511,15 @@ function AutomationRunDetailPage() {
     }
   }
 
+  const metadataItems = [
+    ['Environment', run.environment ?? 'Not set'],
+    ['Branch', run.branch ?? 'Not set'],
+    ['Commit', run.commitSha ?? 'Not set'],
+    ['Trigger', run.triggerSource],
+    ['Started', formatDate(run.startedAt)],
+    ['Duration', formatDuration(run.durationMs)],
+  ] as const
+
   return (
     <main className="workspace-view">
       <div className="workspace-view__inner">
@@ -530,46 +538,176 @@ function AutomationRunDetailPage() {
             }
           />
 
-          <Panel className="px-5 py-5">
-            <div className="grid gap-5 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.2fr)]">
-              <div>
-                <Badge variant={getStatusBadgeVariant(run.status)}>
-                  {humanizeStatus(run.status)}
-                </Badge>
-                <div className="mt-4">
+          <Panel className="px-4 py-4">
+            <div className="grid gap-4 xl:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.2fr)_minmax(260px,0.8fr)]">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Badge variant={getStatusBadgeVariant(run.status)}>
+                    {humanizeStatus(run.status)}
+                  </Badge>
+                  <span className="text-sm font-semibold text-[var(--tms-text-muted)]">
+                    {run.totalCount} results
+                  </span>
+                </div>
+                <div className="mt-3">
                   <SegmentedRunProgress run={run} />
                 </div>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <MetricCard
-                  density="compact"
-                  label="Passed"
-                  value={run.passedCount}
-                  tone="success"
-                />
-                <MetricCard
-                  density="compact"
-                  label="Failed"
-                  value={run.failedCount}
-                  tone={run.failedCount > 0 ? 'danger' : 'muted'}
-                />
-                <MetricCard
-                  density="compact"
-                  label="Skipped"
-                  value={run.skippedCount}
-                  tone="muted"
-                />
-                <MetricCard
-                  density="compact"
-                  label="Duration"
-                  value={formatDuration(run.durationMs)}
-                />
+
+              <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                {[
+                  ['Passed', run.passedCount, 'text-[var(--run-passed-text)]'],
+                  ['Failed', run.failedCount, 'text-[var(--run-failed-text)]'],
+                  ['Skipped', run.skippedCount, 'text-[var(--run-skipped-text)]'],
+                  ['Blocked', run.blockedCount, 'text-[var(--run-blocked-text)]'],
+                ].map(([label, value, tone]) => (
+                  <div
+                    key={label}
+                    className="rounded-lg border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-3 py-2"
+                  >
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
+                      {label}
+                    </div>
+                    <div className={`mt-1 text-xl font-semibold ${tone}`}>
+                      {value}
+                    </div>
+                  </div>
+                ))}
               </div>
+
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                {metadataItems.map(([label, value]) => (
+                  <div key={label} className="min-w-0">
+                    <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
+                      {label}
+                    </dt>
+                    <dd
+                      className={
+                        label === 'Commit'
+                          ? 'mt-1 truncate font-mono text-xs text-[var(--tms-text)]'
+                          : 'mt-1 truncate font-semibold text-[var(--tms-text)]'
+                      }
+                    >
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+                {run.ciBuildUrl ? (
+                  <div className="col-span-2">
+                    <a
+                      href={run.ciBuildUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-semibold text-[var(--tms-primary)] hover:underline"
+                    >
+                      Open CI build
+                    </a>
+                  </div>
+                ) : null}
+              </dl>
             </div>
           </Panel>
 
-           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
-            <Panel>
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_430px]">
+            <div className="space-y-4">
+              <Panel className="px-4 py-4">
+                <WorkspaceSectionHeader
+                  title="Failure triage"
+                  description="Review broken tests first, then inspect diagnostics and manual case links."
+                  action={
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="runFailed">{failedResults.length} failing</Badge>
+                      <Badge>{failedSuiteCount} suites</Badge>
+                      <Badge>{unlinkedFailureCount} unlinked</Badge>
+                    </div>
+                  }
+                  className="mb-3"
+                />
+                {failedResults.length === 0 ? (
+                  <EmptyState
+                    title="No failures"
+                    description="This automation run has no failed or blocked results."
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant={activeFilter === 'Failures' ? 'primary' : 'secondary'}
+                        onClick={() => setActiveFilter('Failures')}
+                      >
+                        Show failures
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={linkFilter === 'unlinked' ? 'primary' : 'secondary'}
+                        onClick={() => {
+                          setActiveFilter('Failures')
+                          setLinkFilter('unlinked')
+                        }}
+                      >
+                        Unlinked failures
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          setActiveFilter('All')
+                          setLinkFilter('All')
+                        }}
+                      >
+                        Reset filters
+                      </Button>
+                    </div>
+                    <div className="grid gap-2 lg:grid-cols-2">
+                      {failedResults.slice(0, 6).map((result) => (
+                        <button
+                          key={result.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedResultId(result.id)
+                            setActiveFilter('Failures')
+                          }}
+                          className={`rounded-lg border px-3 py-2 text-left transition ${
+                            result.id === selectedResult?.id
+                              ? 'border-[var(--tms-border-focus)] bg-[var(--state-selected)]'
+                              : 'border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] hover:bg-[var(--tms-hover)]'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="min-w-0 truncate text-sm font-semibold text-[var(--tms-text)]">
+                              {result.name}
+                            </span>
+                            <Badge variant={getStatusBadgeVariant(result.status)}>
+                              {humanizeStatus(result.status)}
+                            </Badge>
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-2 text-xs text-[var(--tms-text-muted)]">
+                            <span>{result.suite ?? 'No suite'}</span>
+                            <span>{formatDuration(result.durationMs)}</span>
+                            <span>
+                              {getLinkedManualCase(result) ? 'linked' : 'unlinked'}
+                            </span>
+                            {result.retryCount > 0 ? (
+                              <span>{result.retryCount} retries</span>
+                            ) : null}
+                          </div>
+                          <div className="mt-1 line-clamp-1 text-xs text-[var(--tms-text-muted)]">
+                            {getResultDiagnosticText(result)}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    {failedResults.length > 6 ? (
+                      <div className="text-xs font-semibold text-[var(--tms-text-muted)]">
+                        Showing first 6 failures. Use the table filter for the full failure list.
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </Panel>
+
+              <Panel>
               <div className="border-b border-[var(--tms-border-subtle)] px-4 py-4">
                 <WorkspaceSectionHeader
                   title="Results"
@@ -723,185 +861,13 @@ function AutomationRunDetailPage() {
                 </div>
               )}
             </Panel>
+            </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 xl:sticky xl:top-20 xl:self-start">
               <Panel className="px-5 py-5">
                 <WorkspaceSectionHeader
-                  title="Metadata"
-                  description="Source and CI context for this automation run."
-                  className="mb-4"
-                />
-                <dl className="space-y-3 text-sm">
-                  <div>
-                    <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
-                      Environment
-                    </dt>
-                    <dd className="mt-1 font-semibold text-[var(--tms-text)]">
-                      {run.environment ?? 'Not set'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
-                      Branch
-                    </dt>
-                    <dd className="mt-1 font-semibold text-[var(--tms-text)]">
-                      {run.branch ?? 'Not set'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
-                      Commit
-                    </dt>
-                    <dd className="mt-1 font-mono text-xs text-[var(--tms-text)]">
-                      {run.commitSha ?? 'Not set'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
-                      Trigger
-                    </dt>
-                    <dd className="mt-1 font-semibold text-[var(--tms-text)]">
-                      {run.triggerSource}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
-                      Started
-                    </dt>
-                    <dd className="mt-1 text-[var(--tms-text)]">
-                      {formatDate(run.startedAt)}
-                    </dd>
-                  </div>
-                  {run.ciBuildUrl ? (
-                    <div>
-                      <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
-                        CI build
-                      </dt>
-                      <dd className="mt-1">
-                        <a
-                          href={run.ciBuildUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-semibold text-[var(--tms-primary)]"
-                        >
-                          Open build
-                        </a>
-                      </dd>
-                    </div>
-                  ) : null}
-                </dl>
-              </Panel>
-
-              <Panel className="px-5 py-5">
-                <WorkspaceSectionHeader
-                  title="Failure focus"
-                  description="Start with broken tests, then jump into the exact diagnostic output."
-                  action={<Badge variant="runFailed">{failedResults.length} failing</Badge>}
-                  className="mb-4"
-                />
-                {failedResults.length === 0 ? (
-                  <EmptyState
-                    title="No failures"
-                    description="This run has no failed or blocked automated tests."
-                  />
-                ) : (
-                  <div className="space-y-4">
-                    <div className="grid gap-2 sm:grid-cols-3">
-                      <div className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] p-3">
-                        <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
-                          Failures
-                        </div>
-                        <div className="mt-1 text-xl font-semibold text-[var(--tms-danger)]">
-                          {failedResults.length}
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] p-3">
-                        <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
-                          Suites
-                        </div>
-                        <div className="mt-1 text-xl font-semibold text-[var(--tms-text)]">
-                          {failedSuiteCount}
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] p-3">
-                        <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
-                          Unlinked
-                        </div>
-                        <div className="mt-1 text-xl font-semibold text-[var(--tms-warning)]">
-                          {unlinkedFailureCount}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant={activeFilter === 'Failures' ? 'primary' : 'secondary'}
-                        onClick={() => setActiveFilter('Failures')}
-                      >
-                        Show failures in table
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={
-                          linkFilter === 'unlinked' ? 'primary' : 'secondary'
-                        }
-                        onClick={() => {
-                          setActiveFilter('Failures')
-                          setLinkFilter('unlinked')
-                        }}
-                      >
-                        Triage unlinked failures
-                      </Button>
-                    </div>
-                    <div className="space-y-2">
-                      {failedResults.map((result) => (
-                        <button
-                          key={result.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedResultId(result.id)
-                            setActiveFilter('Failures')
-                          }}
-                          className={`w-full rounded-xl border p-3 text-left transition ${
-                            result.id === selectedResult?.id
-                              ? 'border-[var(--tms-border-focus)] bg-[var(--state-selected)]'
-                              : 'border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] hover:bg-[var(--tms-hover)]'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="min-w-0 truncate font-semibold text-[var(--tms-text)]">
-                              {result.name}
-                            </div>
-                            <Badge variant={getStatusBadgeVariant(result.status)}>
-                              {humanizeStatus(result.status)}
-                            </Badge>
-                          </div>
-                          <div className="mt-1 flex flex-wrap gap-2 text-xs text-[var(--tms-text-muted)]">
-                            <span>{result.suite ?? 'No suite'}</span>
-                            <span>{formatDuration(result.durationMs)}</span>
-                            {getLinkedManualCase(result) ? (
-                              <span>linked</span>
-                            ) : (
-                              <span>unlinked</span>
-                            )}
-                            {result.retryCount > 0 ? (
-                              <span>{result.retryCount} retries</span>
-                            ) : null}
-                          </div>
-                          <div className="mt-2 line-clamp-2 text-sm text-[var(--tms-text-muted)]">
-                            {getResultDiagnosticText(result)}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </Panel>
-
-              <Panel className="px-5 py-5">
-                <WorkspaceSectionHeader
-                  title="Selected result"
-                  description="Error message, stack trace, logs, and manual case context."
+                  title={selectedResult ? 'Result diagnostics' : 'Select a result'}
+                  description="Failure output, logs, and manual case context."
                   className="mb-4"
                 />
                 {selectedResult ? (
@@ -923,7 +889,9 @@ function AutomationRunDetailPage() {
                       </h2>
                       <div className="mt-1 text-sm text-[var(--tms-text-muted)]">
                         {selectedResult.suite ?? 'No suite'}
-                        {selectedResult.filePath ? ` · ${selectedResult.filePath}` : ''}
+                        {selectedResult.filePath
+                          ? ` / ${selectedResult.filePath}`
+                          : ''}
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <Button
