@@ -120,17 +120,26 @@ function CodeBlock({
   label,
   value,
   onCopy,
+  description,
 }: {
   label: string
   value: string
   onCopy: (value: string) => void
+  description?: string
 }) {
   return (
     <div className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)]">
       <div className="flex items-center justify-between border-b border-[var(--tms-border-subtle)] px-3 py-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
-          {label}
-        </span>
+        <div>
+          <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
+            {label}
+          </span>
+          {description ? (
+            <p className="m-0 mt-1 text-xs text-[var(--tms-text-muted)]">
+              {description}
+            </p>
+          ) : null}
+        </div>
         <Button size="sm" onClick={() => onCopy(value)}>
           Copy
         </Button>
@@ -138,6 +147,58 @@ function CodeBlock({
       <pre className="m-0 overflow-auto p-3 text-xs leading-6 text-[var(--tms-text)]">
         <code>{value}</code>
       </pre>
+    </div>
+  )
+}
+
+function EndpointCard({
+  label,
+  value,
+  onCopy,
+}: {
+  label: string
+  value: string
+  onCopy: (value: string) => void
+}) {
+  return (
+    <div className="grid gap-2 rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] p-3">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
+          {label}
+        </span>
+        <Button size="sm" onClick={() => onCopy(value)}>
+          Copy endpoint
+        </Button>
+      </div>
+      <code className="break-all text-xs leading-5 text-[var(--tms-text)]">
+        {value}
+      </code>
+    </div>
+  )
+}
+
+function IntegrationStep({
+  step,
+  title,
+  description,
+}: {
+  step: string
+  title: string
+  description: string
+}) {
+  return (
+    <div className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3">
+      <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] text-xs font-semibold text-[var(--tms-text-muted)]">
+        {step}
+      </span>
+      <div>
+        <p className="m-0 text-sm font-semibold text-[var(--tms-text)]">
+          {title}
+        </p>
+        <p className="m-0 mt-1 text-sm leading-5 text-[var(--tms-text-muted)]">
+          {description}
+        </p>
+      </div>
     </div>
   )
 }
@@ -198,6 +259,61 @@ function ProjectAutomationIndex({
       -F "commit=\${{ github.sha }}" \\
       -F "ciBuildUrl=\${{ github.server_url }}/\${{ github.repository }}/actions/runs/\${{ github.run_id }}" \\
       -F "triggerSource=ci"`
+  const jenkinsExample = `stage('Upload JUnit to TMS') {
+  steps {
+    withCredentials([string(credentialsId: 'tms-project-token', variable: 'TMS_PROJECT_TOKEN')]) {
+      sh '''
+        curl -X POST "${junitEndpoint}" \\
+          -H "Authorization: Bearer $TMS_PROJECT_TOKEN" \\
+          -F "file=@reports/junit.xml" \\
+          -F "name=Jenkins regression" \\
+          -F "environment=staging" \\
+          -F "branch=$BRANCH_NAME" \\
+          -F "commit=$GIT_COMMIT" \\
+          -F "ciBuildUrl=$BUILD_URL" \\
+          -F "triggerSource=ci"
+      '''
+    }
+  }
+}`
+  const playwrightExample = `# playwright.config.ts
+export default defineConfig({
+  reporter: [['junit', { outputFile: 'test-results/junit.xml' }]],
+})
+
+# Upload after tests
+curl -X POST "${junitEndpoint}" \\
+  -H "Authorization: Bearer <project-api-token>" \\
+  -F "file=@test-results/junit.xml" \\
+  -F "name=Playwright regression" \\
+  -F "environment=staging" \\
+  -F "triggerSource=ci"`
+  const pytestExample = `pytest --junitxml=reports/junit.xml
+
+curl -X POST "${junitEndpoint}" \\
+  -H "Authorization: Bearer <project-api-token>" \\
+  -F "file=@reports/junit.xml" \\
+  -F "name=pytest regression" \\
+  -F "environment=staging" \\
+  -F "triggerSource=ci"`
+  const jestExample = `npm install --save-dev jest-junit
+JEST_JUNIT_OUTPUT=reports/junit.xml jest --reporters=default --reporters=jest-junit
+
+curl -X POST "${junitEndpoint}" \\
+  -H "Authorization: Bearer <project-api-token>" \\
+  -F "file=@reports/junit.xml" \\
+  -F "name=Jest regression" \\
+  -F "environment=staging" \\
+  -F "triggerSource=ci"`
+  const sampleJunit = `<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="auth.spec.ts" tests="2" failures="1" skipped="0" time="2.8">
+    <testcase classname="auth.spec.ts" name="Login succeeds TMS-142" time="1.2" />
+    <testcase classname="auth.spec.ts" name="Locked user cannot login" time="1.6">
+      <failure message="Expected error banner">Assertion stack trace...</failure>
+    </testcase>
+  </testsuite>
+</testsuites>`
   const jsonExample = `curl -X POST "${jsonEndpoint}" \\
   -H "Authorization: Bearer <project-api-token>" \\
   -H "Content-Type: application/json" \\
@@ -303,8 +419,8 @@ function ProjectAutomationIndex({
 
           <Panel className="px-5 py-5">
             <WorkspaceSectionHeader
-              title="Project API token"
-              description="Generate a token for CI jobs. Store it as a CI secret; the full token is shown only once."
+              title="1. Project API token"
+              description="Generate a token for CI jobs. Store it as a secret in GitHub Actions, Jenkins, GitLab, or any runner. The full token is shown only once."
               className="mb-4"
             />
 
@@ -337,6 +453,27 @@ function ProjectAutomationIndex({
                 <code className="break-all text-xs">{newToken}</code>
               </Alert>
             ) : null}
+          </Panel>
+
+          <Panel className="px-5 py-5">
+            <WorkspaceSectionHeader
+              title="2. Upload endpoints"
+              description="Use JUnit XML for standard framework output. Use JSON when you have a custom runner or want direct control over normalized results."
+              className="mb-4"
+            />
+
+            <div className="grid gap-4 xl:grid-cols-2">
+              <EndpointCard
+                label="JUnit XML import"
+                value={junitEndpoint}
+                onCopy={copyText}
+              />
+              <EndpointCard
+                label="JSON run import"
+                value={jsonEndpoint}
+                onCopy={copyText}
+              />
+            </div>
           </Panel>
 
           <Panel className="px-5 py-5">
@@ -402,28 +539,90 @@ function ProjectAutomationIndex({
 
           <Panel className="px-5 py-5">
             <WorkspaceSectionHeader
-              title="CI upload examples"
-              description="Use the token as a secret. JUnit XML is the first supported import format; JSON is available for custom runners."
+              title="3. CI upload examples"
+              description="Copy the closest example, replace the token with your CI secret, and upload reports after the test command finishes."
               className="mb-4"
             />
 
+            <div className="mb-5 grid gap-4 lg:grid-cols-3">
+              <IntegrationStep
+                step="A"
+                title="Generate JUnit XML"
+                description="Most frameworks can emit JUnit XML without changing tests."
+              />
+              <IntegrationStep
+                step="B"
+                title="Upload after test run"
+                description="Send the XML file with environment, branch, commit, and build URL."
+              />
+              <IntegrationStep
+                step="C"
+                title="Review failures in TMS"
+                description="Open Automation Runs to inspect failures and link results to manual cases."
+              />
+            </div>
+
             <div className="grid gap-4 xl:grid-cols-2">
-              <CodeBlock label="JUnit curl" value={curlExample} onCopy={copyText} />
+              <CodeBlock
+                label="JUnit curl"
+                value={curlExample}
+                onCopy={copyText}
+                description="Universal command for local smoke checks or any CI shell step."
+              />
               <CodeBlock
                 label="GitHub Actions"
                 value={githubExample}
                 onCopy={copyText}
+                description="Store the token as TMS_PROJECT_TOKEN in repository secrets."
+              />
+              <CodeBlock
+                label="Jenkins"
+                value={jenkinsExample}
+                onCopy={copyText}
+                description="Use a secret text credential named tms-project-token."
+              />
+              <CodeBlock
+                label="Playwright"
+                value={playwrightExample}
+                onCopy={copyText}
+                description="Emit JUnit from Playwright and upload the generated file."
+              />
+              <CodeBlock
+                label="pytest"
+                value={pytestExample}
+                onCopy={copyText}
+                description="Use pytest's built-in --junitxml output."
+              />
+              <CodeBlock
+                label="Jest"
+                value={jestExample}
+                onCopy={copyText}
+                description="Use jest-junit to export a compatible report."
               />
               <CodeBlock label="JSON API" value={jsonExample} onCopy={copyText} />
+              <CodeBlock
+                label="Sample JUnit XML"
+                value={sampleJunit}
+                onCopy={copyText}
+                description="Minimal report shape for testing the import endpoint."
+              />
               <div className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] p-4">
                 <h3 className="m-0 text-sm font-semibold text-[var(--tms-text)]">
-                  Supported metadata
+                  Linking automation to manual cases
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-[var(--tms-text-muted)]">
-                  Send run name, environment, branch, commit SHA, CI build URL,
-                  and trigger source. Results can be linked to manual cases with
-                  a case key like TMS-142.
+                  Add a case key like TMS-142 to the test name or JUnit
+                  properties. Results without a key still import as
+                  automation-only tests and can be linked manually later.
                 </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Badge>JUnit XML</Badge>
+                  <Badge>JSON API</Badge>
+                  <Badge>Playwright</Badge>
+                  <Badge>Cypress</Badge>
+                  <Badge>pytest</Badge>
+                  <Badge>Jenkins</Badge>
+                </div>
               </div>
             </div>
           </Panel>
