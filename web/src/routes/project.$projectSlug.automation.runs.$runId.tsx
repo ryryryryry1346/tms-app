@@ -260,6 +260,11 @@ function getFailureDiagnostics(result: AutomationRunResultItem): string {
     `Suite: ${result.suite ?? 'No suite'}`,
     `Status: ${humanizeStatus(result.status)}`,
     `Duration: ${formatDuration(result.durationMs)}`,
+    result.attachments.length > 0
+      ? `\nArtifacts:\n${result.attachments
+          .map((attachment) => `- ${attachment.name}: ${attachment.url}`)
+          .join('\n')}`
+      : null,
     result.errorMessage ? `\nError message:\n${result.errorMessage}` : null,
     result.stackTrace ? `\nStack trace:\n${result.stackTrace}` : null,
     result.stderr ? `\nstderr:\n${result.stderr}` : null,
@@ -295,6 +300,92 @@ function DiagnosticBlock({
       <pre className="max-h-72 overflow-auto rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] p-3 text-xs leading-6 text-[var(--tms-text)]">
         <code>{value}</code>
       </pre>
+    </div>
+  )
+}
+
+function formatArtifactSize(sizeBytes: number | null): string | null {
+  if (!sizeBytes || sizeBytes <= 0) {
+    return null
+  }
+
+  if (sizeBytes < 1024) {
+    return `${sizeBytes} B`
+  }
+
+  const kilobytes = sizeBytes / 1024
+
+  if (kilobytes < 1024) {
+    return `${Math.round(kilobytes)} KB`
+  }
+
+  return `${(kilobytes / 1024).toFixed(1)} MB`
+}
+
+function isExternalArtifactUrl(url: string): boolean {
+  return /^https?:\/\//i.test(url)
+}
+
+function AutomationArtifactsBlock({
+  attachments,
+}: {
+  attachments: AutomationRunResultItem['attachments']
+}) {
+  if (attachments.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] p-3">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
+          Artifacts
+        </div>
+        <Badge>{attachments.length}</Badge>
+      </div>
+      <div className="space-y-2">
+        {attachments.map((attachment) => {
+          const size = formatArtifactSize(attachment.sizeBytes)
+          const meta = [attachment.type, attachment.contentType, size]
+            .filter(Boolean)
+            .join(' / ')
+
+          return (
+            <div
+              key={attachment.id ?? `${attachment.name}-${attachment.url}`}
+              className="rounded-lg border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] p-3"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
+                    {attachment.name}
+                  </div>
+                  {meta ? (
+                    <div className="mt-1 text-xs text-[var(--tms-text-muted)]">
+                      {meta}
+                    </div>
+                  ) : null}
+                </div>
+                {isExternalArtifactUrl(attachment.url) ? (
+                  <a
+                    href={attachment.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shrink-0 text-xs font-semibold text-[var(--tms-primary)] hover:underline"
+                  >
+                    Open
+                  </a>
+                ) : null}
+              </div>
+              {!isExternalArtifactUrl(attachment.url) ? (
+                <code className="mt-2 block truncate rounded-md bg-[var(--tms-surface-soft)] px-2 py-1 text-xs text-[var(--tms-text-muted)]">
+                  {attachment.url}
+                </code>
+              ) : null}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -1060,6 +1151,10 @@ function AutomationRunDetailPage() {
                       </div>
                     </div>
 
+                    <AutomationArtifactsBlock
+                      attachments={selectedResult.attachments}
+                    />
+
                     <DiagnosticBlock
                       title="Error message"
                       value={selectedResult.errorMessage}
@@ -1073,10 +1168,11 @@ function AutomationRunDetailPage() {
                     {!selectedResult.errorMessage &&
                     !selectedResult.stackTrace &&
                     !selectedResult.stderr &&
-                    !selectedResult.stdout ? (
+                    !selectedResult.stdout &&
+                    selectedResult.attachments.length === 0 ? (
                       <EmptyState
                         title="No diagnostics"
-                        description="The importer did not receive error output, stdout, or stderr for this result."
+                        description="The importer did not receive artifacts, error output, stdout, or stderr for this result."
                       />
                     ) : null}
                   </div>

@@ -10,6 +10,7 @@ let getDb: typeof import('../../db/client')['getDb']
 let isDatabaseConfigured: typeof import('../../db/client')['isDatabaseConfigured']
 let automationRuns: typeof import('../../db/schema')['automationRuns']
 let automationTestResults: typeof import('../../db/schema')['automationTestResults']
+let automationAttachments: typeof import('../../db/schema')['automationAttachments']
 let automationTestCaseLinks: typeof import('../../db/schema')['automationTestCaseLinks']
 let projectApiTokens: typeof import('../../db/schema')['projectApiTokens']
 let projects: typeof import('../../db/schema')['projects']
@@ -36,6 +37,7 @@ async function ensureAutomationServerDeps(): Promise<void> {
   isDatabaseConfigured = dbClient.isDatabaseConfigured
   automationRuns = schema.automationRuns
   automationTestResults = schema.automationTestResults
+  automationAttachments = schema.automationAttachments
   automationTestCaseLinks = schema.automationTestCaseLinks
   projectApiTokens = schema.projectApiTokens
   projects = schema.projects
@@ -78,6 +80,17 @@ const automationJsonImportInput = z.object({
         stdout: z.string().optional(),
         stderr: z.string().optional(),
         startedAt: z.string().trim().max(32).optional(),
+        attachments: z
+          .array(
+            z.object({
+              name: z.string().trim().max(255).optional(),
+              type: z.string().trim().max(64).optional(),
+              url: z.string().trim().min(1).max(4096),
+              contentType: z.string().trim().max(128).optional(),
+              sizeBytes: z.number().int().min(0).optional(),
+            }),
+          )
+          .optional(),
       }),
     )
     .min(1),
@@ -136,6 +149,7 @@ export type ParsedJunitResult = {
   stdout: string | null
   stderr: string | null
   startedAt: string | null
+  attachments: AutomationResultAttachment[]
 }
 
 export type AutomationImportResult = {
@@ -263,6 +277,7 @@ export type AutomationRunResultItem = {
   retryCount: number
   startedAt: string | null
   suggestedManualCase: AutomationManualCaseOption | null
+  attachments: AutomationResultAttachment[]
 }
 
 export type AutomationRunDetail = AutomationRunListItem & {
@@ -276,6 +291,15 @@ export type AutomationManualCaseOption = {
   title: string
   suiteName: string | null
   status: string | null
+}
+
+export type AutomationResultAttachment = {
+  id?: number
+  name: string
+  type: string | null
+  url: string
+  contentType: string | null
+  sizeBytes: number | null
 }
 
 export const importAutomationJunitXml = createServerFn({ method: 'POST' })
@@ -711,6 +735,38 @@ export const getAutomationRunDetail = createServerFn({ method: 'POST' })
       .where(eq(automationTestResults.runId, data.runId))
       .orderBy(desc(automationTestResults.status), desc(automationTestResults.id))
 
+    const attachments = await db
+      .select({
+        id: automationAttachments.id,
+        resultId: automationAttachments.resultId,
+        name: automationAttachments.name,
+        type: automationAttachments.type,
+        url: automationAttachments.url,
+        contentType: automationAttachments.contentType,
+        sizeBytes: automationAttachments.sizeBytes,
+      })
+      .from(automationAttachments)
+      .where(eq(automationAttachments.runId, data.runId))
+
+    const attachmentsByResultId = new Map<number, AutomationResultAttachment[]>()
+
+    for (const attachment of attachments) {
+      if (!attachment.resultId) {
+        continue
+      }
+
+      const existing = attachmentsByResultId.get(attachment.resultId) ?? []
+      existing.push({
+        id: attachment.id,
+        name: attachment.name,
+        type: attachment.type,
+        url: attachment.url,
+        contentType: attachment.contentType,
+        sizeBytes: attachment.sizeBytes,
+      })
+      attachmentsByResultId.set(attachment.resultId, existing)
+    }
+
     const manualCandidates = await db
       .select({
         id: tests.id,
@@ -755,6 +811,7 @@ export const getAutomationRunDetail = createServerFn({ method: 'POST' })
           return {
             ...result,
             suggestedManualCase,
+            attachments: attachmentsByResultId.get(result.id) ?? [],
           }
         }),
       },
@@ -1131,6 +1188,7 @@ export async function importJsonAutomationRun(
       stdout: result.stdout ?? null,
       stderr: result.stderr ?? null,
       startedAt: result.startedAt ?? null,
+      attachments: normalizeAutomationAttachments(result.attachments),
     }
   })
 
@@ -1281,6 +1339,9 @@ async function createAutomationRunFromResults({
     replacedExisting = true
 
     await db
+      .delete(automationAttachments)
+      .where(eq(automationAttachments.runId, runId))
+    await db
       .delete(automationTestResults)
       .where(eq(automationTestResults.runId, runId))
     await db
@@ -1382,6 +1443,24 @@ async function createAutomationRunFromResults({
     })
     const resultId = insertResult[0].insertId
 
+    if (result.attachments.length > 0) {
+      await db.insert(automationAttachments).values(
+        result.attachments.map((attachment) => ({
+          projectId,
+          runId,
+          resultId,
+          name: truncate(attachment.name, 255),
+          type: attachment.type ? truncate(attachment.type, 64) : null,
+          url: attachment.url,
+          contentType: attachment.contentType
+            ? truncate(attachment.contentType, 128)
+            : null,
+          sizeBytes: attachment.sizeBytes,
+          createdAt: now,
+        })),
+      )
+    }
+
     if (manualTestId) {
       linkedManualCases += 1
       await db.insert(automationTestCaseLinks).values({
@@ -1441,6 +1520,7 @@ export function parseJunitXml(xml: string): ParsedJunitResult[] {
       const stdout = getChildText(testcase.content, 'system-out')
       const stderr = getChildText(testcase.content, 'system-err')
       const caseKey = detectCaseKey(`${classname} ${name} ${testcase.content}`)
+      const attachments = extractJunitAttachments(testcase.content, stdout, stderr)
 
       results.push({
         name: truncate(name || 'Unnamed automated test', 512),
@@ -1457,6 +1537,7 @@ export function parseJunitXml(xml: string): ParsedJunitResult[] {
         stdout,
         stderr,
         startedAt: suiteTimestamp || null,
+        attachments,
       })
     }
   }
@@ -1590,6 +1671,184 @@ function getChildText(xml: string, tagName: string): string | null {
   }
 
   return normalizeText(stripXml(child.content))
+}
+
+function extractJunitAttachments(
+  testcaseContent: string,
+  stdout: string | null,
+  stderr: string | null,
+): AutomationResultAttachment[] {
+  const attachments = [
+    ...extractJunitPropertyAttachments(testcaseContent),
+    ...extractJunitAttachmentMarkers(stdout),
+    ...extractJunitAttachmentMarkers(stderr),
+  ]
+  const seen = new Set<string>()
+
+  return attachments.filter((attachment) => {
+    const key = `${attachment.type ?? ''}:${attachment.url}`
+
+    if (seen.has(key)) {
+      return false
+    }
+
+    seen.add(key)
+    return true
+  })
+}
+
+function extractJunitPropertyAttachments(
+  testcaseContent: string,
+): AutomationResultAttachment[] {
+  const propertyBlocks = [
+    ...getXmlBlocks(testcaseContent, 'property'),
+    ...getSelfClosingXmlBlocks(testcaseContent, 'property'),
+  ]
+  const attachments: AutomationResultAttachment[] = []
+
+  for (const property of propertyBlocks) {
+    const propertyName = decodeXml(getXmlAttribute(property.attributes, 'name') ?? '')
+    const value = decodeXml(getXmlAttribute(property.attributes, 'value') ?? '').trim()
+
+    if (!value || !isAttachmentPropertyName(propertyName)) {
+      continue
+    }
+
+    attachments.push(normalizeAutomationAttachment({
+      name: buildAttachmentName(propertyName, value),
+      type: inferAttachmentType(propertyName, value),
+      url: value,
+    }))
+  }
+
+  return attachments
+}
+
+function extractJunitAttachmentMarkers(
+  value: string | null,
+): AutomationResultAttachment[] {
+  if (!value) {
+    return []
+  }
+
+  const attachments: AutomationResultAttachment[] = []
+  const markerPattern = /\[\[ATTACHMENT\|([^\]]+)\]\]/gi
+  let match: RegExpExecArray | null
+
+  while ((match = markerPattern.exec(value)) !== null) {
+    const url = match[1]?.trim()
+
+    if (!url) {
+      continue
+    }
+
+    attachments.push(normalizeAutomationAttachment({
+      name: buildAttachmentName('attachment', url),
+      type: inferAttachmentType('attachment', url),
+      url,
+    }))
+  }
+
+  return attachments
+}
+
+function normalizeAutomationAttachments(
+  attachments: Array<{
+    name?: string
+    type?: string
+    url: string
+    contentType?: string
+    sizeBytes?: number
+  }> | undefined,
+): AutomationResultAttachment[] {
+  if (!attachments) {
+    return []
+  }
+
+  const normalized: AutomationResultAttachment[] = []
+  const seen = new Set<string>()
+
+  for (const attachment of attachments) {
+    const next = normalizeAutomationAttachment(attachment)
+
+    if (!next.url || seen.has(next.url)) {
+      continue
+    }
+
+    seen.add(next.url)
+    normalized.push(next)
+  }
+
+  return normalized.slice(0, 50)
+}
+
+function normalizeAutomationAttachment(attachment: {
+  name?: string
+  type?: string | null
+  url: string
+  contentType?: string | null
+  sizeBytes?: number | null
+}): AutomationResultAttachment {
+  const url = attachment.url.trim()
+  const type = attachment.type
+    ? truncate(attachment.type.trim().toLowerCase(), 64)
+    : inferAttachmentType('', url)
+
+  return {
+    name: truncate(attachment.name?.trim() || buildAttachmentName(type, url), 255),
+    type,
+    url,
+    contentType: attachment.contentType?.trim() || null,
+    sizeBytes:
+      typeof attachment.sizeBytes === 'number' && Number.isFinite(attachment.sizeBytes)
+        ? attachment.sizeBytes
+        : null,
+  }
+}
+
+function isAttachmentPropertyName(name: string): boolean {
+  return /attachment|artifact|screenshot|screen|video|trace|log|report|file/i.test(
+    name,
+  )
+}
+
+function inferAttachmentType(name: string, url: string): string {
+  const text = `${name} ${url}`.toLowerCase()
+
+  if (/screenshot|\.png|\.jpg|\.jpeg|\.webp|\.gif/.test(text)) {
+    return 'screenshot'
+  }
+
+  if (/video|\.mp4|\.webm|\.mov/.test(text)) {
+    return 'video'
+  }
+
+  if (/trace|\.zip/.test(text)) {
+    return 'trace'
+  }
+
+  if (/log|stdout|stderr|\.log|\.txt/.test(text)) {
+    return 'log'
+  }
+
+  if (/report|\.html|\.xml|\.json/.test(text)) {
+    return 'report'
+  }
+
+  return 'artifact'
+}
+
+function buildAttachmentName(name: string | null | undefined, url: string): string {
+  const cleanName = name?.trim()
+
+  if (cleanName && cleanName !== 'attachment') {
+    return cleanName
+  }
+
+  const normalizedUrl = url.replace(/\\/g, '/')
+  const filename = normalizedUrl.split('/').filter(Boolean).at(-1)
+
+  return filename || 'Attachment'
 }
 
 function getXmlAttribute(attributes: string, name: string): string | null {
