@@ -249,6 +249,7 @@ function ProjectAutomationIndex({
   -F "commit=abc123" \\
   -F "triggerSource=ci"`
   const githubExample = `- name: Upload JUnit results to TMS
+  if: always()
   run: |
     curl -X POST "${junitEndpoint}" \\
       -H "Authorization: Bearer \${{ secrets.TMS_PROJECT_TOKEN }}" \\
@@ -279,13 +280,35 @@ function ProjectAutomationIndex({
   const playwrightExample = `# playwright.config.ts
 export default defineConfig({
   reporter: [['junit', { outputFile: 'test-results/junit.xml' }]],
+  use: {
+    screenshot: 'only-on-failure',
+    trace: 'retain-on-failure',
+    video: 'retain-on-failure',
+  },
 })
 
-# Upload after tests
+# Upload after tests. Add artifact URLs via JUnit properties or stdout markers.
 curl -X POST "${junitEndpoint}" \\
   -H "Authorization: Bearer <project-api-token>" \\
   -F "file=@test-results/junit.xml" \\
   -F "name=Playwright regression" \\
+  -F "environment=staging" \\
+  -F "triggerSource=ci"`
+  const cypressExample = `# cypress.config.ts
+export default defineConfig({
+  reporter: 'junit',
+  reporterOptions: {
+    mochaFile: 'cypress/results/junit-[hash].xml',
+  },
+  video: true,
+  screenshotOnRunFailure: true,
+})
+
+# Merge/upload JUnit XML after Cypress finishes.
+curl -X POST "${junitEndpoint}" \\
+  -H "Authorization: Bearer <project-api-token>" \\
+  -F "file=@cypress/results/junit.xml" \\
+  -F "name=Cypress regression" \\
   -F "environment=staging" \\
   -F "triggerSource=ci"`
   const pytestExample = `pytest --junitxml=reports/junit.xml
@@ -310,7 +333,12 @@ curl -X POST "${junitEndpoint}" \\
   <testsuite name="auth.spec.ts" tests="2" failures="1" skipped="0" time="2.8">
     <testcase classname="auth.spec.ts" name="Login succeeds TMS-142" time="1.2" />
     <testcase classname="auth.spec.ts" name="Locked user cannot login" time="1.6">
+      <properties>
+        <property name="screenshot" value="https://ci.example.com/artifacts/login-failure.png" />
+        <property name="trace" value="https://ci.example.com/artifacts/login-trace.zip" />
+      </properties>
       <failure message="Expected error banner">Assertion stack trace...</failure>
+      <system-out>[[ATTACHMENT|Browser log|log|https://ci.example.com/artifacts/browser.log]]</system-out>
     </testcase>
   </testsuite>
 </testsuites>`
@@ -329,7 +357,21 @@ curl -X POST "${junitEndpoint}" \\
         "suite": "auth.spec.ts",
         "status": "passed",
         "durationMs": 1240,
-        "caseId": "TMS-142"
+        "caseId": "TMS-142",
+        "attachments": [
+          {
+            "name": "Trace",
+            "type": "trace",
+            "url": "https://ci.example.com/artifacts/trace.zip",
+            "contentType": "application/zip",
+            "sizeBytes": 184320
+          },
+          {
+            "name": "Browser console",
+            "type": "log",
+            "url": "https://ci.example.com/artifacts/console.log"
+          }
+        ]
       }
     ]
   }'`
@@ -553,7 +595,7 @@ curl -X POST "${junitEndpoint}" \\
               <IntegrationStep
                 step="B"
                 title="Upload after test run"
-                description="Send the XML file with environment, branch, commit, and build URL."
+                description="Send the XML file with environment, branch, commit, build URL, and artifact links."
               />
               <IntegrationStep
                 step="C"
@@ -585,7 +627,13 @@ curl -X POST "${junitEndpoint}" \\
                 label="Playwright"
                 value={playwrightExample}
                 onCopy={copyText}
-                description="Emit JUnit from Playwright and upload the generated file."
+                description="Emit JUnit from Playwright and keep screenshots, traces, and videos for failed tests."
+              />
+              <CodeBlock
+                label="Cypress"
+                value={cypressExample}
+                onCopy={copyText}
+                description="Export Cypress results as JUnit XML and keep videos/screenshots in CI artifacts."
               />
               <CodeBlock
                 label="pytest"
@@ -599,12 +647,17 @@ curl -X POST "${junitEndpoint}" \\
                 onCopy={copyText}
                 description="Use jest-junit to export a compatible report."
               />
-              <CodeBlock label="JSON API" value={jsonExample} onCopy={copyText} />
+              <CodeBlock
+                label="JSON API"
+                value={jsonExample}
+                onCopy={copyText}
+                description="Use the JSON endpoint when a custom runner can send normalized results and artifacts directly."
+              />
               <CodeBlock
                 label="Sample JUnit XML"
                 value={sampleJunit}
                 onCopy={copyText}
-                description="Minimal report shape for testing the import endpoint."
+                description="Includes property-based artifacts and stdout attachment markers."
               />
               <div className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] p-4">
                 <h3 className="m-0 text-sm font-semibold text-[var(--tms-text)]">
