@@ -331,7 +331,7 @@ export default function AppShell({ user, children }: AppShellProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const router = useRouter()
-  const { preference, resolvedTheme, setPreference } = useTheme()
+  const { preference, setPreference } = useTheme()
   const matches = useRouterState({
     select: (state) => state.matches as Array<Record<string, unknown>>,
   })
@@ -623,21 +623,16 @@ export default function AppShell({ user, children }: AppShellProps) {
                     {(user.displayName || user.email || 'U').slice(0, 1).toUpperCase()}
                   </div>
                   <div className="app-shell__account-copy">
-                    <span className="app-shell__account-name">
-                      {user.displayName}
-                    </span>
-                    <span className="app-shell__account-email">{user.email}</span>
+                    <span className="app-shell__account-name">{user.email}</span>
                   </div>
                 </div>
 
-                <PopoverMenuSeparator />
-
-                <PopoverMenuLabel>Theme</PopoverMenuLabel>
                 <div
                   className="app-shell__account-theme"
                   role="group"
                   aria-label="Theme preference"
                 >
+                  <span className="app-shell__account-theme-label">Theme</span>
                   <button
                     type="button"
                     className={`app-shell__account-theme-button ${
@@ -660,9 +655,6 @@ export default function AppShell({ user, children }: AppShellProps) {
                     <MoonStar size={14} strokeWidth={2} aria-hidden="true" />
                     Dark
                   </button>
-                </div>
-                <div className="app-shell__account-theme-status">
-                  Current: {resolvedTheme === 'dark' ? 'Dark' : 'Light'}
                 </div>
 
                 <PopoverMenuSeparator />
