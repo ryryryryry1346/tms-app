@@ -2942,18 +2942,6 @@ a {
   gap: 1.25rem;
 }
 
-.workspace-home__metrics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.workspace-home__metric {
-  background: var(--surface);
-  color: var(--text-secondary);
-}
-
 .workspace-home__panel {
   display: grid;
   gap: 1rem;

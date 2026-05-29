@@ -152,18 +152,6 @@ function WorkspacePage() {
                   controls.
                 </p>
               </div>
-              <div className="workspace-home__metrics">
-                <Badge className="workspace-home__metric">
-                  {dashboard.projects.filter((project) => project.status !== 'Archived')
-                    .length}{' '}
-                  active
-                </Badge>
-                <Badge variant="warning" className="workspace-home__metric">
-                  {dashboard.projects.filter((project) => project.status === 'Archived')
-                    .length}{' '}
-                  archived
-                </Badge>
-              </div>
             </div>
           </header>
 
