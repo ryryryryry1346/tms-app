@@ -3030,6 +3030,8 @@ a {
 
 .workspace-home__project-row {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: 0.875rem;
   border-radius: var(--radius-panel);
   background: var(--surface);
@@ -3037,12 +3039,35 @@ a {
   box-shadow: var(--tms-shadow-subtle);
 }
 
+.workspace-home__project-row:hover {
+  background: color-mix(in oklab, var(--surface) 88%, var(--muted-surface));
+}
+
 .workspace-home__project-main {
   display: flex;
-  flex-wrap: wrap;
+  min-width: 0;
+  height: 100%;
   align-items: flex-start;
-  justify-content: space-between;
+  align-self: stretch;
   gap: 1rem;
+}
+
+.workspace-home__project-main--clickable {
+  border-radius: calc(var(--radius-panel) - 2px);
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.workspace-home__project-main--clickable:hover .workspace-home__project-name {
+  color: var(--tms-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.workspace-home__project-main--clickable:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 4px;
 }
 
 .workspace-home__project-copy {
@@ -3059,34 +3084,22 @@ a {
 }
 
 .workspace-home__project-name {
-  font-size: 1rem;
-}
-
-.workspace-home__project-name-link {
-  display: inline-flex;
-  width: fit-content;
-  min-width: 0;
   color: var(--text-primary);
   font-size: 1rem;
   font-weight: 600;
   line-height: 1.15;
-  text-decoration: none;
-}
-
-.workspace-home__project-name-link:hover {
-  color: var(--tms-primary);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
 }
 
 .workspace-home__project-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.5rem;
 }
 
 .workspace-home__delete-alert {
+  grid-column: 1 / -1;
   margin-top: 0.125rem;
   padding: 1rem;
 }
@@ -4312,6 +4325,10 @@ a {
 
   .workspace-home__panel {
     padding: 1rem;
+  }
+
+  .workspace-home__project-row {
+    grid-template-columns: 1fr;
   }
 
   .workspace-home__panel-meta,

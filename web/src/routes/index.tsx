@@ -7,6 +7,12 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
 import {
+  PopoverMenu,
+  PopoverMenuItem,
+  PopoverMenuLabel,
+  PopoverMenuSeparator,
+} from '../components/ui/PopoverMenu'
+import {
   archiveProject,
   createProject,
   deleteProject,
@@ -34,6 +40,7 @@ function WorkspacePage() {
     null,
   )
   const [deleteConfirmName, setDeleteConfirmName] = useState('')
+  const [openProjectMenuId, setOpenProjectMenuId] = useState<number | null>(null)
   const [projectFilter, setProjectFilter] = useState<'Active' | 'Archived'>(
     'Active',
   )
@@ -253,16 +260,17 @@ function WorkspacePage() {
 
                   return (
                     <div key={project.id} className="workspace-home__project-row">
-                      <div className="workspace-home__project-main">
+                      <Link
+                        to="/project/$projectSlug"
+                        params={{ projectSlug }}
+                        className="workspace-home__project-main workspace-home__project-main--clickable"
+                        aria-label={`Open ${project.name} workspace`}
+                      >
                         <div className="workspace-home__project-copy">
                           <div className="workspace-home__project-topline">
-                            <Link
-                              to="/project/$projectSlug"
-                              params={{ projectSlug }}
-                              className="workspace-home__project-name-link"
-                            >
+                            <span className="workspace-home__project-name">
                               {project.name}
-                            </Link>
+                            </span>
                             <Badge
                               variant={
                                 project.status === 'Archived'
@@ -278,25 +286,49 @@ function WorkspacePage() {
                             and reports.
                           </p>
                         </div>
-                        <div className="workspace-home__project-actions">
+                      </Link>
+                      <div className="workspace-home__project-actions">
+                        <PopoverMenu
+                          isOpen={openProjectMenuId === project.id}
+                          onClose={() => setOpenProjectMenuId(null)}
+                          onOpenChange={(nextOpen) => {
+                            if (nextOpen) {
+                              setOpenProjectMenuId(project.id)
+                            }
+                          }}
+                          align="right"
+                          className="min-w-[11rem]"
+                          trigger={
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="secondary"
+                              aria-label={`Open actions for ${project.name}`}
+                              aria-expanded={openProjectMenuId === project.id}
+                            >
+                              ...
+                            </Button>
+                          }
+                        >
+                          <PopoverMenuLabel>Project</PopoverMenuLabel>
                           {project.status === 'Archived' ? (
                             <>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => handleProjectRestore(project.id)}
+                              <PopoverMenuItem
+                                onClick={() => {
+                                  setOpenProjectMenuId(null)
+                                  void handleProjectRestore(project.id)
+                                }}
                                 disabled={restoringProjectId === project.id}
                               >
                                 {restoringProjectId === project.id
                                   ? 'Restoring...'
                                   : 'Restore'}
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="danger"
+                              </PopoverMenuItem>
+                              <PopoverMenuSeparator />
+                              <PopoverMenuItem
+                                tone="danger"
                                 onClick={() => {
+                                  setOpenProjectMenuId(null)
                                   setDeleteConfirmProjectId((current) =>
                                     current === project.id ? null : project.id,
                                   )
@@ -307,22 +339,23 @@ function WorkspacePage() {
                                 {deletingProjectId === project.id
                                   ? 'Deleting...'
                                   : 'Delete'}
-                              </Button>
+                              </PopoverMenuItem>
                             </>
                           ) : (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="warning"
-                              onClick={() => handleProjectArchive(project.id)}
+                            <PopoverMenuItem
+                              tone="warning"
+                              onClick={() => {
+                                setOpenProjectMenuId(null)
+                                void handleProjectArchive(project.id)
+                              }}
                               disabled={archivingProjectId === project.id}
                             >
                               {archivingProjectId === project.id
                                 ? 'Archiving...'
                                 : 'Archive'}
-                            </Button>
+                            </PopoverMenuItem>
                           )}
-                        </div>
+                        </PopoverMenu>
                       </div>
 
                       {deleteConfirmProjectId === project.id ? (
