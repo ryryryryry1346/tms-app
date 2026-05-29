@@ -396,6 +396,7 @@ function AutomationRunDetailPage() {
   const [activeFilter, setActiveFilter] = useState('All')
   const [linkFilter, setLinkFilter] =
     useState<(typeof RESULT_LINK_FILTERS)[number]>('All')
+  const [hasArtifactsOnly, setHasArtifactsOnly] = useState(false)
   const failedResults = useMemo(
     () => run.results.filter((result) => isFailureResult(result)),
     [run.results],
@@ -426,6 +427,10 @@ function AutomationRunDetailPage() {
       ).length,
     [manualCaseOverrides, run.results],
   )
+  const artifactResultCount = useMemo(
+    () => run.results.filter((result) => result.attachments.length > 0).length,
+    [run.results],
+  )
   const failedSuiteCount = useMemo(() => {
     return new Set(
       failedResults.map((result) => result.suite ?? 'No suite'),
@@ -452,8 +457,18 @@ function AutomationRunDetailPage() {
       nextResults = nextResults.filter((result) => !getLinkedManualCase(result))
     }
 
+    if (hasArtifactsOnly) {
+      nextResults = nextResults.filter((result) => result.attachments.length > 0)
+    }
+
     return nextResults
-  }, [activeFilter, linkFilter, manualCaseOverrides, run.results])
+  }, [
+    activeFilter,
+    hasArtifactsOnly,
+    linkFilter,
+    manualCaseOverrides,
+    run.results,
+  ])
 
   const selectedResult = useMemo(() => {
     return (
@@ -745,6 +760,7 @@ function AutomationRunDetailPage() {
                         onClick={() => {
                           setActiveFilter('All')
                           setLinkFilter('All')
+                          setHasArtifactsOnly(false)
                         }}
                       >
                         Reset filters
@@ -847,6 +863,15 @@ function AutomationRunDetailPage() {
                       </Button>
                     ))}
                   </div>
+                  <Button
+                    size="sm"
+                    variant={hasArtifactsOnly ? 'primary' : 'secondary'}
+                    onClick={() => setHasArtifactsOnly((current) => !current)}
+                    disabled={artifactResultCount === 0}
+                  >
+                    Has artifacts
+                    {artifactResultCount > 0 ? ` · ${artifactResultCount}` : ''}
+                  </Button>
                 </div>
               </div>
 
@@ -854,7 +879,11 @@ function AutomationRunDetailPage() {
                 <div className="p-4">
                   <EmptyState
                     title="No results"
-                    description="No automated tests match the selected status."
+                    description={
+                      hasArtifactsOnly
+                        ? 'No automated tests match the selected filters with artifacts.'
+                        : 'No automated tests match the selected status.'
+                    }
                   />
                 </div>
               ) : (
