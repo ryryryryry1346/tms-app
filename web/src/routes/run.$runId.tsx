@@ -12,7 +12,6 @@ import {
   saveRunItemComment,
 } from '../features/runs/server'
 import { Alert } from '../components/ui/Alert'
-import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Checkbox } from '../components/ui/Checkbox'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -39,9 +38,16 @@ export const Route = createFileRoute('/run/$runId')({
 
 type RunFilter = 'All' | 'Not run' | 'Failed' | 'Blocked' | 'Passed'
 type RunItemStatus = 'Passed' | 'Failed' | 'Blocked' | null
+type RunResultSelectValue = Exclude<RunItemStatus, null> | 'Not run'
 
 const RUN_FILTERS: RunFilter[] = ['All', 'Not run', 'Failed', 'Blocked', 'Passed']
 const STATUS_ACTIONS: Array<Exclude<RunItemStatus, null>> = [
+  'Passed',
+  'Failed',
+  'Blocked',
+]
+const RUN_RESULT_OPTIONS: RunResultSelectValue[] = [
+  'Not run',
   'Passed',
   'Failed',
   'Blocked',
@@ -67,22 +73,8 @@ function getRunResultChipClass(status: RunFilter | RunItemStatus): string {
   return 'tms-chip-primary'
 }
 
-function getRunResultBadgeVariant(
-  status: RunItemStatus,
-): 'runPassed' | 'runFailed' | 'runBlocked' | 'runNotRun' {
-  if (status === 'Passed') {
-    return 'runPassed'
-  }
-
-  if (status === 'Failed') {
-    return 'runFailed'
-  }
-
-  if (status === 'Blocked') {
-    return 'runBlocked'
-  }
-
-  return 'runNotRun'
+function getRunResultFromValue(value: RunResultSelectValue): RunItemStatus {
+  return value === 'Not run' ? null : value
 }
 
 function RunDetailPage() {
@@ -487,8 +479,8 @@ function RunDetailPage() {
             </div>
             <TableShell className="run-execution-table shadow-[var(--tms-shadow-panel)]">
             <TableHead
-              columns="36px 64px minmax(300px,1fr) 108px 250px minmax(240px,0.85fr) 62px"
-              minWidth="1160px"
+              columns="36px 64px minmax(280px,1fr) 132px minmax(260px,0.85fr) 62px"
+              minWidth="980px"
               padding="sm"
             >
               <div>
@@ -500,8 +492,7 @@ function RunDetailPage() {
               </div>
               <div>ID</div>
               <div>Title</div>
-              <div>Status</div>
-              <div>Quick result</div>
+              <div>Result</div>
               <div>Comment</div>
               <div className="text-right">Open</div>
             </TableHead>
@@ -516,8 +507,8 @@ function RunDetailPage() {
                   ref={(node) => {
                     testRowRefs.current[test.id] = node
                   }}
-                  columns="36px 64px minmax(300px,1fr) 108px 250px minmax(240px,0.85fr) 62px"
-                  minWidth="1160px"
+                  columns="36px 64px minmax(280px,1fr) 132px minmax(260px,0.85fr) 62px"
+                  minWidth="980px"
                   padding="sm"
                   className="run-execution-row"
                 >
@@ -541,38 +532,26 @@ function RunDetailPage() {
                     </div>
                   </div>
                   <div>
-                    <Badge
-                      variant={getRunResultBadgeVariant(test.status)}
-                    >
-                      {test.status ?? 'Not run'}
-                    </Badge>
-                  </div>
-                  <div className="run-result-actions">
-                    {STATUS_ACTIONS.map((status) => (
-                      <Button
-                        key={status}
-                        disabled={isStatusPending}
-                        onClick={() => {
-                          void handleRunTest(test.id, status)
-                        }}
-                        size="sm"
-                        variant="secondary"
-                        className={`run-result-button disabled:cursor-not-allowed disabled:opacity-55 ${getRunResultChipClass(status)}`}
-                      >
-                        {status}
-                      </Button>
-                    ))}
-                    <Button
+                    <select
+                      value={test.status ?? 'Not run'}
                       disabled={isStatusPending}
-                      onClick={() => {
-                        void handleRunTest(test.id, null)
+                      onChange={(event) => {
+                        void handleRunTest(
+                          test.id,
+                          getRunResultFromValue(
+                            event.target.value as RunResultSelectValue,
+                          ),
+                        )
                       }}
-                      size="sm"
-                      variant="secondary"
-                      className="run-result-button border-[var(--tms-border)] bg-[var(--tms-surface)] text-[var(--tms-text-muted)]"
+                      className={`run-result-select disabled:cursor-not-allowed disabled:opacity-60 ${getRunResultChipClass(test.status)}`}
+                      aria-label={`Set execution result for test ${test.id}`}
                     >
-                      Clear
-                    </Button>
+                      {RUN_RESULT_OPTIONS.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="flex items-center gap-2">
                     <Textarea
