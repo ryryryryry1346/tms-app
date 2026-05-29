@@ -26,7 +26,7 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TMS Migration',
+        title: 'TMS',
       },
     ],
     links: [
