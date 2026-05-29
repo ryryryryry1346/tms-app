@@ -9,7 +9,6 @@ import { Panel } from '../components/ui/Panel'
 import {
   PopoverMenu,
   PopoverMenuItem,
-  PopoverMenuLabel,
   PopoverMenuSeparator,
 } from '../components/ui/PopoverMenu'
 import {
@@ -297,12 +296,13 @@ function WorkspacePage() {
                             }
                           }}
                           align="right"
-                          className="min-w-[11rem]"
+                          className="workspace-home__project-menu"
                           trigger={
                             <Button
                               type="button"
                               size="sm"
                               variant="secondary"
+                              className="workspace-home__project-menu-trigger"
                               aria-label={`Open actions for ${project.name}`}
                               aria-expanded={openProjectMenuId === project.id}
                             >
@@ -310,7 +310,6 @@ function WorkspacePage() {
                             </Button>
                           }
                         >
-                          <PopoverMenuLabel>Project</PopoverMenuLabel>
                           {project.status === 'Archived' ? (
                             <>
                               <PopoverMenuItem
@@ -322,7 +321,7 @@ function WorkspacePage() {
                               >
                                 {restoringProjectId === project.id
                                   ? 'Restoring...'
-                                  : 'Restore'}
+                                  : 'Restore project'}
                               </PopoverMenuItem>
                               <PopoverMenuSeparator />
                               <PopoverMenuItem
@@ -338,7 +337,7 @@ function WorkspacePage() {
                               >
                                 {deletingProjectId === project.id
                                   ? 'Deleting...'
-                                  : 'Delete'}
+                                  : 'Delete project'}
                               </PopoverMenuItem>
                             </>
                           ) : (
@@ -352,7 +351,7 @@ function WorkspacePage() {
                             >
                               {archivingProjectId === project.id
                                 ? 'Archiving...'
-                                : 'Archive'}
+                                : 'Archive project'}
                             </PopoverMenuItem>
                           )}
                         </PopoverMenu>

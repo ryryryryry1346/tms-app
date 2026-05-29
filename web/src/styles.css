@@ -3033,14 +3033,26 @@ a {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.875rem;
+  border: 1px solid transparent;
   border-radius: var(--radius-panel);
   background: var(--surface);
   padding: 1rem 1.1rem;
   box-shadow: var(--tms-shadow-subtle);
+  transition:
+    border-color var(--motion-fast),
+    background var(--motion-fast),
+    box-shadow var(--motion-fast),
+    transform var(--motion-fast);
 }
 
-.workspace-home__project-row:hover {
-  background: color-mix(in oklab, var(--surface) 88%, var(--muted-surface));
+.workspace-home__project-row:hover,
+.workspace-home__project-row:focus-within {
+  border-color: var(--border-focus);
+  background: var(--muted-surface);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--border-focus) 45%, transparent),
+    var(--tms-shadow-subtle);
+  transform: translateY(-1px);
 }
 
 .workspace-home__project-main {
@@ -3059,15 +3071,8 @@ a {
   text-decoration: none;
 }
 
-.workspace-home__project-main--clickable:hover .workspace-home__project-name {
-  color: var(--tms-primary);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-}
-
 .workspace-home__project-main--clickable:focus-visible {
-  outline: 2px solid var(--border-focus);
-  outline-offset: 4px;
+  outline: none;
 }
 
 .workspace-home__project-copy {
@@ -3096,6 +3101,22 @@ a {
   align-items: center;
   justify-content: flex-end;
   gap: 0.5rem;
+}
+
+.workspace-home__project-menu {
+  min-width: 10rem;
+  padding: 0.35rem;
+}
+
+.workspace-home__project-menu .tms-menu-item {
+  border-radius: var(--radius-md);
+  min-height: 2.125rem;
+  padding: 0.45rem 0.625rem;
+}
+
+.workspace-home__project-menu-trigger {
+  min-width: 2.25rem;
+  padding-inline: 0;
 }
 
 .workspace-home__delete-alert {
