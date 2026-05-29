@@ -7,22 +7,31 @@ import {
 import {
   BarChart3,
   BookOpenText,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleDot,
   FilePenLine,
   FolderKanban,
   LayoutGrid,
+  LogOut,
   Menu,
+  MoonStar,
   PanelsTopLeft,
   PlayCircle,
+  SunMedium,
   X,
 } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { logoutUser, type SessionUser } from '../features/auth/server'
-import ThemeToggle from './ThemeToggle'
-import { Badge } from './ui/Badge'
 import { Button } from './ui/Button'
+import {
+  PopoverMenu,
+  PopoverMenuItem,
+  PopoverMenuLabel,
+  PopoverMenuSeparator,
+} from './ui/PopoverMenu'
+import { useTheme } from './ThemeProvider'
 import { useRouterState } from '@tanstack/react-router'
 
 type AppShellProps = {
@@ -322,6 +331,7 @@ export default function AppShell({ user, children }: AppShellProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const router = useRouter()
+  const { preference, resolvedTheme, setPreference } = useTheme()
   const matches = useRouterState({
     select: (state) => state.matches as Array<Record<string, unknown>>,
   })
@@ -329,6 +339,7 @@ export default function AppShell({ user, children }: AppShellProps) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
   const shellContext = deriveShellContext(pathname, matches)
   const projectSlug = shellContext?.projectSlug ?? getProjectSlug(pathname)
   const isDeepFlow = isDeepShellPath(pathname)
@@ -417,6 +428,7 @@ export default function AppShell({ user, children }: AppShellProps) {
     setIsLoggingOut(true)
 
     try {
+      setIsAccountMenuOpen(false)
       await logoutUser()
       await router.invalidate()
       await navigate({
@@ -580,18 +592,90 @@ export default function AppShell({ user, children }: AppShellProps) {
 
           {user ? (
             <div className="app-shell__topbar-right app-shell__topbar-right--user">
-              <ThemeToggle compact />
-              <Badge className="app-shell__user-badge">{user.displayName}</Badge>
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                className="app-shell__topbar-logout"
-                onClick={() => void handleLogout()}
-                disabled={isLoggingOut}
+              <PopoverMenu
+                isOpen={isAccountMenuOpen}
+                onClose={() => setIsAccountMenuOpen(false)}
+                onOpenChange={setIsAccountMenuOpen}
+                align="right"
+                sideOffset={10}
+                className="app-shell__account-menu"
+                trigger={
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    className="app-shell__account-trigger"
+                    aria-label="Open account menu"
+                    aria-expanded={isAccountMenuOpen}
+                  >
+                    <span className="app-shell__account-avatar" aria-hidden="true">
+                      {(user.displayName || user.email || 'U').slice(0, 1).toUpperCase()}
+                    </span>
+                    <span className="app-shell__account-trigger-copy">
+                      {user.email}
+                    </span>
+                    <ChevronDown size={14} strokeWidth={2} aria-hidden="true" />
+                  </Button>
+                }
               >
-                {isLoggingOut ? 'Logging out...' : 'Logout'}
-              </Button>
+                <div className="app-shell__account-summary">
+                  <div className="app-shell__account-avatar app-shell__account-avatar--large">
+                    {(user.displayName || user.email || 'U').slice(0, 1).toUpperCase()}
+                  </div>
+                  <div className="app-shell__account-copy">
+                    <span className="app-shell__account-name">
+                      {user.displayName}
+                    </span>
+                    <span className="app-shell__account-email">{user.email}</span>
+                  </div>
+                </div>
+
+                <PopoverMenuSeparator />
+
+                <PopoverMenuLabel>Theme</PopoverMenuLabel>
+                <div
+                  className="app-shell__account-theme"
+                  role="group"
+                  aria-label="Theme preference"
+                >
+                  <button
+                    type="button"
+                    className={`app-shell__account-theme-button ${
+                      preference === 'light' ? 'is-active' : ''
+                    }`}
+                    aria-pressed={preference === 'light'}
+                    onClick={() => setPreference('light')}
+                  >
+                    <SunMedium size={14} strokeWidth={2} aria-hidden="true" />
+                    Light
+                  </button>
+                  <button
+                    type="button"
+                    className={`app-shell__account-theme-button ${
+                      preference === 'dark' ? 'is-active' : ''
+                    }`}
+                    aria-pressed={preference === 'dark'}
+                    onClick={() => setPreference('dark')}
+                  >
+                    <MoonStar size={14} strokeWidth={2} aria-hidden="true" />
+                    Dark
+                  </button>
+                </div>
+                <div className="app-shell__account-theme-status">
+                  Current: {resolvedTheme === 'dark' ? 'Dark' : 'Light'}
+                </div>
+
+                <PopoverMenuSeparator />
+
+                <PopoverMenuItem
+                  tone="danger"
+                  onClick={() => void handleLogout()}
+                  disabled={isLoggingOut}
+                >
+                  <LogOut size={14} strokeWidth={2} aria-hidden="true" />
+                  {isLoggingOut ? 'Logging out...' : 'Logout'}
+                </PopoverMenuItem>
+              </PopoverMenu>
             </div>
           ) : null}
         </header>
