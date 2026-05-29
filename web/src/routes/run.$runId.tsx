@@ -255,7 +255,18 @@ function RunDetailPage() {
     }
   }
 
-  async function handleSaveComment(testId: number): Promise<void> {
+  async function handleSaveComment(
+    testId: number,
+    nextComment?: string,
+  ): Promise<void> {
+    const currentTest = data.tests.find((test) => test.id === testId)
+    const savedComment = currentTest?.comment ?? ''
+    const comment = nextComment ?? commentByTestId[testId] ?? ''
+
+    if (pendingCommentByTestId[testId] || comment === savedComment) {
+      return
+    }
+
     setErrorMessage(null)
     setPendingCommentByTestId((current) => ({
       ...current,
@@ -267,7 +278,7 @@ function RunDetailPage() {
         data: {
           runId: data.run.id,
           testId,
-          comment: commentByTestId[testId] ?? '',
+          comment,
         },
       })
 
@@ -479,8 +490,8 @@ function RunDetailPage() {
             </div>
             <TableShell className="run-execution-table shadow-[var(--tms-shadow-panel)]">
             <TableHead
-              columns="36px 64px minmax(280px,1fr) 132px minmax(260px,0.85fr) 62px"
-              minWidth="980px"
+              columns="36px 64px minmax(280px,1fr) 132px minmax(240px,0.82fr) 62px"
+              minWidth="940px"
               padding="sm"
             >
               <div>
@@ -500,6 +511,8 @@ function RunDetailPage() {
             {filteredTests.map((test) => {
               const isStatusPending = Boolean(pendingStatusByTestId[test.id])
               const isCommentPending = Boolean(pendingCommentByTestId[test.id])
+              const commentValue = commentByTestId[test.id] ?? ''
+              const isCommentDirty = commentValue !== (test.comment ?? '')
 
               return (
                 <TableRow
@@ -507,8 +520,8 @@ function RunDetailPage() {
                   ref={(node) => {
                     testRowRefs.current[test.id] = node
                   }}
-                  columns="36px 64px minmax(280px,1fr) 132px minmax(260px,0.85fr) 62px"
-                  minWidth="980px"
+                  columns="36px 64px minmax(280px,1fr) 132px minmax(240px,0.82fr) 62px"
+                  minWidth="940px"
                   padding="sm"
                   className="run-execution-row"
                 >
@@ -553,9 +566,9 @@ function RunDetailPage() {
                       ))}
                     </select>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="run-comment-cell">
                     <Textarea
-                      value={commentByTestId[test.id] ?? ''}
+                      value={commentValue}
                       onChange={(event) =>
                         setCommentByTestId((current) => ({
                           ...current,
@@ -566,18 +579,25 @@ function RunDetailPage() {
                       placeholder="Execution note"
                       size="sm"
                       className="run-comment-input min-w-[170px] flex-1"
-                    />
-                    <Button
-                      disabled={isCommentPending}
-                      onClick={() => {
-                        void handleSaveComment(test.id)
+                      onBlur={(event) => {
+                        void handleSaveComment(test.id, event.currentTarget.value)
                       }}
-                      size="sm"
-                      variant="secondary"
-                      className="run-save-comment-button border-[var(--tms-border)] bg-[var(--tms-surface)] text-[var(--tms-text-muted)]"
-                    >
-                      {isCommentPending ? '...' : 'Save'}
-                    </Button>
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' && !event.shiftKey) {
+                          event.preventDefault()
+                          void handleSaveComment(test.id, event.currentTarget.value)
+                        }
+                      }}
+                    />
+                    {isCommentPending || isCommentDirty ? (
+                      <span
+                        className={`run-comment-state ${
+                          isCommentDirty ? 'run-comment-state--dirty' : ''
+                        }`}
+                      >
+                        {isCommentPending ? 'Saving' : 'Unsaved'}
+                      </span>
+                    ) : null}
                   </div>
                   <div className="text-right">
                     <Link
