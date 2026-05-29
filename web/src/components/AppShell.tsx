@@ -29,7 +29,6 @@ import {
   PopoverMenu,
   PopoverMenuItem,
   PopoverMenuLabel,
-  PopoverMenuSeparator,
 } from './ui/PopoverMenu'
 import { useTheme } from './ThemeProvider'
 import { useRouterState } from '@tanstack/react-router'
@@ -657,16 +656,17 @@ export default function AppShell({ user, children }: AppShellProps) {
                   </button>
                 </div>
 
-                <PopoverMenuSeparator />
-
-                <PopoverMenuItem
-                  tone="danger"
-                  onClick={() => void handleLogout()}
-                  disabled={isLoggingOut}
-                >
-                  <LogOut size={14} strokeWidth={2} aria-hidden="true" />
-                  {isLoggingOut ? 'Logging out...' : 'Logout'}
-                </PopoverMenuItem>
+                <div className="app-shell__account-actions">
+                  <PopoverMenuItem
+                    tone="danger"
+                    className="app-shell__account-logout"
+                    onClick={() => void handleLogout()}
+                    disabled={isLoggingOut}
+                  >
+                    <LogOut size={13} strokeWidth={2} aria-hidden="true" />
+                    <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
+                  </PopoverMenuItem>
+                </div>
               </PopoverMenu>
             </div>
           ) : null}
