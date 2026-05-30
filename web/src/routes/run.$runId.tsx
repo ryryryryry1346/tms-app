@@ -729,6 +729,23 @@ function RunDetailPage() {
                     </div>
                   </div>
 
+                  <div className="run-execution-preview-panel__body">
+                    <section className="run-execution-preview-panel__content-block">
+                      <h3>Steps</h3>
+                      <RunExecutionRichContent
+                        html={previewTest.steps}
+                        emptyLabel="No steps were added for this case."
+                      />
+                    </section>
+                    <section className="run-execution-preview-panel__content-block">
+                      <h3>Expected result</h3>
+                      <RunExecutionRichContent
+                        html={previewTest.expected}
+                        emptyLabel="No expected result was added for this case."
+                      />
+                    </section>
+                  </div>
+
                   <div className="run-execution-preview-panel__section">
                     <div className="run-execution-preview-panel__section-header">
                       <h3>Quick result</h3>
@@ -814,23 +831,6 @@ function RunDetailPage() {
                         Save note
                       </Button>
                     </div>
-                  </div>
-
-                  <div className="run-execution-preview-panel__body">
-                    <section className="run-execution-preview-panel__content-block">
-                      <h3>Steps</h3>
-                      <RunExecutionRichContent
-                        html={previewTest.steps}
-                        emptyLabel="No steps were added for this case."
-                      />
-                    </section>
-                    <section className="run-execution-preview-panel__content-block">
-                      <h3>Expected result</h3>
-                      <RunExecutionRichContent
-                        html={previewTest.expected}
-                        emptyLabel="No expected result was added for this case."
-                      />
-                    </section>
                   </div>
 
                   <div className="run-execution-preview-panel__footer">
