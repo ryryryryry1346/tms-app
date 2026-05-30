@@ -181,6 +181,7 @@ export const testRuns = mysqlTable(
     id: int('id').autoincrement().primaryKey(),
     projectId: int('project_id'),
     name: text('name').notNull(),
+    status: varchar('status', { length: 32 }).notNull().default('In progress'),
   },
   (table) => ({
     projectIdIndex: index('test_runs_project_id_idx').on(table.projectId),

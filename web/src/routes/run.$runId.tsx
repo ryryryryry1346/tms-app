@@ -10,6 +10,7 @@ import {
   executeRunTest,
   getRunDetail,
   saveRunItemComment,
+  updateRunStatus,
 } from '../features/runs/server'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
@@ -40,6 +41,7 @@ export const Route = createFileRoute('/run/$runId')({
 
 type RunFilter = 'All' | 'Not run' | 'Failed' | 'Blocked' | 'Passed'
 type RunItemStatus = 'Passed' | 'Failed' | 'Blocked' | null
+type RunStatus = 'In progress' | 'Completed' | 'Closed'
 type RunResultSelectValue = Exclude<RunItemStatus, null> | 'Not run'
 
 const RUN_FILTERS: RunFilter[] = ['All', 'Not run', 'Failed', 'Blocked', 'Passed']
@@ -108,6 +110,8 @@ function RunExecutionRichContent({
 function RunDetailPage() {
   const data = Route.useLoaderData()
   const [tests, setTests] = useState(data.tests)
+  const [runStatus, setRunStatus] = useState<RunStatus>(data.run.status)
+  const [isRunStatusPending, setIsRunStatusPending] = useState(false)
   const testRowRefs = useRef<Record<number, HTMLDivElement | null>>({})
   const [pendingStatusByTestId, setPendingStatusByTestId] = useState<
     Record<number, boolean>
@@ -201,6 +205,8 @@ function RunDetailPage() {
     suiteFilter !== 'All' ||
     priorityFilter !== 'All'
 
+  const isRunLocked = runStatus !== 'In progress'
+
   const previewTest = useMemo(
     () =>
       previewTestId === null
@@ -240,6 +246,10 @@ function RunDetailPage() {
         : null,
     )
   }, [data.tests])
+
+  useEffect(() => {
+    setRunStatus(data.run.status)
+  }, [data.run.status])
 
   useEffect(() => {
     setFocusedTestId((current) =>
@@ -334,6 +344,10 @@ function RunDetailPage() {
         return
       }
 
+      if (isRunLocked) {
+        return
+      }
+
       if (key === 'p' || key === 'f' || key === 'b') {
         event.preventDefault()
         const nextStatus =
@@ -365,6 +379,7 @@ function RunDetailPage() {
     handleRunTest,
     selectedTestIds,
     previewTestId,
+    isRunLocked,
   ])
 
   function toggleTestSelection(testId: number): void {
@@ -395,6 +410,10 @@ function RunDetailPage() {
     testId: number,
     status: RunItemStatus,
   ): Promise<void> {
+    if (isRunLocked) {
+      return
+    }
+
     setErrorMessage(null)
 
     const previousTests = tests
@@ -447,7 +466,7 @@ function RunDetailPage() {
   }
 
   async function handleBulkStatus(status: RunItemStatus): Promise<void> {
-    if (selectedTestIds.length === 0) {
+    if (selectedTestIds.length === 0 || isRunLocked) {
       return
     }
 
@@ -497,7 +516,7 @@ function RunDetailPage() {
     const savedComment = currentTest?.comment ?? ''
     const comment = nextComment ?? commentByTestId[testId] ?? ''
 
-    if (pendingCommentByTestId[testId] || comment === savedComment) {
+    if (pendingCommentByTestId[testId] || comment === savedComment || isRunLocked) {
       return
     }
 
@@ -536,6 +555,33 @@ function RunDetailPage() {
     }
   }
 
+  async function handleRunStatusChange(nextStatus: RunStatus): Promise<void> {
+    if (nextStatus === runStatus) {
+      return
+    }
+
+    setErrorMessage(null)
+    const previousStatus = runStatus
+    setRunStatus(nextStatus)
+    setIsRunStatusPending(true)
+
+    try {
+      await updateRunStatus({
+        data: {
+          runId: data.run.id,
+          status: nextStatus,
+        },
+      })
+    } catch (error) {
+      setRunStatus(previousStatus)
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Failed to update run status.',
+      )
+    } finally {
+      setIsRunStatusPending(false)
+    }
+  }
+
   return (
     <main className="tms-page">
       <div className="mx-auto max-w-[1680px] px-4 py-5 sm:px-6 lg:px-10">
@@ -560,20 +606,62 @@ function RunDetailPage() {
               <span>/</span>
               <span>Run #{data.run.id}</span>
             </div>
-            <h1 className="m-0 text-3xl font-semibold tracking-tight text-[var(--tms-text)]">
-              {data.run.name}
-            </h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="m-0 text-3xl font-semibold tracking-tight text-[var(--tms-text)]">
+                {data.run.name}
+              </h1>
+              <span
+                className={`run-status-badge run-status-badge--${runStatus
+                  .toLowerCase()
+                  .replace(/\s+/g, '-')}`}
+              >
+                {runStatus}
+              </span>
+            </div>
           </div>
 
-          {data.run.projectSlug ? (
-            <Link
-              to="/project/$projectSlug/runs"
-              params={{ projectSlug: data.run.projectSlug }}
-              className="tms-button no-underline hover:text-[var(--tms-primary)]"
-            >
-              Back to runs
-            </Link>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            {runStatus === 'In progress' ? (
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={isRunStatusPending}
+                onClick={() => void handleRunStatusChange('Completed')}
+              >
+                Complete run
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={isRunStatusPending}
+                  onClick={() => void handleRunStatusChange('In progress')}
+                >
+                  Reopen
+                </Button>
+                {runStatus === 'Completed' ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={isRunStatusPending}
+                    onClick={() => void handleRunStatusChange('Closed')}
+                  >
+                    Close run
+                  </Button>
+                ) : null}
+              </>
+            )}
+            {data.run.projectSlug ? (
+              <Link
+                to="/project/$projectSlug/runs"
+                params={{ projectSlug: data.run.projectSlug }}
+                className="tms-button no-underline hover:text-[var(--tms-primary)]"
+              >
+                Back to runs
+              </Link>
+            ) : null}
+          </div>
         </section>
 
         <Panel className="run-detail-summary sticky top-3 z-20 mb-4 bg-[var(--tms-surface)]/95 p-3 backdrop-blur">
@@ -681,6 +769,12 @@ function RunDetailPage() {
         {errorMessage ? (
           <Alert variant="danger" className="mb-5">
             {errorMessage}
+          </Alert>
+        ) : null}
+
+        {isRunLocked ? (
+          <Alert variant="info" className="mb-4">
+            This run is {runStatus.toLowerCase()}. Reopen it to record results.
           </Alert>
         ) : null}
 
@@ -846,7 +940,7 @@ function RunDetailPage() {
                               <button
                                 key={status}
                                 type="button"
-                                disabled={isStatusPending}
+                                disabled={isStatusPending || isRunLocked}
                                 title={status}
                                 aria-label={status}
                                 aria-pressed={isActive}
@@ -947,9 +1041,10 @@ function RunDetailPage() {
                             key={status}
                             variant={isActive ? 'primary' : 'secondary'}
                             size="sm"
-                            disabled={Boolean(
-                              pendingStatusByTestId[previewTest.id],
-                            )}
+                            disabled={
+                              Boolean(pendingStatusByTestId[previewTest.id]) ||
+                              isRunLocked
+                            }
                             className={`${getRunResultChipClass(nextStatus)}${
                               isActive
                                 ? ' run-execution-preview-panel__status-button--active'
@@ -1004,7 +1099,10 @@ function RunDetailPage() {
                         className="run-execution-preview-panel__textarea"
                         value={commentByTestId[previewTest.id] ?? ''}
                         placeholder="Add a comment…"
-                        disabled={Boolean(pendingCommentByTestId[previewTest.id])}
+                        disabled={
+                          Boolean(pendingCommentByTestId[previewTest.id]) ||
+                          isRunLocked
+                        }
                         rows={5}
                         onChange={(event) => {
                           const nextValue = event.currentTarget.value
@@ -1037,6 +1135,7 @@ function RunDetailPage() {
                         size="sm"
                         disabled={
                           pendingCommentByTestId[previewTest.id] ||
+                          isRunLocked ||
                           (commentByTestId[previewTest.id] ?? '') ===
                             (previewTest.comment ?? '')
                         }
@@ -1073,7 +1172,7 @@ function RunDetailPage() {
                   onClick={() => {
                     void handleBulkStatus(status)
                   }}
-                  disabled={isBulkUpdating}
+                  disabled={isBulkUpdating || isRunLocked}
                   variant="secondary"
                   size="sm"
                   className={getRunResultChipClass(status)}
@@ -1085,7 +1184,7 @@ function RunDetailPage() {
                 onClick={() => {
                   void handleBulkStatus(null)
                 }}
-                disabled={isBulkUpdating}
+                disabled={isBulkUpdating || isRunLocked}
                 variant="secondary"
                 size="sm"
               >

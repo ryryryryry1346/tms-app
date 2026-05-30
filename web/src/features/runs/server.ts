@@ -54,6 +54,11 @@ const updateRunNameInput = z.object({
   name: z.string().trim().min(1),
 })
 
+const updateRunStatusInput = z.object({
+  runId: z.number().int().positive(),
+  status: z.enum(['In progress', 'Completed', 'Closed']),
+})
+
 const getRunDetailInput = z.object({
   runId: z.number().int().positive(),
 })
@@ -72,6 +77,11 @@ const runItemCommentInput = z.object({
 })
 
 type RunItemStatus = 'Passed' | 'Failed' | 'Blocked' | null
+type RunStatus = 'In progress' | 'Completed' | 'Closed'
+
+function normalizeRunStatus(value: string | null | undefined): RunStatus {
+  return value === 'Completed' || value === 'Closed' ? value : 'In progress'
+}
 
 export type ProjectRun = {
   id: number
@@ -88,6 +98,7 @@ export type ProjectRun = {
 export type RunDetail = {
   run: ProjectRun & {
     projectName: string | null
+    status: RunStatus
   }
   tests: Array<{
     id: number
@@ -261,6 +272,7 @@ export const getRunDetail = createServerFn({ method: 'POST' })
         id: testRuns.id,
         projectId: testRuns.projectId,
         name: testRuns.name,
+        status: testRuns.status,
       })
       .from(testRuns)
       .where(eq(testRuns.id, data.runId))
@@ -364,6 +376,7 @@ export const getRunDetail = createServerFn({ method: 'POST' })
         ...run,
         projectName: project?.name ?? null,
         projectSlug: project?.slug ?? null,
+        status: normalizeRunStatus(run.status),
         total: fallbackRunTests.length,
         passed,
         failed,
@@ -398,6 +411,36 @@ export const updateRunName = createServerFn({ method: 'POST' })
       .update(testRuns)
       .set({
         name: data.name,
+      })
+      .where(eq(testRuns.id, data.runId))
+
+    return { ok: true }
+  })
+
+export const updateRunStatus = createServerFn({ method: 'POST' })
+  .inputValidator(updateRunStatusInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+    await ensureRunServerDeps()
+
+    const db = getDb()
+    const existingRun = await db
+      .select({
+        id: testRuns.id,
+      })
+      .from(testRuns)
+      .where(eq(testRuns.id, data.runId))
+      .limit(1)
+
+    if (existingRun.length === 0) {
+      throw notFound()
+    }
+
+    await db
+      .update(testRuns)
+      .set({
+        status: data.status,
       })
       .where(eq(testRuns.id, data.runId))
 
