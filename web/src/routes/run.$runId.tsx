@@ -746,7 +746,7 @@ function RunDetailPage() {
                     </section>
                   </div>
 
-                  <div className="run-execution-preview-panel__section">
+                  <div className="run-execution-preview-panel__section run-execution-preview-panel__section--quick">
                     <div className="run-execution-preview-panel__section-header">
                       <h3>Quick result</h3>
                     </div>
