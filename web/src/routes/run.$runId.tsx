@@ -190,24 +190,6 @@ function RunDetailPage() {
   }, [data.tests])
 
   useEffect(() => {
-    if (previewTestId === null) {
-      return
-    }
-
-    function handleKeyDown(event: KeyboardEvent): void {
-      if (event.key === 'Escape') {
-        setPreviewTestId(null)
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [previewTestId])
-
-  useEffect(() => {
     setFocusedTestId((current) =>
       current !== null && filteredTests.some((test) => test.id === current)
         ? current
@@ -246,6 +228,21 @@ function RunDetailPage() {
     }
 
     function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === 'Escape') {
+        if (selectedTestIds.length > 0) {
+          event.preventDefault()
+          setSelectedTestIds([])
+          return
+        }
+
+        if (previewTestId !== null) {
+          event.preventDefault()
+          setPreviewTestId(null)
+        }
+
+        return
+      }
+
       if (
         event.metaKey ||
         event.ctrlKey ||
@@ -310,7 +307,13 @@ function RunDetailPage() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [filteredTests, focusedTestId, handleRunTest])
+  }, [
+    filteredTests,
+    focusedTestId,
+    handleRunTest,
+    selectedTestIds,
+    previewTestId,
+  ])
 
   function toggleTestSelection(testId: number): void {
     setSelectedTestIds((current) =>
@@ -578,33 +581,6 @@ function RunDetailPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-xs font-semibold text-[var(--tms-text-muted)]">
-                {selectedTestIds.length} selected
-              </span>
-              {STATUS_ACTIONS.map((status) => (
-                <Button
-                  key={status}
-                  onClick={() => {
-                    void handleBulkStatus(status)
-                  }}
-                  disabled={selectedTestIds.length === 0 || isBulkUpdating}
-                  variant="secondary"
-                  size="sm"
-                  className={getRunResultChipClass(status)}
-                >
-                  {status}
-                </Button>
-              ))}
-              <Button
-                onClick={() => {
-                  void handleBulkStatus(null)
-                }}
-                disabled={selectedTestIds.length === 0 || isBulkUpdating}
-                variant="secondary"
-                size="sm"
-              >
-                Clear
-              </Button>
               {nextNotRunTestId ? (
                 <Button
                   onClick={() =>
@@ -963,6 +939,51 @@ function RunDetailPage() {
             ) : null}
           </>
         )}
+
+        {selectedTestIds.length > 0 ? (
+          <div
+            className="run-bulk-bar"
+            role="region"
+            aria-label="Bulk actions for selected cases"
+          >
+            <span className="run-bulk-bar__count">
+              {selectedTestIds.length} selected
+            </span>
+            <div className="run-bulk-bar__actions">
+              {STATUS_ACTIONS.map((status) => (
+                <Button
+                  key={status}
+                  onClick={() => {
+                    void handleBulkStatus(status)
+                  }}
+                  disabled={isBulkUpdating}
+                  variant="secondary"
+                  size="sm"
+                  className={getRunResultChipClass(status)}
+                >
+                  {status}
+                </Button>
+              ))}
+              <Button
+                onClick={() => {
+                  void handleBulkStatus(null)
+                }}
+                disabled={isBulkUpdating}
+                variant="secondary"
+                size="sm"
+              >
+                Reset to Not run
+              </Button>
+            </div>
+            <button
+              type="button"
+              className="run-bulk-bar__deselect"
+              onClick={() => setSelectedTestIds([])}
+            >
+              Deselect
+            </button>
+          </div>
+        ) : null}
       </div>
     </main>
   )
