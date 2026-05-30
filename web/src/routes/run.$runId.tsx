@@ -4,16 +4,22 @@ import {
   notFound,
 } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { MessageSquare } from 'lucide-react'
+import { MessageSquare, Paperclip, X } from 'lucide-react'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import {
+  addRunItemAttachment,
+  deleteRunItemAttachment,
   executeRunTest,
   getCaseExecutionHistory,
   getRunDetail,
+  getRunItemAttachments,
   saveRunItemComment,
   updateRunStatus,
 } from '../features/runs/server'
-import type { CaseExecutionHistoryEntry } from '../features/runs/server'
+import type {
+  CaseExecutionHistoryEntry,
+  RunItemAttachment,
+} from '../features/runs/server'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Checkbox } from '../components/ui/Checkbox'
@@ -156,6 +162,12 @@ function RunDetailPage() {
   const [caseHistoryLoading, setCaseHistoryLoading] = useState(false)
   const [caseHistoryError, setCaseHistoryError] = useState(false)
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0)
+  const [caseAttachments, setCaseAttachments] = useState<
+    RunItemAttachment[] | null
+  >(null)
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false)
+  const [attachmentsError, setAttachmentsError] = useState(false)
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false)
 
   const passedCount = tests.filter((test) => test.status === 'Passed').length
   const failedCount = tests.filter((test) => test.status === 'Failed').length
@@ -312,6 +324,43 @@ function RunDetailPage() {
       cancelled = true
     }
   }, [previewTestId, historyRefreshKey])
+
+  useEffect(() => {
+    if (previewTestId === null) {
+      setCaseAttachments(null)
+      setAttachmentsError(false)
+      setAttachmentsLoading(false)
+      return
+    }
+
+    let cancelled = false
+    setAttachmentsLoading(true)
+    setAttachmentsError(false)
+
+    getRunItemAttachments({
+      data: { runId: data.run.id, testId: previewTestId },
+    })
+      .then((result) => {
+        if (!cancelled) {
+          setCaseAttachments(result.attachments)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCaseAttachments(null)
+          setAttachmentsError(true)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setAttachmentsLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [previewTestId])
 
   useEffect(() => {
     setFocusedTestId((current) =>
@@ -652,6 +701,52 @@ function RunDetailPage() {
       )
     } finally {
       setIsRunStatusPending(false)
+    }
+  }
+
+  async function handleUploadAttachment(file: File): Promise<void> {
+    if (previewTestId === null || isRunLocked) {
+      return
+    }
+
+    setErrorMessage(null)
+    setIsUploadingAttachment(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('runId', String(data.run.id))
+      formData.append('testId', String(previewTestId))
+
+      const result = await addRunItemAttachment({ data: formData })
+      setCaseAttachments((current) => [result.attachment, ...(current ?? [])])
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Failed to upload attachment.',
+      )
+    } finally {
+      setIsUploadingAttachment(false)
+    }
+  }
+
+  async function handleDeleteAttachment(attachmentId: number): Promise<void> {
+    if (isRunLocked) {
+      return
+    }
+
+    setErrorMessage(null)
+    const previousAttachments = caseAttachments
+    setCaseAttachments((current) =>
+      (current ?? []).filter((attachment) => attachment.id !== attachmentId),
+    )
+
+    try {
+      await deleteRunItemAttachment({ data: { attachmentId } })
+    } catch (error) {
+      setCaseAttachments(previousAttachments)
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Failed to remove attachment.',
+      )
     }
   }
 
@@ -1201,6 +1296,87 @@ function RunDetailPage() {
                                     : ''}
                                 </span>
                               </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </section>
+                    <section className="run-execution-preview-panel__content-block">
+                      <div className="run-execution-preview-panel__section-header">
+                        <h3>Attachments</h3>
+                        {!isRunLocked ? (
+                          <label className="run-attachment-upload">
+                            {isUploadingAttachment ? 'Uploading…' : 'Add file'}
+                            <input
+                              type="file"
+                              className="sr-only"
+                              disabled={isUploadingAttachment}
+                              onChange={(event) => {
+                                const file = event.target.files?.[0]
+                                if (file) {
+                                  void handleUploadAttachment(file)
+                                }
+                                event.target.value = ''
+                              }}
+                            />
+                          </label>
+                        ) : null}
+                      </div>
+                      {attachmentsLoading ? (
+                        <p className="run-execution-preview-panel__empty">
+                          Loading attachments…
+                        </p>
+                      ) : attachmentsError ? (
+                        <p className="run-execution-preview-panel__empty">
+                          Could not load attachments.
+                        </p>
+                      ) : !caseAttachments || caseAttachments.length === 0 ? (
+                        <p className="run-execution-preview-panel__empty">
+                          No attachments yet.
+                        </p>
+                      ) : (
+                        <ul className="run-attachments">
+                          {caseAttachments.map((attachment) => (
+                            <li
+                              key={attachment.id}
+                              className="run-attachments__item"
+                            >
+                              <a
+                                href={attachment.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="run-attachments__link"
+                              >
+                                {attachment.contentType?.startsWith('image/') ? (
+                                  <img
+                                    src={attachment.url}
+                                    alt={attachment.name}
+                                    className="run-attachments__thumb"
+                                  />
+                                ) : (
+                                  <span className="run-attachments__icon">
+                                    <Paperclip
+                                      className="h-4 w-4"
+                                      aria-hidden="true"
+                                    />
+                                  </span>
+                                )}
+                                <span className="run-attachments__name">
+                                  {attachment.name}
+                                </span>
+                              </a>
+                              {!isRunLocked ? (
+                                <button
+                                  type="button"
+                                  className="run-attachments__remove"
+                                  onClick={() =>
+                                    void handleDeleteAttachment(attachment.id)
+                                  }
+                                  aria-label={`Remove ${attachment.name}`}
+                                >
+                                  <X className="h-3.5 w-3.5" aria-hidden="true" />
+                                </button>
+                              ) : null}
                             </li>
                           ))}
                         </ul>

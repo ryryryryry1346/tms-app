@@ -2,7 +2,9 @@ import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
+let and: typeof import('drizzle-orm')['and']
 let asc: typeof import('drizzle-orm')['asc']
+let desc: typeof import('drizzle-orm')['desc']
 let eq: typeof import('drizzle-orm')['eq']
 let inArray: typeof import('drizzle-orm')['inArray']
 let getDb: typeof import('../../db/client')['getDb']
@@ -12,6 +14,7 @@ let sections: typeof import('../../db/schema')['sections']
 let testRunItems: typeof import('../../db/schema')['testRunItems']
 let testRuns: typeof import('../../db/schema')['testRuns']
 let tests: typeof import('../../db/schema')['tests']
+let runItemAttachments: typeof import('../../db/schema')['runItemAttachments']
 let ensureProjectSlugs: typeof import('../projects/slug')['ensureProjectSlugs']
 
 async function ensureRunServerDeps(): Promise<void> {
@@ -26,7 +29,9 @@ async function ensureRunServerDeps(): Promise<void> {
     import('../projects/slug'),
   ])
 
+  and = drizzle.and
   asc = drizzle.asc
+  desc = drizzle.desc
   eq = drizzle.eq
   inArray = drizzle.inArray
   getDb = dbClient.getDb
@@ -36,6 +41,7 @@ async function ensureRunServerDeps(): Promise<void> {
   testRunItems = schema.testRunItems
   testRuns = schema.testRuns
   tests = schema.tests
+  runItemAttachments = schema.runItemAttachments
   ensureProjectSlugs = slug.ensureProjectSlugs
 }
 
@@ -65,6 +71,15 @@ const getRunDetailInput = z.object({
 
 const caseHistoryInput = z.object({
   testId: z.number().int().positive(),
+})
+
+const runItemAttachmentsInput = z.object({
+  runId: z.number().int().positive(),
+  testId: z.number().int().positive(),
+})
+
+const deleteAttachmentInput = z.object({
+  attachmentId: z.number().int().positive(),
 })
 
 const executeRunTestInput = z.object({
@@ -130,6 +145,16 @@ export type CaseExecutionHistoryEntry = {
   executedBy: string | null
   executedAt: string | null
   comment: string | null
+}
+
+export type RunItemAttachment = {
+  id: number
+  name: string
+  url: string
+  contentType: string | null
+  sizeBytes: number | null
+  uploadedByName: string | null
+  createdAt: string
 }
 
 export const getRunsForProject = createServerFn({ method: 'POST' })
@@ -469,6 +494,119 @@ export const getCaseExecutionHistory = createServerFn({ method: 'POST' })
       return { entries }
     },
   )
+
+export const getRunItemAttachments = createServerFn({ method: 'POST' })
+  .inputValidator(runItemAttachmentsInput)
+  .handler(
+    async ({ data }): Promise<{ attachments: RunItemAttachment[] }> => {
+      const { requireSessionUser } = await import('../auth/helpers.server')
+      await requireSessionUser()
+      await ensureRunServerDeps()
+
+      const db = getDb()
+      const rows = await db
+        .select({
+          id: runItemAttachments.id,
+          name: runItemAttachments.name,
+          url: runItemAttachments.url,
+          contentType: runItemAttachments.contentType,
+          sizeBytes: runItemAttachments.sizeBytes,
+          uploadedByName: runItemAttachments.uploadedByName,
+          createdAt: runItemAttachments.createdAt,
+        })
+        .from(runItemAttachments)
+        .where(
+          and(
+            eq(runItemAttachments.runId, data.runId),
+            eq(runItemAttachments.testId, data.testId),
+          ),
+        )
+        .orderBy(desc(runItemAttachments.id))
+
+      return {
+        attachments: rows.map((row) => ({
+          id: row.id,
+          name: row.name,
+          url: row.url,
+          contentType: row.contentType ?? null,
+          sizeBytes: row.sizeBytes ?? null,
+          uploadedByName: row.uploadedByName ?? null,
+          createdAt: row.createdAt,
+        })),
+      }
+    },
+  )
+
+export const addRunItemAttachment = createServerFn({ method: 'POST' }).handler(
+  async ({ data }): Promise<{ attachment: RunItemAttachment }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    const { uploadMediaToCloudinary } = await import('../media/helpers.server')
+    const sessionUser = await requireSessionUser()
+    await ensureRunServerDeps()
+
+    if (!(data instanceof FormData)) {
+      throw new Error('Upload request must be sent as FormData.')
+    }
+
+    const file = data.get('file')
+    const runId = Number(data.get('runId'))
+    const testId = Number(data.get('testId'))
+
+    if (!(file instanceof File)) {
+      throw new Error('Upload request is missing the file field.')
+    }
+
+    if (!Number.isInteger(runId) || runId <= 0) {
+      throw new Error('Invalid run id.')
+    }
+
+    if (!Number.isInteger(testId) || testId <= 0) {
+      throw new Error('Invalid test id.')
+    }
+
+    const url = await uploadMediaToCloudinary(file)
+    const createdAt = new Date().toISOString()
+
+    const db = getDb()
+    const result = await db.insert(runItemAttachments).values({
+      runId,
+      testId,
+      name: file.name || 'attachment',
+      url,
+      contentType: file.type || null,
+      sizeBytes: Number.isFinite(file.size) ? file.size : null,
+      uploadedByName: sessionUser.displayName,
+      createdAt,
+    })
+
+    return {
+      attachment: {
+        id: result[0].insertId,
+        name: file.name || 'attachment',
+        url,
+        contentType: file.type || null,
+        sizeBytes: Number.isFinite(file.size) ? file.size : null,
+        uploadedByName: sessionUser.displayName,
+        createdAt,
+      },
+    }
+  },
+)
+
+export const deleteRunItemAttachment = createServerFn({ method: 'POST' })
+  .inputValidator(deleteAttachmentInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+    await ensureRunServerDeps()
+
+    const db = getDb()
+    await db
+      .delete(runItemAttachments)
+      .where(eq(runItemAttachments.id, data.attachmentId))
+
+    return { ok: true }
+  })
 
 export const updateRunName = createServerFn({ method: 'POST' })
   .inputValidator(updateRunNameInput)

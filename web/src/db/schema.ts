@@ -211,6 +211,27 @@ export const testRunItems = mysqlTable(
   }),
 )
 
+export const runItemAttachments = mysqlTable(
+  'run_item_attachments',
+  {
+    id: int('id').autoincrement().primaryKey(),
+    runId: int('run_id').notNull(),
+    testId: int('test_id').notNull(),
+    name: varchar('name', { length: 255 }).notNull(),
+    url: text('url').notNull(),
+    contentType: varchar('content_type', { length: 128 }),
+    sizeBytes: int('size_bytes'),
+    uploadedByName: varchar('uploaded_by_name', { length: 255 }),
+    createdAt: varchar('created_at', { length: 32 }).notNull(),
+  },
+  (table) => ({
+    runTestIndex: index('run_item_attachments_run_test_idx').on(
+      table.runId,
+      table.testId,
+    ),
+  }),
+)
+
 export const projectDocs = mysqlTable(
   'project_docs',
   {
