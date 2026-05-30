@@ -1664,16 +1664,28 @@ pre code {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  display: grid;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
   gap: 0.65rem;
   padding: 0.75rem 0.85rem;
 }
 
 .run-execution-preview-panel__content-block {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.55rem;
   min-width: 0;
+}
+
+.run-execution-preview-panel__content-block--note {
+  flex: 1 1 auto;
+  min-height: 8rem;
+}
+
+.run-execution-preview-panel__content-block--note
+  .run-execution-preview-panel__textarea {
+  flex: 1 1 auto;
+  height: 100%;
 }
 
 .run-execution-preview-panel__rich {

@@ -792,41 +792,43 @@ function RunDetailPage() {
                         emptyLabel="No expected result was added for this case."
                       />
                     </section>
+                    <section className="run-execution-preview-panel__content-block run-execution-preview-panel__content-block--note">
+                      <div className="run-execution-preview-panel__section-header">
+                        <h3>Execution note</h3>
+                        <span
+                          className={`run-comment-state${
+                            (commentByTestId[previewTest.id] ?? '') !==
+                            (previewTest.comment ?? '')
+                              ? ' run-comment-state--dirty'
+                              : ''
+                          }`}
+                        >
+                          {pendingCommentByTestId[previewTest.id]
+                            ? 'Saving'
+                            : (commentByTestId[previewTest.id] ?? '') !==
+                                (previewTest.comment ?? '')
+                              ? 'Unsaved'
+                              : 'Saved'}
+                        </span>
+                      </div>
+                      <Textarea
+                        className="run-execution-preview-panel__textarea"
+                        value={commentByTestId[previewTest.id] ?? ''}
+                        placeholder="Execution note"
+                        disabled={Boolean(pendingCommentByTestId[previewTest.id])}
+                        rows={5}
+                        onChange={(event) => {
+                          const nextValue = event.currentTarget.value
+                          setCommentByTestId((current) => ({
+                            ...current,
+                            [previewTest.id]: nextValue,
+                          }))
+                        }}
+                      />
+                    </section>
                   </div>
 
                   <div className="run-execution-preview-panel__footer">
-                    <div className="run-execution-preview-panel__section-header">
-                      <h3>Execution note</h3>
-                      <span
-                        className={`run-comment-state${
-                          (commentByTestId[previewTest.id] ?? '') !==
-                          (previewTest.comment ?? '')
-                            ? ' run-comment-state--dirty'
-                            : ''
-                        }`}
-                      >
-                        {pendingCommentByTestId[previewTest.id]
-                          ? 'Saving'
-                          : (commentByTestId[previewTest.id] ?? '') !==
-                              (previewTest.comment ?? '')
-                            ? 'Unsaved'
-                            : 'Saved'}
-                      </span>
-                    </div>
-                    <Textarea
-                      className="run-execution-preview-panel__textarea"
-                      value={commentByTestId[previewTest.id] ?? ''}
-                      placeholder="Execution note"
-                      disabled={Boolean(pendingCommentByTestId[previewTest.id])}
-                      rows={3}
-                      onChange={(event) => {
-                        const nextValue = event.currentTarget.value
-                        setCommentByTestId((current) => ({
-                          ...current,
-                          [previewTest.id]: nextValue,
-                        }))
-                      }}
-                    />
                     <div className="run-execution-preview-panel__actions">
                       <Link
                         to="/test/$testId"
@@ -836,7 +838,7 @@ function RunDetailPage() {
                         Open full case
                       </Link>
                       <Button
-                        variant="secondary"
+                        variant="primary"
                         size="sm"
                         disabled={
                           pendingCommentByTestId[previewTest.id] ||
