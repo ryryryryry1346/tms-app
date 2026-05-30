@@ -8,10 +8,12 @@ import { MessageSquare } from 'lucide-react'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import {
   executeRunTest,
+  getCaseExecutionHistory,
   getRunDetail,
   saveRunItemComment,
   updateRunStatus,
 } from '../features/runs/server'
+import type { CaseExecutionHistoryEntry } from '../features/runs/server'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Checkbox } from '../components/ui/Checkbox'
@@ -148,6 +150,12 @@ function RunDetailPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [suiteFilter, setSuiteFilter] = useState('All')
   const [priorityFilter, setPriorityFilter] = useState('All')
+  const [caseHistory, setCaseHistory] = useState<
+    CaseExecutionHistoryEntry[] | null
+  >(null)
+  const [caseHistoryLoading, setCaseHistoryLoading] = useState(false)
+  const [caseHistoryError, setCaseHistoryError] = useState(false)
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0)
 
   const passedCount = tests.filter((test) => test.status === 'Passed').length
   const failedCount = tests.filter((test) => test.status === 'Failed').length
@@ -269,6 +277,41 @@ function RunDetailPage() {
   useEffect(() => {
     setRunStatus(data.run.status)
   }, [data.run.status])
+
+  useEffect(() => {
+    if (previewTestId === null) {
+      setCaseHistory(null)
+      setCaseHistoryError(false)
+      setCaseHistoryLoading(false)
+      return
+    }
+
+    let cancelled = false
+    setCaseHistoryLoading(true)
+    setCaseHistoryError(false)
+
+    getCaseExecutionHistory({ data: { testId: previewTestId } })
+      .then((result) => {
+        if (!cancelled) {
+          setCaseHistory(result.entries)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCaseHistory(null)
+          setCaseHistoryError(true)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setCaseHistoryLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [previewTestId, historyRefreshKey])
 
   useEffect(() => {
     setFocusedTestId((current) =>
@@ -460,6 +503,8 @@ function RunDetailPage() {
         },
       })
 
+      setHistoryRefreshKey((key) => key + 1)
+
       if (status !== null) {
         const nextTest = previousTests.find(
           (test) => test.id !== testId && test.status === null,
@@ -523,6 +568,7 @@ function RunDetailPage() {
       )
 
       setSelectedTestIds([])
+      setHistoryRefreshKey((key) => key + 1)
     } catch (error) {
       setTests(previousTests)
       setErrorMessage(
@@ -1115,6 +1161,50 @@ function RunDetailPage() {
                         html={previewTest.expected}
                         emptyLabel="No expected result was added for this case."
                       />
+                    </section>
+                    <section className="run-execution-preview-panel__content-block">
+                      <h3>Execution history</h3>
+                      {caseHistoryLoading ? (
+                        <p className="run-execution-preview-panel__empty">
+                          Loading history…
+                        </p>
+                      ) : caseHistoryError ? (
+                        <p className="run-execution-preview-panel__empty">
+                          Could not load history.
+                        </p>
+                      ) : !caseHistory || caseHistory.length === 0 ? (
+                        <p className="run-execution-preview-panel__empty">
+                          No execution history yet.
+                        </p>
+                      ) : (
+                        <ul className="run-history">
+                          {caseHistory.map((entry, index) => (
+                            <li
+                              key={`${entry.runId}-${index}`}
+                              className="run-history__item"
+                            >
+                              <span
+                                className={`run-history__status ${getRunResultChipClass(
+                                  entry.status,
+                                )}`}
+                              >
+                                {entry.status}
+                              </span>
+                              <div className="run-history__meta">
+                                <span className="run-history__run">
+                                  {entry.runName}
+                                </span>
+                                <span className="run-history__sub">
+                                  {entry.executedBy ?? 'Unknown'}
+                                  {formatExecutedAt(entry.executedAt)
+                                    ? ` · ${formatExecutedAt(entry.executedAt)}`
+                                    : ''}
+                                </span>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </section>
                     <section className="run-execution-preview-panel__content-block run-execution-preview-panel__content-block--note">
                       <div className="run-execution-preview-panel__section-header">

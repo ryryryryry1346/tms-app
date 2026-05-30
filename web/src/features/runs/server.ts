@@ -63,6 +63,10 @@ const getRunDetailInput = z.object({
   runId: z.number().int().positive(),
 })
 
+const caseHistoryInput = z.object({
+  testId: z.number().int().positive(),
+})
+
 const executeRunTestInput = z.object({
   runId: z.number().int().positive(),
   testId: z.number().int().positive(),
@@ -117,6 +121,15 @@ export type RunDetail = {
     id: string
     name: string
   }
+}
+
+export type CaseExecutionHistoryEntry = {
+  runId: number
+  runName: string
+  status: Exclude<RunItemStatus, null>
+  executedBy: string | null
+  executedAt: string | null
+  comment: string | null
 }
 
 export const getRunsForProject = createServerFn({ method: 'POST' })
@@ -402,6 +415,60 @@ export const getRunDetail = createServerFn({ method: 'POST' })
       },
     }
   })
+
+export const getCaseExecutionHistory = createServerFn({ method: 'POST' })
+  .inputValidator(caseHistoryInput)
+  .handler(
+    async ({
+      data,
+    }): Promise<{ entries: CaseExecutionHistoryEntry[] }> => {
+      const { requireSessionUser } = await import('../auth/helpers.server')
+      await requireSessionUser()
+      await ensureRunServerDeps()
+
+      const db = getDb()
+      const rows = await db
+        .select({
+          runId: testRunItems.runId,
+          runName: testRuns.name,
+          status: testRunItems.status,
+          executedByName: testRunItems.executedByName,
+          executedAt: testRunItems.executedAt,
+          comment: testRunItems.comment,
+        })
+        .from(testRunItems)
+        .leftJoin(testRuns, eq(testRunItems.runId, testRuns.id))
+        .where(eq(testRunItems.testId, data.testId))
+
+      const entries: CaseExecutionHistoryEntry[] = rows
+        .filter(
+          (row) =>
+            row.status === 'Passed' ||
+            row.status === 'Failed' ||
+            row.status === 'Blocked',
+        )
+        .map((row) => ({
+          runId: row.runId ?? 0,
+          runName: row.runName ?? `Run #${row.runId ?? '?'}`,
+          status: row.status as Exclude<RunItemStatus, null>,
+          executedBy: row.executedByName ?? null,
+          executedAt: row.executedAt ?? null,
+          comment: row.comment ?? null,
+        }))
+        .sort((a, b) => {
+          const at = a.executedAt ? Date.parse(a.executedAt) : 0
+          const bt = b.executedAt ? Date.parse(b.executedAt) : 0
+
+          if (bt !== at) {
+            return bt - at
+          }
+
+          return b.runId - a.runId
+        })
+
+      return { entries }
+    },
+  )
 
 export const updateRunName = createServerFn({ method: 'POST' })
   .inputValidator(updateRunNameInput)
