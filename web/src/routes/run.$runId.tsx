@@ -2,7 +2,6 @@ import {
   Link,
   createFileRoute,
   notFound,
-  useRouter,
 } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { MessageSquare } from 'lucide-react'
@@ -106,7 +105,7 @@ function RunExecutionRichContent({
 
 function RunDetailPage() {
   const data = Route.useLoaderData()
-  const router = useRouter()
+  const [tests, setTests] = useState(tests)
   const testRowRefs = useRef<Record<number, HTMLDivElement | null>>({})
   const [pendingStatusByTestId, setPendingStatusByTestId] = useState<
     Record<number, boolean>
@@ -122,40 +121,40 @@ function RunDetailPage() {
   const [previewTestId, setPreviewTestId] = useState<number | null>(null)
   const [focusedTestId, setFocusedTestId] = useState<number | null>(null)
 
-  const passedCount = data.tests.filter((test) => test.status === 'Passed').length
-  const failedCount = data.tests.filter((test) => test.status === 'Failed').length
-  const blockedCount = data.tests.filter((test) => test.status === 'Blocked').length
-  const notRunCount = data.tests.filter((test) => test.status === null).length
+  const passedCount = tests.filter((test) => test.status === 'Passed').length
+  const failedCount = tests.filter((test) => test.status === 'Failed').length
+  const blockedCount = tests.filter((test) => test.status === 'Blocked').length
+  const notRunCount = tests.filter((test) => test.status === null).length
   const executedCount = passedCount + failedCount + blockedCount
   const progress =
-    data.tests.length === 0
+    tests.length === 0
       ? 0
-      : Math.round((executedCount / data.tests.length) * 100)
+      : Math.round((executedCount / tests.length) * 100)
   const passedProgress =
-    data.tests.length === 0 ? 0 : (passedCount / data.tests.length) * 100
+    tests.length === 0 ? 0 : (passedCount / tests.length) * 100
   const failedProgress =
-    data.tests.length === 0 ? 0 : (failedCount / data.tests.length) * 100
+    tests.length === 0 ? 0 : (failedCount / tests.length) * 100
   const blockedProgress =
-    data.tests.length === 0 ? 0 : (blockedCount / data.tests.length) * 100
+    tests.length === 0 ? 0 : (blockedCount / tests.length) * 100
 
   const filteredTests = useMemo(() => {
     if (runFilter === 'All') {
-      return data.tests
+      return tests
     }
 
     if (runFilter === 'Not run') {
-      return data.tests.filter((test) => test.status === null)
+      return tests.filter((test) => test.status === null)
     }
 
-    return data.tests.filter((test) => test.status === runFilter)
-  }, [data.tests, runFilter])
+    return tests.filter((test) => test.status === runFilter)
+  }, [tests, runFilter])
 
   const previewTest = useMemo(
     () =>
       previewTestId === null
         ? null
-        : data.tests.find((test) => test.id === previewTestId) ?? null,
-    [data.tests, previewTestId],
+        : tests.find((test) => test.id === previewTestId) ?? null,
+    [tests, previewTestId],
   )
 
   const visibleTestIds = filteredTests.map((test) => test.id)
@@ -169,11 +168,12 @@ function RunDetailPage() {
   const allVisibleSelected =
     visibleTestIds.length > 0 && selectedVisibleCount === visibleTestIds.length
   const nextNotRunTestId = useMemo(() => {
-    const nextTest = data.tests.find((test) => test.status === null)
+    const nextTest = tests.find((test) => test.status === null)
     return nextTest?.id ?? null
-  }, [data.tests])
+  }, [tests])
 
   useEffect(() => {
+    setTests(data.tests)
     setCommentByTestId(
       Object.fromEntries(
         data.tests.map((test) => [test.id, test.comment ?? '']),
@@ -344,6 +344,13 @@ function RunDetailPage() {
     status: RunItemStatus,
   ): Promise<void> {
     setErrorMessage(null)
+
+    const previousTests = tests
+    setTests((current) =>
+      current.map((test) =>
+        test.id === testId ? { ...test, status } : test,
+      ),
+    )
     setPendingStatusByTestId((current) => ({
       ...current,
       [testId]: true,
@@ -359,10 +366,8 @@ function RunDetailPage() {
         },
       })
 
-      await router.invalidate()
-
       if (status !== null) {
-        const nextTest = data.tests.find(
+        const nextTest = previousTests.find(
           (test) => test.id !== testId && test.status === null,
         )
 
@@ -376,6 +381,7 @@ function RunDetailPage() {
         }
       }
     } catch (error) {
+      setTests(previousTests)
       setErrorMessage(
         error instanceof Error ? error.message : 'Failed to save run result.',
       )
@@ -394,6 +400,14 @@ function RunDetailPage() {
     }
 
     setErrorMessage(null)
+
+    const previousTests = tests
+    const targetIds = new Set(selectedTestIds)
+    setTests((current) =>
+      current.map((test) =>
+        targetIds.has(test.id) ? { ...test, status } : test,
+      ),
+    )
     setIsBulkUpdating(true)
 
     try {
@@ -411,8 +425,8 @@ function RunDetailPage() {
       )
 
       setSelectedTestIds([])
-      await router.invalidate()
     } catch (error) {
+      setTests(previousTests)
       setErrorMessage(
         error instanceof Error
           ? error.message
@@ -427,7 +441,7 @@ function RunDetailPage() {
     testId: number,
     nextComment?: string,
   ): Promise<void> {
-    const currentTest = data.tests.find((test) => test.id === testId)
+    const currentTest = tests.find((test) => test.id === testId)
     const savedComment = currentTest?.comment ?? ''
     const comment = nextComment ?? commentByTestId[testId] ?? ''
 
@@ -436,6 +450,13 @@ function RunDetailPage() {
     }
 
     setErrorMessage(null)
+
+    const previousTests = tests
+    setTests((current) =>
+      current.map((test) =>
+        test.id === testId ? { ...test, comment } : test,
+      ),
+    )
     setPendingCommentByTestId((current) => ({
       ...current,
       [testId]: true,
@@ -449,9 +470,8 @@ function RunDetailPage() {
           comment,
         },
       })
-
-      await router.invalidate()
     } catch (error) {
+      setTests(previousTests)
       setErrorMessage(
         error instanceof Error ? error.message : 'Failed to save run comment.',
       )
@@ -517,7 +537,7 @@ function RunDetailPage() {
                   </div>
                 </div>
                 <div className="text-xs font-semibold text-[var(--tms-text-muted)]">
-                  {executedCount}/{data.tests.length}
+                  {executedCount}/{tests.length}
                 </div>
               </div>
               <div
@@ -605,7 +625,7 @@ function RunDetailPage() {
           </Alert>
         ) : null}
 
-        {data.tests.length === 0 ? (
+        {tests.length === 0 ? (
           <EmptyState
             title="No linked test cases"
             description="This test run currently has no linked test cases."
