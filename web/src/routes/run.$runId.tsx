@@ -5,6 +5,7 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { MessageSquare } from 'lucide-react'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import {
   executeRunTest,
@@ -546,16 +547,12 @@ function RunDetailPage() {
                 meta={`${filteredTests.length} visible`}
               />
             </div>
-            <div
-              className={`run-execution-workspace${
-                previewTest ? ' run-execution-workspace--with-preview' : ''
-              }`}
-            >
+            <div className="run-execution-workspace">
               <div className="run-execution-table-area">
                 <TableShell className="run-execution-table shadow-[var(--tms-shadow-panel)]">
                   <TableHead
-                    columns="36px 64px minmax(280px,1fr) 132px minmax(240px,0.82fr) 62px"
-                    minWidth="940px"
+                    columns="36px 64px minmax(280px,1fr) 132px 88px 64px"
+                    minWidth="760px"
                     padding="sm"
                   >
                     <div>
@@ -568,17 +565,13 @@ function RunDetailPage() {
                     <div>ID</div>
                     <div>Title</div>
                     <div>Result</div>
-                    <div>Comment</div>
+                    <div className="text-center">Comment</div>
                     <div className="text-right">Open</div>
                   </TableHead>
 
                   {filteredTests.map((test) => {
                     const isStatusPending = Boolean(pendingStatusByTestId[test.id])
-                    const isCommentPending = Boolean(
-                      pendingCommentByTestId[test.id],
-                    )
-                    const commentValue = commentByTestId[test.id] ?? ''
-                    const isCommentDirty = commentValue !== (test.comment ?? '')
+                    const hasComment = Boolean((test.comment ?? '').trim())
 
                     return (
                       <TableRow
@@ -586,8 +579,8 @@ function RunDetailPage() {
                         ref={(node) => {
                           testRowRefs.current[test.id] = node
                         }}
-                        columns="36px 64px minmax(280px,1fr) 132px minmax(240px,0.82fr) 62px"
-                        minWidth="940px"
+                        columns="36px 64px minmax(280px,1fr) 132px 88px 64px"
+                        minWidth="760px"
                         padding="sm"
                         className={`run-execution-row${
                           previewTestId === test.id
@@ -646,47 +639,26 @@ function RunDetailPage() {
                             ))}
                           </select>
                         </div>
-                        <div
-                          className="run-comment-cell"
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <Textarea
-                            value={commentValue}
-                            onChange={(event) =>
-                              setCommentByTestId((current) => ({
-                                ...current,
-                                [test.id]: event.target.value,
-                              }))
-                            }
-                            rows={1}
-                            placeholder="Execution note"
-                            size="sm"
-                            className="run-comment-input min-w-[170px] flex-1"
-                            onBlur={(event) => {
-                              void handleSaveComment(
-                                test.id,
-                                event.currentTarget.value,
-                              )
-                            }}
-                            onKeyDown={(event) => {
-                              if (event.key === 'Enter' && !event.shiftKey) {
-                                event.preventDefault()
-                                void handleSaveComment(
-                                  test.id,
-                                  event.currentTarget.value,
-                                )
-                              }
-                            }}
-                          />
-                          {isCommentPending || isCommentDirty ? (
+                        <div className="run-comment-indicator-cell">
+                          {hasComment ? (
                             <span
-                              className={`run-comment-state ${
-                                isCommentDirty ? 'run-comment-state--dirty' : ''
-                              }`}
+                              className="run-comment-indicator"
+                              title={test.comment ?? ''}
                             >
-                              {isCommentPending ? 'Saving' : 'Unsaved'}
+                              <MessageSquare
+                                className="h-4 w-4"
+                                aria-hidden="true"
+                              />
+                              <span className="sr-only">Has comment</span>
                             </span>
-                          ) : null}
+                          ) : (
+                            <span
+                              className="run-comment-indicator run-comment-indicator--empty"
+                              aria-hidden="true"
+                            >
+                              —
+                            </span>
+                          )}
                         </div>
                         <div className="text-right">
                           <Link
@@ -794,7 +766,7 @@ function RunDetailPage() {
                     </section>
                     <section className="run-execution-preview-panel__content-block run-execution-preview-panel__content-block--note">
                       <div className="run-execution-preview-panel__section-header">
-                        <h3>Execution note</h3>
+                        <h3>Comment</h3>
                         <span
                           className={`run-comment-state${
                             (commentByTestId[previewTest.id] ?? '') !==
@@ -814,7 +786,7 @@ function RunDetailPage() {
                       <Textarea
                         className="run-execution-preview-panel__textarea"
                         value={commentByTestId[previewTest.id] ?? ''}
-                        placeholder="Execution note"
+                        placeholder="Add a comment…"
                         disabled={Boolean(pendingCommentByTestId[previewTest.id])}
                         rows={5}
                         onChange={(event) => {
@@ -823,6 +795,12 @@ function RunDetailPage() {
                             ...current,
                             [previewTest.id]: nextValue,
                           }))
+                        }}
+                        onBlur={(event) => {
+                          void handleSaveComment(
+                            previewTest.id,
+                            event.currentTarget.value,
+                          )
                         }}
                       />
                     </section>
@@ -852,7 +830,7 @@ function RunDetailPage() {
                           )
                         }
                       >
-                        Save note
+                        Save comment
                       </Button>
                     </div>
                   </div>

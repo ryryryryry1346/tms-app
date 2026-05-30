@@ -1476,26 +1476,22 @@ pre code {
   box-shadow: var(--tms-shadow-focus);
 }
 
-.run-comment-cell {
+.run-comment-indicator-cell {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
+  justify-content: center;
 }
 
-.run-comment-input {
-  height: 2rem;
-  min-height: 2rem !important;
-  resize: none;
-  border-radius: var(--tms-radius-control);
-  padding-block: 0.375rem !important;
-  font-size: 0.8125rem !important;
-  line-height: 1.2;
+.run-comment-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tms-primary);
 }
 
-.run-comment-input:focus {
-  height: 3.75rem;
-  resize: vertical;
+.run-comment-indicator--empty {
+  color: var(--tms-text-soft);
+  font-size: 0.875rem;
 }
 
 .run-comment-state {
