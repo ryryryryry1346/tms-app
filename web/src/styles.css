@@ -1476,6 +1476,80 @@ pre code {
   box-shadow: var(--tms-shadow-focus);
 }
 
+.run-result-segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.run-result-segment {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 1.875rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: var(--tms-radius-pill);
+  background: var(--tms-surface);
+  color: var(--tms-text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.run-result-segment:hover:not(:disabled) {
+  border-color: var(--tms-border-focus);
+  color: var(--tms-text);
+}
+
+.run-result-segment:focus-visible {
+  outline: none;
+  border-color: var(--tms-border-focus);
+  box-shadow: var(--tms-shadow-focus);
+}
+
+.run-result-segment:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.run-result-segment--passed {
+  color: var(--run-passed-text);
+}
+
+.run-result-segment--failed {
+  color: var(--run-failed-text);
+}
+
+.run-result-segment--blocked {
+  color: var(--run-blocked-text);
+}
+
+.run-result-segment--passed.run-result-segment--active {
+  background: var(--run-passed-text);
+  border-color: var(--run-passed-text);
+  color: var(--tms-surface);
+}
+
+.run-result-segment--failed.run-result-segment--active {
+  background: var(--run-failed-text);
+  border-color: var(--run-failed-text);
+  color: var(--tms-surface);
+}
+
+.run-result-segment--blocked.run-result-segment--active {
+  background: var(--run-blocked-text);
+  border-color: var(--run-blocked-text);
+  color: var(--tms-surface);
+}
+
 .run-comment-indicator-cell {
   display: flex;
   align-items: center;

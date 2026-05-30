@@ -617,27 +617,37 @@ function RunDetailPage() {
                             {test.title}
                           </div>
                         </div>
-                        <div onClick={(event) => event.stopPropagation()}>
-                          <select
-                            value={test.status ?? 'Not run'}
-                            disabled={isStatusPending}
-                            onChange={(event) => {
-                              void handleRunTest(
-                                test.id,
-                                getRunResultFromValue(
-                                  event.target.value as RunResultSelectValue,
-                                ),
-                              )
-                            }}
-                            className={`run-result-select disabled:cursor-not-allowed disabled:opacity-60 ${getRunResultChipClass(test.status)}`}
-                            aria-label={`Set execution result for test ${test.id}`}
-                          >
-                            {RUN_RESULT_OPTIONS.map((status) => (
-                              <option key={status} value={status}>
-                                {status}
-                              </option>
-                            ))}
-                          </select>
+                        <div
+                          className="run-result-segmented"
+                          role="group"
+                          aria-label={`Set execution result for test ${test.id}`}
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          {STATUS_ACTIONS.map((status) => {
+                            const isActive = test.status === status
+
+                            return (
+                              <button
+                                key={status}
+                                type="button"
+                                disabled={isStatusPending}
+                                title={status}
+                                aria-label={status}
+                                aria-pressed={isActive}
+                                className={`run-result-segment run-result-segment--${status.toLowerCase()}${
+                                  isActive ? ' run-result-segment--active' : ''
+                                }`}
+                                onClick={() =>
+                                  void handleRunTest(
+                                    test.id,
+                                    isActive ? null : status,
+                                  )
+                                }
+                              >
+                                {status.charAt(0)}
+                              </button>
+                            )
+                          })}
                         </div>
                         <div className="run-comment-indicator-cell">
                           {hasComment ? (
