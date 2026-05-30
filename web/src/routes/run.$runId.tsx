@@ -120,6 +120,7 @@ function RunDetailPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [runFilter, setRunFilter] = useState<RunFilter>('All')
   const [previewTestId, setPreviewTestId] = useState<number | null>(null)
+  const [focusedTestId, setFocusedTestId] = useState<number | null>(null)
 
   const passedCount = data.tests.filter((test) => test.status === 'Passed').length
   const failedCount = data.tests.filter((test) => test.status === 'Failed').length
@@ -205,6 +206,111 @@ function RunDetailPage() {
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [previewTestId])
+
+  useEffect(() => {
+    setFocusedTestId((current) =>
+      current !== null && filteredTests.some((test) => test.id === current)
+        ? current
+        : filteredTests[0]?.id ?? null,
+    )
+  }, [filteredTests])
+
+  useEffect(() => {
+    function isTypingTarget(target: EventTarget | null): boolean {
+      if (!(target instanceof HTMLElement)) {
+        return false
+      }
+
+      const tag = target.tagName
+
+      return (
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        tag === 'SELECT' ||
+        target.isContentEditable
+      )
+    }
+
+    function focusRow(testId: number | null): void {
+      if (testId === null) {
+        return
+      }
+
+      setFocusedTestId(testId)
+      window.setTimeout(() => {
+        testRowRefs.current[testId]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        })
+      }, 0)
+    }
+
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        isTypingTarget(event.target)
+      ) {
+        return
+      }
+
+      if (filteredTests.length === 0) {
+        return
+      }
+
+      const currentIndex = filteredTests.findIndex(
+        (test) => test.id === focusedTestId,
+      )
+      const key = event.key.toLowerCase()
+
+      if (key === 'j' || event.key === 'ArrowDown') {
+        event.preventDefault()
+        const nextIndex =
+          currentIndex < 0
+            ? 0
+            : Math.min(currentIndex + 1, filteredTests.length - 1)
+        focusRow(filteredTests[nextIndex]?.id ?? null)
+        return
+      }
+
+      if (key === 'k' || event.key === 'ArrowUp') {
+        event.preventDefault()
+        const prevIndex = currentIndex <= 0 ? 0 : currentIndex - 1
+        focusRow(filteredTests[prevIndex]?.id ?? null)
+        return
+      }
+
+      if (focusedTestId === null) {
+        return
+      }
+
+      if (key === 'p' || key === 'f' || key === 'b') {
+        event.preventDefault()
+        const nextStatus =
+          key === 'p' ? 'Passed' : key === 'f' ? 'Failed' : 'Blocked'
+        void handleRunTest(focusedTestId, nextStatus)
+        return
+      }
+
+      if (key === 'n' || event.key === 'Backspace') {
+        event.preventDefault()
+        void handleRunTest(focusedTestId, null)
+        return
+      }
+
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        setPreviewTestId(focusedTestId)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [filteredTests, focusedTestId, handleRunTest])
 
   function toggleTestSelection(testId: number): void {
     setSelectedTestIds((current) =>
@@ -543,7 +649,7 @@ function RunDetailPage() {
               <WorkspaceSectionHeader
                 dense
                 title="Execution table"
-                description="Update statuses, comments, and step through the remaining run items."
+                description="Use J/K to move between cases and P/F/B to set the result."
                 meta={`${filteredTests.length} visible`}
               />
             </div>
@@ -586,13 +692,21 @@ function RunDetailPage() {
                           previewTestId === test.id
                             ? ' run-execution-row--active'
                             : ''
+                        }${
+                          focusedTestId === test.id
+                            ? ' run-execution-row--focused'
+                            : ''
                         }`}
                         role="button"
                         tabIndex={0}
-                        onClick={() => setPreviewTestId(test.id)}
+                        onClick={() => {
+                          setFocusedTestId(test.id)
+                          setPreviewTestId(test.id)
+                        }}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault()
+                            setFocusedTestId(test.id)
                             setPreviewTestId(test.id)
                           }
                         }}

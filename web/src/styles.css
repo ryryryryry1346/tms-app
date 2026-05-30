@@ -1442,6 +1442,11 @@ pre code {
   box-shadow: inset 3px 0 0 var(--tms-border-focus);
 }
 
+.run-execution-row--focused {
+  outline: 2px solid var(--tms-border-focus);
+  outline-offset: -2px;
+}
+
 .run-result-select {
   height: 2rem;
   min-width: 7.5rem;
