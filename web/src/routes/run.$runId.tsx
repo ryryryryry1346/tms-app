@@ -187,6 +187,24 @@ function RunDetailPage() {
     )
   }, [data.tests])
 
+  useEffect(() => {
+    if (previewTestId === null) {
+      return
+    }
+
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === 'Escape') {
+        setPreviewTestId(null)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [previewTestId])
+
   function toggleTestSelection(testId: number): void {
     setSelectedTestIds((current) =>
       current.includes(testId)
@@ -685,10 +703,19 @@ function RunDetailPage() {
                   })}
                 </TableShell>
               </div>
+            </div>
 
-              {previewTest ? (
+            {previewTest ? (
+              <>
+                <div
+                  className="run-execution-preview-backdrop"
+                  aria-hidden="true"
+                  onClick={() => setPreviewTestId(null)}
+                />
                 <aside
                   className="run-execution-preview-panel"
+                  role="dialog"
+                  aria-modal="true"
                   aria-label="Case execution preview"
                 >
                   <div className="run-execution-preview-panel__header">
@@ -714,41 +741,12 @@ function RunDetailPage() {
                     </Button>
                   </div>
 
-                  <div className="run-execution-preview-panel__metadata">
-                    <div className="run-execution-preview-panel__metadata-item">
-                      <span>Result</span>
-                      <strong>{previewTest.status ?? 'Not run'}</strong>
-                    </div>
-                    <div className="run-execution-preview-panel__metadata-item">
-                      <span>Note</span>
-                      <strong>
-                        {(commentByTestId[previewTest.id] ?? '').trim()
-                          ? 'Added'
-                          : 'Empty'}
-                      </strong>
-                    </div>
-                  </div>
-
-                  <div className="run-execution-preview-panel__body">
-                    <section className="run-execution-preview-panel__content-block">
-                      <h3>Steps</h3>
-                      <RunExecutionRichContent
-                        html={previewTest.steps}
-                        emptyLabel="No steps were added for this case."
-                      />
-                    </section>
-                    <section className="run-execution-preview-panel__content-block">
-                      <h3>Expected result</h3>
-                      <RunExecutionRichContent
-                        html={previewTest.expected}
-                        emptyLabel="No expected result was added for this case."
-                      />
-                    </section>
-                  </div>
-
-                  <div className="run-execution-preview-panel__section run-execution-preview-panel__section--quick">
+                  <div className="run-execution-preview-panel__quick">
                     <div className="run-execution-preview-panel__section-header">
                       <h3>Quick result</h3>
+                      <span className="run-execution-preview-panel__current-status">
+                        {previewTest.status ?? 'Not run'}
+                      </span>
                     </div>
                     <div className="run-execution-preview-panel__result-actions">
                       {RUN_RESULT_OPTIONS.map((status) => {
@@ -779,7 +777,24 @@ function RunDetailPage() {
                     </div>
                   </div>
 
-                  <div className="run-execution-preview-panel__section">
+                  <div className="run-execution-preview-panel__body">
+                    <section className="run-execution-preview-panel__content-block">
+                      <h3>Steps</h3>
+                      <RunExecutionRichContent
+                        html={previewTest.steps}
+                        emptyLabel="No steps were added for this case."
+                      />
+                    </section>
+                    <section className="run-execution-preview-panel__content-block">
+                      <h3>Expected result</h3>
+                      <RunExecutionRichContent
+                        html={previewTest.expected}
+                        emptyLabel="No expected result was added for this case."
+                      />
+                    </section>
+                  </div>
+
+                  <div className="run-execution-preview-panel__footer">
                     <div className="run-execution-preview-panel__section-header">
                       <h3>Execution note</h3>
                       <span
@@ -803,7 +818,7 @@ function RunDetailPage() {
                       value={commentByTestId[previewTest.id] ?? ''}
                       placeholder="Execution note"
                       disabled={Boolean(pendingCommentByTestId[previewTest.id])}
-                      rows={4}
+                      rows={3}
                       onChange={(event) => {
                         const nextValue = event.currentTarget.value
                         setCommentByTestId((current) => ({
@@ -813,6 +828,13 @@ function RunDetailPage() {
                       }}
                     />
                     <div className="run-execution-preview-panel__actions">
+                      <Link
+                        to="/test/$testId"
+                        params={{ testId: previewTest.id.toString() }}
+                        className="run-execution-preview-panel__link-button no-underline"
+                      >
+                        Open full case
+                      </Link>
                       <Button
                         variant="secondary"
                         size="sm"
@@ -832,19 +854,9 @@ function RunDetailPage() {
                       </Button>
                     </div>
                   </div>
-
-                  <div className="run-execution-preview-panel__footer">
-                    <Link
-                      to="/test/$testId"
-                      params={{ testId: previewTest.id.toString() }}
-                      className="run-execution-preview-panel__link-button no-underline"
-                    >
-                      Open full case
-                    </Link>
-                  </div>
                 </aside>
-              ) : null}
-            </div>
+              </>
+            ) : null}
           </>
         )}
       </div>
