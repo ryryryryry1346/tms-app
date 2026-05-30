@@ -110,7 +110,13 @@ export type RunDetail = {
     caseType: string | null
     steps: string | null
     expected: string | null
+    executedBy: string | null
+    executedAt: string | null
   }>
+  currentUser: {
+    id: string
+    name: string
+  }
 }
 
 export const getRunsForProject = createServerFn({ method: 'POST' })
@@ -262,7 +268,7 @@ export const getRunDetail = createServerFn({ method: 'POST' })
   .inputValidator(getRunDetailInput)
   .handler(async ({ data }): Promise<RunDetail> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const sessionUser = await requireSessionUser()
     await ensureRunServerDeps()
 
     const db = getDb()
@@ -306,6 +312,8 @@ export const getRunDetail = createServerFn({ method: 'POST' })
         testTitle: testRunItems.testTitle,
         status: testRunItems.status,
         comment: testRunItems.comment,
+        executedByName: testRunItems.executedByName,
+        executedAt: testRunItems.executedAt,
         title: tests.title,
         suiteName: sections.name,
         priority: tests.priority,
@@ -335,6 +343,8 @@ export const getRunDetail = createServerFn({ method: 'POST' })
             caseType: row.caseType ?? null,
             steps: row.steps ?? null,
             expected: row.expected ?? null,
+            executedBy: row.executedByName ?? null,
+            executedAt: row.executedAt ?? null,
           }))
         : run.projectId === null
           ? []
@@ -365,6 +375,8 @@ export const getRunDetail = createServerFn({ method: 'POST' })
             caseType: test.caseType ?? null,
             steps: test.steps ?? null,
             expected: test.expected ?? null,
+            executedBy: null,
+            executedAt: null,
           }))
     const passed = fallbackRunTests.filter((test) => test.status === 'Passed').length
     const failed = fallbackRunTests.filter((test) => test.status === 'Failed').length
@@ -384,6 +396,10 @@ export const getRunDetail = createServerFn({ method: 'POST' })
         notRun,
       },
       tests: fallbackRunTests,
+      currentUser: {
+        id: sessionUser.id,
+        name: sessionUser.displayName,
+      },
     }
   })
 
@@ -451,7 +467,7 @@ export const executeRunTest = createServerFn({ method: 'POST' })
   .inputValidator(executeRunTestInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const sessionUser = await requireSessionUser()
     await ensureRunServerDeps()
 
     const db = getDb()
@@ -503,10 +519,23 @@ export const executeRunTest = createServerFn({ method: 'POST' })
       const updatePayload: {
         status?: 'Passed' | 'Failed' | 'Blocked' | null
         comment?: string | null
+        executedById?: string | null
+        executedByName?: string | null
+        executedAt?: string | null
       } = {}
 
       if (data.status !== undefined) {
         updatePayload.status = data.status ?? null
+
+        if (data.status) {
+          updatePayload.executedById = sessionUser.id
+          updatePayload.executedByName = sessionUser.displayName
+          updatePayload.executedAt = new Date().toISOString()
+        } else {
+          updatePayload.executedById = null
+          updatePayload.executedByName = null
+          updatePayload.executedAt = null
+        }
       }
 
       if (data.comment !== undefined) {
@@ -532,6 +561,9 @@ export const executeRunTest = createServerFn({ method: 'POST' })
         testTitle: testTitleRows[0]?.title ?? null,
         status: data.status ?? null,
         comment: data.comment ?? null,
+        executedById: data.status ? sessionUser.id : null,
+        executedByName: data.status ? sessionUser.displayName : null,
+        executedAt: data.status ? new Date().toISOString() : null,
       })
     }
 

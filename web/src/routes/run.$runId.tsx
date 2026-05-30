@@ -88,6 +88,25 @@ function formatRunPreviewMeta(
   return value?.trim() || fallback
 }
 
+function formatExecutedAt(value: string | null | undefined): string | null {
+  if (!value) {
+    return null
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+
+  return date.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 function RunExecutionRichContent({
   html,
   emptyLabel,
@@ -417,9 +436,13 @@ function RunDetailPage() {
     setErrorMessage(null)
 
     const previousTests = tests
+    const executedBy = status ? data.currentUser.name : null
+    const executedAt = status ? new Date().toISOString() : null
     setTests((current) =>
       current.map((test) =>
-        test.id === testId ? { ...test, status } : test,
+        test.id === testId
+          ? { ...test, status, executedBy, executedAt }
+          : test,
       ),
     )
     setPendingStatusByTestId((current) => ({
@@ -474,9 +497,13 @@ function RunDetailPage() {
 
     const previousTests = tests
     const targetIds = new Set(selectedTestIds)
+    const executedBy = status ? data.currentUser.name : null
+    const executedAt = status ? new Date().toISOString() : null
     setTests((current) =>
       current.map((test) =>
-        targetIds.has(test.id) ? { ...test, status } : test,
+        targetIds.has(test.id)
+          ? { ...test, status, executedBy, executedAt }
+          : test,
       ),
     )
     setIsBulkUpdating(true)
@@ -926,6 +953,11 @@ function RunDetailPage() {
                           <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
                             {test.title}
                           </div>
+                          {test.executedBy ? (
+                            <div className="truncate text-[0.7rem] text-[var(--tms-text-muted)]">
+                              by {test.executedBy}
+                            </div>
+                          ) : null}
                         </div>
                         <div
                           className="run-result-segmented"
@@ -1014,6 +1046,14 @@ function RunDetailPage() {
                         / {formatRunPreviewMeta(previewTest.priority)} /{' '}
                         {formatRunPreviewMeta(previewTest.caseType)}
                       </p>
+                      {previewTest.executedBy ? (
+                        <p className="run-execution-preview-panel__executor">
+                          Executed by {previewTest.executedBy}
+                          {formatExecutedAt(previewTest.executedAt)
+                            ? ` · ${formatExecutedAt(previewTest.executedAt)}`
+                            : ''}
+                        </p>
+                      ) : null}
                     </div>
                     <Button
                       variant="secondary"
