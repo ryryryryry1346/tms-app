@@ -107,7 +107,7 @@ function RunExecutionRichContent({
 
 function RunDetailPage() {
   const data = Route.useLoaderData()
-  const [tests, setTests] = useState(tests)
+  const [tests, setTests] = useState(data.tests)
   const testRowRefs = useRef<Record<number, HTMLDivElement | null>>({})
   const [pendingStatusByTestId, setPendingStatusByTestId] = useState<
     Record<number, boolean>
