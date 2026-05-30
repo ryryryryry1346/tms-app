@@ -1391,6 +1391,19 @@ pre code {
   font-size: 0.66rem;
 }
 
+.run-execution-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.run-execution-toolbar__search {
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+
 .run-execution-workspace {
   display: block;
 }

@@ -15,6 +15,8 @@ import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Checkbox } from '../components/ui/Checkbox'
 import { EmptyState } from '../components/ui/EmptyState'
+import { Input } from '../components/ui/Input'
+import { Select } from '../components/ui/Select'
 import { Panel } from '../components/ui/Panel'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import { Textarea } from '../components/ui/Textarea'
@@ -120,6 +122,9 @@ function RunDetailPage() {
   const [runFilter, setRunFilter] = useState<RunFilter>('All')
   const [previewTestId, setPreviewTestId] = useState<number | null>(null)
   const [focusedTestId, setFocusedTestId] = useState<number | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [suiteFilter, setSuiteFilter] = useState('All')
+  const [priorityFilter, setPriorityFilter] = useState('All')
 
   const passedCount = tests.filter((test) => test.status === 'Passed').length
   const failedCount = tests.filter((test) => test.status === 'Failed').length
@@ -138,16 +143,63 @@ function RunDetailPage() {
     tests.length === 0 ? 0 : (blockedCount / tests.length) * 100
 
   const filteredTests = useMemo(() => {
-    if (runFilter === 'All') {
-      return tests
-    }
+    const query = searchQuery.trim().toLowerCase()
 
-    if (runFilter === 'Not run') {
-      return tests.filter((test) => test.status === null)
-    }
+    return tests.filter((test) => {
+      if (runFilter === 'Not run') {
+        if (test.status !== null) {
+          return false
+        }
+      } else if (runFilter !== 'All') {
+        if (test.status !== runFilter) {
+          return false
+        }
+      }
 
-    return tests.filter((test) => test.status === runFilter)
-  }, [tests, runFilter])
+      if (suiteFilter !== 'All' && test.suiteName !== suiteFilter) {
+        return false
+      }
+
+      if (priorityFilter !== 'All' && test.priority !== priorityFilter) {
+        return false
+      }
+
+      if (query && !test.title.toLowerCase().includes(query)) {
+        return false
+      }
+
+      return true
+    })
+  }, [tests, runFilter, suiteFilter, priorityFilter, searchQuery])
+
+  const suiteOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          tests
+            .map((test) => test.suiteName)
+            .filter((name): name is string => Boolean(name)),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [tests],
+  )
+
+  const priorityOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          tests
+            .map((test) => test.priority)
+            .filter((value): value is string => Boolean(value)),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [tests],
+  )
+
+  const hasSecondaryFilters =
+    searchQuery.trim() !== '' ||
+    suiteFilter !== 'All' ||
+    priorityFilter !== 'All'
 
   const previewTest = useMemo(
     () =>
@@ -637,15 +689,6 @@ function RunDetailPage() {
             title="No linked test cases"
             description="This test run currently has no linked test cases."
           />
-        ) : filteredTests.length === 0 ? (
-          <EmptyState
-            title="No matching test cases"
-            description={
-              runFilter === 'All'
-                ? 'No test cases found in this run.'
-                : `No test cases match the "${runFilter}" filter.`
-            }
-          />
         ) : (
           <>
             <div className="workspace-dense-table-header">
@@ -656,6 +699,63 @@ function RunDetailPage() {
                 meta={`${filteredTests.length} visible`}
               />
             </div>
+
+            <div className="run-execution-toolbar">
+              <Input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search by title…"
+                size="sm"
+                className="run-execution-toolbar__search"
+                aria-label="Search cases by title"
+              />
+              <Select
+                value={suiteFilter}
+                onChange={(event) => setSuiteFilter(event.target.value)}
+                size="sm"
+                aria-label="Filter by suite"
+              >
+                <option value="All">All suites</option>
+                {suiteOptions.map((suite) => (
+                  <option key={suite} value={suite}>
+                    {suite}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                value={priorityFilter}
+                onChange={(event) => setPriorityFilter(event.target.value)}
+                size="sm"
+                aria-label="Filter by priority"
+              >
+                <option value="All">All priorities</option>
+                {priorityOptions.map((priority) => (
+                  <option key={priority} value={priority}>
+                    {priority}
+                  </option>
+                ))}
+              </Select>
+              {hasSecondaryFilters ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setSearchQuery('')
+                    setSuiteFilter('All')
+                    setPriorityFilter('All')
+                  }}
+                >
+                  Clear filters
+                </Button>
+              ) : null}
+            </div>
+
+            {filteredTests.length === 0 ? (
+              <EmptyState
+                title="No matching test cases"
+                description="No test cases match the current search and filters."
+              />
+            ) : (
             <div className="run-execution-workspace">
               <div className="run-execution-table-area">
                 <TableShell className="run-execution-table shadow-[var(--tms-shadow-panel)]">
@@ -792,6 +892,7 @@ function RunDetailPage() {
                 </TableShell>
               </div>
             </div>
+            )}
 
             {previewTest ? (
               <>
