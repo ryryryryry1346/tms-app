@@ -77,6 +77,32 @@ function getRunResultFromValue(value: RunResultSelectValue): RunItemStatus {
   return value === 'Not run' ? null : value
 }
 
+function formatRunPreviewMeta(
+  value: string | null | undefined,
+  fallback = 'Not set',
+): string {
+  return value?.trim() || fallback
+}
+
+function RunExecutionRichContent({
+  html,
+  emptyLabel,
+}: {
+  html: string | null | undefined
+  emptyLabel: string
+}) {
+  if (!html || html.trim().length === 0) {
+    return <p className="run-execution-preview-panel__empty">{emptyLabel}</p>
+  }
+
+  return (
+    <div
+      className="run-execution-preview-panel__rich rich-output"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  )
+}
+
 function RunDetailPage() {
   const data = Route.useLoaderData()
   const router = useRouter()
@@ -92,6 +118,7 @@ function RunDetailPage() {
   const [isBulkUpdating, setIsBulkUpdating] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [runFilter, setRunFilter] = useState<RunFilter>('All')
+  const [previewTestId, setPreviewTestId] = useState<number | null>(null)
 
   const passedCount = data.tests.filter((test) => test.status === 'Passed').length
   const failedCount = data.tests.filter((test) => test.status === 'Failed').length
@@ -121,6 +148,14 @@ function RunDetailPage() {
     return data.tests.filter((test) => test.status === runFilter)
   }, [data.tests, runFilter])
 
+  const previewTest = useMemo(
+    () =>
+      previewTestId === null
+        ? null
+        : data.tests.find((test) => test.id === previewTestId) ?? null,
+    [data.tests, previewTestId],
+  )
+
   const visibleTestIds = filteredTests.map((test) => test.id)
   const selectedTestIdSet = useMemo(
     () => new Set(selectedTestIds),
@@ -144,6 +179,11 @@ function RunDetailPage() {
     )
     setSelectedTestIds((current) =>
       current.filter((id) => data.tests.some((test) => test.id === id)),
+    )
+    setPreviewTestId((current) =>
+      current !== null && data.tests.some((test) => test.id === current)
+        ? current
+        : null,
     )
   }, [data.tests])
 
@@ -488,130 +528,323 @@ function RunDetailPage() {
                 meta={`${filteredTests.length} visible`}
               />
             </div>
-            <TableShell className="run-execution-table shadow-[var(--tms-shadow-panel)]">
-            <TableHead
-              columns="36px 64px minmax(280px,1fr) 132px minmax(240px,0.82fr) 62px"
-              minWidth="940px"
-              padding="sm"
+            <div
+              className={`run-execution-workspace${
+                previewTest ? ' run-execution-workspace--with-preview' : ''
+              }`}
             >
-              <div>
-                <Checkbox
-                  checked={allVisibleSelected}
-                  onChange={toggleVisibleSelection}
-                  aria-label="Select visible tests"
-                />
-              </div>
-              <div>ID</div>
-              <div>Title</div>
-              <div>Result</div>
-              <div>Comment</div>
-              <div className="text-right">Open</div>
-            </TableHead>
-
-            {filteredTests.map((test) => {
-              const isStatusPending = Boolean(pendingStatusByTestId[test.id])
-              const isCommentPending = Boolean(pendingCommentByTestId[test.id])
-              const commentValue = commentByTestId[test.id] ?? ''
-              const isCommentDirty = commentValue !== (test.comment ?? '')
-
-              return (
-                <TableRow
-                  key={test.id}
-                  ref={(node) => {
-                    testRowRefs.current[test.id] = node
-                  }}
-                  columns="36px 64px minmax(280px,1fr) 132px minmax(240px,0.82fr) 62px"
-                  minWidth="940px"
-                  padding="sm"
-                  className="run-execution-row"
-                >
-                  <div>
-                    <Checkbox
-                      checked={selectedTestIdSet.has(test.id)}
-                      onChange={() => toggleTestSelection(test.id)}
-                      aria-label={`Select test ${test.id}`}
-                    />
-                  </div>
-                  <Link
-                    to="/test/$testId"
-                    params={{ testId: test.id.toString() }}
-                    className="text-sm font-semibold no-underline text-[var(--tms-primary)]"
+              <div className="run-execution-table-area">
+                <TableShell className="run-execution-table shadow-[var(--tms-shadow-panel)]">
+                  <TableHead
+                    columns="36px 64px minmax(280px,1fr) 132px minmax(240px,0.82fr) 62px"
+                    minWidth="940px"
+                    padding="sm"
                   >
-                    #{test.id}
-                  </Link>
-                  <div className="min-w-0 pr-3">
-                    <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
-                      {test.title}
+                    <div>
+                      <Checkbox
+                        checked={allVisibleSelected}
+                        onChange={toggleVisibleSelection}
+                        aria-label="Select visible tests"
+                      />
+                    </div>
+                    <div>ID</div>
+                    <div>Title</div>
+                    <div>Result</div>
+                    <div>Comment</div>
+                    <div className="text-right">Open</div>
+                  </TableHead>
+
+                  {filteredTests.map((test) => {
+                    const isStatusPending = Boolean(pendingStatusByTestId[test.id])
+                    const isCommentPending = Boolean(
+                      pendingCommentByTestId[test.id],
+                    )
+                    const commentValue = commentByTestId[test.id] ?? ''
+                    const isCommentDirty = commentValue !== (test.comment ?? '')
+
+                    return (
+                      <TableRow
+                        key={test.id}
+                        ref={(node) => {
+                          testRowRefs.current[test.id] = node
+                        }}
+                        columns="36px 64px minmax(280px,1fr) 132px minmax(240px,0.82fr) 62px"
+                        minWidth="940px"
+                        padding="sm"
+                        className={`run-execution-row${
+                          previewTestId === test.id
+                            ? ' run-execution-row--active'
+                            : ''
+                        }`}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setPreviewTestId(test.id)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            setPreviewTestId(test.id)
+                          }
+                        }}
+                      >
+                        <div onClick={(event) => event.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedTestIdSet.has(test.id)}
+                            onChange={() => toggleTestSelection(test.id)}
+                            aria-label={`Select test ${test.id}`}
+                          />
+                        </div>
+                        <Link
+                          to="/test/$testId"
+                          params={{ testId: test.id.toString() }}
+                          className="text-sm font-semibold no-underline text-[var(--tms-primary)]"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          #{test.id}
+                        </Link>
+                        <div className="min-w-0 pr-3">
+                          <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
+                            {test.title}
+                          </div>
+                        </div>
+                        <div onClick={(event) => event.stopPropagation()}>
+                          <select
+                            value={test.status ?? 'Not run'}
+                            disabled={isStatusPending}
+                            onChange={(event) => {
+                              void handleRunTest(
+                                test.id,
+                                getRunResultFromValue(
+                                  event.target.value as RunResultSelectValue,
+                                ),
+                              )
+                            }}
+                            className={`run-result-select disabled:cursor-not-allowed disabled:opacity-60 ${getRunResultChipClass(test.status)}`}
+                            aria-label={`Set execution result for test ${test.id}`}
+                          >
+                            {RUN_RESULT_OPTIONS.map((status) => (
+                              <option key={status} value={status}>
+                                {status}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div
+                          className="run-comment-cell"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <Textarea
+                            value={commentValue}
+                            onChange={(event) =>
+                              setCommentByTestId((current) => ({
+                                ...current,
+                                [test.id]: event.target.value,
+                              }))
+                            }
+                            rows={1}
+                            placeholder="Execution note"
+                            size="sm"
+                            className="run-comment-input min-w-[170px] flex-1"
+                            onBlur={(event) => {
+                              void handleSaveComment(
+                                test.id,
+                                event.currentTarget.value,
+                              )
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' && !event.shiftKey) {
+                                event.preventDefault()
+                                void handleSaveComment(
+                                  test.id,
+                                  event.currentTarget.value,
+                                )
+                              }
+                            }}
+                          />
+                          {isCommentPending || isCommentDirty ? (
+                            <span
+                              className={`run-comment-state ${
+                                isCommentDirty ? 'run-comment-state--dirty' : ''
+                              }`}
+                            >
+                              {isCommentPending ? 'Saving' : 'Unsaved'}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="text-right">
+                          <Link
+                            to="/test/$testId"
+                            params={{ testId: test.id.toString() }}
+                            className="text-sm font-semibold no-underline text-[var(--tms-primary)]"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            Open
+                          </Link>
+                        </div>
+                      </TableRow>
+                    )
+                  })}
+                </TableShell>
+              </div>
+
+              {previewTest ? (
+                <aside
+                  className="run-execution-preview-panel"
+                  aria-label="Case execution preview"
+                >
+                  <div className="run-execution-preview-panel__header">
+                    <div className="run-execution-preview-panel__copy">
+                      <div className="run-execution-preview-panel__kicker">
+                        Execution preview
+                      </div>
+                      <h2 className="run-execution-preview-panel__title">
+                        #{previewTest.id} {previewTest.title}
+                      </h2>
+                      <p className="run-execution-preview-panel__subtitle">
+                        {formatRunPreviewMeta(previewTest.suiteName, 'No suite')}{' '}
+                        / {formatRunPreviewMeta(previewTest.priority)} /{' '}
+                        {formatRunPreviewMeta(previewTest.caseType)}
+                      </p>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setPreviewTestId(null)}
+                    >
+                      Close
+                    </Button>
+                  </div>
+
+                  <div className="run-execution-preview-panel__metadata">
+                    <div className="run-execution-preview-panel__metadata-item">
+                      <span>Result</span>
+                      <strong>{previewTest.status ?? 'Not run'}</strong>
+                    </div>
+                    <div className="run-execution-preview-panel__metadata-item">
+                      <span>Note</span>
+                      <strong>
+                        {(commentByTestId[previewTest.id] ?? '').trim()
+                          ? 'Added'
+                          : 'Empty'}
+                      </strong>
                     </div>
                   </div>
-                  <div>
-                    <select
-                      value={test.status ?? 'Not run'}
-                      disabled={isStatusPending}
-                      onChange={(event) => {
-                        void handleRunTest(
-                          test.id,
-                          getRunResultFromValue(
-                            event.target.value as RunResultSelectValue,
-                          ),
+
+                  <div className="run-execution-preview-panel__section">
+                    <div className="run-execution-preview-panel__section-header">
+                      <h3>Quick result</h3>
+                    </div>
+                    <div className="run-execution-preview-panel__result-actions">
+                      {RUN_RESULT_OPTIONS.map((status) => {
+                        const nextStatus = getRunResultFromValue(status)
+                        const isActive = (previewTest.status ?? 'Not run') === status
+
+                        return (
+                          <Button
+                            key={status}
+                            variant={isActive ? 'primary' : 'secondary'}
+                            size="sm"
+                            disabled={Boolean(
+                              pendingStatusByTestId[previewTest.id],
+                            )}
+                            className={`${getRunResultChipClass(nextStatus)}${
+                              isActive
+                                ? ' run-execution-preview-panel__status-button--active'
+                                : ''
+                            }`}
+                            onClick={() =>
+                              void handleRunTest(previewTest.id, nextStatus)
+                            }
+                          >
+                            {status}
+                          </Button>
                         )
-                      }}
-                      className={`run-result-select disabled:cursor-not-allowed disabled:opacity-60 ${getRunResultChipClass(test.status)}`}
-                      aria-label={`Set execution result for test ${test.id}`}
-                    >
-                      {RUN_RESULT_OPTIONS.map((status) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))}
-                    </select>
+                      })}
+                    </div>
                   </div>
-                  <div className="run-comment-cell">
-                    <Textarea
-                      value={commentValue}
-                      onChange={(event) =>
-                        setCommentByTestId((current) => ({
-                          ...current,
-                          [test.id]: event.target.value,
-                        }))
-                      }
-                      rows={1}
-                      placeholder="Execution note"
-                      size="sm"
-                      className="run-comment-input min-w-[170px] flex-1"
-                      onBlur={(event) => {
-                        void handleSaveComment(test.id, event.currentTarget.value)
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' && !event.shiftKey) {
-                          event.preventDefault()
-                          void handleSaveComment(test.id, event.currentTarget.value)
-                        }
-                      }}
-                    />
-                    {isCommentPending || isCommentDirty ? (
+
+                  <div className="run-execution-preview-panel__section">
+                    <div className="run-execution-preview-panel__section-header">
+                      <h3>Execution note</h3>
                       <span
-                        className={`run-comment-state ${
-                          isCommentDirty ? 'run-comment-state--dirty' : ''
+                        className={`run-comment-state${
+                          (commentByTestId[previewTest.id] ?? '') !==
+                          (previewTest.comment ?? '')
+                            ? ' run-comment-state--dirty'
+                            : ''
                         }`}
                       >
-                        {isCommentPending ? 'Saving' : 'Unsaved'}
+                        {pendingCommentByTestId[previewTest.id]
+                          ? 'Saving'
+                          : (commentByTestId[previewTest.id] ?? '') !==
+                              (previewTest.comment ?? '')
+                            ? 'Unsaved'
+                            : 'Saved'}
                       </span>
-                    ) : null}
+                    </div>
+                    <Textarea
+                      className="run-execution-preview-panel__textarea"
+                      value={commentByTestId[previewTest.id] ?? ''}
+                      placeholder="Execution note"
+                      disabled={Boolean(pendingCommentByTestId[previewTest.id])}
+                      rows={4}
+                      onChange={(event) => {
+                        const nextValue = event.currentTarget.value
+                        setCommentByTestId((current) => ({
+                          ...current,
+                          [previewTest.id]: nextValue,
+                        }))
+                      }}
+                    />
+                    <div className="run-execution-preview-panel__actions">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={
+                          pendingCommentByTestId[previewTest.id] ||
+                          (commentByTestId[previewTest.id] ?? '') ===
+                            (previewTest.comment ?? '')
+                        }
+                        onClick={() =>
+                          void handleSaveComment(
+                            previewTest.id,
+                            commentByTestId[previewTest.id] ?? '',
+                          )
+                        }
+                      >
+                        Save note
+                      </Button>
+                    </div>
                   </div>
-                  <div className="text-right">
+
+                  <div className="run-execution-preview-panel__body">
+                    <section className="run-execution-preview-panel__content-block">
+                      <h3>Steps</h3>
+                      <RunExecutionRichContent
+                        html={previewTest.steps}
+                        emptyLabel="No steps were added for this case."
+                      />
+                    </section>
+                    <section className="run-execution-preview-panel__content-block">
+                      <h3>Expected result</h3>
+                      <RunExecutionRichContent
+                        html={previewTest.expected}
+                        emptyLabel="No expected result was added for this case."
+                      />
+                    </section>
+                  </div>
+
+                  <div className="run-execution-preview-panel__footer">
                     <Link
                       to="/test/$testId"
-                      params={{ testId: test.id.toString() }}
-                      className="text-sm font-semibold no-underline text-[var(--tms-primary)]"
+                      params={{ testId: previewTest.id.toString() }}
+                      className="run-execution-preview-panel__link-button no-underline"
                     >
-                      Open
+                      Open full case
                     </Link>
                   </div>
-                </TableRow>
-              )
-            })}
-            </TableShell>
+                </aside>
+              ) : null}
+            </div>
           </>
         )}
       </div>

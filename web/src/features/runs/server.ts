@@ -8,6 +8,7 @@ let inArray: typeof import('drizzle-orm')['inArray']
 let getDb: typeof import('../../db/client')['getDb']
 let isDatabaseConfigured: typeof import('../../db/client')['isDatabaseConfigured']
 let projects: typeof import('../../db/schema')['projects']
+let sections: typeof import('../../db/schema')['sections']
 let testRunItems: typeof import('../../db/schema')['testRunItems']
 let testRuns: typeof import('../../db/schema')['testRuns']
 let tests: typeof import('../../db/schema')['tests']
@@ -31,6 +32,7 @@ async function ensureRunServerDeps(): Promise<void> {
   getDb = dbClient.getDb
   isDatabaseConfigured = dbClient.isDatabaseConfigured
   projects = schema.projects
+  sections = schema.sections
   testRunItems = schema.testRunItems
   testRuns = schema.testRuns
   tests = schema.tests
@@ -92,6 +94,11 @@ export type RunDetail = {
     title: string
     status: RunItemStatus
     comment: string | null
+    suiteName: string | null
+    priority: string | null
+    caseType: string | null
+    steps: string | null
+    expected: string | null
   }>
 }
 
@@ -287,15 +294,23 @@ export const getRunDetail = createServerFn({ method: 'POST' })
         testTitle: testRunItems.testTitle,
         status: testRunItems.status,
         comment: testRunItems.comment,
+        title: tests.title,
+        suiteName: sections.name,
+        priority: tests.priority,
+        caseType: tests.caseType,
+        steps: tests.steps,
+        expected: tests.expected,
       })
       .from(testRunItems)
+      .leftJoin(tests, eq(testRunItems.testId, tests.id))
+      .leftJoin(sections, eq(tests.sectionId, sections.id))
       .where(eq(testRunItems.runId, run.id))
 
     const runTests =
       runItemRows.length > 0
         ? runItemRows.map((row) => ({
             id: row.testId ?? row.id,
-            title: row.testTitle ?? `Test ${row.testId ?? row.id}`,
+            title: row.testTitle ?? row.title ?? `Test ${row.testId ?? row.id}`,
             status:
               row.status === 'Passed' ||
               row.status === 'Failed' ||
@@ -303,6 +318,11 @@ export const getRunDetail = createServerFn({ method: 'POST' })
                 ? row.status
                 : null,
             comment: row.comment ?? null,
+            suiteName: row.suiteName ?? null,
+            priority: row.priority ?? null,
+            caseType: row.caseType ?? null,
+            steps: row.steps ?? null,
+            expected: row.expected ?? null,
           }))
         : run.projectId === null
           ? []
@@ -310,8 +330,14 @@ export const getRunDetail = createServerFn({ method: 'POST' })
               .select({
                 id: tests.id,
                 title: tests.title,
+                suiteName: sections.name,
+                priority: tests.priority,
+                caseType: tests.caseType,
+                steps: tests.steps,
+                expected: tests.expected,
               })
               .from(tests)
+              .leftJoin(sections, eq(tests.sectionId, sections.id))
               .where(eq(tests.projectId, run.projectId))
               .orderBy(asc(tests.id))
 
@@ -322,6 +348,11 @@ export const getRunDetail = createServerFn({ method: 'POST' })
             ...test,
             status: null,
             comment: null,
+            suiteName: test.suiteName ?? null,
+            priority: test.priority ?? null,
+            caseType: test.caseType ?? null,
+            steps: test.steps ?? null,
+            expected: test.expected ?? null,
           }))
     const passed = fallbackRunTests.filter((test) => test.status === 'Passed').length
     const failed = fallbackRunTests.filter((test) => test.status === 'Failed').length
