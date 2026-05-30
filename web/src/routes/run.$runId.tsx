@@ -557,6 +557,13 @@ function RunDetailPage() {
                   style={{ width: `${blockedProgress}%` }}
                 />
               </div>
+              <div className="mt-1.5 text-[0.7rem] font-semibold text-[var(--tms-text-muted)]">
+                {tests.length === 0
+                  ? 'No test cases in this run'
+                  : notRunCount > 0
+                    ? `${notRunCount} not run remaining`
+                    : 'All cases executed'}
+              </div>
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
@@ -653,7 +660,7 @@ function RunDetailPage() {
               <div className="run-execution-table-area">
                 <TableShell className="run-execution-table shadow-[var(--tms-shadow-panel)]">
                   <TableHead
-                    columns="36px 64px minmax(280px,1fr) 132px 88px 64px"
+                    columns="36px 64px minmax(280px,1fr) 132px 88px"
                     minWidth="760px"
                     padding="sm"
                   >
@@ -668,7 +675,6 @@ function RunDetailPage() {
                     <div>Title</div>
                     <div>Result</div>
                     <div className="text-center">Comment</div>
-                    <div className="text-right">Open</div>
                   </TableHead>
 
                   {filteredTests.map((test) => {
@@ -681,7 +687,7 @@ function RunDetailPage() {
                         ref={(node) => {
                           testRowRefs.current[test.id] = node
                         }}
-                        columns="36px 64px minmax(280px,1fr) 132px 88px 64px"
+                        columns="36px 64px minmax(280px,1fr) 132px 88px"
                         minWidth="760px"
                         padding="sm"
                         className={`run-execution-row${
@@ -779,16 +785,6 @@ function RunDetailPage() {
                               —
                             </span>
                           )}
-                        </div>
-                        <div className="text-right">
-                          <Link
-                            to="/test/$testId"
-                            params={{ testId: test.id.toString() }}
-                            className="text-sm font-semibold no-underline text-[var(--tms-primary)]"
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            Open
-                          </Link>
                         </div>
                       </TableRow>
                     )
