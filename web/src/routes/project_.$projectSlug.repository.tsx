@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-router'
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { LazyRichTextEditor } from '../components/RichTextEditor.lazy'
+import { sanitizeHtml } from '../lib/sanitize-html'
 import { z } from 'zod'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { BulkCaseBar } from '../components/repository/BulkCaseBar'
@@ -4107,7 +4108,7 @@ function ProjectRepositoryPage() {
                               className="rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
                               onClick={handleRichContentClick}
                               dangerouslySetInnerHTML={{
-                                __html: splitPreviewTest.steps ?? '',
+                                __html: sanitizeHtml(splitPreviewTest.steps ?? ''),
                               }}
                             />
                           ) : (
@@ -4123,7 +4124,7 @@ function ProjectRepositoryPage() {
                               className="rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
                               onClick={handleRichContentClick}
                               dangerouslySetInnerHTML={{
-                                __html: splitPreviewTest.expected ?? '',
+                                __html: sanitizeHtml(splitPreviewTest.expected ?? ''),
                               }}
                             />
                           ) : (

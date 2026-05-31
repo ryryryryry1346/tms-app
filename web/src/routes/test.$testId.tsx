@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-router'
 import { useState } from 'react'
 import { RichTextEditor } from '../components/RichTextEditor'
+import { sanitizeHtml } from '../lib/sanitize-html'
 import { EditingFieldGroup, EditingSurfaceSection } from '../components/layout/EditingSurface'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Alert } from '../components/ui/Alert'
@@ -902,7 +903,7 @@ function TestDetailPage() {
                         className="editing-rich-block__content rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
                         onClick={handleRichContentClick}
                         dangerouslySetInnerHTML={{
-                          __html: test.steps || '<p>-</p>',
+                          __html: sanitizeHtml(test.steps || '<p>-</p>'),
                         }}
                       />
                     </section>
@@ -917,7 +918,7 @@ function TestDetailPage() {
                         className="editing-rich-block__content rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
                         onClick={handleRichContentClick}
                         dangerouslySetInnerHTML={{
-                          __html: test.expected || '<p>-</p>',
+                          __html: sanitizeHtml(test.expected || '<p>-</p>'),
                         }}
                       />
                     </section>

@@ -5,6 +5,7 @@ import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { ConfirmActionAlert } from '../ui/ConfirmActionAlert'
 import { Panel } from '../ui/Panel'
+import { sanitizeHtml } from '../../lib/sanitize-html'
 
 type PreviewCase = {
   id: number
@@ -223,7 +224,7 @@ export function CasePreviewDrawer({
                 <div
                   className="editing-rich-block__content rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
                   onClick={onRichContentClick}
-                  dangerouslySetInnerHTML={{ __html: test.steps || '<p>-</p>' }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(test.steps || '<p>-</p>') }}
                 />
               </section>
 
@@ -236,7 +237,7 @@ export function CasePreviewDrawer({
                 <div
                   className="editing-rich-block__content rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
                   onClick={onRichContentClick}
-                  dangerouslySetInnerHTML={{ __html: test.expected || '<p>-</p>' }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(test.expected || '<p>-</p>') }}
                 />
               </section>
 

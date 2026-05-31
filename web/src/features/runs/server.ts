@@ -2,6 +2,8 @@ import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
+const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024
+
 let and: typeof import('drizzle-orm')['and']
 let asc: typeof import('drizzle-orm')['asc']
 let desc: typeof import('drizzle-orm')['desc']
@@ -562,6 +564,10 @@ export const addRunItemAttachment = createServerFn({ method: 'POST' }).handler(
 
     if (!Number.isInteger(testId) || testId <= 0) {
       throw new Error('Invalid test id.')
+    }
+
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      throw new Error('Attachment is too large. Maximum size is 15 MB.')
     }
 
     const url = await uploadMediaToCloudinary(file)

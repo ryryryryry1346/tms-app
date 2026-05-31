@@ -15,6 +15,7 @@ import {
   updateProjectDoc,
 } from '../features/docs/server'
 import { uploadTestMedia } from '../features/media/server'
+import { sanitizeHtml } from '../lib/sanitize-html'
 
 const SelectMenu = lazy(() =>
   import('../components/ui/SelectMenu').then((module) => ({
@@ -341,7 +342,7 @@ function ProjectDocDetailPage() {
                 {content.trim().length > 0 ? (
                   <div
                     className="docs-content-view__body"
-                    dangerouslySetInnerHTML={{ __html: readableContentHtml }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(readableContentHtml) }}
                   />
                 ) : (
                   <div className="docs-content-view__empty">

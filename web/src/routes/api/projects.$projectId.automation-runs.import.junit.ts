@@ -4,6 +4,8 @@ import {
   importJunitAutomationRun,
 } from '../../features/automation/server'
 
+const MAX_IMPORT_BYTES = 20 * 1024 * 1024
+
 export const Route = createFileRoute(
   '/api/projects/$projectId/automation-runs/import/junit',
 )({
@@ -27,6 +29,13 @@ export const Route = createFileRoute(
 
           if (!(file instanceof File)) {
             return jsonResponse({ error: 'Upload a JUnit XML file.' }, 400)
+          }
+
+          if (file.size > MAX_IMPORT_BYTES) {
+            return jsonResponse(
+              { error: 'JUnit file is too large. Maximum size is 20 MB.' },
+              413,
+            )
           }
 
           const xml = await file.text()

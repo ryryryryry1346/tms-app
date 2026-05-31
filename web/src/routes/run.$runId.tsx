@@ -29,6 +29,7 @@ import { Select } from '../components/ui/Select'
 import { Panel } from '../components/ui/Panel'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import { Textarea } from '../components/ui/Textarea'
+import { sanitizeHtml } from '../lib/sanitize-html'
 
 export const Route = createFileRoute('/run/$runId')({
   loader: async ({ params }) => {
@@ -129,7 +130,7 @@ function RunExecutionRichContent({
   return (
     <div
       className="run-execution-preview-panel__rich rich-output"
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
     />
   )
 }

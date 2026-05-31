@@ -1,5 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 
+const MAX_UPLOAD_BYTES = 15 * 1024 * 1024
+
 export const uploadTestMedia = createServerFn({ method: 'POST' }).handler(
   async ({ data }): Promise<{ url: string }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
@@ -15,6 +17,10 @@ export const uploadTestMedia = createServerFn({ method: 'POST' }).handler(
 
     if (!(file instanceof File)) {
       throw new Error('Upload request is missing the file field.')
+    }
+
+    if (file.size > MAX_UPLOAD_BYTES) {
+      throw new Error('File is too large. Maximum size is 15 MB.')
     }
 
     try {

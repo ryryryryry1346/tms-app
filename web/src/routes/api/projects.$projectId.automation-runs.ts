@@ -4,6 +4,8 @@ import {
   importJsonAutomationRun,
 } from '../../features/automation/server'
 
+const MAX_IMPORT_BYTES = 20 * 1024 * 1024
+
 export const Route = createFileRoute('/api/projects/$projectId/automation-runs')(
   {
     server: {
@@ -19,6 +21,17 @@ export const Route = createFileRoute('/api/projects/$projectId/automation-runs')
             projectId,
             request.headers.get('authorization'),
           )
+
+          const contentLength = Number(
+            request.headers.get('content-length') ?? '0',
+          )
+
+          if (contentLength > MAX_IMPORT_BYTES) {
+            return jsonResponse(
+              { error: 'Request body is too large. Maximum size is 20 MB.' },
+              413,
+            )
+          }
 
           try {
             const payload = await request.json()
