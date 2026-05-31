@@ -15,7 +15,7 @@ const selectVariants = cva('tms-select', {
   },
 })
 
-export type SelectProps = SelectHTMLAttributes<HTMLSelectElement> &
+export type SelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> &
   VariantProps<typeof selectVariants>
 
 export function Select({ className, size, ...props }: SelectProps) {

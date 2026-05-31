@@ -10,7 +10,7 @@ let projectDocs: typeof import('../../db/schema')['projectDocs']
 let projects: typeof import('../../db/schema')['projects']
 
 async function ensureDocsServerDeps(): Promise<void> {
-  if (getDb) {
+  if (typeof getDb !== 'undefined') {
     return
   }
 

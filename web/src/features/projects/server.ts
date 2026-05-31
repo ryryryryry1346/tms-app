@@ -15,7 +15,7 @@ let ensureProjectSlugs: typeof import('./slug')['ensureProjectSlugs']
 let ensureUniqueProjectSlug: typeof import('./slug')['ensureUniqueProjectSlug']
 
 async function ensureProjectServerDeps(): Promise<void> {
-  if (getDb) {
+  if (typeof getDb !== 'undefined') {
     return
   }
 

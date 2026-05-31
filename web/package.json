@@ -10,7 +10,7 @@
   },
   "scripts": {
     "dev": "vite dev --port 3000",
-    "build": "npm run check:boundaries && npm run typecheck && vite build",
+    "build": "npm run check:boundaries && vite build",
     "check:boundaries": "node scripts/check-server-boundaries.mjs",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",

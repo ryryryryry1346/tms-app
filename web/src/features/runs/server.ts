@@ -20,7 +20,7 @@ let runItemAttachments: typeof import('../../db/schema')['runItemAttachments']
 let ensureProjectSlugs: typeof import('../projects/slug')['ensureProjectSlugs']
 
 async function ensureRunServerDeps(): Promise<void> {
-  if (getDb) {
+  if (typeof getDb !== 'undefined') {
     return
   }
 
@@ -403,9 +403,9 @@ export const getRunDetail = createServerFn({ method: 'POST' })
               .where(eq(tests.projectId, run.projectId))
               .orderBy(asc(tests.id))
 
-    const fallbackRunTests =
+    const fallbackRunTests: RunDetail['tests'] =
       runItemRows.length > 0
-        ? runTests
+        ? (runTests as RunDetail['tests'])
         : runTests.map((test) => ({
             ...test,
             status: null,
@@ -539,20 +539,24 @@ export const getRunItemAttachments = createServerFn({ method: 'POST' })
     },
   )
 
-export const addRunItemAttachment = createServerFn({ method: 'POST' }).handler(
+export const addRunItemAttachment = createServerFn({ method: 'POST' })
+  .inputValidator((data: FormData) => data)
+  .handler(
   async ({ data }): Promise<{ attachment: RunItemAttachment }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     const { uploadMediaToCloudinary } = await import('../media/helpers.server')
     const sessionUser = await requireSessionUser()
     await ensureRunServerDeps()
 
-    if (!(data instanceof FormData)) {
+    const form = data as unknown as FormData
+
+    if (!(form instanceof FormData)) {
       throw new Error('Upload request must be sent as FormData.')
     }
 
-    const file = data.get('file')
-    const runId = Number(data.get('runId'))
-    const testId = Number(data.get('testId'))
+    const file = form.get('file')
+    const runId = Number(form.get('runId'))
+    const testId = Number(form.get('testId'))
 
     if (!(file instanceof File)) {
       throw new Error('Upload request is missing the file field.')
@@ -847,12 +851,7 @@ export const saveRunItemComment = createServerFn({ method: 'POST' })
         runId: data.runId,
         testId: data.testId,
         testTitle: test.title,
-        status:
-          existingRow?.status === 'Passed' ||
-          existingRow?.status === 'Failed' ||
-          existingRow?.status === 'Blocked'
-            ? existingRow.status
-            : null,
+        status: null,
         comment: data.comment,
       })
     }

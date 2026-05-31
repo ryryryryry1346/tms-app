@@ -3811,7 +3811,7 @@ function ProjectRepositoryPage() {
                 ) : null}
               </section>
 
-              {shouldShowSplitPreview ? (
+              {splitPreviewTest ? (
                 <aside
                   className="repository-preview-panel"
                   aria-label="Test case preview"

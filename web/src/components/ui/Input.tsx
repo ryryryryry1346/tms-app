@@ -15,7 +15,7 @@ const inputVariants = cva('tms-input', {
   },
 })
 
-export type InputProps = InputHTMLAttributes<HTMLInputElement> &
+export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> &
   VariantProps<typeof inputVariants>
 
 export function Input({ className, size, ...props }: InputProps) {

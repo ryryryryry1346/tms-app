@@ -18,7 +18,7 @@ let sections: typeof import('../../db/schema')['sections']
 let tests: typeof import('../../db/schema')['tests']
 
 async function ensureAutomationServerDeps(): Promise<void> {
-  if (getDb) {
+  if (typeof getDb !== 'undefined') {
     return
   }
 

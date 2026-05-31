@@ -2,18 +2,22 @@ import { createServerFn } from '@tanstack/react-start'
 
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 
-export const uploadTestMedia = createServerFn({ method: 'POST' }).handler(
+export const uploadTestMedia = createServerFn({ method: 'POST' })
+  .inputValidator((data: FormData) => data)
+  .handler(
   async ({ data }): Promise<{ url: string }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     const { uploadMediaToCloudinary } = await import('./helpers.server')
 
     await requireSessionUser()
 
-    if (!(data instanceof FormData)) {
+    const form = data as unknown as FormData
+
+    if (!(form instanceof FormData)) {
       throw new Error('Upload request must be sent as FormData.')
     }
 
-    const file = data.get('file')
+    const file = form.get('file')
 
     if (!(file instanceof File)) {
       throw new Error('Upload request is missing the file field.')

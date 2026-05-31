@@ -19,7 +19,7 @@ let testRunItems: typeof import('../../db/schema')['testRunItems']
 let ensureProjectSlugs: typeof import('../projects/slug')['ensureProjectSlugs']
 
 async function ensureTestServerDeps(): Promise<void> {
-  if (getDb) {
+  if (typeof getDb !== 'undefined') {
     return
   }
 
