@@ -2222,6 +2222,115 @@ pre code {
   color: var(--tms-primary);
 }
 
+.docs-detail-page .workspace-view__inner {
+  width: min(1240px, 100%);
+  padding-top: 1rem;
+}
+
+.docs-detail-page .workspace-view__stack {
+  gap: 0.875rem;
+}
+
+.docs-detail-top-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+}
+
+.docs-detail-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  color: var(--tms-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.docs-detail-breadcrumb a:hover {
+  color: var(--tms-primary);
+}
+
+.docs-detail-back-link.tms-button {
+  min-height: 2rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+}
+
+.docs-detail-header-panel {
+  overflow: hidden;
+}
+
+.docs-detail-header-body {
+  padding: 1rem;
+}
+
+.docs-detail-header-layout {
+  display: grid;
+  align-items: start;
+  gap: 0.875rem;
+}
+
+.docs-detail-heading {
+  min-width: 0;
+}
+
+.docs-detail-meta-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.625rem;
+  color: var(--tms-text-soft);
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.docs-detail-meta-line span {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.docs-detail-meta-line span:not(:last-child)::after {
+  content: "/";
+  margin-left: 0.625rem;
+  color: var(--tms-border-default);
+  font-weight: 500;
+}
+
+.docs-detail-title {
+  min-width: 0;
+  margin: 0.375rem 0 0;
+  overflow-wrap: anywhere;
+  color: var(--tms-text);
+  font-size: 1.65rem;
+  font-weight: 700;
+  line-height: 1.12;
+}
+
+.docs-detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.625rem;
+}
+
+.docs-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 0.5rem;
+}
+
+.docs-detail-content-panel {
+  padding: 1rem;
+}
+
 .docs-index-header {
   display: flex;
   flex-wrap: wrap;
@@ -2349,6 +2458,27 @@ pre code {
 
   .docs-cockpit-toolbar {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 640px) {
+  .docs-detail-header-body,
+  .docs-detail-content-panel {
+    padding: 1.125rem;
+  }
+
+  .docs-detail-title {
+    font-size: 2rem;
+  }
+}
+
+@media (min-width: 900px) {
+  .docs-detail-header-layout {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .docs-detail-actions {
+    justify-content: flex-end;
   }
 }
 

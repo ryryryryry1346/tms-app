@@ -1,14 +1,28 @@
-import { createFileRoute, notFound, redirect, useNavigate, useRouter } from '@tanstack/react-router'
+import {
+  Link,
+  createFileRoute,
+  notFound,
+  redirect,
+  useNavigate,
+  useRouter,
+} from '@tanstack/react-router'
+import { MoreHorizontal } from 'lucide-react'
 import { lazy, Suspense, useMemo, useState } from 'react'
-import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
-import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { LinkButton } from '../components/ui/LinkButton'
 import { Panel } from '../components/ui/Panel'
-import { LazyRichTextEditor, preloadRichTextEditor } from '../components/RichTextEditor.lazy'
+import {
+  PopoverMenu,
+  PopoverMenuItem,
+  PopoverMenuLabel,
+} from '../components/ui/PopoverMenu'
+import {
+  LazyRichTextEditor,
+  preloadRichTextEditor,
+} from '../components/RichTextEditor.lazy'
 import {
   deleteProjectDoc,
   getProjectDocDetail,
@@ -105,6 +119,7 @@ function ProjectDocDetailPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
+  const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const readableContentHtml = useMemo(
     () => prepareDocContentHtml(content),
@@ -185,43 +200,57 @@ function ProjectDocDetailPage() {
   }
 
   return (
-    <main className="workspace-view">
+    <main className="workspace-view docs-detail-page">
       <div className="workspace-view__inner">
         <div className="workspace-view__stack">
-          <ProjectPageHeader
-            eyebrow="Project docs"
-            projectName={title}
-            description={`${project.name} knowledge doc.`}
-            actions={
-              <LinkButton
+          <div className="docs-detail-top-nav">
+            <div className="docs-detail-breadcrumb">
+              <Link
                 to="/project/$projectSlug/docs"
                 params={{ projectSlug }}
-                variant="secondary"
+                className="no-underline text-[var(--tms-primary)]"
               >
-                Back to docs
-              </LinkButton>
-            }
-          />
+                Docs
+              </Link>
+              <span>/</span>
+              <span>{category || 'General'}</span>
+            </div>
+
+            <LinkButton
+              to="/project/$projectSlug/docs"
+              params={{ projectSlug }}
+              variant="secondary"
+              size="sm"
+              className="docs-detail-back-link"
+            >
+              Back to docs
+            </LinkButton>
+          </div>
 
           {errorMessage ? <Alert variant="danger">{errorMessage}</Alert> : null}
 
-          <Panel className="p-4">
-            <div className="docs-editor-header">
-              <WorkspaceSectionHeader
-                dense
-                title={isEditing ? 'Edit doc' : 'Doc'}
-                description={
-                  isEditing
-                    ? 'Edit the doc content, metadata, and attachments.'
-                    : 'Read project knowledge without loading the full editor.'
-                }
-                meta={<Badge>Updated {formatDate(doc.updatedAt)}</Badge>}
-              />
-              <div className="flex flex-wrap items-center gap-2">
-                {isConfirmingDelete ? (
+          <Panel className="docs-detail-header-panel">
+            <div className="docs-detail-header-body">
+              <div className="docs-detail-header-layout">
+                <div className="docs-detail-heading">
+                  <div className="docs-detail-meta-line">
+                    <span>Project docs</span>
+                    <span>{project.name}</span>
+                    <span>Updated {formatDate(doc.updatedAt)}</span>
+                  </div>
+                  <h1 className="docs-detail-title">{title}</h1>
+                  <div className="docs-detail-badges">
+                    <Badge>{category || 'General'}</Badge>
+                  </div>
+                </div>
+
+                <div className="docs-detail-actions">
+                  {isConfirmingDelete ? (
                   <>
                     <Button
-                      onClick={() => setIsConfirmingDelete(false)}
+                      onClick={() => {
+                        setIsConfirmingDelete(false)
+                      }}
                       disabled={isSaving}
                       variant="secondary"
                       size="sm"
@@ -239,17 +268,7 @@ function ProjectDocDetailPage() {
                       {isSaving ? 'Deleting...' : 'Confirm delete'}
                     </Button>
                   </>
-                ) : (
-                  <Button
-                    onClick={() => setIsConfirmingDelete(true)}
-                    disabled={isSaving}
-                    variant="secondary"
-                    size="sm"
-                  >
-                    Delete
-                  </Button>
-                )}
-                {isEditing ? (
+                ) : isEditing ? (
                   <>
                     {!isNewArticle ? (
                       <Button
@@ -278,20 +297,57 @@ function ProjectDocDetailPage() {
                     </Button>
                   </>
                 ) : (
-                  <Button
-                    onClick={() => {
-                      void preloadRichTextEditor()
-                      setIsEditing(true)
-                    }}
-                    variant="primary"
-                    size="sm"
-                  >
-                    Edit doc
-                  </Button>
-                )}
+                  <>
+                    <Button
+                      onClick={() => {
+                        void preloadRichTextEditor()
+                        setIsEditing(true)
+                      }}
+                      variant="primary"
+                      size="sm"
+                    >
+                      Edit doc
+                    </Button>
+                    <PopoverMenu
+                      isOpen={isMoreActionsOpen}
+                      onClose={() => setIsMoreActionsOpen(false)}
+                      onOpenChange={setIsMoreActionsOpen}
+                      align="right"
+                      trigger={
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          aria-label="More doc actions"
+                          aria-expanded={isMoreActionsOpen}
+                        >
+                          <MoreHorizontal
+                            size={16}
+                            strokeWidth={2}
+                            aria-hidden="true"
+                          />
+                        </Button>
+                      }
+                    >
+                      <PopoverMenuLabel>Actions</PopoverMenuLabel>
+                      <PopoverMenuItem
+                        tone="danger"
+                        onClick={() => {
+                          setIsMoreActionsOpen(false)
+                          setIsConfirmingDelete(true)
+                        }}
+                      >
+                        Delete doc
+                      </PopoverMenuItem>
+                    </PopoverMenu>
+                  </>
+                  )}
+                </div>
               </div>
             </div>
+          </Panel>
 
+          <Panel className="docs-detail-content-panel">
             {isEditing ? (
               <>
                 <div className="docs-fields">
@@ -337,13 +393,12 @@ function ProjectDocDetailPage() {
               </>
             ) : (
               <article className="docs-content-view">
-                <div className="docs-content-view__meta">
-                  <Badge>{category}</Badge>
-                </div>
                 {content.trim().length > 0 ? (
                   <div
                     className="docs-content-view__body"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(readableContentHtml) }}
+                    dangerouslySetInnerHTML={{
+                      __html: sanitizeHtml(readableContentHtml),
+                    }}
                   />
                 ) : (
                   <div className="docs-content-view__empty">
