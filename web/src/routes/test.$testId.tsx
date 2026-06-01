@@ -4,6 +4,7 @@ import {
   notFound,
   useRouter,
 } from '@tanstack/react-router'
+import { MoreHorizontal, Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { sanitizeHtml } from '../lib/sanitize-html'
@@ -15,6 +16,11 @@ import { Button } from '../components/ui/Button'
 import { ConfirmActionAlert } from '../components/ui/ConfirmActionAlert'
 import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
+import {
+  PopoverMenu,
+  PopoverMenuItem,
+  PopoverMenuSeparator,
+} from '../components/ui/PopoverMenu'
 import { SelectMenu } from '../components/ui/SelectMenu'
 import {
   getAutomationHistoryForTestCase,
@@ -79,6 +85,7 @@ const CASE_TYPE_OPTIONS = [
   'UI',
   'API',
 ] as const
+const TEST_DETAIL_VISIBLE_ACTIVITY_LIMIT = 5
 
 type CaseStatusValue = (typeof CASE_STATUS_OPTIONS)[number]
 type PriorityValue = (typeof PRIORITY_OPTIONS)[number]
@@ -332,6 +339,8 @@ function TestDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false)
+  const [isActivityExpanded, setIsActivityExpanded] = useState(false)
 
   const repositoryLink = test.projectSlug
     ? {
@@ -339,6 +348,13 @@ function TestDetailPage() {
         params: { projectSlug: test.projectSlug },
       }
     : null
+  const visibleActivities = isActivityExpanded
+    ? test.activities
+    : test.activities.slice(0, TEST_DETAIL_VISIBLE_ACTIVITY_LIMIT)
+  const hiddenActivityCount = Math.max(
+    0,
+    test.activities.length - visibleActivities.length,
+  )
 
   async function handleArchive(): Promise<void> {
     setActionError(null)
@@ -745,9 +761,13 @@ function TestDetailPage() {
                       <Button
                         type="button"
                         onClick={startTitleEdit}
-                        className="hover:text-[var(--tms-primary)]"
+                        variant="secondary"
+                        size="sm"
+                        className="test-detail-title-edit-button"
+                        aria-label="Edit title"
+                        title="Edit title"
                       >
-                        Edit title
+                        <Pencil size={14} strokeWidth={2} aria-hidden="true" />
                       </Button>
                     )}
                   </div>
@@ -769,7 +789,7 @@ function TestDetailPage() {
                 <Link
                   to="/edit-test/$testId"
                   params={{ testId: test.id.toString() }}
-                  className="tms-button no-underline"
+                  className="tms-button tms-button-secondary no-underline"
                 >
                   Full editor
                 </Link>
@@ -803,37 +823,60 @@ function TestDetailPage() {
                     Edit content
                   </Button>
                 )}
-                <Button
-                  type="button"
-                  onClick={() => {
-                    void handleDuplicate()
-                  }}
-                  disabled={isDuplicating || isDeleting}
-                  variant="secondary"
+                <PopoverMenu
+                  isOpen={isMoreActionsOpen}
+                  onClose={() => setIsMoreActionsOpen(false)}
+                  onOpenChange={setIsMoreActionsOpen}
+                  align="right"
+                  trigger={
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      aria-label="More test case actions"
+                      aria-expanded={isMoreActionsOpen}
+                    >
+                      <MoreHorizontal
+                        size={16}
+                        strokeWidth={2}
+                        aria-hidden="true"
+                      />
+                    </Button>
+                  }
                 >
-                  {isDuplicating ? 'Duplicating...' : 'Duplicate'}
-                </Button>
-                {test.status === 'Archived' ? (
-                  <Button
-                    type="button"
+                  <PopoverMenuItem
                     onClick={() => {
-                      void handleRestore()
+                      setIsMoreActionsOpen(false)
+                      void handleDuplicate()
                     }}
-                    disabled={isArchiving || isDeleting}
-                    variant="secondary"
+                    disabled={isDuplicating || isDeleting}
                   >
-                    {isArchiving ? 'Restoring...' : 'Restore'}
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    onClick={() => setShowArchiveConfirm(true)}
-                    disabled={isArchiving || isDeleting}
-                    variant="secondary"
-                  >
-                    Archive
-                  </Button>
-                )}
+                    {isDuplicating ? 'Duplicating...' : 'Duplicate'}
+                  </PopoverMenuItem>
+                  <PopoverMenuSeparator />
+                  {test.status === 'Archived' ? (
+                    <PopoverMenuItem
+                      onClick={() => {
+                        setIsMoreActionsOpen(false)
+                        void handleRestore()
+                      }}
+                      disabled={isArchiving || isDeleting}
+                      tone="success"
+                    >
+                      {isArchiving ? 'Restoring...' : 'Restore'}
+                    </PopoverMenuItem>
+                  ) : (
+                    <PopoverMenuItem
+                      onClick={() => {
+                        setIsMoreActionsOpen(false)
+                        setShowArchiveConfirm(true)
+                      }}
+                      disabled={isArchiving || isDeleting}
+                      tone="warning"
+                    >
+                      Archive
+                    </PopoverMenuItem>
+                  )}
+                </PopoverMenu>
               </div>
             </div>
 
@@ -927,7 +970,7 @@ function TestDetailPage() {
               </EditingSurfaceSection>
             </Panel>
 
-            <Panel className="bg-[var(--tms-surface-soft)] px-4 py-5 sm:px-6 sm:py-6">
+            <Panel className="test-detail-side-panel bg-[var(--tms-surface-soft)] px-4 py-5 sm:px-6 sm:py-6">
               <EditingSurfaceSection
                 dense
                 title="Metadata"
@@ -1031,34 +1074,53 @@ function TestDetailPage() {
               />
 
               <section className="mt-6 border-t border-[var(--tms-border-subtle)] pt-5">
-                <WorkspaceSectionHeader
-                  dense
-                  title="Activity"
-                  className="mb-3"
-                />
+                <div className="test-detail-section-heading">
+                  <WorkspaceSectionHeader
+                    dense
+                    title="Activity"
+                    className="mb-0"
+                  />
+                  {test.activities.length > TEST_DETAIL_VISIBLE_ACTIVITY_LIMIT ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setIsActivityExpanded((value) => !value)}
+                    >
+                      {isActivityExpanded
+                        ? 'Show recent'
+                        : `Show all ${test.activities.length}`}
+                    </Button>
+                  ) : null}
+                </div>
                 {test.activities.length === 0 ? (
                   <p className="m-0 text-sm text-[var(--tms-text-muted)]">
                     No activity recorded yet.
                   </p>
                 ) : (
-                  <div className="grid gap-3">
-                    {test.activities.map((activity) => (
+                  <div className="test-detail-activity-list">
+                    {visibleActivities.map((activity) => (
                       <div
                         key={activity.id}
-                        className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] px-3 py-2"
+                        className="test-detail-activity-item"
                       >
-                        <div className="text-sm font-semibold text-[var(--tms-text)]">
+                        <div className="test-detail-activity-summary">
                           {activity.summary}
                         </div>
-                        <div className="mt-1 text-xs font-semibold text-[var(--tms-text-muted)]">
+                        <div className="test-detail-activity-meta">
                           {activity.actorName ?? 'system'} -{' '}
                           {activity.action.replaceAll('_', ' ')}
                         </div>
-                        <div className="mt-1 text-xs text-[var(--tms-text-soft)]">
+                        <div className="test-detail-activity-date">
                           {formatDetailDate(activity.createdAt)}
                         </div>
                       </div>
                     ))}
+                    {hiddenActivityCount > 0 ? (
+                      <div className="test-detail-activity-muted">
+                        {hiddenActivityCount} older activities hidden.
+                      </div>
+                    ) : null}
                   </div>
                 )}
               </section>
