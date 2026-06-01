@@ -6,7 +6,6 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
-import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
@@ -22,6 +21,23 @@ import {
   getRunsForProject,
   updateRunName,
 } from '../features/runs/server'
+
+type RunStateLabel =
+  | 'Passed'
+  | 'Needs review'
+  | 'Blocked'
+  | 'In progress'
+  | 'Not started'
+  | 'Empty'
+
+type RunListFilter = 'all' | 'active' | 'review' | 'finished'
+
+const RUN_FILTERS: Array<{ value: RunListFilter; label: string }> = [
+  { value: 'all', label: 'All' },
+  { value: 'active', label: 'Active' },
+  { value: 'review', label: 'Needs review' },
+  { value: 'finished', label: 'Finished' },
+]
 
 export const Route = createFileRoute('/project/$projectSlug/runs')({
   loader: async ({ params }) => {
@@ -90,9 +106,9 @@ export const Route = createFileRoute('/project/$projectSlug/runs')({
 })
 
 function getRunStateBadgeVariant(
-  stateLabel: string,
-): 'runPassed' | 'runFailed' | 'runNotRun' | 'primary' {
-  if (stateLabel === 'Complete') {
+  stateLabel: RunStateLabel,
+): 'runPassed' | 'runFailed' | 'runBlocked' | 'runNotRun' | 'primary' {
+  if (stateLabel === 'Passed') {
     return 'runPassed'
   }
 
@@ -100,11 +116,55 @@ function getRunStateBadgeVariant(
     return 'runFailed'
   }
 
-  if (stateLabel === 'Empty') {
+  if (stateLabel === 'Blocked') {
+    return 'runBlocked'
+  }
+
+  if (stateLabel === 'Empty' || stateLabel === 'Not started') {
     return 'runNotRun'
   }
 
   return 'primary'
+}
+
+function getRunStateLabel(run: {
+  total: number
+  passed: number
+  failed: number
+  blocked: number
+  notRun: number
+}): RunStateLabel {
+  const executed = run.passed + run.failed + run.blocked
+
+  if (run.total === 0) {
+    return 'Empty'
+  }
+
+  if (executed === 0) {
+    return 'Not started'
+  }
+
+  if (run.failed > 0) {
+    return 'Needs review'
+  }
+
+  if (run.blocked > 0) {
+    return 'Blocked'
+  }
+
+  if (run.notRun > 0) {
+    return 'In progress'
+  }
+
+  return 'Passed'
+}
+
+function formatProgressLabel(progress: number, executed: number): string {
+  if (progress === 0 && executed > 0) {
+    return '<1%'
+  }
+
+  return `${progress}%`
 }
 
 function ProjectRunsPage() {
@@ -125,9 +185,10 @@ function ProjectRunsPage() {
   const [runActionErrorMessage, setRunActionErrorMessage] = useState<string | null>(
     null,
   )
+  const [runQuery, setRunQuery] = useState('')
+  const [activeRunFilter, setActiveRunFilter] = useState<RunListFilter>('all')
 
   const activeTests = dashboard.tests.filter((test) => test.status !== 'Archived')
-  const projectSlug = project.slug ?? project.id.toString()
   const selectedRunTestIds = useMemo(() => {
     if (runScope === 'all') {
       return activeTests.map((test) => test.id)
@@ -146,6 +207,99 @@ function ProjectRunsPage() {
   const selectedRunTestIdSet = useMemo(
     () => new Set(selectedRunTestIds),
     [selectedRunTestIds],
+  )
+  const runViewModels = useMemo(
+    () =>
+      runs.map((run) => {
+        const executed = run.passed + run.failed + run.blocked
+        const progress =
+          run.total === 0 ? 0 : Math.round((executed / run.total) * 100)
+        const passedProgress =
+          run.total === 0 ? 0 : (run.passed / run.total) * 100
+        const failedProgress =
+          run.total === 0 ? 0 : (run.failed / run.total) * 100
+        const blockedProgress =
+          run.total === 0 ? 0 : (run.blocked / run.total) * 100
+        const stateLabel = getRunStateLabel(run)
+        const outcomeLabel =
+          run.failed > 0
+            ? `${run.failed} failed`
+            : run.blocked > 0
+              ? `${run.blocked} blocked`
+              : run.passed > 0
+                ? `${run.passed} passed`
+                : `${run.notRun} not run`
+
+        return {
+          run,
+          executed,
+          progress,
+          progressLabel: formatProgressLabel(progress, executed),
+          passedProgress,
+          failedProgress,
+          blockedProgress,
+          stateLabel,
+          outcomeLabel,
+          isFinished: run.total > 0 && run.notRun === 0,
+          needsReview: run.failed > 0 || run.blocked > 0,
+        }
+      }),
+    [runs],
+  )
+  const runFilterCounts = useMemo(() => {
+    const counts: Record<RunListFilter, number> = {
+      all: runViewModels.length,
+      active: 0,
+      review: 0,
+      finished: 0,
+    }
+
+    for (const viewModel of runViewModels) {
+      if (!viewModel.isFinished) {
+        counts.active += 1
+      }
+
+      if (viewModel.needsReview) {
+        counts.review += 1
+      }
+
+      if (viewModel.isFinished) {
+        counts.finished += 1
+      }
+    }
+
+    return counts
+  }, [runViewModels])
+  const filteredRunViewModels = useMemo(() => {
+    const normalizedQuery = runQuery.trim().toLowerCase()
+
+    return runViewModels.filter((viewModel) => {
+      if (activeRunFilter === 'active' && viewModel.isFinished) {
+        return false
+      }
+
+      if (activeRunFilter === 'review' && !viewModel.needsReview) {
+        return false
+      }
+
+      if (activeRunFilter === 'finished' && !viewModel.isFinished) {
+        return false
+      }
+
+      if (!normalizedQuery) {
+        return true
+      }
+
+      return (
+        viewModel.run.name.toLowerCase().includes(normalizedQuery) ||
+        viewModel.run.id.toString().includes(normalizedQuery) ||
+        viewModel.stateLabel.toLowerCase().includes(normalizedQuery)
+      )
+    })
+  }, [activeRunFilter, runQuery, runViewModels])
+  const totalRunCases = useMemo(
+    () => runs.reduce((total, run) => total + run.total, 0),
+    [runs],
   )
 
   function resetCreateRunForm(): void {
@@ -246,31 +400,79 @@ function ProjectRunsPage() {
     <main className="workspace-view">
       <div className="workspace-view__inner">
         <div className="workspace-view__stack">
-          <ProjectPageHeader
-            projectName={project.name}
-            description="Manage execution runs, scope coverage, and execution readiness for this project."
-            actions={
+          <Panel className="runs-panel runs-cockpit-panel p-4">
+            <div className="runs-cockpit-header">
+              <WorkspaceSectionHeader
+                dense
+                title="Runs"
+                description={`${project.name} execution cockpit for readiness, progress, and review.`}
+                meta={
+                  <Badge>
+                    {runs.length} run{runs.length === 1 ? '' : 's'}
+                  </Badge>
+                }
+              />
               <Button
                 onClick={() => setShowCreateRunForm((current) => !current)}
                 variant="primary"
+                size="sm"
               >
                 + Run
               </Button>
-            }
-          />
+            </div>
 
-          <Panel className="runs-panel px-3 py-3 sm:px-4 sm:py-4">
-          <WorkspaceSectionHeader
-            dense
-            title="Runs"
-            description="Create, rename, and track execution progress for this project."
-            meta={
-              <Badge>
-                {runs.length} run{runs.length === 1 ? '' : 's'}
-              </Badge>
-            }
-            className="mb-3"
-          />
+            <div className="runs-summary-strip" aria-label="Run summary">
+              <div className="runs-summary-item">
+                <span>Active</span>
+                <strong>{runFilterCounts.active}</strong>
+              </div>
+              <div className="runs-summary-item">
+                <span>Needs review</span>
+                <strong>{runFilterCounts.review}</strong>
+              </div>
+              <div className="runs-summary-item">
+                <span>Finished</span>
+                <strong>{runFilterCounts.finished}</strong>
+              </div>
+              <div className="runs-summary-item">
+                <span>Total cases</span>
+                <strong>{totalRunCases}</strong>
+              </div>
+            </div>
+
+            <div className="runs-cockpit-toolbar">
+              <div
+                className="runs-filter-list"
+                role="group"
+                aria-label="Filter runs"
+              >
+                {RUN_FILTERS.map((filter) => {
+                  const isActive = activeRunFilter === filter.value
+
+                  return (
+                    <button
+                      key={filter.value}
+                      type="button"
+                      aria-pressed={isActive}
+                      className={`runs-filter-button${
+                        isActive ? ' is-active' : ''
+                      }`}
+                      onClick={() => setActiveRunFilter(filter.value)}
+                    >
+                      {filter.label}
+                      <strong>{runFilterCounts[filter.value]}</strong>
+                    </button>
+                  )
+                })}
+              </div>
+              <Input
+                value={runQuery}
+                onChange={(event) => setRunQuery(event.target.value)}
+                placeholder="Search runs"
+                size="sm"
+                aria-label="Search runs"
+              />
+            </div>
 
           {showCreateRunForm ? (
             <form
@@ -403,8 +605,8 @@ function ProjectRunsPage() {
                               #{test.id} {test.title}
                             </span>
                             <span className="text-xs font-semibold text-[var(--tms-text-soft)]">
-                              {section?.name ?? 'No suite'} ·{' '}
-                              {test.priority ?? 'Medium'} ·{' '}
+                              {section?.name ?? 'No suite'} /{' '}
+                              {test.priority ?? 'Medium'} /{' '}
                               {test.caseType ?? 'Functional'}
                             </span>
                           </span>
@@ -433,10 +635,14 @@ function ProjectRunsPage() {
             </Alert>
           ) : null}
 
-          {runs.length === 0 ? (
+          {filteredRunViewModels.length === 0 ? (
             <EmptyState
-              title="No runs yet"
-              description="Create the first run when you are ready to execute test cases."
+              title={runs.length === 0 ? 'No runs yet' : 'No runs found'}
+              description={
+                runs.length === 0
+                  ? 'Create the first run when you are ready to execute test cases.'
+                  : 'Try another search query or run filter.'
+              }
             />
           ) : (
             <TableShell>
@@ -453,26 +659,10 @@ function ProjectRunsPage() {
                 <div>Not run</div>
                 <div className="text-right">Actions</div>
               </TableHead>
-              {runs.map((run) => {
+              {filteredRunViewModels.map((viewModel) => {
+                const { run } = viewModel
                 const isEditing = editingRunId === run.id
                 const isPending = pendingRunId === run.id
-                const executed = run.passed + run.failed + run.blocked
-                const progress =
-                  run.total === 0 ? 0 : Math.round((executed / run.total) * 100)
-                const passedProgress =
-                  run.total === 0 ? 0 : (run.passed / run.total) * 100
-                const failedProgress =
-                  run.total === 0 ? 0 : (run.failed / run.total) * 100
-                const blockedProgress =
-                  run.total === 0 ? 0 : (run.blocked / run.total) * 100
-                const stateLabel =
-                  run.total === 0
-                    ? 'Empty'
-                    : run.notRun === 0
-                      ? 'Complete'
-                      : run.failed > 0
-                        ? 'Needs review'
-                        : 'In progress'
 
                 return (
                   <TableRow
@@ -524,19 +714,24 @@ function ProjectRunsPage() {
                               <span>#{run.id}</span>
                               <Badge
                                 className="px-2 py-0.5"
-                                variant={getRunStateBadgeVariant(stateLabel)}
+                                variant={getRunStateBadgeVariant(
+                                  viewModel.stateLabel,
+                                )}
                               >
-                                {stateLabel}
+                                {viewModel.stateLabel}
                               </Badge>
+                              <span className="runs-outcome">
+                                {viewModel.outcomeLabel}
+                              </span>
                             </div>
                           </>
                         )}
                     </div>
                     <div className="pr-4">
                       <div className="flex items-center justify-between gap-3 text-xs font-semibold text-[var(--tms-text)]">
-                        <span>{progress}%</span>
+                        <span>{viewModel.progressLabel}</span>
                         <span className="text-xs text-[var(--tms-text-soft)]">
-                          {executed}/{run.total}
+                          {viewModel.executed}/{run.total}
                         </span>
                       </div>
                       <div
@@ -545,15 +740,15 @@ function ProjectRunsPage() {
                       >
                         <div
                           className="tms-run-progress-segment tms-run-progress-segment--passed"
-                          style={{ width: `${passedProgress}%` }}
+                          style={{ width: `${viewModel.passedProgress}%` }}
                         />
                         <div
                           className="tms-run-progress-segment tms-run-progress-segment--failed"
-                          style={{ width: `${failedProgress}%` }}
+                          style={{ width: `${viewModel.failedProgress}%` }}
                         />
                         <div
                           className="tms-run-progress-segment tms-run-progress-segment--blocked"
-                          style={{ width: `${blockedProgress}%` }}
+                          style={{ width: `${viewModel.blockedProgress}%` }}
                         />
                       </div>
                     </div>
