@@ -191,6 +191,10 @@ body,
   min-height: 100%;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 #app {
   isolation: isolate;
 }

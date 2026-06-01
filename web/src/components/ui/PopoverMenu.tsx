@@ -71,6 +71,7 @@ export function PopoverMenu({
         <Popover.Portal>
           <Popover.Positioner
             className="tms-transient-layer"
+            positionMethod="fixed"
             align={align === 'right' ? 'end' : 'start'}
             sideOffset={sideOffset}
           >
