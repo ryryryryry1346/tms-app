@@ -5,7 +5,6 @@ import {
   useNavigate,
 } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
-import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { preloadRichTextEditor } from '../components/RichTextEditor.lazy'
 import { Alert } from '../components/ui/Alert'
@@ -86,6 +85,10 @@ export const Route = createFileRoute('/project/$projectSlug/docs')({
   component: ProjectDocsPage,
 })
 
+const ALL_DOCS_FILTER = 'All'
+const DOCS_TABLE_COLUMNS =
+  'minmax(280px, 1.7fr) minmax(120px, 0.35fr) minmax(120px, 0.35fr)'
+
 function formatDate(value: string | null): string {
   if (!value) {
     return 'Never'
@@ -100,11 +103,36 @@ function formatDate(value: string | null): string {
   return `${day}.${month}.${year}`
 }
 
+function getDocCategory(doc: ProjectDoc): string {
+  return doc.category?.trim() || 'General'
+}
+
+function getDocPreview(content: string | null): string {
+  if (!content?.trim()) {
+    return 'No content yet.'
+  }
+
+  return content
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 180)
+}
+
 function ProjectDocsPage() {
   const { project, docs } = Route.useLoaderData()
   const navigate = useNavigate()
   const [articleDocs, setArticleDocs] = useState(docs)
   const [query, setQuery] = useState('')
+  const [activeCategory, setActiveCategory] = useState(ALL_DOCS_FILTER)
   const [isCreating, setIsCreating] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const projectSlug = project.slug ?? project.id.toString()
@@ -117,17 +145,53 @@ function ProjectDocsPage() {
     return () => window.clearTimeout(preloadTimer)
   }, [])
 
-  const filteredDocs = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase()
+  const categoryFilters = useMemo(() => {
+    const categories = new Set<string>()
 
-    if (!normalizedQuery) {
-      return articleDocs
+    for (const doc of articleDocs) {
+      categories.add(getDocCategory(doc))
     }
 
-    return articleDocs.filter((doc) =>
-      `${doc.title} ${doc.category ?? ''}`.toLowerCase().includes(normalizedQuery),
+    return [
+      ALL_DOCS_FILTER,
+      ...Array.from(categories).sort((a, b) => a.localeCompare(b)),
+    ]
+  }, [articleDocs])
+
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>([[ALL_DOCS_FILTER, articleDocs.length]])
+
+    for (const doc of articleDocs) {
+      const category = getDocCategory(doc)
+      counts.set(category, (counts.get(category) ?? 0) + 1)
+    }
+
+    return counts
+  }, [articleDocs])
+
+  useEffect(() => {
+    if (!categoryFilters.includes(activeCategory)) {
+      setActiveCategory(ALL_DOCS_FILTER)
+    }
+  }, [activeCategory, categoryFilters])
+
+  const filteredDocs = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase()
+    const categoryDocs =
+      activeCategory === ALL_DOCS_FILTER
+        ? articleDocs
+        : articleDocs.filter((doc) => getDocCategory(doc) === activeCategory)
+
+    if (!normalizedQuery) {
+      return categoryDocs
+    }
+
+    return categoryDocs.filter((doc) =>
+      `${doc.title} ${getDocCategory(doc)} ${getDocPreview(doc.content)}`
+        .toLowerCase()
+        .includes(normalizedQuery),
     )
-  }, [articleDocs, query])
+  }, [activeCategory, articleDocs, query])
 
   function openDoc(docId: number): void {
     void preloadRichTextEditor()
@@ -193,32 +257,53 @@ function ProjectDocsPage() {
     <main className="workspace-view">
       <div className="workspace-view__inner">
         <div className="workspace-view__stack">
-          <ProjectPageHeader
-            projectName={project.name}
-            description="Project knowledge base for runbooks, support instructions, endpoint notes, and internal operating guides."
-            actions={
+          {errorMessage ? <Alert variant="danger">{errorMessage}</Alert> : null}
+
+          <Panel className="docs-cockpit-panel p-4">
+            <div className="docs-cockpit-header">
+              <WorkspaceSectionHeader
+                dense
+                title="Docs"
+                description={`${project.name} knowledge base for runbooks, endpoint notes, support instructions, and test data.`}
+                meta={<Badge>{articleDocs.length} docs</Badge>}
+              />
               <Button
                 onClick={() => {
                   void handleCreateArticle()
                 }}
                 disabled={isCreating}
                 variant="primary"
+                size="sm"
               >
                 {isCreating ? 'Creating...' : '+ Doc'}
               </Button>
-            }
-          />
+            </div>
 
-          {errorMessage ? <Alert variant="danger">{errorMessage}</Alert> : null}
+            <div className="docs-cockpit-toolbar">
+              <div
+                className="docs-category-filters"
+                role="group"
+                aria-label="Filter docs by category"
+              >
+                {categoryFilters.map((category) => {
+                  const isActive = category === activeCategory
 
-          <Panel className="p-4">
-            <div className="docs-index-header">
-              <WorkspaceSectionHeader
-                dense
-                title="Docs"
-                description="Reusable project knowledge. Open a doc to read or edit it on its own page."
-                meta={<Badge>{articleDocs.length} docs</Badge>}
-              />
+                  return (
+                    <button
+                      key={category}
+                      type="button"
+                      aria-pressed={isActive}
+                      className={`docs-category-filter${
+                        isActive ? ' is-active' : ''
+                      }`}
+                      onClick={() => setActiveCategory(category)}
+                    >
+                      <span>{category}</span>
+                      <strong>{categoryCounts.get(category) ?? 0}</strong>
+                    </button>
+                  )
+                })}
+              </div>
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -231,27 +316,33 @@ function ProjectDocsPage() {
             {filteredDocs.length === 0 ? (
               <EmptyState
                 title="No docs"
-                description="Create the first project doc."
+                description={
+                  articleDocs.length === 0
+                    ? 'Create the first project doc.'
+                    : 'Try another category or search query.'
+                }
               />
             ) : (
-              <TableShell surface="panel" className="docs-table mt-4">
+              <TableShell surface="panel" className="docs-table mt-3">
                 <TableHead
-                  columns="minmax(260px, 1.6fr) minmax(120px, 0.45fr) minmax(120px, 0.45fr) minmax(90px, 0.28fr)"
+                  columns={DOCS_TABLE_COLUMNS}
+                  minWidth="44rem"
                   padding="sm"
                 >
                   <span>Doc</span>
                   <span>Category</span>
                   <span>Updated</span>
-                  <span className="text-right">Open</span>
                 </TableHead>
                 {filteredDocs.map((doc) => (
                   <TableRow
                     key={doc.id}
-                    columns="minmax(260px, 1.6fr) minmax(120px, 0.45fr) minmax(120px, 0.45fr) minmax(90px, 0.28fr)"
+                    columns={DOCS_TABLE_COLUMNS}
+                    minWidth="44rem"
                     padding="sm"
-                    className="docs-clickable-row items-center"
+                    className="docs-clickable-row"
                     role="link"
                     tabIndex={0}
+                    aria-label={`Open ${doc.title}`}
                     onClick={() => openDoc(doc.id)}
                     onPointerEnter={() => {
                       void preloadRichTextEditor()
@@ -270,26 +361,16 @@ function ProjectDocsPage() {
                       <span className="docs-title-text">
                         {doc.title}
                       </span>
+                      <span className="docs-preview-text">
+                        {getDocPreview(doc.content)}
+                      </span>
                     </div>
                     <span className="text-sm text-[var(--tms-text-muted)]">
-                      {doc.category ?? 'General'}
+                      {getDocCategory(doc)}
                     </span>
                     <span className="text-sm text-[var(--tms-text-muted)]">
                       {formatDate(doc.updatedAt)}
                     </span>
-                    <div className="text-right">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          openDoc(doc.id)
-                        }}
-                      >
-                        Open
-                      </Button>
-                    </div>
                   </TableRow>
                 ))}
               </TableShell>
