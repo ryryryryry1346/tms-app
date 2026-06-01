@@ -202,7 +202,7 @@ export function RichTextEditor({
     const currentHtml = editor.getHTML()
 
     if (value !== currentHtml) {
-      editor.commands.setContent(value || '', false)
+      editor.commands.setContent(value || '', { emitUpdate: false })
     }
   }, [editor, value])
 

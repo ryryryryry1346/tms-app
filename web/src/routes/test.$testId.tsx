@@ -690,10 +690,10 @@ function TestDetailPage() {
   }
 
   return (
-    <main className="page-wrap px-4 py-6 sm:py-10">
+    <main className="page-wrap test-detail-page px-4 py-4 sm:py-6">
       <div className="mx-auto max-w-[1240px]">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[var(--tms-text-muted)]">
+        <div className="test-detail-top-nav">
+          <div className="test-detail-breadcrumb">
             <Link to="/" className="no-underline text-[var(--tms-primary)]">
               Workspace
             </Link>
@@ -711,22 +711,20 @@ function TestDetailPage() {
             )}
             <span>/</span>
             <span>{test.sectionName ?? 'No suite'}</span>
-            <span>/</span>
-            <span>Case #{test.id}</span>
           </div>
 
           {repositoryLink ? (
             <Link
               to={repositoryLink.to}
               params={repositoryLink.params}
-              className="tms-button no-underline hover:text-[var(--tms-primary)]"
+              className="tms-button tms-button-secondary test-detail-back-link no-underline"
             >
               Back to repository
             </Link>
           ) : (
             <Link
               to="/"
-              className="tms-button no-underline hover:text-[var(--tms-primary)]"
+              className="tms-button tms-button-secondary test-detail-back-link no-underline"
             >
               Back to workspace
             </Link>

@@ -1,153 +1,17 @@
-src/components/AppShell.tsx(14,3): error TS6133: 'FilePenLine' is declared but its value is never read.
-src/components/AppShell.tsx(31,3): error TS6133: 'PopoverMenuLabel' is declared but its value is never read.
-src/components/AppShell.tsx(94,10): error TS6133: 'shouldShowWorkingContext' is declared but its value is never read.
-src/components/AppShell.tsx(335,24): error TS2352: Conversion of type 'MakeRouteMatchUnion[]' to type 'Record<string, unknown>[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-  Type 'MakeRouteMatchUnion' is not comparable to type 'Record<string, unknown>'.
-    Type 'RouteMatch<"/api/projects/$projectId/automation-runs/import/junit", "/api/projects/$projectId/automation-runs/import/junit", ResolveParams<"/api/projects/$projectId/automation-runs">, AnySchema, undefined, { ...; }, {}>' is not comparable to type 'Record<string, unknown>'.
-      Index signature for type 'string' is missing in type 'RouteMatch<"/api/projects/$projectId/automation-runs/import/junit", "/api/projects/$projectId/automation-runs/import/junit", ResolveParams<"/api/projects/$projectId/automation-runs">, AnySchema, undefined, { ...; }, {}>'.
-src/components/repository/CaseRow.tsx(285,11): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/components/repository/RepositorySuiteTree.tsx(196,21): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/components/RichTextEditor.tsx(205,47): error TS2559: Type 'false' has no properties in common with type 'SetContentOptions'.
-src/features/automation/server.ts(21,7): error TS2774: This condition will always return true since this function is always defined. Did you mean to call it instead?
-src/features/docs/server.ts(13,7): error TS2774: This condition will always return true since this function is always defined. Did you mean to call it instead?
-src/features/media/server.ts(12,11): error TS2358: The left-hand side of an 'instanceof' expression must be of type 'any', an object type or a type parameter.
-src/features/media/server.ts(16,23): error TS2339: Property 'get' does not exist on type 'never'.
-src/features/projects/server.ts(18,7): error TS2774: This condition will always return true since this function is always defined. Did you mean to call it instead?
-src/features/runs/server.ts(23,7): error TS2774: This condition will always return true since this function is always defined. Did you mean to call it instead?
-src/features/runs/server.ts(421,59): error TS2339: Property 'status' does not exist on type '{ id: number; title: string; suiteName: string | null; priority: string | null; caseType: string | null; steps: string | null; expected: string | null; }'.
-src/features/runs/server.ts(422,59): error TS2339: Property 'status' does not exist on type '{ id: number; title: string; suiteName: string | null; priority: string | null; caseType: string | null; steps: string | null; expected: string | null; }'.
-src/features/runs/server.ts(423,60): error TS2339: Property 'status' does not exist on type '{ id: number; title: string; suiteName: string | null; priority: string | null; caseType: string | null; steps: string | null; expected: string | null; }'.
-src/features/runs/server.ts(424,59): error TS2339: Property 'status' does not exist on type '{ id: number; title: string; suiteName: string | null; priority: string | null; caseType: string | null; steps: string | null; expected: string | null; }'.
-src/features/runs/server.ts(438,7): error TS2322: Type '{ id: number; title: string; suiteName: string | null; priority: string | null; caseType: string | null; steps: string | null; expected: string | null; }[]' is not assignable to type '{ id: number; title: string; status: RunItemStatus; comment: string | null; suiteName: string | null; priority: string | null; caseType: string | null; steps: string | null; expected: string | null; executedBy: string | null; executedAt: string | null; }[]'.
-  Type '{ id: number; title: string; suiteName: string | null; priority: string | null; caseType: string | null; steps: string | null; expected: string | null; }' is missing the following properties from type '{ id: number; title: string; status: RunItemStatus; comment: string | null; suiteName: string | null; priority: string | null; caseType: string | null; steps: string | null; expected: string | null; executedBy: string | null; executedAt: string | null; }': status, comment, executedBy, executedAt
-src/features/runs/server.ts(549,11): error TS2358: The left-hand side of an 'instanceof' expression must be of type 'any', an object type or a type parameter.
-src/features/runs/server.ts(553,23): error TS2339: Property 'get' does not exist on type 'never'.
-src/features/runs/server.ts(554,31): error TS2339: Property 'get' does not exist on type 'never'.
-src/features/runs/server.ts(555,32): error TS2339: Property 'get' does not exist on type 'never'.
-src/features/runs/server.ts(851,24): error TS2339: Property 'status' does not exist on type 'never'.
-src/features/runs/server.ts(852,24): error TS2339: Property 'status' does not exist on type 'never'.
-src/features/runs/server.ts(853,24): error TS2339: Property 'status' does not exist on type 'never'.
-src/features/runs/server.ts(854,27): error TS2339: Property 'status' does not exist on type 'never'.
-src/features/tests/server.ts(22,7): error TS2774: This condition will always return true since this function is always defined. Did you mean to call it instead?
-src/features/tests/server.ts(454,9): error TS2353: Object literal may only specify known properties, and 'pagination' does not exist in type 'DashboardState'.
-src/features/tests/server.ts(559,7): error TS2322: Type '{ databaseConfigured: false; projects: never[]; selectedProjectId: number | undefined; sections: never[]; tests: never[]; activities: never[]; }' is not assignable to type 'RepositoryState'.
-  Type '{ databaseConfigured: false; projects: never[]; selectedProjectId: number | undefined; sections: never[]; tests: never[]; activities: never[]; }' is missing the following properties from type '{ pagination: { page: number; pageSize: number; totalCases: number; totalPages: number; isEstimated?: boolean | undefined; }; suiteStats: { sectionId: number; totalCases: number; activeCases: number; readyCases: number; draftCases: number; archivedCases: number; }[]; stats: { ...; }; }': pagination, suiteStats, stats
-src/features/tests/server.ts(1886,7): error TS2358: The left-hand side of an 'instanceof' expression must be of type 'any', an object type or a type parameter.
-src/features/tests/server.ts(1887,19): error TS2339: Property 'get' does not exist on type 'never'.
-src/features/tests/server.ts(1913,7): error TS2358: The left-hand side of an 'instanceof' expression must be of type 'any', an object type or a type parameter.
-src/features/tests/server.ts(1914,28): error TS2339: Property 'get' does not exist on type 'never'.
-src/features/tests/server.ts(2011,11): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
-  Types of property 'id' are incompatible.
-    Type 'string' is not assignable to type 'number'.
-src/features/tests/server.ts(2057,11): error TS6133: 'now' is declared but its value is never read.
-src/features/tests/server.ts(2082,9): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
-  Types of property 'id' are incompatible.
-    Type 'string' is not assignable to type 'number'.
-src/features/tests/server.ts(2123,9): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
-  Types of property 'id' are incompatible.
-    Type 'string' is not assignable to type 'number'.
-src/features/tests/server.ts(2164,9): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
-  Types of property 'id' are incompatible.
-    Type 'string' is not assignable to type 'number'.
-src/features/tests/server.ts(2232,11): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
-  Types of property 'id' are incompatible.
-    Type 'string' is not assignable to type 'number'.
-src/features/tests/server.ts(2295,11): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
-  Types of property 'id' are incompatible.
-    Type 'string' is not assignable to type 'number'.
-src/features/tests/server.ts(2354,11): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
-  Types of property 'id' are incompatible.
-    Type 'string' is not assignable to type 'number'.
-src/features/tests/server.ts(2426,11): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
-  Types of property 'id' are incompatible.
-    Type 'string' is not assignable to type 'number'.
-src/features/tests/server.ts(2489,11): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
-  Types of property 'id' are incompatible.
-    Type 'string' is not assignable to type 'number'.
-src/features/tests/server.ts(2581,7): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
-  Types of property 'id' are incompatible.
-    Type 'string' is not assignable to type 'number'.
-src/features/tests/server.ts(2632,7): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
-  Types of property 'id' are incompatible.
-    Type 'string' is not assignable to type 'number'.
-src/features/tests/server.ts(2802,7): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
-  Types of property 'id' are incompatible.
-    Type 'string' is not assignable to type 'number'.
-src/features/tests/server.ts(2895,7): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
-  Types of property 'id' are incompatible.
-    Type 'string' is not assignable to type 'number'.
-src/features/tests/server.ts(3081,9): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
-  Types of property 'id' are incompatible.
-    Type 'string' is not assignable to type 'number'.
-src/routes/create-test.tsx(90,9): error TS2322: Type 'FormData' is not assignable to type 'undefined'.
-src/routes/create-test.tsx(179,15): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/routes/edit-test.$testId.tsx(77,9): error TS2322: Type 'FormData' is not assignable to type 'undefined'.
-src/routes/edit-test.$testId.tsx(180,17): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/routes/forgot-password.tsx(101,17): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/routes/index.tsx(210,17): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/routes/login.tsx(146,15): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/routes/login.tsx(162,15): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/routes/project.$projectSlug.automation.flaky.tsx(294,17): error TS2322: Type '{ title: string; description: string; action: Element; }' is not assignable to type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & { title: ReactNode; description?: ReactNode; eyebrow?: ReactNode; meta?: ReactNode; actions?: ReactNode; dense?: boolean | undefined; }'.
-  Property 'action' does not exist on type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & { title: ReactNode; description?: ReactNode; eyebrow?: ReactNode; meta?: ReactNode; actions?: ReactNode; dense?: boolean | undefined; }'. Did you mean 'actions'?
-src/routes/project.$projectSlug.automation.runs.$runId.tsx(723,19): error TS2322: Type '{ title: string; description: string; action: Element; className: string; }' is not assignable to type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & { title: ReactNode; description?: ReactNode; eyebrow?: ReactNode; meta?: ReactNode; actions?: ReactNode; dense?: boolean | undefined; }'.
-  Property 'action' does not exist on type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & { title: ReactNode; description?: ReactNode; eyebrow?: ReactNode; meta?: ReactNode; actions?: ReactNode; dense?: boolean | undefined; }'. Did you mean 'actions'?
-src/routes/project.$projectSlug.automation.runs.$runId.tsx(822,19): error TS2322: Type '{ title: string; description: string; action: Element; }' is not assignable to type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & { title: ReactNode; description?: ReactNode; eyebrow?: ReactNode; meta?: ReactNode; actions?: ReactNode; dense?: boolean | undefined; }'.
-  Property 'action' does not exist on type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & { title: ReactNode; description?: ReactNode; eyebrow?: ReactNode; meta?: ReactNode; actions?: ReactNode; dense?: boolean | undefined; }'. Did you mean 'actions'?
-src/routes/project.$projectSlug.automation.runs.$runId.tsx(1121,33): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/routes/project.$projectSlug.automation.runs.tsx(515,17): error TS2322: Type '{ title: string; description: string; action: Element; }' is not assignable to type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & { title: ReactNode; description?: ReactNode; eyebrow?: ReactNode; meta?: ReactNode; actions?: ReactNode; dense?: boolean | undefined; }'.
-  Property 'action' does not exist on type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & { title: ReactNode; description?: ReactNode; eyebrow?: ReactNode; meta?: ReactNode; actions?: ReactNode; dense?: boolean | undefined; }'. Did you mean 'actions'?
-src/routes/project.$projectSlug.docs.tsx(226,17): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/routes/project.$projectSlug.reports.tsx(87,9): error TS6133: 'projectSlug' is declared but its value is never read.
-src/routes/project.$projectSlug.runs.tsx(130,9): error TS6133: 'projectSlug' is declared but its value is never read.
-src/routes/project.$projectSlug.runs.tsx(293,21): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/routes/project.$projectSlug.runs.tsx(496,31): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/routes/project_.$projectSlug.docs_.$docId.tsx(122,9): error TS2322: Type 'FormData' is not assignable to type 'undefined'.
+src/features/tests/server.ts(546,7): error TS2322: Type '{ databaseConfigured: false; projects: never[]; selectedProjectId: number | undefined; sections: never[]; tests: never[]; activities: never[]; }' is not assignable to type 'RepositoryState'.
+src/features/tests/server.ts(2002,11): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
+src/features/tests/server.ts(2072,9): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
+src/features/tests/server.ts(2113,9): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
+src/features/tests/server.ts(2154,9): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
+src/features/tests/server.ts(2222,11): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
+src/features/tests/server.ts(2285,11): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
+src/features/tests/server.ts(2344,11): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
+src/features/tests/server.ts(2416,11): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
+src/features/tests/server.ts(2479,11): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
+src/features/tests/server.ts(2571,7): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
+src/features/tests/server.ts(2622,7): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
+src/features/tests/server.ts(2792,7): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
+src/features/tests/server.ts(2885,7): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
+src/features/tests/server.ts(3071,9): error TS2322: Type 'SessionUser' is not assignable to type 'ActivityActor'.
 src/routes/project_.$projectSlug.repository.tsx(1006,12): error TS6133: 'addRepositoryTest' is declared but its value is never read.
-src/routes/project_.$projectSlug.repository.tsx(1681,9): error TS2322: Type 'FormData' is not assignable to type 'undefined'.
 src/routes/project_.$projectSlug.repository.tsx(1739,12): error TS6133: 'toggleSuiteSelection' is declared but its value is never read.
-src/routes/project_.$projectSlug.repository.tsx(2033,9): error TS2322: Type 'string' is not assignable to type 'CaseStatusValue'.
-src/routes/project_.$projectSlug.repository.tsx(2314,9): error TS2322: Type 'FormData' is not assignable to type 'undefined'.
-src/routes/project_.$projectSlug.repository.tsx(2374,9): error TS2322: Type 'FormData' is not assignable to type 'undefined'.
-src/routes/project_.$projectSlug.repository.tsx(2601,9): error TS2322: Type 'string' is not assignable to type 'CaseStatusValue'.
-src/routes/project_.$projectSlug.repository.tsx(3822,32): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3825,26): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3830,27): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3830,57): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3873,33): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3875,42): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3880,29): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3888,59): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3897,28): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3900,42): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3904,57): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3912,59): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3921,28): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3924,42): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3928,57): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3936,59): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3946,41): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3953,41): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3961,57): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3963,46): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(3966,48): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(4009,61): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(4011,54): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(4016,27): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(4020,63): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(4022,54): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(4031,63): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(4033,54): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(4095,51): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(4096,46): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(4111,54): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/project_.$projectSlug.repository.tsx(4127,54): error TS18047: 'splitPreviewTest' is possibly 'null'.
-src/routes/register.tsx(106,17): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/routes/register.tsx(122,17): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/routes/register.tsx(138,17): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/routes/reset-password.tsx(125,17): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/routes/reset-password.tsx(141,17): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/routes/run.$runId.tsx(722,51): error TS2322: Type 'FormData' is not assignable to type 'undefined'.
-src/routes/run.$runId.tsx(971,17): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/routes/run.$runId.tsx(978,17): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/routes/run.$runId.tsx(991,17): error TS2322: Type 'string' is not assignable to type 'undefined'.
-src/routes/test.$testId.tsx(429,9): error TS2322: Type 'FormData' is not assignable to type 'undefined'.

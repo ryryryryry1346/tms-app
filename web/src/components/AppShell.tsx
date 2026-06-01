@@ -11,7 +11,6 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleDot,
-  FilePenLine,
   FolderKanban,
   LayoutGrid,
   LogOut,
@@ -28,7 +27,6 @@ import { Button } from './ui/Button'
 import {
   PopoverMenu,
   PopoverMenuItem,
-  PopoverMenuLabel,
 } from './ui/PopoverMenu'
 import { useTheme } from './ThemeProvider'
 import { useRouterState } from '@tanstack/react-router'
@@ -89,10 +87,6 @@ function isDeepShellPath(pathname: string): boolean {
     pathname.startsWith('/test/') ||
     pathname.startsWith('/run/')
   )
-}
-
-function shouldShowWorkingContext(pathname: string): boolean {
-  return pathname.startsWith('/test/') || pathname.startsWith('/run/')
 }
 
 function getHeaderCopy(
@@ -332,7 +326,8 @@ export default function AppShell({ user, children }: AppShellProps) {
   const router = useRouter()
   const { preference, setPreference } = useTheme()
   const matches = useRouterState({
-    select: (state) => state.matches as Array<Record<string, unknown>>,
+    select: (state) =>
+      state.matches as unknown as Array<Record<string, unknown>>,
   })
   const pathname = location.pathname
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)

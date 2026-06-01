@@ -720,7 +720,7 @@ function AutomationRunDetailPage() {
                 <WorkspaceSectionHeader
                   title="Failure triage"
                   description="Review broken tests first, then inspect diagnostics and manual case links."
-                  action={
+                  actions={
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="runFailed">{failedResults.length} failing</Badge>
                       <Badge>{failedSuiteCount} suites</Badge>
@@ -819,7 +819,7 @@ function AutomationRunDetailPage() {
                 <WorkspaceSectionHeader
                   title="Results"
                   description="Inspect automated tests, linked manual cases, suggestions, and failure output."
-                  action={
+                  actions={
                     <div className="flex flex-wrap gap-2">
                       <Badge>
                         {linkedCount}/{run.results.length} linked

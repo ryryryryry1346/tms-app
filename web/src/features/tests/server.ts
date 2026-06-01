@@ -120,7 +120,7 @@ const exportRepositoryCsvInput = dashboardInput.extend({
 type ActivityDb = ReturnType<typeof import('../../db/client')['getDb']>
 
 type ActivityActor = {
-  id: number
+  id: number | string
   username: string
 }
 
@@ -451,19 +451,6 @@ export const getDashboardState = createServerFn({ method: 'POST' })
         sections: [],
         tests: [],
         activities: [],
-        pagination: {
-          page: data.page ?? 1,
-          pageSize: data.pageSize ?? 30,
-          totalCases: 0,
-          totalPages: 1,
-        },
-        suiteStats: [],
-        stats: {
-          totalCases: 0,
-          activeCases: 0,
-          readyCases: 0,
-          archivedCases: 0,
-        },
       }
     }
 
@@ -563,6 +550,19 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
         sections: [],
         tests: [],
         activities: [],
+        pagination: {
+          page: data.page ?? 1,
+          pageSize: data.pageSize ?? 30,
+          totalCases: 0,
+          totalPages: 1,
+        },
+        suiteStats: [],
+        stats: {
+          totalCases: 0,
+          activeCases: 0,
+          readyCases: 0,
+          archivedCases: 0,
+        },
       }
     }
 
@@ -1875,7 +1875,9 @@ function readRepositoryImportFormData(data: unknown): {
   }
 }
 
-export const previewRepositoryImportCsv = createServerFn({ method: 'POST' }).handler(
+export const previewRepositoryImportCsv = createServerFn({ method: 'POST' })
+  .inputValidator((data: FormData) => data)
+  .handler(
   async ({ data }): Promise<RepositoryImportPreview> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
@@ -1899,7 +1901,9 @@ export const previewRepositoryImportCsv = createServerFn({ method: 'POST' }).han
   },
 )
 
-export const importRepositoryCsv = createServerFn({ method: 'POST' }).handler(
+export const importRepositoryCsv = createServerFn({ method: 'POST' })
+  .inputValidator((data: FormData) => data)
+  .handler(
   async ({ data }): Promise<RepositoryImportResult> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
     const user = await requireSessionUser()
@@ -2054,7 +2058,6 @@ export const updateTestStatus = createServerFn({ method: 'POST' })
     await ensureTestServerDeps()
 
     const db = getDb()
-    const now = new Date().toISOString()
     const rows = await db
       .select({
         id: tests.id,

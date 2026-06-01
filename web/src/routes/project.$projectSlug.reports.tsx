@@ -84,8 +84,6 @@ function ProjectReportsPage() {
   const readiness =
     activeTests.length > 0 ? Math.round((readyCases / activeTests.length) * 100) : 0
 
-  const projectSlug = project.slug ?? project.id.toString()
-
   return (
     <main className="workspace-view">
       <div className="workspace-view__inner">

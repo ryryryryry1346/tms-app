@@ -291,7 +291,7 @@ function AutomationFlakyTestsPage() {
               <WorkspaceSectionHeader
                 title="Flaky test analysis"
                 description="Prioritize unstable automated checks before they pollute release confidence."
-                action={<Badge variant="warning">{filteredTests.length} shown</Badge>}
+                actions={<Badge variant="warning">{filteredTests.length} shown</Badge>}
               />
               <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(260px,1fr)_180px_180px]">
                 <Input
