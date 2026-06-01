@@ -6,6 +6,7 @@ import {
   useLocation,
 } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
+import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -87,7 +88,7 @@ export const Route = createFileRoute('/project/$projectSlug/automation/runs')({
 })
 
 const RUN_TABLE_COLUMNS =
-  'minmax(360px,1fr) 140px 180px 120px'
+  'minmax(320px,1fr) 190px 240px 160px'
 
 type QuickFilter = 'all' | 'failed' | 'latest-ci' | 'latest'
 
@@ -445,16 +446,13 @@ function AutomationRunsIndex({
         <div className="workspace-view__stack">
           <Panel className="automation-runs-cockpit p-4">
             <div className="automation-runs-header">
-              <div className="min-w-0">
-                <div className="automation-runs-eyebrow">Automation</div>
-                <div className="automation-runs-title-row">
-                  <h1>Automation runs</h1>
-                  <Badge>{filteredRuns.length} shown</Badge>
-                </div>
-                <p>
-                  {project.name} CI/API imports, execution health, and failure focus.
-                </p>
-              </div>
+              <WorkspaceSectionHeader
+                dense
+                eyebrow="Automation"
+                title="Automation runs"
+                description={`${project.name} CI/API imports, execution health, and failure focus.`}
+                meta={<Badge>{filteredRuns.length} shown</Badge>}
+              />
               <div className="automation-runs-actions">
                 <LinkButton
                   size="sm"
@@ -610,7 +608,7 @@ function AutomationRunsIndex({
                   <TableShell surface="panel">
                     <TableHead
                       columns={RUN_TABLE_COLUMNS}
-                      minWidth="760px"
+                      minWidth="960px"
                       padding="sm"
                     >
                       <span>Run</span>
@@ -622,7 +620,7 @@ function AutomationRunsIndex({
                       <TableRow
                         key={run.id}
                         columns={RUN_TABLE_COLUMNS}
-                        minWidth="760px"
+                        minWidth="960px"
                         padding="sm"
                         className="automation-runs-row"
                         role="link"
@@ -658,7 +656,9 @@ function AutomationRunsIndex({
                             {run.skippedCount} skipped
                           </div>
                         </div>
-                        <ResultBar run={run} />
+                        <div className="automation-runs-progress">
+                          <ResultBar run={run} />
+                        </div>
                         <div className="automation-runs-started">
                           <span>{formatDate(run.startedAt)}</span>
                           <small>{formatDuration(run.durationMs)}</small>
