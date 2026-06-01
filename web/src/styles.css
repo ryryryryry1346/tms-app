@@ -2777,12 +2777,10 @@ pre code {
 
 .test-detail-meta-date strong {
   min-width: 0;
-  overflow: hidden;
   color: var(--tms-text);
   font-size: 0.75rem;
   font-weight: 650;
   line-height: 1.35;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -2903,6 +2901,13 @@ div.test-detail-automation-item__title {
   gap: 0.5rem;
 }
 
+.test-detail-activity-list--expanded {
+  max-height: 22rem;
+  overflow: auto;
+  padding-right: 0.25rem;
+  scrollbar-width: thin;
+}
+
 .test-detail-activity-item {
   display: grid;
   gap: 0.25rem;
@@ -2975,8 +2980,6 @@ div.test-detail-automation-item__title {
   .test-detail-side-panel {
     position: sticky;
     top: 5rem;
-    max-height: calc(100vh - 6rem);
-    overflow: auto;
   }
 }
 

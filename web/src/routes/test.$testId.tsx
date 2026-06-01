@@ -113,6 +113,25 @@ function formatDetailDate(value: string | null | undefined): string {
   }).format(date)
 }
 
+function formatCompactDetailDate(value: string | null | undefined): string {
+  if (!value) {
+    return '-'
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return '-'
+  }
+
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
 function getStatusVariant(
   status: string | null,
 ): 'statusReady' | 'statusArchived' | 'statusDraft' {
@@ -1078,11 +1097,19 @@ function TestDetailPage() {
                   <div className="test-detail-meta-dates">
                     <div className="test-detail-meta-date">
                       <span>Created</span>
-                      <strong>{formatDetailDate(test.createdAt)}</strong>
+                      <strong title={formatDetailDate(test.createdAt)}>
+                        {formatCompactDetailDate(test.createdAt)}
+                      </strong>
                     </div>
                     <div className="test-detail-meta-date">
                       <span>Updated</span>
-                      <strong>{formatDetailDate(test.updatedAt ?? test.createdAt)}</strong>
+                      <strong
+                        title={formatDetailDate(test.updatedAt ?? test.createdAt)}
+                      >
+                        {formatCompactDetailDate(
+                          test.updatedAt ?? test.createdAt,
+                        )}
+                      </strong>
                     </div>
                   </div>
               </EditingSurfaceSection>
@@ -1117,7 +1144,13 @@ function TestDetailPage() {
                     No activity recorded yet.
                   </p>
                 ) : (
-                  <div className="test-detail-activity-list">
+                  <div
+                    className={`test-detail-activity-list ${
+                      isActivityExpanded
+                        ? 'test-detail-activity-list--expanded'
+                        : ''
+                    }`}
+                  >
                     {visibleActivities.map((activity) => (
                       <div
                         key={activity.id}
