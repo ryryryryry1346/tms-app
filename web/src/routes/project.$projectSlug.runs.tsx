@@ -193,6 +193,7 @@ function ProjectRunsPage() {
   const [runQuery, setRunQuery] = useState('')
   const [activeRunFilter, setActiveRunFilter] = useState<RunListFilter>('all')
   const [openRunActionsId, setOpenRunActionsId] = useState<number | null>(null)
+  const [createRunScopeQuery, setCreateRunScopeQuery] = useState('')
 
   const activeTests = dashboard.tests.filter((test) => test.status !== 'Archived')
   const selectedRunTestIds = useMemo(() => {
@@ -307,12 +308,43 @@ function ProjectRunsPage() {
     () => runs.reduce((total, run) => total + run.total, 0),
     [runs],
   )
+  const filteredRunSuites = useMemo(() => {
+    const normalizedQuery = createRunScopeQuery.trim().toLowerCase()
+
+    return dashboard.sections.filter((section) => {
+      if (!normalizedQuery) {
+        return true
+      }
+
+      return section.name.toLowerCase().includes(normalizedQuery)
+    })
+  }, [createRunScopeQuery, dashboard.sections])
+  const filteredRunCases = useMemo(() => {
+    const normalizedQuery = createRunScopeQuery.trim().toLowerCase()
+
+    return activeTests.filter((test) => {
+      if (!normalizedQuery) {
+        return true
+      }
+
+      const section = dashboard.sections.find(
+        (item) => item.id === test.sectionId,
+      )
+
+      return (
+        test.title.toLowerCase().includes(normalizedQuery) ||
+        test.id.toString().includes(normalizedQuery) ||
+        (section?.name.toLowerCase().includes(normalizedQuery) ?? false)
+      )
+    })
+  }, [activeTests, createRunScopeQuery, dashboard.sections])
 
   function resetCreateRunForm(): void {
     setRunName('')
     setRunScope('all')
     setSelectedRunSuiteIds([])
     setSelectedRunCaseIds([])
+    setCreateRunScopeQuery('')
     setCreateRunErrorMessage(null)
   }
 
@@ -423,7 +455,16 @@ function ProjectRunsPage() {
                 }
               />
               <Button
-                onClick={() => setShowCreateRunForm((current) => !current)}
+                onClick={() => {
+                  setOpenRunActionsId(null)
+                  setShowCreateRunForm((current) => {
+                    if (current) {
+                      resetCreateRunForm()
+                    }
+
+                    return !current
+                  })
+                }}
                 variant="primary"
                 size="sm"
               >
@@ -484,160 +525,236 @@ function ProjectRunsPage() {
               />
             </div>
 
-          {showCreateRunForm ? (
-            <form
-              className="mb-4 rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border)] bg-[var(--tms-surface-muted)] p-3"
-              onSubmit={handleCreateRun}
-            >
-              <WorkspaceSectionHeader
-                dense
-                title="New run"
-                description="Choose scope and create a focused execution batch from active repository cases."
-                className="mb-3"
-              />
-              <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
-                <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
-                  Run name
-                  <Input
-                    value={runName}
-                    onChange={(event) => setRunName(event.target.value)}
-                    placeholder="Week 13. Regression"
-                    size="md"
-                    className="min-w-0"
-                  />
-                </label>
-                <div className="flex flex-wrap items-end gap-2 xl:justify-end">
-                  <Button
-                    type="submit"
-                    disabled={isCreatingRun || selectedRunTestIds.length === 0}
-                    variant="primary"
-                    size="sm"
-                    className="whitespace-nowrap"
-                  >
-                    {isCreatingRun ? 'Creating...' : 'Create run'}
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setShowCreateRunForm(false)
-                      resetCreateRunForm()
-                    }}
-                    size="sm"
-                    className="tms-button whitespace-nowrap"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { value: 'all', label: 'All active cases' },
-                    { value: 'suites', label: 'Suites' },
-                    { value: 'cases', label: 'Cases' },
-                  ].map((option) => (
-                    <Button
-                      key={option.value}
-                      onClick={() => {
-                        setRunScope(option.value as 'all' | 'suites' | 'cases')
-                        setCreateRunErrorMessage(null)
-                      }}
-                      variant={runScope === option.value ? 'primary' : 'default'}
-                      size="sm"
-                      className={`tms-button ${
-                        runScope === option.value
-                          ? 'tms-chip-primary'
-                          : ''
-                      }`}
-                    >
-                      {option.label}
-                    </Button>
-                  ))}
-                </div>
-                <Badge>
-                  {selectedRunTestIds.length} case
-                  {selectedRunTestIds.length === 1 ? '' : 's'} in run
-                </Badge>
-              </div>
-
-              {runScope === 'suites' ? (
-                <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                  {dashboard.sections.map((section) => {
-                    const sectionCaseCount = activeTests.filter(
-                      (test) => test.sectionId === section.id,
-                    ).length
-                    const isSelected = selectedRunSuiteIds.includes(section.id)
-
-                    return (
-                      <label
-                        key={section.id}
-                        className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 text-sm font-semibold ${
-                          isSelected
-                            ? 'border-[var(--tms-primary-border)] bg-[var(--tms-primary-soft)] text-[var(--tms-text)]'
-                            : 'border-[var(--tms-border)] bg-[var(--tms-surface)] text-[var(--tms-text-muted)]'
-                        }`}
-                      >
-                        <span className="min-w-0 truncate">{section.name}</span>
-                        <span className="flex shrink-0 items-center gap-2">
-                          <span className="text-xs text-[var(--tms-text-soft)]">
-                            {sectionCaseCount}
-                          </span>
-                          <Checkbox
-                            checked={isSelected}
-                            onChange={() => toggleRunSuiteSelection(section.id)}
-                          />
-                        </span>
-                      </label>
-                    )
-                  })}
-                </div>
-              ) : null}
-
-              {runScope === 'cases' ? (
-                <div className="mt-4 max-h-[260px] overflow-y-auto rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)]">
-                  {activeTests.length === 0 ? (
-                    <div className="px-4 py-3 text-sm text-[var(--tms-text-muted)]">
-                      No active cases are available for this run.
+            {showCreateRunForm ? (
+              <div className="runs-create-layer" role="presentation">
+                <button
+                  type="button"
+                  className="runs-create-backdrop"
+                  aria-label="Close create run"
+                  onClick={() => {
+                    setShowCreateRunForm(false)
+                    resetCreateRunForm()
+                  }}
+                />
+                <form
+                  className="runs-create-drawer"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="runs-create-title"
+                  onSubmit={handleCreateRun}
+                >
+                  <div className="runs-create-drawer__header">
+                    <div className="min-w-0">
+                      <div className="runs-create-drawer__eyebrow">
+                        Execution
+                      </div>
+                      <h2 id="runs-create-title">New run</h2>
+                      <p>Choose scope and create a focused execution batch.</p>
                     </div>
-                  ) : (
-                    activeTests.map((test) => {
-                      const section = dashboard.sections.find(
-                        (item) => item.id === test.sectionId,
-                      )
+                    <Button
+                      type="button"
+                      size="sm"
+                      aria-label="Close create run"
+                      onClick={() => {
+                        setShowCreateRunForm(false)
+                        resetCreateRunForm()
+                      }}
+                    >
+                      Close
+                    </Button>
+                  </div>
 
-                      return (
-                        <label
-                          key={test.id}
-                          className="flex items-center justify-between gap-4 border-t border-[var(--tms-border-subtle)] px-3 py-2 first:border-t-0"
-                        >
-                          <span className="min-w-0">
-                            <span className="block truncate text-sm font-semibold text-[var(--tms-text)]">
-                              #{test.id} {test.title}
-                            </span>
-                            <span className="text-xs font-semibold text-[var(--tms-text-soft)]">
-                              {section?.name ?? 'No suite'} /{' '}
-                              {test.priority ?? 'Medium'} /{' '}
-                              {test.caseType ?? 'Functional'}
-                            </span>
-                          </span>
-                          <Checkbox
-                            checked={selectedRunTestIdSet.has(test.id)}
-                            onChange={() => toggleRunCaseSelection(test.id)}
-                          />
-                        </label>
-                      )
-                    })
-                  )}
-                </div>
-              ) : null}
-            </form>
-          ) : null}
+                  <div className="runs-create-drawer__body">
+                    {createRunErrorMessage ? (
+                      <Alert variant="danger">{createRunErrorMessage}</Alert>
+                    ) : null}
 
-          {createRunErrorMessage ? (
-            <Alert variant="danger" className="mb-5">
-              {createRunErrorMessage}
-            </Alert>
-          ) : null}
+                    <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
+                      Run name
+                      <Input
+                        value={runName}
+                        onChange={(event) => setRunName(event.target.value)}
+                        placeholder="Week 13. Regression"
+                        size="md"
+                        className="min-w-0"
+                      />
+                    </label>
+
+                    <div>
+                      <div className="runs-create-label">Scope</div>
+                      <div className="runs-scope-segmented">
+                        {[
+                          { value: 'all', label: 'All' },
+                          { value: 'suites', label: 'Suites' },
+                          { value: 'cases', label: 'Cases' },
+                        ].map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className={`runs-scope-segment${
+                              runScope === option.value ? ' is-active' : ''
+                            }`}
+                            aria-pressed={runScope === option.value}
+                            onClick={() => {
+                              setRunScope(
+                                option.value as 'all' | 'suites' | 'cases',
+                              )
+                              setCreateRunScopeQuery('')
+                              setCreateRunErrorMessage(null)
+                            }}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {runScope !== 'all' ? (
+                      <Input
+                        value={createRunScopeQuery}
+                        onChange={(event) =>
+                          setCreateRunScopeQuery(event.target.value)
+                        }
+                        placeholder={
+                          runScope === 'suites'
+                            ? 'Search suites'
+                            : 'Search cases'
+                        }
+                        size="sm"
+                        aria-label={
+                          runScope === 'suites'
+                            ? 'Search suites'
+                            : 'Search cases'
+                        }
+                      />
+                    ) : (
+                      <div className="runs-create-note">
+                        All active repository cases will be included.
+                      </div>
+                    )}
+
+                    {runScope === 'suites' ? (
+                      <div className="runs-create-pick-list">
+                        {filteredRunSuites.length === 0 ? (
+                          <div className="runs-create-empty">
+                            No suites found.
+                          </div>
+                        ) : (
+                          filteredRunSuites.map((section) => {
+                            const sectionCaseCount = activeTests.filter(
+                              (test) => test.sectionId === section.id,
+                            ).length
+                            const isSelected = selectedRunSuiteIds.includes(
+                              section.id,
+                            )
+
+                            return (
+                              <label
+                                key={section.id}
+                                className={`runs-create-pick-row${
+                                  isSelected ? ' is-selected' : ''
+                                }`}
+                              >
+                                <span className="min-w-0">
+                                  <span>{section.name}</span>
+                                  <small>
+                                    {sectionCaseCount} case
+                                    {sectionCaseCount === 1 ? '' : 's'}
+                                  </small>
+                                </span>
+                                <Checkbox
+                                  checked={isSelected}
+                                  onChange={() =>
+                                    toggleRunSuiteSelection(section.id)
+                                  }
+                                />
+                              </label>
+                            )
+                          })
+                        )}
+                      </div>
+                    ) : null}
+
+                    {runScope === 'cases' ? (
+                      <div className="runs-create-pick-list">
+                        {activeTests.length === 0 ? (
+                          <div className="runs-create-empty">
+                            No active cases are available.
+                          </div>
+                        ) : filteredRunCases.length === 0 ? (
+                          <div className="runs-create-empty">
+                            No cases found.
+                          </div>
+                        ) : (
+                          filteredRunCases.map((test) => {
+                            const section = dashboard.sections.find(
+                              (item) => item.id === test.sectionId,
+                            )
+
+                            return (
+                              <label
+                                key={test.id}
+                                className={`runs-create-pick-row${
+                                  selectedRunTestIdSet.has(test.id)
+                                    ? ' is-selected'
+                                    : ''
+                                }`}
+                              >
+                                <span className="min-w-0">
+                                  <span>
+                                    #{test.id} {test.title}
+                                  </span>
+                                  <small>
+                                    {section?.name ?? 'No suite'} /{' '}
+                                    {test.priority ?? 'Medium'} /{' '}
+                                    {test.caseType ?? 'Functional'}
+                                  </small>
+                                </span>
+                                <Checkbox
+                                  checked={selectedRunTestIdSet.has(test.id)}
+                                  onChange={() =>
+                                    toggleRunCaseSelection(test.id)
+                                  }
+                                />
+                              </label>
+                            )
+                          })
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="runs-create-drawer__footer">
+                    <Badge>
+                      {selectedRunTestIds.length} case
+                      {selectedRunTestIds.length === 1 ? '' : 's'} selected
+                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          setShowCreateRunForm(false)
+                          resetCreateRunForm()
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={
+                          isCreatingRun || selectedRunTestIds.length === 0
+                        }
+                        variant="primary"
+                        size="sm"
+                      >
+                        {isCreatingRun ? 'Creating...' : 'Create run'}
+                      </Button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            ) : null}
 
           {runActionErrorMessage ? (
             <Alert variant="danger" className="mb-5">
@@ -657,8 +774,8 @@ function ProjectRunsPage() {
           ) : (
             <TableShell>
               <TableHead
-                columns="minmax(340px,1fr) 180px 72px 72px 78px 78px 48px"
-                minWidth="920px"
+                columns="minmax(340px,1fr) 180px 72px 72px 78px 78px 56px"
+                minWidth="928px"
                 padding="sm"
               >
                 <div>Run</div>
@@ -667,7 +784,9 @@ function ProjectRunsPage() {
                 <div>Failed</div>
                 <div>Blocked</div>
                 <div>Not run</div>
-                <div className="text-right">Actions</div>
+                <div className="runs-actions-head" aria-label="Actions">
+                  ...
+                </div>
               </TableHead>
               {filteredRunViewModels.map((viewModel) => {
                 const { run } = viewModel
@@ -677,8 +796,8 @@ function ProjectRunsPage() {
                 return (
                   <TableRow
                     key={run.id}
-                    columns="minmax(340px,1fr) 180px 72px 72px 78px 78px 48px"
-                    minWidth="920px"
+                    columns="minmax(340px,1fr) 180px 72px 72px 78px 78px 56px"
+                    minWidth="928px"
                     padding="sm"
                     className={`runs-table-row${
                       isEditing ? '' : ' runs-table-row--interactive'
