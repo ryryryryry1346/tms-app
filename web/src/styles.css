@@ -2627,6 +2627,47 @@ pre code {
   gap: 0.5rem;
 }
 
+.test-detail-content-panel {
+  display: grid;
+  gap: 0.875rem;
+  padding: 1rem;
+}
+
+.test-detail-content-stack {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.test-detail-rich-block {
+  overflow: hidden;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: var(--tms-radius-panel);
+  background: var(--tms-surface);
+}
+
+.test-detail-rich-block__header {
+  border-bottom: 1px solid var(--tms-border-subtle);
+  background: var(--tms-surface-soft);
+  padding: 0.625rem 0.875rem;
+}
+
+.test-detail-rich-block__body {
+  padding: 0.875rem 1rem;
+}
+
+.test-detail-rich-block__body.rich-output {
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.test-detail-rich-block__body.rich-output > :first-child {
+  margin-top: 0;
+}
+
+.test-detail-rich-block__body.rich-output > :last-child {
+  margin-bottom: 0;
+}
+
 .test-detail-meta-grid {
   display: grid;
   gap: 0.625rem;
@@ -2855,6 +2896,10 @@ div.test-detail-automation-item__title {
 }
 
 @media (min-width: 640px) {
+  .test-detail-content-panel {
+    padding: 1.125rem;
+  }
+
   .test-detail-title,
   .test-detail-title-input {
     font-size: 2.25rem;

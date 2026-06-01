@@ -921,11 +921,10 @@ function TestDetailPage() {
         </Panel>
 
           <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <Panel className="grid gap-4 px-4 py-5 sm:px-6 sm:py-6">
+            <Panel className="test-detail-content-panel">
               <EditingSurfaceSection
                 title="Content"
-                description="Maintain the executable steps and expected outcome for this test case."
-                bodyClassName="editing-rich-stack"
+                bodyClassName="test-detail-content-stack"
               >
                 {isEditingContent ? (
                   <>
@@ -948,14 +947,14 @@ function TestDetailPage() {
                   </>
                 ) : (
                   <>
-                    <section className="editing-rich-block">
+                    <section className="test-detail-rich-block">
                       <WorkspaceSectionHeader
                         dense
                         title="Steps"
-                        className="editing-rich-block__content"
+                        className="test-detail-rich-block__header"
                       />
                       <div
-                        className="editing-rich-block__content rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
+                        className="test-detail-rich-block__body rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
                         onClick={handleRichContentClick}
                         dangerouslySetInnerHTML={{
                           __html: sanitizeHtml(test.steps || '<p>-</p>'),
@@ -963,14 +962,14 @@ function TestDetailPage() {
                       />
                     </section>
 
-                    <section className="editing-rich-block">
+                    <section className="test-detail-rich-block">
                       <WorkspaceSectionHeader
                         dense
                         title="Expected result"
-                        className="editing-rich-block__content"
+                        className="test-detail-rich-block__header"
                       />
                       <div
-                        className="editing-rich-block__content rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
+                        className="test-detail-rich-block__body rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
                         onClick={handleRichContentClick}
                         dangerouslySetInnerHTML={{
                           __html: sanitizeHtml(test.expected || '<p>-</p>'),
