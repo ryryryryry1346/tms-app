@@ -715,14 +715,16 @@ function TestDetailPage() {
         </div>
 
         <div className="grid gap-4">
-        <Panel className="overflow-hidden">
-          <div className="border-b border-[var(--tms-border-subtle)] px-4 py-5 sm:px-6 sm:py-6">
+        <Panel className="test-detail-header-panel">
+          <div className="test-detail-header-body">
             <div className="test-detail-header-layout">
               <div className="test-detail-heading">
-                <p className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--tms-text-soft)]">
-                  Test case
-                </p>
-                <div className="test-detail-title-row mt-2">
+                <div className="test-detail-meta-line">
+                  <span>Case #{test.id}</span>
+                  <span>{test.sectionName ?? 'No suite'}</span>
+                  <span>Updated {formatDetailDate(test.updatedAt ?? test.createdAt)}</span>
+                </div>
+                <div className="test-detail-title-row">
                   {isEditingTitle ? (
                     <Input
                       value={titleValue}
@@ -784,7 +786,7 @@ function TestDetailPage() {
                     )}
                   </div>
                 </div>
-                <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
+                <div className="test-detail-badges">
                   <Badge variant={getStatusVariant(test.status)}>
                     {test.status ?? 'Draft'}
                   </Badge>
@@ -798,13 +800,6 @@ function TestDetailPage() {
               </div>
 
               <div className="test-detail-main-actions">
-                <Link
-                  to="/edit-test/$testId"
-                  params={{ testId: test.id.toString() }}
-                  className="tms-button tms-button-secondary no-underline"
-                >
-                  Full editor
-                </Link>
                 {isEditingContent ? (
                   <>
                     <Button
@@ -814,6 +809,7 @@ function TestDetailPage() {
                       }}
                       disabled={isSavingContent || isUploadingMedia}
                       variant="primary"
+                      size="sm"
                     >
                       {isSavingContent ? 'Saving...' : 'Save content'}
                     </Button>
@@ -822,6 +818,7 @@ function TestDetailPage() {
                       onClick={cancelContentEdit}
                       disabled={isSavingContent}
                       variant="secondary"
+                      size="sm"
                     >
                       Cancel
                     </Button>
@@ -831,6 +828,7 @@ function TestDetailPage() {
                     type="button"
                     onClick={startContentEdit}
                     variant="primary"
+                    size="sm"
                   >
                     Edit content
                   </Button>
@@ -844,6 +842,7 @@ function TestDetailPage() {
                     <Button
                       type="button"
                       variant="secondary"
+                      size="sm"
                       aria-label="More test case actions"
                       aria-expanded={isMoreActionsOpen}
                     >
@@ -855,6 +854,15 @@ function TestDetailPage() {
                     </Button>
                   }
                 >
+                  <Link
+                    to="/edit-test/$testId"
+                    params={{ testId: test.id.toString() }}
+                    className="tms-menu-item no-underline"
+                    onClick={() => setIsMoreActionsOpen(false)}
+                  >
+                    Full editor
+                  </Link>
+                  <PopoverMenuSeparator />
                   <PopoverMenuItem
                     onClick={() => {
                       setIsMoreActionsOpen(false)
