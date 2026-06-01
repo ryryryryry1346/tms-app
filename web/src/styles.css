@@ -2180,8 +2180,33 @@ pre code {
   white-space: nowrap;
 }
 
+.runs-run-title {
+  color: var(--tms-text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
 .runs-table-row {
   min-height: 3.5rem;
+}
+
+.runs-table-row--interactive {
+  cursor: pointer;
+}
+
+.runs-table-row--interactive:hover {
+  background: var(--tms-surface-soft);
+}
+
+.runs-table-row--interactive:focus-visible {
+  outline: none;
+  box-shadow: inset 3px 0 0 var(--tms-primary);
+}
+
+.runs-table-row--interactive:hover .runs-run-title,
+.runs-table-row--interactive:focus-visible .runs-run-title {
+  color: var(--tms-primary);
 }
 
 @media (max-width: 760px) {

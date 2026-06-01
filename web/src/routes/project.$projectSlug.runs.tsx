@@ -14,6 +14,11 @@ import { Checkbox } from '../components/ui/Checkbox'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
+import {
+  PopoverMenu,
+  PopoverMenuItem,
+  PopoverMenuLabel,
+} from '../components/ui/PopoverMenu'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import { getDashboardState } from '../features/tests/server'
 import {
@@ -187,6 +192,7 @@ function ProjectRunsPage() {
   )
   const [runQuery, setRunQuery] = useState('')
   const [activeRunFilter, setActiveRunFilter] = useState<RunListFilter>('all')
+  const [openRunActionsId, setOpenRunActionsId] = useState<number | null>(null)
 
   const activeTests = dashboard.tests.filter((test) => test.status !== 'Archived')
   const selectedRunTestIds = useMemo(() => {
@@ -394,6 +400,10 @@ function ProjectRunsPage() {
     } finally {
       setPendingRunId(null)
     }
+  }
+
+  function openRun(runId: number): void {
+    window.location.href = `/run/${runId}`
   }
 
   return (
@@ -647,8 +657,8 @@ function ProjectRunsPage() {
           ) : (
             <TableShell>
               <TableHead
-                columns="minmax(300px,1fr) 180px 76px 76px 82px 82px 152px"
-                minWidth="1040px"
+                columns="minmax(340px,1fr) 180px 72px 72px 78px 78px 48px"
+                minWidth="920px"
                 padding="sm"
               >
                 <div>Run</div>
@@ -667,16 +677,35 @@ function ProjectRunsPage() {
                 return (
                   <TableRow
                     key={run.id}
-                    columns="minmax(300px,1fr) 180px 76px 76px 82px 82px 152px"
-                    minWidth="1040px"
+                    columns="minmax(340px,1fr) 180px 72px 72px 78px 78px 48px"
+                    minWidth="920px"
                     padding="sm"
-                    className="runs-table-row"
+                    className={`runs-table-row${
+                      isEditing ? '' : ' runs-table-row--interactive'
+                    }`}
+                    role={isEditing ? undefined : 'link'}
+                    tabIndex={isEditing ? undefined : 0}
+                    aria-label={
+                      isEditing ? undefined : `Open run ${run.name}`
+                    }
+                    onClick={isEditing ? undefined : () => openRun(run.id)}
+                    onKeyDown={
+                      isEditing
+                        ? undefined
+                        : (event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault()
+                              openRun(run.id)
+                            }
+                          }
+                    }
                   >
                     <div className="min-w-0 pr-3">
                       {isEditing ? (
                           <form
                             className="grid gap-2 xl:grid-cols-[minmax(220px,1fr)_auto_auto]"
                             onSubmit={(event) => handleRenameRun(event, run.id)}
+                            onClick={(event) => event.stopPropagation()}
                           >
                             <Input
                               value={editingRunName}
@@ -707,11 +736,14 @@ function ProjectRunsPage() {
                           </form>
                         ) : (
                           <>
-                            <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
+                            <div className="runs-run-title truncate">
                               {run.name}
                             </div>
                             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--tms-text-muted)]">
-                              <span>#{run.id}</span>
+                              <span>
+                                #{run.id} / {run.total} cases /{' '}
+                                {viewModel.executed} executed
+                              </span>
                               <Badge
                                 className="px-2 py-0.5"
                                 variant={getRunStateBadgeVariant(
@@ -764,23 +796,51 @@ function ProjectRunsPage() {
                     <div className="text-xs font-semibold text-[var(--run-not-run-text)]">
                       {run.notRun}
                     </div>
-                    <div className="flex justify-end gap-1.5 whitespace-nowrap">
+                    <div
+                      className="flex justify-end whitespace-nowrap"
+                      onClick={(event) => event.stopPropagation()}
+                    >
                       {!isEditing ? (
-                        <>
-                          <Button
-                            onClick={() => startRenameRun(run.id, run.name)}
-                            size="sm"
-                          >
-                            Rename
-                          </Button>
+                        <PopoverMenu
+                          isOpen={openRunActionsId === run.id}
+                          onClose={() => {
+                            setOpenRunActionsId((current) =>
+                              current === run.id ? null : current,
+                            )
+                          }}
+                          onOpenChange={(nextOpen) => {
+                            setOpenRunActionsId(nextOpen ? run.id : null)
+                          }}
+                          className="min-w-[150px] text-left"
+                          trigger={
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              aria-label={`Open actions for ${run.name}`}
+                              aria-haspopup="menu"
+                              aria-expanded={openRunActionsId === run.id}
+                            >
+                              ...
+                            </Button>
+                          }
+                        >
+                          <PopoverMenuLabel>Run</PopoverMenuLabel>
                           <Link
                             to="/run/$runId"
                             params={{ runId: run.id.toString() }}
-                            className="tms-button tms-button-primary min-h-0 px-2.5 py-1 text-xs no-underline"
+                            className="tms-menu-item"
                           >
-                            Open run
+                            Open
                           </Link>
-                        </>
+                          <PopoverMenuItem
+                            onClick={() => {
+                              setOpenRunActionsId(null)
+                              startRenameRun(run.id, run.name)
+                            }}
+                          >
+                            Rename
+                          </PopoverMenuItem>
+                        </PopoverMenu>
                       ) : null}
                     </div>
                   </TableRow>
