@@ -8,7 +8,6 @@ import {
 } from '@tanstack/react-router'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
-import { Badge } from '../components/ui/Badge'
 import { EmptyState } from '../components/ui/EmptyState'
 import { LinkButton } from '../components/ui/LinkButton'
 import { Panel } from '../components/ui/Panel'
@@ -81,6 +80,48 @@ export const Route = createFileRoute('/project/$projectSlug')({
   component: ProjectOverviewPage,
 })
 
+type RunStatusTone = 'passed' | 'failed' | 'blocked' | 'progress' | 'idle'
+
+function deriveRunStatus(run: {
+  total: number
+  passed: number
+  failed: number
+  blocked: number
+  notRun: number
+}): { label: string; tone: RunStatusTone } {
+  const executed = run.passed + run.failed + run.blocked
+
+  if (run.total === 0) {
+    return { label: 'Empty', tone: 'idle' }
+  }
+
+  if (executed === 0) {
+    return { label: 'Not started', tone: 'idle' }
+  }
+
+  if (run.notRun > 0) {
+    return { label: 'In progress', tone: 'progress' }
+  }
+
+  if (run.failed > 0) {
+    return { label: 'Needs review', tone: 'failed' }
+  }
+
+  if (run.blocked > 0) {
+    return { label: 'Blocked', tone: 'blocked' }
+  }
+
+  return { label: 'Passed', tone: 'passed' }
+}
+
+function runToneChipClass(tone: RunStatusTone): string {
+  if (tone === 'passed') return 'tms-chip-run-passed'
+  if (tone === 'failed') return 'tms-chip-run-failed'
+  if (tone === 'blocked') return 'tms-chip-run-blocked'
+  if (tone === 'progress') return 'tms-chip-primary'
+  return 'tms-chip-run-not-run'
+}
+
 function ProjectOverviewPage() {
   const { project, dashboard, runs } = Route.useLoaderData()
   const { projectSlug: routeProjectSlug } = Route.useParams()
@@ -93,14 +134,21 @@ function ProjectOverviewPage() {
   }
 
   const activeTests = dashboard.tests.filter((test) => test.status !== 'Archived')
+  const totalActive = activeTests.length
   const readyCases = activeTests.filter((test) => test.status === 'Ready').length
-  const draftCases = activeTests.filter((test) => test.status === 'Draft').length
-  const archivedCases = dashboard.tests.filter(
-    (test) => test.status === 'Archived',
-  ).length
+  const readiness =
+    totalActive > 0 ? Math.round((readyCases / totalActive) * 100) : 0
   const projectSlug = project.slug ?? project.id.toString()
-  const recentRuns = [...runs].sort((a, b) => b.id - a.id).slice(0, 3)
-  const recentCases = [...dashboard.tests].sort((a, b) => b.id - a.id).slice(0, 3)
+
+  const recentRuns = [...runs].sort((a, b) => b.id - a.id).slice(0, 5)
+  const activeRuns = runs.filter((run) => run.total > 0 && run.notRun > 0).length
+  const executedTotal = runs.reduce(
+    (sum, run) => sum + run.passed + run.failed + run.blocked,
+    0,
+  )
+  const passedTotal = runs.reduce((sum, run) => sum + run.passed, 0)
+  const passRate =
+    executedTotal > 0 ? Math.round((passedTotal / executedTotal) * 100) : 0
 
   return (
     <main className="workspace-view">
@@ -108,7 +156,7 @@ function ProjectOverviewPage() {
         <div className="workspace-view__stack">
           <ProjectPageHeader
             projectName={project.name}
-            description="Project dashboard with repository health, recent activity, and execution summary."
+            description="At-a-glance readiness and recent execution health."
             actions={
               <>
                 <LinkButton
@@ -129,164 +177,137 @@ function ProjectOverviewPage() {
             }
           />
 
-          <section className="repository-summary-strip overview-summary-strip">
-            {[
-              { label: 'Suites', value: dashboard.sections.length },
-              { label: 'Cases', value: activeTests.length },
-              { label: 'Ready', value: readyCases },
-              { label: 'Draft', value: draftCases },
-              { label: 'Runs', value: runs.length },
-            ].map((item) => (
-              <Badge
-                key={item.label}
-                className="repository-summary-strip__chip"
-                variant={
-                  item.label === 'Ready'
-                    ? 'runPassed'
-                    : item.label === 'Runs'
-                      ? 'primary'
-                      : 'default'
-                }
-              >
-                {item.value} {item.label}
-              </Badge>
-            ))}
+          <section className="overview-kpis">
+            <article className="overview-kpi overview-kpi--accent">
+              <span className="overview-kpi__label">Readiness</span>
+              <span className="overview-kpi__value">{readiness}%</span>
+              <span className="overview-kpi__sub">
+                {readyCases} of {totalActive} ready
+              </span>
+              <span className="overview-kpi__bar">
+                <span
+                  className="overview-kpi__bar-fill overview-kpi__bar-fill--passed"
+                  style={{ width: `${readiness}%` }}
+                />
+              </span>
+            </article>
+
+            <article className="overview-kpi">
+              <span className="overview-kpi__label">Test cases</span>
+              <span className="overview-kpi__value">{totalActive}</span>
+              <span className="overview-kpi__sub">
+                across {dashboard.sections.length} suites
+              </span>
+            </article>
+
+            <article className="overview-kpi">
+              <span className="overview-kpi__label">Runs</span>
+              <span className="overview-kpi__value">{runs.length}</span>
+              <span className="overview-kpi__sub">{activeRuns} in progress</span>
+            </article>
+
+            <article className="overview-kpi overview-kpi--accent">
+              <span className="overview-kpi__label">Pass rate</span>
+              <span className="overview-kpi__value">{passRate}%</span>
+              <span className="overview-kpi__sub">{executedTotal} executed</span>
+              <span className="overview-kpi__bar">
+                <span
+                  className="overview-kpi__bar-fill overview-kpi__bar-fill--passed"
+                  style={{ width: `${passRate}%` }}
+                />
+              </span>
+            </article>
           </section>
 
-          <section className="overview-grid">
-          <div className="overview-main-column">
-            <Panel className="overview-panel px-4 py-3">
-              <WorkspaceSectionHeader
-                dense
-                title="Repository health"
-                description="Snapshot of suite structure and test case readiness."
-                actions={
-                  <Link
-                    to="/project/$projectSlug/repository"
-                    params={{ projectSlug }}
-                    className="tms-button min-h-0 px-2.5 py-1 text-xs no-underline"
-                  >
-                    Open repository
-                  </Link>
-                }
-                className="mb-3"
-              />
+          <Panel className="overview-panel px-4 py-4">
+            <WorkspaceSectionHeader
+              dense
+              title="Recent runs"
+              description="Latest execution activity and pass health."
+              actions={
+                <Link
+                  to="/project/$projectSlug/runs"
+                  params={{ projectSlug }}
+                  className="tms-button min-h-0 px-2.5 py-1 text-xs no-underline"
+                >
+                  View all runs
+                </Link>
+              }
+              className="mb-3"
+            />
 
-              <div className="overview-suite-grid">
-                {dashboard.sections.map((section) => {
-                  const suiteTests = activeTests.filter(
-                    (test) => test.sectionId === section.id,
-                  )
-                  const suiteReady = suiteTests.filter(
-                    (test) => test.status === 'Ready',
-                  ).length
+            {recentRuns.length === 0 ? (
+              <EmptyState
+                title="No runs yet"
+                description="Execution runs will appear here once created."
+              />
+            ) : (
+              <div className="overview-runs">
+                {recentRuns.map((run) => {
+                  const status = deriveRunStatus(run)
+                  const executed = run.passed + run.failed + run.blocked
+                  const progress =
+                    run.total > 0 ? Math.round((executed / run.total) * 100) : 0
+                  const widthOf = (value: number) =>
+                    run.total > 0 ? `${(value / run.total) * 100}%` : '0%'
 
                   return (
-                    <Panel
-                      key={section.id}
-                      className="overview-suite-card rounded-[var(--tms-radius-overlay)] border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-3 py-2 shadow-none"
-                    >
-                      <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
-                        {section.name}
-                      </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[var(--tms-text-muted)]">
-                        <span>{suiteTests.length} cases</span>
-                        <span>Ready {suiteReady}</span>
-                        <span>Draft {suiteTests.length - suiteReady}</span>
-                      </div>
-                    </Panel>
-                  )
-                })}
-              </div>
-            </Panel>
-
-            <Panel className="overview-panel px-4 py-3">
-              <WorkspaceSectionHeader
-                dense
-                title="Recent test cases"
-                description="Latest created cases across the project repository."
-                meta={
-                  <Badge variant={archivedCases > 0 ? 'warning' : 'draft'}>
-                    {archivedCases} archived
-                  </Badge>
-                }
-                className="mb-3"
-              />
-
-              {recentCases.length === 0 ? (
-                <EmptyState
-                  title="No test cases yet"
-                  description="Newly created test cases will appear here."
-                />
-              ) : (
-                <div className="grid gap-2">
-                  {recentCases.map((test) => {
-                    const suite =
-                      dashboard.sections.find((section) => section.id === test.sectionId) ??
-                      null
-
-                    return (
-                      <Link
-                        key={test.id}
-                        to="/test/$testId"
-                        params={{ testId: test.id.toString() }}
-                        className="overview-list-row no-underline transition hover:border-[var(--tms-primary-border)]"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
-                              #{test.id} {test.title}
-                            </div>
-                            <div className="mt-0.5 text-xs text-[var(--tms-text-muted)]">
-                              {suite?.name ?? 'No suite'} / {test.status ?? 'Draft'}
-                            </div>
-                          </div>
-                          <span className="shrink-0 text-xs font-semibold text-[var(--tms-primary)]">
-                            Open
-                          </span>
-                        </div>
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </Panel>
-          </div>
-
-          <div className="overview-side-column">
-            <Panel className="overview-panel px-4 py-3">
-              <WorkspaceSectionHeader
-                dense
-                title="Recent runs"
-                description="Latest execution activity for this project."
-                className="mb-3"
-              />
-
-              <div className="grid gap-2">
-                {recentRuns.length === 0 ? (
-                  <EmptyState
-                    title="No runs yet"
-                    description="Execution runs will appear here once created."
-                  />
-                ) : (
-                  recentRuns.map((run) => (
                     <Link
                       key={run.id}
                       to="/run/$runId"
                       params={{ runId: run.id.toString() }}
-                      className="overview-list-row no-underline transition hover:border-[var(--tms-primary-border)]"
+                      className="overview-run-row no-underline"
                     >
-                      <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
-                        {run.name}
+                      <div className="overview-run-row__head">
+                        <span className="overview-run-row__name">{run.name}</span>
+                        <span
+                          className={`overview-run-row__status ${runToneChipClass(
+                            status.tone,
+                          )}`}
+                        >
+                          {status.label}
+                        </span>
                       </div>
-                      <div className="mt-0.5 text-xs text-[var(--tms-text-muted)]">Run ID: {run.id}</div>
+                      <div className="overview-run-row__progress">
+                        <span className="overview-run-row__percent">
+                          {progress}%
+                        </span>
+                        <span className="tms-run-progress-track overview-run-row__track">
+                          <span
+                            className="tms-run-progress-segment tms-run-progress-segment--passed"
+                            style={{ width: widthOf(run.passed) }}
+                          />
+                          <span
+                            className="tms-run-progress-segment tms-run-progress-segment--failed"
+                            style={{ width: widthOf(run.failed) }}
+                          />
+                          <span
+                            className="tms-run-progress-segment tms-run-progress-segment--blocked"
+                            style={{ width: widthOf(run.blocked) }}
+                          />
+                        </span>
+                      </div>
+                      <div className="overview-run-row__meta">
+                        <span>{run.total} cases</span>
+                        <span className="overview-run-row__dot overview-run-row__dot--passed">
+                          {run.passed} passed
+                        </span>
+                        <span className="overview-run-row__dot overview-run-row__dot--failed">
+                          {run.failed} failed
+                        </span>
+                        <span className="overview-run-row__dot overview-run-row__dot--blocked">
+                          {run.blocked} blocked
+                        </span>
+                        <span className="overview-run-row__dot">
+                          {run.notRun} not run
+                        </span>
+                      </div>
                     </Link>
-                  ))
-                )}
+                  )
+                })}
               </div>
-            </Panel>
-          </div>
-          </section>
+            )}
+          </Panel>
         </div>
       </div>
     </main>
