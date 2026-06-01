@@ -85,6 +85,7 @@ const CASE_TYPE_OPTIONS = [
   'UI',
   'API',
 ] as const
+const TEST_DETAIL_VISIBLE_AUTOMATION_LIMIT = 3
 const TEST_DETAIL_VISIBLE_ACTIVITY_LIMIT = 5
 
 type CaseStatusValue = (typeof CASE_STATUS_OPTIONS)[number]
@@ -207,94 +208,105 @@ function AutomationHistoryBlock({
   history: AutomationTestCaseHistory | null
   projectSlug: string | null
 }) {
+  const recentResults = history?.results.slice(
+    0,
+    TEST_DETAIL_VISIBLE_AUTOMATION_LIMIT,
+  ) ?? []
+  const hiddenResultsCount = Math.max(
+    0,
+    (history?.results.length ?? 0) - recentResults.length,
+  )
+
   return (
     <section className="mt-6 border-t border-[var(--tms-border-subtle)] pt-5">
-      <WorkspaceSectionHeader
-        dense
-        title="Automation history"
-        className="mb-3"
-      />
+      <div className="test-detail-section-heading">
+        <WorkspaceSectionHeader
+          dense
+          title="Automation"
+          className="mb-0"
+        />
+        {projectSlug && history && history.totalResults > 0 ? (
+          <Link
+            to="/project/$projectSlug/automation/runs"
+            params={{ projectSlug }}
+            className="test-detail-section-link"
+          >
+            Runs
+          </Link>
+        ) : null}
+      </div>
       {!history || history.totalResults === 0 ? (
         <p className="m-0 text-sm text-[var(--tms-text-muted)]">
           No automation results linked yet.
         </p>
       ) : (
-        <div className="grid gap-3">
-          <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] px-3 py-2">
-              <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-soft)]">
-                Latest
-              </div>
-              <Badge
-                variant={getAutomationStatusVariant(history.latestStatus)}
-                className="mt-2"
-              >
+        <div className="test-detail-automation">
+          <div className="test-detail-automation-summary">
+            <div className="test-detail-automation-summary__latest">
+              <span>Latest</span>
+              <Badge variant={getAutomationStatusVariant(history.latestStatus)}>
                 {formatAutomationStatus(history.latestStatus)}
               </Badge>
             </div>
-            <div className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] px-3 py-2">
-              <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-soft)]">
-                Pass rate
-              </div>
-              <div className="mt-1 text-lg font-semibold text-[var(--tms-text)]">
+            <div className="test-detail-automation-summary__metric">
+              <span>Pass rate</span>
+              <strong>
                 {history.passRate}%
-              </div>
+              </strong>
             </div>
-            <div className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] px-3 py-2">
-              <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-soft)]">
-                Results
-              </div>
-              <div className="mt-1 text-lg font-semibold text-[var(--tms-text)]">
+            <div className="test-detail-automation-summary__metric">
+              <span>Results</span>
+              <strong>
                 {history.totalResults}
-              </div>
+              </strong>
             </div>
           </div>
 
-          <div className="grid gap-2">
-            {history.results.map((result) => (
+          <div className="test-detail-automation-list">
+            {recentResults.map((result) => (
               <div
                 key={result.id}
-                className="rounded-xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] px-3 py-2"
+                className="test-detail-automation-item"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    {projectSlug ? (
-                      <Link
-                        to="/project/$projectSlug/automation/runs/$runId"
-                        params={{
-                          projectSlug,
-                          runId: result.runId.toString(),
-                        }}
-                        className="block truncate text-sm font-semibold text-[var(--tms-primary)] no-underline hover:underline"
-                      >
-                        {result.runName}
-                      </Link>
-                    ) : (
-                      <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
-                        {result.runName}
-                      </div>
-                    )}
-                    <div className="mt-1 truncate text-xs text-[var(--tms-text-muted)]">
-                      {result.suite ?? 'Automation'} -{' '}
-                      {formatDetailDate(result.startedAt ?? result.runCreatedAt)}
+                <div className="test-detail-automation-item__header">
+                  {projectSlug ? (
+                    <Link
+                      to="/project/$projectSlug/automation/runs/$runId"
+                      params={{
+                        projectSlug,
+                        runId: result.runId.toString(),
+                      }}
+                      className="test-detail-automation-item__title"
+                    >
+                      {result.runName}
+                    </Link>
+                  ) : (
+                    <div className="test-detail-automation-item__title">
+                      {result.runName}
                     </div>
-                  </div>
+                  )}
                   <Badge variant={getAutomationStatusVariant(result.status)}>
                     {formatAutomationStatus(result.status)}
                   </Badge>
                 </div>
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[var(--tms-text-muted)]">
+                <div className="test-detail-automation-item__meta">
                   <span>{formatAutomationDuration(result.durationMs)}</span>
+                  <span>{formatDetailDate(result.startedAt ?? result.runCreatedAt)}</span>
                   {result.environment ? <span>{result.environment}</span> : null}
                   {result.branch ? <span>{result.branch}</span> : null}
                 </div>
                 {result.errorMessage ? (
-                  <div className="mt-2 line-clamp-2 text-xs text-[var(--tms-danger)]">
+                  <div className="test-detail-automation-item__error">
                     {result.errorMessage}
                   </div>
                 ) : null}
               </div>
             ))}
+            {hiddenResultsCount > 0 ? (
+              <div className="test-detail-activity-muted">
+                {hiddenResultsCount} older automation results hidden.
+              </div>
+            ) : null}
           </div>
         </div>
       )}
@@ -974,15 +986,15 @@ function TestDetailPage() {
               <EditingSurfaceSection
                 dense
                 title="Metadata"
-                bodyClassName="editing-meta-grid"
+                bodyClassName="test-detail-meta-grid"
               >
-                  <div className="editing-meta-item">
-                    <div className="editing-meta-item__label">Project</div>
-                    <div className="editing-meta-item__value">
+                  <div className="test-detail-meta-item">
+                    <div className="test-detail-meta-item__label">Project</div>
+                    <div className="test-detail-meta-item__value">
                       {test.projectName ?? '-'}
                     </div>
                   </div>
-                  <EditingFieldGroup label="Suite" className="editing-meta-item">
+                  <EditingFieldGroup label="Suite" className="test-detail-meta-item">
                       <SelectMenu
                         value={test.sectionId?.toString() ?? ''}
                         onValueChange={(value) => {
@@ -1005,11 +1017,12 @@ function TestDetailPage() {
                           pendingMetadataField !== null ||
                           test.sections.length === 0
                         }
-                        className="w-full text-sm font-semibold text-[var(--tms-text)]"
+                        className="test-detail-meta-select"
                         aria-label="Change suite"
                       />
                   </EditingFieldGroup>
-                  <EditingFieldGroup label="Status" className="editing-meta-item">
+                  <div className="test-detail-meta-controls">
+                  <EditingFieldGroup label="Status" className="test-detail-meta-item">
                       <SelectMenu
                         value={test.status ?? 'Draft'}
                         onValueChange={(value) => {
@@ -1020,11 +1033,11 @@ function TestDetailPage() {
                           label: status,
                         }))}
                         disabled={pendingMetadataField !== null}
-                        className="w-full text-sm font-semibold text-[var(--tms-text)]"
+                        className="test-detail-meta-select"
                         aria-label="Change status"
                       />
                   </EditingFieldGroup>
-                  <EditingFieldGroup label="Priority" className="editing-meta-item">
+                  <EditingFieldGroup label="Priority" className="test-detail-meta-item">
                       <SelectMenu
                         value={test.priority ?? 'Medium'}
                         onValueChange={(value) => {
@@ -1035,11 +1048,11 @@ function TestDetailPage() {
                           label: priority,
                         }))}
                         disabled={pendingMetadataField !== null}
-                        className="w-full text-sm font-semibold text-[var(--tms-text)]"
+                        className="test-detail-meta-select"
                         aria-label="Change priority"
                       />
                   </EditingFieldGroup>
-                  <EditingFieldGroup label="Type" className="editing-meta-item">
+                  <EditingFieldGroup label="Type" className="test-detail-meta-item">
                       <SelectMenu
                         value={test.caseType ?? 'Functional'}
                         onValueChange={(value) => {
@@ -1050,20 +1063,19 @@ function TestDetailPage() {
                           label: caseType,
                         }))}
                         disabled={pendingMetadataField !== null}
-                        className="w-full text-sm font-semibold text-[var(--tms-text)]"
+                        className="test-detail-meta-select"
                         aria-label="Change type"
                       />
                   </EditingFieldGroup>
-                  <div className="editing-meta-item">
-                    <div className="editing-meta-item__label">Created</div>
-                    <div className="editing-meta-item__value">
-                      {formatDetailDate(test.createdAt)}
-                    </div>
                   </div>
-                  <div className="editing-meta-item">
-                    <div className="editing-meta-item__label">Updated</div>
-                    <div className="editing-meta-item__value">
-                      {formatDetailDate(test.updatedAt ?? test.createdAt)}
+                  <div className="test-detail-meta-dates">
+                    <div className="test-detail-meta-date">
+                      <span>Created</span>
+                      <strong>{formatDetailDate(test.createdAt)}</strong>
+                    </div>
+                    <div className="test-detail-meta-date">
+                      <span>Updated</span>
+                      <strong>{formatDetailDate(test.updatedAt ?? test.createdAt)}</strong>
                     </div>
                   </div>
               </EditingSurfaceSection>
