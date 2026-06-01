@@ -19,3 +19,13 @@ services:
         sync: false
       - key: CLOUDINARY_URL
         sync: false
+      - key: SHORTCUT_API_TOKEN
+        sync: false
+      - key: SHORTCUT_WORKFLOW_STATE_ID
+        sync: false
+      - key: SHORTCUT_GROUP_ID
+        sync: false
+      - key: SHORTCUT_LABEL_NAME
+        sync: false
+      - key: SHORTCUT_STORY_TYPE
+        value: chore

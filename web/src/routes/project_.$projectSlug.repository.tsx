@@ -33,6 +33,7 @@ import { Input } from '../components/ui/Input'
 import { LinkButton } from '../components/ui/LinkButton'
 import { SelectMenu } from '../components/ui/SelectMenu'
 import { uploadTestMedia } from '../features/media/server'
+import { createShortcutRepositoryStory } from '../features/shortcut/server'
 import { getRepositoryPreviewDetailStaleAt } from '../lib/repositoryPreviewCache'
 import {
   createSuite,
@@ -636,6 +637,14 @@ function ProjectRepositoryPage() {
   const [selectedTestIds, setSelectedTestIds] = useState<number[]>([])
   const [isApplyingBulkAction, setIsApplyingBulkAction] = useState(false)
   const [isExportingCsv, setIsExportingCsv] = useState(false)
+  const [isCreatingShortcutStory, setIsCreatingShortcutStory] = useState(false)
+  const [shortcutStoryResult, setShortcutStoryResult] = useState<{
+    name: string
+    url: string
+  } | null>(null)
+  const [shortcutStoryErrorMessage, setShortcutStoryErrorMessage] = useState<
+    string | null
+  >(null)
   const [isBulkArchiveConfirming, setIsBulkArchiveConfirming] = useState(false)
   const [isBulkDeleteConfirming, setIsBulkDeleteConfirming] = useState(false)
   const [bulkActionErrorMessage, setBulkActionErrorMessage] = useState<string | null>(
@@ -2030,7 +2039,7 @@ function ProjectRepositoryPage() {
       })
 
       adjustSuiteStatsForStatusChanges(selectedTestIds, (test) =>
-        test.archivedFromStatus ?? 'Draft',
+        (test.archivedFromStatus ?? 'Draft') as CaseStatusValue,
       )
       const updatedAt = new Date().toISOString()
       updateRepositoryTests(selectedTestIds, (test) => ({
@@ -2598,7 +2607,7 @@ function ProjectRepositoryPage() {
       setOpenCaseMenuId(null)
       setSelectedTestIds((current) => current.filter((id) => id !== testId))
       adjustSuiteStatsForStatusChanges([testId], (test) =>
-        test.archivedFromStatus ?? 'Draft',
+        (test.archivedFromStatus ?? 'Draft') as CaseStatusValue,
       )
       const updatedAt = new Date().toISOString()
       updateRepositoryTests([testId], (test) => ({
@@ -2801,6 +2810,34 @@ function ProjectRepositoryPage() {
     }
   }
 
+  async function handleCreateShortcutStory(): Promise<void> {
+    setIsCreatingShortcutStory(true)
+    setShortcutStoryErrorMessage(null)
+    setShortcutStoryResult(null)
+
+    try {
+      const result = await createShortcutRepositoryStory({
+        data: {
+          projectId: project.id,
+        },
+      })
+
+      setShortcutStoryResult({
+        name: result.name,
+        url: result.url,
+      })
+      window.open(result.url, '_blank', 'noopener,noreferrer')
+    } catch (error) {
+      setShortcutStoryErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Failed to create Shortcut story.',
+      )
+    } finally {
+      setIsCreatingShortcutStory(false)
+    }
+  }
+
   return (
     <main className="workspace-view repository-workspace-view">
       <div className="workspace-view__inner">
@@ -2810,6 +2847,15 @@ function ProjectRepositoryPage() {
             eyebrow={null}
             actions={
               <>
+                <Button
+                  onClick={() => {
+                    void handleCreateShortcutStory()
+                  }}
+                  disabled={isCreatingShortcutStory}
+                  variant="secondary"
+                >
+                  {isCreatingShortcutStory ? 'Creating ticket...' : 'Create ticket'}
+                </Button>
                 <Button
                   onClick={() =>
                     setActiveComposer((current) => (current === 'suite' ? null : 'suite'))
@@ -2850,6 +2896,32 @@ function ProjectRepositoryPage() {
               </>
             }
           />
+
+          {shortcutStoryResult ? (
+            <Alert
+              variant="success"
+              density="compact"
+              className="mb-4"
+              action={
+                <a
+                  href={shortcutStoryResult.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="tms-button tms-button-secondary no-underline"
+                >
+                  Open ticket
+                </a>
+              }
+            >
+              Created Shortcut story: {shortcutStoryResult.name}
+            </Alert>
+          ) : null}
+
+          {shortcutStoryErrorMessage ? (
+            <Alert variant="danger" density="compact" className="mb-4">
+              {shortcutStoryErrorMessage}
+            </Alert>
+          ) : null}
 
           {activeComposer ? (
             <section className="tms-panel mb-6 px-6 py-5">
