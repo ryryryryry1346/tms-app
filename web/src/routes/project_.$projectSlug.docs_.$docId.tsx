@@ -28,6 +28,7 @@ const DOC_CATEGORIES = [
   'Runbook',
   'API',
   'Support',
+  'Test data',
   'AWS',
   'Release',
 ]

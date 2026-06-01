@@ -2194,6 +2194,34 @@ pre code {
   opacity: 0.78;
 }
 
+.docs-template-menu {
+  min-width: 17rem;
+}
+
+.docs-template-item.tms-menu-item {
+  display: grid;
+  gap: 0.1875rem;
+  min-height: 0;
+  padding: 0.5rem 0.625rem;
+}
+
+.docs-template-item span {
+  color: var(--tms-text);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.docs-template-item small {
+  color: var(--tms-text-muted);
+  font-size: 0.71875rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.docs-template-item:hover span {
+  color: var(--tms-primary);
+}
+
 .docs-index-header {
   display: flex;
   flex-wrap: wrap;
