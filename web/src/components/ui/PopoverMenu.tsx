@@ -57,6 +57,7 @@ export function PopoverMenu({
   return (
     <Popover.Root
       open={isOpen}
+      modal={false}
       onOpenChange={(nextOpen) => {
         onOpenChange?.(nextOpen)
 
