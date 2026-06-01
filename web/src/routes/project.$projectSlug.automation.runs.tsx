@@ -6,8 +6,6 @@ import {
   useLocation,
 } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
-import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
-import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -89,7 +87,7 @@ export const Route = createFileRoute('/project/$projectSlug/automation/runs')({
 })
 
 const RUN_TABLE_COLUMNS =
-  'minmax(260px,1.6fr) 110px 110px 110px 120px minmax(150px,0.9fr) minmax(130px,0.8fr) 90px'
+  'minmax(360px,1fr) 140px 180px 120px'
 
 type QuickFilter = 'all' | 'failed' | 'latest-ci' | 'latest'
 
@@ -337,6 +335,7 @@ function AutomationRunsIndex({
   const [environmentFilter, setEnvironmentFilter] = useState('All')
   const [branchFilter, setBranchFilter] = useState('All')
   const [sourceFilter, setSourceFilter] = useState('All')
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
   const environments = useMemo(
     () =>
@@ -436,114 +435,121 @@ function AutomationRunsIndex({
           Math.round(runs.reduce((sum, run) => sum + run.durationMs, 0) / totalRuns),
         )
 
+  function openAutomationRun(runId: number): void {
+    window.location.href = `/project/${projectSlug}/automation/runs/${runId}`
+  }
+
   return (
     <main className="workspace-view">
       <div className="workspace-view__inner">
         <div className="workspace-view__stack">
-          <ProjectPageHeader
-            projectName={project.name}
-            description="Automation Runs Hub for CI/CD imports, framework results, and failure analysis."
-            actions={
-              <div className="flex flex-wrap gap-2">
+          <Panel className="automation-runs-cockpit p-4">
+            <div className="automation-runs-header">
+              <div className="min-w-0">
+                <div className="automation-runs-eyebrow">Automation</div>
+                <div className="automation-runs-title-row">
+                  <h1>Automation runs</h1>
+                  <Badge>{filteredRuns.length} shown</Badge>
+                </div>
+                <p>
+                  {project.name} CI/API imports, execution health, and failure focus.
+                </p>
+              </div>
+              <div className="automation-runs-actions">
                 <LinkButton
+                  size="sm"
                   to="/project/$projectSlug/automation"
                   params={{ projectSlug }}
                 >
                   CI Integration
                 </LinkButton>
+                <LinkButton
+                  size="sm"
+                  to="/project/$projectSlug/automation/flaky"
+                  params={{ projectSlug }}
+                >
+                  Flaky tests
+                </LinkButton>
               </div>
-            }
-          />
+            </div>
 
-          <div className="grid overflow-hidden rounded-[var(--tms-radius-panel)] border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] shadow-sm md:grid-cols-3 xl:grid-cols-6">
-            {[
-              { label: 'Runs', value: totalRuns, helper: 'Last imports' },
-              {
-                label: 'Latest',
-                value: latestRun ? humanizeStatus(latestRun.status) : 'None',
-                helper: latestRun ? formatDate(latestRun.startedAt) : 'No runs yet',
-                tone:
-                  latestRun && isFailedRun(latestRun)
-                    ? 'text-[var(--tms-danger)]'
-                    : 'text-[var(--tms-text)]',
-              },
-              {
-                label: 'Pass rate',
-                value: passRate,
-                helper: `${totalPassed}/${totalResults} passed`,
-                tone: 'text-[var(--tms-success)]',
-              },
-              {
-                label: 'Failed',
-                value: totalFailed,
-                helper: 'Across runs',
-                tone:
-                  totalFailed > 0
-                    ? 'text-[var(--tms-danger)]'
-                    : 'text-[var(--tms-text)]',
-              },
-              {
-                label: 'Skipped',
-                value: totalSkipped,
-                helper: 'Not executed',
-                tone: 'text-[var(--tms-text-muted)]',
-              },
-              { label: 'Avg duration', value: averageDuration, helper: 'Per run' },
-            ].map((metric) => (
+            <div className="automation-runs-summary">
+              {[
+                {
+                  label: 'Latest',
+                  value: latestRun ? humanizeStatus(latestRun.status) : 'None',
+                  helper: latestRun ? formatDate(latestRun.startedAt) : 'No runs yet',
+                  tone: latestRun && isFailedRun(latestRun) ? 'is-danger' : '',
+                },
+                {
+                  label: 'Pass rate',
+                  value: passRate,
+                  helper: `${totalPassed}/${totalResults} passed`,
+                  tone: totalPassed > 0 ? 'is-success' : '',
+                },
+                {
+                  label: 'Failed',
+                  value: totalFailed,
+                  helper: `${totalSkipped} skipped`,
+                  tone: totalFailed > 0 ? 'is-danger' : '',
+                },
+                {
+                  label: 'Avg duration',
+                  value: averageDuration,
+                  helper: `${totalRuns} runs imported`,
+                  tone: '',
+                },
+              ].map((metric) => (
+                <div
+                  key={metric.label}
+                  className={`automation-runs-summary-item ${metric.tone}`}
+                >
+                  <span>{metric.label}</span>
+                  <strong>{metric.value}</strong>
+                  <small>{metric.helper}</small>
+                </div>
+              ))}
+            </div>
+
+            <div className="automation-runs-toolbar">
               <div
-                key={metric.label}
-                className="border-b border-r border-[var(--tms-border-subtle)] px-4 py-3 last:border-r-0 md:[&:nth-child(3n)]:border-r-0 xl:[&:nth-child(3n)]:border-r xl:[&:nth-child(6n)]:border-r-0"
+                className="automation-runs-quick-filters"
+                role="group"
+                aria-label="Filter automation runs"
               >
-                <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
-                  {metric.label}
-                </div>
-                <div className={`mt-1 text-2xl font-semibold ${metric.tone ?? 'text-[var(--tms-text)]'}`}>
-                  {metric.value}
-                </div>
-                <div className="mt-1 truncate text-xs text-[var(--tms-text-muted)]">
-                  {metric.helper}
-                </div>
+                {quickFilters.map((filter) => (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    className={`automation-runs-filter-button${
+                      quickFilter === filter.id ? ' is-active' : ''
+                    }`}
+                    onClick={() => setQuickFilter(filter.id)}
+                  >
+                    <span>{filter.label}</span>
+                    <strong>{filter.count}</strong>
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
-
-          <Panel>
-            <div className="border-b border-[var(--tms-border-subtle)] px-4 py-3">
-              <WorkspaceSectionHeader
-                title="Automation runs"
-                description="Track CI/API imports, execution health, and failed checks."
-                action={
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                    <Badge>{filteredRuns.length} shown</Badge>
-                    <LinkButton
-                      size="sm"
-                      to="/project/$projectSlug/automation/flaky"
-                      params={{ projectSlug }}
-                    >
-                      Flaky tests
-                    </LinkButton>
-                  </div>
-                }
-              />
-              <div className="mt-3 grid items-end gap-2 xl:grid-cols-[minmax(260px,1fr)_auto_150px_150px_150px_140px]">
+              <div className="automation-runs-search-row">
                 <Input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search by run name or commit..."
+                  placeholder="Search runs or commits"
+                  size="sm"
                 />
-                <div className="flex h-10 items-center overflow-hidden rounded-[var(--tms-radius-control)] border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] p-1">
-                  {quickFilters.map((filter) => (
-                    <Button
-                      key={filter.id}
-                      size="sm"
-                      variant={quickFilter === filter.id ? 'primary' : 'secondary'}
-                      className="h-8 whitespace-nowrap border-0 shadow-none"
-                      onClick={() => setQuickFilter(filter.id)}
-                    >
-                      {filter.label} / {filter.count}
-                    </Button>
-                  ))}
-                </div>
+                <Button
+                  size="sm"
+                  variant={showAdvancedFilters ? 'primary' : 'secondary'}
+                  onClick={() => setShowAdvancedFilters((value) => !value)}
+                >
+                  Filters
+                </Button>
+              </div>
+            </div>
+
+            {showAdvancedFilters ? (
+              <div className="automation-runs-advanced-filters">
                 <Select
                   value={statusFilter}
                   onChange={(event) => setStatusFilter(event.target.value)}
@@ -589,47 +595,53 @@ function AutomationRunsIndex({
                   ))}
                 </Select>
               </div>
-            </div>
+            ) : null}
 
             {filteredRuns.length === 0 ? (
-              <div className="p-4">
+              <div className="mt-4">
                 <EmptyState
                   title="No automation runs"
                   description="Upload JUnit XML or JSON results from CI/CD to populate this hub."
                 />
               </div>
             ) : (
-              <div className="grid xl:grid-cols-[minmax(0,1fr)_320px]">
-                <div className="min-w-0 border-r border-[var(--tms-border-subtle)] p-4">
+              <div className="automation-runs-workspace">
+                <div className="automation-runs-table-area">
                   <TableShell surface="panel">
                     <TableHead
                       columns={RUN_TABLE_COLUMNS}
-                      minWidth="1180px"
+                      minWidth="760px"
                       padding="sm"
                     >
                       <span>Run</span>
-                      <span>Status</span>
-                      <span>Source</span>
-                      <span>Branch</span>
-                      <span>Started</span>
+                      <span>Outcome</span>
                       <span>Progress</span>
-                      <span>Results</span>
-                      <span>Actions</span>
+                      <span>Started</span>
                     </TableHead>
                     {filteredRuns.map((run) => (
                       <TableRow
                         key={run.id}
                         columns={RUN_TABLE_COLUMNS}
-                        minWidth="1180px"
+                        minWidth="760px"
                         padding="sm"
+                        className="automation-runs-row"
+                        role="link"
+                        tabIndex={0}
+                        onClick={() => openAutomationRun(run.id)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            openAutomationRun(run.id)
+                          }
+                        }}
                       >
                         <div className="min-w-0">
-                          <div className="truncate font-semibold text-[var(--tms-text)]">
-                            {run.name}
-                          </div>
-                          <div className="mt-1 flex flex-wrap gap-2 text-xs text-[var(--tms-text-muted)]">
+                          <div className="automation-runs-run-title">{run.name}</div>
+                          <div className="automation-runs-meta">
                             <span>#{run.id}</span>
                             <span>{run.environment ?? 'No env'}</span>
+                            <span>{humanizeStatus(run.triggerSource)}</span>
+                            <span>{run.branch ?? 'No branch'}</span>
                             <span>
                               {run.commitSha
                                 ? run.commitSha.slice(0, 7)
@@ -637,57 +649,30 @@ function AutomationRunsIndex({
                             </span>
                           </div>
                         </div>
-                        <Badge variant={getStatusBadgeVariant(run.status)}>
-                          {humanizeStatus(run.status)}
-                        </Badge>
-                        <span className="text-xs font-medium text-[var(--tms-text-muted)]">
-                          {humanizeStatus(run.triggerSource)}
-                        </span>
-                        <span className="truncate text-xs text-[var(--tms-text-muted)]">
-                          {run.branch ?? 'No branch'}
-                        </span>
-                        <span className="text-xs text-[var(--tms-text-muted)]">
-                          {formatDate(run.startedAt)}
-                        </span>
-                        <ResultBar run={run} />
-                        <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                          <span className="text-[var(--tms-success)]">
-                            {run.passedCount} passed
-                          </span>
-                          <span className="text-[var(--tms-danger)]">
-                            {run.failedCount} failed
-                          </span>
-                          <span className="text-[var(--tms-text-muted)]">
+                        <div className="automation-runs-outcome">
+                          <Badge variant={getStatusBadgeVariant(run.status)}>
+                            {humanizeStatus(run.status)}
+                          </Badge>
+                          <div className="automation-runs-result-line">
+                            {run.passedCount} passed / {run.failedCount} failed /{' '}
                             {run.skippedCount} skipped
-                          </span>
+                          </div>
                         </div>
-                        <LinkButton
-                          size="sm"
-                          variant="primary"
-                          to="/project/$projectSlug/automation/runs/$runId"
-                          params={{ projectSlug, runId: String(run.id) }}
-                        >
-                          Open
-                        </LinkButton>
+                        <ResultBar run={run} />
+                        <div className="automation-runs-started">
+                          <span>{formatDate(run.startedAt)}</span>
+                          <small>{formatDuration(run.durationMs)}</small>
+                        </div>
                       </TableRow>
                     ))}
                   </TableShell>
                 </div>
-                <aside className="space-y-3 p-4">
-                  <div>
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-sm font-semibold text-[var(--tms-text)]">
-                        Failure focus
-                      </h3>
-                      <Badge
-                        variant={failedResults.length > 0 ? 'danger' : 'success'}
-                      >
-                        {failedResults.length} recent
-                      </Badge>
-                    </div>
-                    <p className="mt-1 text-xs text-[var(--tms-text-muted)]">
-                      Recent failed or blocked automated checks.
-                    </p>
+                <aside className="automation-runs-focus">
+                  <div className="automation-runs-focus-head">
+                    <h2>Failure focus</h2>
+                    <Badge variant={failedResults.length > 0 ? 'danger' : 'success'}>
+                      {failedResults.length} recent
+                    </Badge>
                   </div>
                   {failedResults.length === 0 ? (
                     <EmptyState
@@ -695,26 +680,24 @@ function AutomationRunsIndex({
                       description="Failed and blocked results will appear here after CI imports."
                     />
                   ) : (
-                    <div className="space-y-2">
+                    <div className="automation-runs-focus-list">
                       {failedResults.map((result) => (
                         <div
                           key={result.id}
-                          className="rounded-md border border-[var(--tms-border-subtle)] bg-[var(--tms-surface)] p-3"
+                          className="automation-runs-focus-card"
                         >
-                          <div className="flex items-start justify-between gap-2">
+                          <div className="automation-runs-focus-card__top">
                             <div className="min-w-0">
-                              <div className="truncate text-sm font-semibold text-[var(--tms-text)]">
-                                {result.name}
-                              </div>
-                              <div className="mt-1 truncate text-xs text-[var(--tms-text-muted)]">
+                              <strong>{result.name}</strong>
+                              <span>
                                 {result.suite ?? 'No suite'}
-                              </div>
+                              </span>
                             </div>
                             <Badge variant={getStatusBadgeVariant(result.status)}>
                               {humanizeStatus(result.status)}
                             </Badge>
                           </div>
-                          <div className="mt-3 flex items-center justify-between gap-2 text-xs text-[var(--tms-text-muted)]">
+                          <div className="automation-runs-focus-card__bottom">
                             <span>{formatDuration(result.durationMs)}</span>
                             <LinkButton
                               size="sm"
@@ -724,22 +707,18 @@ function AutomationRunsIndex({
                                 runId: String(result.runId),
                               }}
                             >
-                              Open run
+                              Open
                             </LinkButton>
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
-                  <div className="rounded-md border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] p-3">
-                    <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
-                      Flaky watch
-                    </div>
-                    <div className="mt-1 text-sm font-semibold text-[var(--tms-text)]">
-                      {flakyTests.length} flaky tests
-                    </div>
+                  <div className="automation-runs-flaky-card">
+                    <span>Flaky watch</span>
+                    <strong>{flakyTests.length} flaky tests</strong>
                     <LinkButton
-                      className="mt-3"
+                      className="automation-runs-flaky-link"
                       size="sm"
                       to="/project/$projectSlug/automation/flaky"
                       params={{ projectSlug }}
