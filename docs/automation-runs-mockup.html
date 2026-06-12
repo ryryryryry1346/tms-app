@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Automation Runs Mockup</title>
+    <style>
+      :root {
+        --bg: #f7f7f8;
+        --surface: #ffffff;
+        --surface-soft: #fafafa;
+        --border: #e5e5e5;
+        --border-strong: #d4d4d4;
+        --text: #111111;
+        --muted: #666666;
+        --faint: #8a8a8a;
+        --blue: #0070f3;
+        --blue-soft: #eaf4ff;
+        --red: #ff4d4f;
+        --red-soft: #fff1f1;
+        --green: #00a65a;
+        --green-soft: #e9f9f0;
+        --gray-soft: #f2f2f2;
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        --radius: 8px;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-size: 14px;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      .app {
+        display: grid;
+        min-height: 100vh;
+        grid-template-columns: 216px 1fr;
+      }
+
+      .sidebar {
+        display: flex;
+        min-height: 100vh;
+        flex-direction: column;
+        border-right: 1px solid var(--border);
+        background: #fbfbfb;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 56px;
+        padding: 0 14px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .logo {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        border-radius: 6px;
+        background: #111111;
+        color: white;
+        font-weight: 700;
+      }
+
+      .eyebrow {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .brand-title {
+        margin-top: 1px;
+        font-weight: 700;
+      }
+
+      .nav {
+        display: grid;
+        gap: 4px;
+        padding: 14px 10px;
+      }
+
+      .nav-section {
+        margin: 12px 6px 6px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        min-height: 30px;
+        padding: 0 9px;
+        border-radius: 6px;
+        color: #333333;
+        text-decoration: none;
+      }
+
+      .nav-item.active {
+        border: 1px solid #b7d8ff;
+        background: var(--blue-soft);
+        color: #005fcc;
+        font-weight: 650;
+      }
+
+      .nav-icon {
+        width: 15px;
+        text-align: center;
+        color: currentColor;
+      }
+
+      .main {
+        min-width: 0;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 56px;
+        padding: 0 20px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .top-context {
+        line-height: 1.2;
+      }
+
+      .top-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .pill,
+      .button,
+      .select,
+      .input {
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: var(--surface);
+        color: var(--text);
+      }
+
+      .pill {
+        padding: 6px 10px;
+        font-size: 12px;
+        color: #333333;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        padding: 0 14px;
+        font-weight: 650;
+        box-shadow: var(--shadow);
+      }
+
+      .button.primary {
+        border-color: #111111;
+        background: #111111;
+        color: white;
+      }
+
+      .button.ghost {
+        box-shadow: none;
+      }
+
+      .content {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 28px 32px 40px;
+      }
+
+      .page-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 18px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        margin-top: 6px;
+        font-size: 30px;
+        line-height: 1.15;
+        letter-spacing: 0;
+      }
+
+      .subtitle {
+        margin-top: 8px;
+        color: var(--muted);
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 10px;
+        padding-top: 10px;
+      }
+
+      .metric-strip {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        overflow: hidden;
+        margin-bottom: 14px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .metric {
+        min-height: 64px;
+        padding: 12px 14px;
+        border-right: 1px solid var(--border);
+      }
+
+      .metric:last-child {
+        border-right: 0;
+      }
+
+      .metric-label {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .metric-value {
+        margin-top: 6px;
+        font-size: 22px;
+        font-weight: 760;
+        line-height: 1;
+      }
+
+      .metric-note {
+        margin-top: 5px;
+        color: var(--faint);
+        font-size: 12px;
+      }
+
+      .red {
+        color: var(--red);
+      }
+
+      .blue {
+        color: var(--blue);
+      }
+
+      .panel {
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 16px 18px 14px;
+      }
+
+      h2 {
+        font-size: 18px;
+        line-height: 1.2;
+      }
+
+      .panel-subtitle {
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .toolbar {
+        display: grid;
+        grid-template-columns: minmax(240px, 1fr) auto auto auto auto;
+        gap: 8px;
+        padding: 0 18px 14px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .input,
+      .select {
+        height: 38px;
+        padding: 0 11px;
+      }
+
+      .segmented {
+        display: inline-flex;
+        align-items: center;
+        height: 38px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: var(--surface-soft);
+      }
+
+      .segment {
+        height: 100%;
+        border: 0;
+        border-right: 1px solid var(--border);
+        background: transparent;
+        padding: 0 12px;
+        font-weight: 600;
+      }
+
+      .segment:last-child {
+        border-right: 0;
+      }
+
+      .segment.active {
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+
+      .runs-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 300px;
+        min-height: 320px;
+      }
+
+      .table-wrap {
+        min-width: 0;
+        border-right: 1px solid var(--border);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th {
+        height: 34px;
+        padding: 0 12px;
+        background: var(--surface-soft);
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-align: left;
+        text-transform: uppercase;
+      }
+
+      td {
+        padding: 13px 12px;
+        border-top: 1px solid var(--border);
+        vertical-align: middle;
+      }
+
+      .run-name {
+        font-weight: 720;
+      }
+
+      .row-meta {
+        display: flex;
+        gap: 8px;
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        height: 24px;
+        border-radius: 999px;
+        padding: 0 9px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .badge.failed {
+        background: var(--red-soft);
+        color: var(--red);
+      }
+
+      .badge.passed {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .progress {
+        width: 170px;
+      }
+
+      .progress-top {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .bar {
+        display: flex;
+        overflow: hidden;
+        height: 7px;
+        border-radius: 999px;
+        background: var(--gray-soft);
+      }
+
+      .bar .passed {
+        width: 33%;
+        background: var(--blue);
+      }
+
+      .bar .failed {
+        width: 33%;
+        background: var(--red);
+      }
+
+      .bar .skipped {
+        width: 34%;
+        background: #777777;
+      }
+
+      .result-counts {
+        display: flex;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .failure-focus {
+        padding: 16px;
+        background: #fcfcfc;
+      }
+
+      .failure-card {
+        margin-top: 14px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        padding: 13px;
+      }
+
+      .failure-title {
+        font-weight: 730;
+      }
+
+      .failure-file {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .error-preview {
+        margin-top: 12px;
+        border-left: 2px solid var(--red);
+        padding-left: 10px;
+        color: #4a4a4a;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .failure-card .button {
+        width: 100%;
+        margin-top: 14px;
+      }
+
+      @media (max-width: 1100px) {
+        .app {
+          grid-template-columns: 72px 1fr;
+        }
+
+        .brand-text,
+        .nav-label,
+        .nav-section {
+          display: none;
+        }
+
+        .nav-item {
+          justify-content: center;
+        }
+
+        .metric-strip {
+          grid-template-columns: repeat(3, 1fr);
+        }
+
+        .runs-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .table-wrap {
+          border-right: 0;
+        }
+
+        .failure-focus {
+          border-top: 1px solid var(--border);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="logo">T</div>
+          <div class="brand-text">
+            <div class="eyebrow">Workspace</div>
+            <div class="brand-title">TMS</div>
+          </div>
+        </div>
+        <nav class="nav">
+          <a class="nav-item" href="#"><span class="nav-icon">□</span><span class="nav-label">Projects</span></a>
+          <div class="nav-section">Membership team</div>
+          <a class="nav-item" href="#"><span class="nav-icon">▦</span><span class="nav-label">Overview</span></a>
+          <a class="nav-item" href="#"><span class="nav-icon">▣</span><span class="nav-label">Repository</span></a>
+          <a class="nav-item" href="#"><span class="nav-icon">▷</span><span class="nav-label">Runs</span></a>
+          <a class="nav-item active" href="#"><span class="nav-icon">◉</span><span class="nav-label">Automation</span></a>
+          <a class="nav-item" href="#"><span class="nav-icon">▤</span><span class="nav-label">Docs</span></a>
+          <a class="nav-item" href="#"><span class="nav-icon">▥</span><span class="nav-label">Reports</span></a>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div class="top-context">
+            <div class="eyebrow">Membership team</div>
+            <strong>Automation</strong>
+          </div>
+          <div class="top-actions">
+            <button class="pill">☼ Light</button>
+            <button class="pill">☾ Dark</button>
+            <span class="pill">dimachu8078@outlook.com</span>
+            <button class="button ghost">Logout</button>
+          </div>
+        </header>
+
+        <section class="content">
+          <div class="page-header">
+            <div>
+              <div class="eyebrow">Project workspace</div>
+              <h1>Automation</h1>
+              <p class="subtitle">CI/CD test results, flaky tests, and failure analysis.</p>
+            </div>
+            <div class="header-actions">
+              <button class="button">CI Integration</button>
+              <button class="button primary">Import result</button>
+            </div>
+          </div>
+
+          <div class="metric-strip" aria-label="Automation summary">
+            <div class="metric">
+              <div class="metric-label">Runs</div>
+              <div class="metric-value">1</div>
+              <div class="metric-note">Last 100 imports</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Latest</div>
+              <div class="metric-value red">Failed</div>
+              <div class="metric-note">May 24, 21:46</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Pass rate</div>
+              <div class="metric-value blue">33%</div>
+              <div class="metric-note">1/3 passed</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Failed</div>
+              <div class="metric-value red">1</div>
+              <div class="metric-note">Across listed runs</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Avg duration</div>
+              <div class="metric-value">3s</div>
+              <div class="metric-note">Per run</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">API tokens</div>
+              <div class="metric-value">1</div>
+              <div class="metric-note">Active token</div>
+            </div>
+          </div>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Automation runs <span class="pill">1 run</span></h2>
+                <p class="panel-subtitle">Track CI/API imports and inspect failures.</p>
+              </div>
+              <button class="button">Flaky tests</button>
+            </div>
+
+            <div class="toolbar">
+              <input class="input" value="" placeholder="Search by run name or commit..." />
+              <div class="segmented" aria-label="Status filter">
+                <button class="segment active">All</button>
+                <button class="segment">Failed</button>
+                <button class="segment">Passed</button>
+                <button class="segment">Skipped</button>
+              </div>
+              <select class="select">
+                <option>All environments</option>
+                <option>staging</option>
+              </select>
+              <select class="select">
+                <option>All branches</option>
+                <option>main</option>
+              </select>
+              <select class="select">
+                <option>All sources</option>
+                <option>manual</option>
+                <option>CI</option>
+              </select>
+            </div>
+
+            <div class="runs-layout">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Run</th>
+                      <th>Status</th>
+                      <th>Source</th>
+                      <th>Branch</th>
+                      <th>Duration</th>
+                      <th>Progress</th>
+                      <th>Results</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div class="run-name">Manual JUnit smoke</div>
+                        <div class="row-meta"><span>#1</span><span>May 24, 21:46</span><span>abc123</span></div>
+                      </td>
+                      <td><span class="badge failed">Failed</span></td>
+                      <td>manual</td>
+                      <td>main</td>
+                      <td>3s</td>
+                      <td>
+                        <div class="progress">
+                          <div class="progress-top"><span>67%</span><span>2/3</span></div>
+                          <div class="bar"><span class="passed"></span><span class="failed"></span><span class="skipped"></span></div>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="result-counts">
+                          <span class="blue">1 passed</span>
+                          <span class="red">1 failed</span>
+                          <span>1 skipped</span>
+                        </div>
+                      </td>
+                      <td><button class="button primary">Open</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <aside class="failure-focus">
+                <div class="eyebrow">Failure focus</div>
+                <h3>Top failed result</h3>
+                <div class="failure-card">
+                  <div class="failure-title">Login with valid credentials</div>
+                  <div class="failure-file">auth.spec.ts · 933ms</div>
+                  <div class="error-preview">
+                    Expected login state to be authenticated, but session cookie was missing.
+                  </div>
+                  <button class="button">Open failure</button>
+                </div>
+              </aside>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

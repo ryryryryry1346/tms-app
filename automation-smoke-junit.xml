@@ -1,0 +1,11 @@
+<testsuites>
+  <testsuite name="auth.spec.ts" tests="3" failures="1" skipped="1" time="3.1">
+    <testcase classname="auth.spec.ts" name="Login with valid credentials TMS-13" time="1.2" />
+    <testcase classname="auth.spec.ts" name="Checkout with Visa card" time="1.5">
+      <failure message="Expected payment status to be success">AssertionError: payment failed</failure>
+    </testcase>
+    <testcase classname="auth.spec.ts" name="Feature under maintenance" time="0.4">
+      <skipped />
+    </testcase>
+  </testsuite>
+</testsuites>

@@ -8,12 +8,41 @@ import { account, session, user, verification } from '../db/schema'
 const localFallbackSecret =
   'local-development-only-better-auth-secret-change-before-production'
 
+function isProduction(): boolean {
+  return process.env.NODE_ENV === 'production'
+}
+
 function getAuthSecret(): string {
-  return process.env.BETTER_AUTH_SECRET ?? localFallbackSecret
+  const secret = process.env.BETTER_AUTH_SECRET
+
+  if (secret && secret.length >= 32) {
+    return secret
+  }
+
+  if (isProduction()) {
+    throw new Error(
+      'BETTER_AUTH_SECRET is required in production and must be at least 32 characters. ' +
+        'Generate one with: openssl rand -base64 32',
+    )
+  }
+
+  return secret ?? localFallbackSecret
 }
 
 function getAuthBaseUrl(): string {
-  return process.env.BETTER_AUTH_URL ?? 'http://localhost:3000'
+  const baseUrl = process.env.BETTER_AUTH_URL
+
+  if (baseUrl) {
+    return baseUrl
+  }
+
+  if (isProduction()) {
+    throw new Error(
+      'BETTER_AUTH_URL is required in production (used to build verification and password-reset links).',
+    )
+  }
+
+  return 'http://localhost:3000'
 }
 
 function getResendFrom(): string {
@@ -113,6 +142,17 @@ export const auth = betterAuth({
         email: authUser.email,
         url,
       })
+    },
+  },
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 100,
+    customRules: {
+      '/sign-in/email': { window: 60, max: 10 },
+      '/sign-up/email': { window: 60, max: 5 },
+      '/forget-password': { window: 60, max: 5 },
+      '/reset-password': { window: 60, max: 10 },
     },
   },
   plugins: [tanstackStartCookies()],

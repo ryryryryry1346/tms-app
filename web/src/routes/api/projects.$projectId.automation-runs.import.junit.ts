@@ -6,6 +6,42 @@ import {
 
 const MAX_IMPORT_BYTES = 20 * 1024 * 1024
 
+// Basic fixed-window rate limit for the import endpoint.
+// NOTE: in-memory only — fine for a single instance. For multi-instance
+// deployments move this to a shared store (e.g. Redis).
+const RATE_LIMIT_WINDOW_MS = 60_000
+const RATE_LIMIT_MAX = 30
+const importRateLimitBuckets = new Map<
+  string,
+  { count: number; resetAt: number }
+>()
+
+function isRateLimited(key: string): boolean {
+  const now = Date.now()
+  const bucket = importRateLimitBuckets.get(key)
+
+  if (!bucket || now > bucket.resetAt) {
+    importRateLimitBuckets.set(key, {
+      count: 1,
+      resetAt: now + RATE_LIMIT_WINDOW_MS,
+    })
+    return false
+  }
+
+  bucket.count += 1
+  return bucket.count > RATE_LIMIT_MAX
+}
+
+function getClientIp(request: Request): string {
+  const forwarded = request.headers.get('x-forwarded-for')
+
+  if (forwarded) {
+    return forwarded.split(',')[0]?.trim() || 'unknown'
+  }
+
+  return request.headers.get('x-real-ip')?.trim() || 'unknown'
+}
+
 export const Route = createFileRoute(
   '/api/projects/$projectId/automation-runs/import/junit',
 )({
@@ -16,6 +52,13 @@ export const Route = createFileRoute(
 
         if (!Number.isInteger(projectId) || projectId <= 0) {
           return jsonResponse({ error: 'Invalid project id.' }, 400)
+        }
+
+        if (isRateLimited(`${projectId}:${getClientIp(request)}`)) {
+          return jsonResponse(
+            { error: 'Too many import requests. Try again in a minute.' },
+            429,
+          )
         }
 
         await assertProjectApiToken(
