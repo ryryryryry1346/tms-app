@@ -1,3 +1,32 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Build output
+dist/
+.output/
+.nitro/
+.vite/
+.tanstack/
+**/dist/
+**/.output/
+**/.vite/
+
+# Local data & uploads
 tms.db
 uploads/
+
+# Python leftovers
 __pycache__/
+
+# Editor / OS
+.DS_Store
+*.log
