@@ -468,7 +468,7 @@ export const getDashboardState = createServerFn({ method: 'POST' })
   .inputValidator(dashboardInput)
   .handler(async ({ data }): Promise<DashboardState> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const sessionUser = await requireSessionUser()
     await ensureTestServerDeps()
 
     if (!isDatabaseConfigured()) {
@@ -484,19 +484,29 @@ export const getDashboardState = createServerFn({ method: 'POST' })
 
     const db = getDb()
     await ensureProjectSlugs()
-    const projectRows = await db
-      .select({
-        id: projects.id,
-        name: projects.name,
-        slug: projects.slug,
-        status: projects.status,
-      })
-      .from(projects)
-      .orderBy(asc(projects.id))
+    const { getAccessibleProjectIds } = await import(
+      '../auth/project-access.server'
+    )
+    const accessibleIds = new Set(await getAccessibleProjectIds(sessionUser.id))
+    const projectRows = (
+      await db
+        .select({
+          id: projects.id,
+          name: projects.name,
+          slug: projects.slug,
+          status: projects.status,
+        })
+        .from(projects)
+        .orderBy(asc(projects.id))
+    ).filter((project) => accessibleIds.has(project.id))
 
-    const selectedProjectId =
+    const requestedProjectId =
       data.projectId ??
       projectRows.find((project) => project.slug === data.projectSlug)?.id
+    const selectedProjectId =
+      requestedProjectId && accessibleIds.has(requestedProjectId)
+        ? requestedProjectId
+        : undefined
 
     if (!selectedProjectId) {
       return {
@@ -2236,6 +2246,12 @@ export const bulkUpdateTestStatus = createServerFn({ method: 'POST' })
       throw new Error('No test cases were selected.')
     }
 
+    const { requireProjectsAccess } = await import('../auth/project-access.server')
+    await requireProjectsAccess(
+      rows.map((test) => test.projectId),
+      'editor',
+    )
+
     await db.transaction(async (tx) => {
       const now = new Date().toISOString()
 
@@ -2303,6 +2319,13 @@ export const bulkUpdateTestMetadata = createServerFn({ method: 'POST' })
       })
       .from(tests)
       .where(inArray(tests.id, data.ids))
+
+    const { requireProjectsAccess } = await import('../auth/project-access.server')
+    await requireProjectsAccess(
+      rows.map((test) => test.projectId),
+      'editor',
+    )
+
     const updateValues: {
       priority?: 'Low' | 'Medium' | 'High' | 'Critical'
       caseType?: 'Functional' | 'Regression' | 'Smoke' | 'E2E' | 'UI' | 'API'
@@ -2380,6 +2403,12 @@ export const bulkMoveTestCases = createServerFn({ method: 'POST' })
       .from(tests)
       .where(inArray(tests.id, data.ids))
 
+    const { requireProjectsAccess } = await import('../auth/project-access.server')
+    await requireProjectsAccess(
+      [section.projectId, ...movingRows.map((test) => test.projectId)],
+      'editor',
+    )
+
     await db
       .update(tests)
       .set({
@@ -2434,9 +2463,16 @@ export const moveAndReorderTestCases = createServerFn({ method: 'POST' })
       .select({
         id: tests.id,
         sectionId: tests.sectionId,
+        projectId: tests.projectId,
       })
       .from(tests)
       .where(inArray(tests.id, data.ids))
+
+    const { requireProjectsAccess } = await import('../auth/project-access.server')
+    await requireProjectsAccess(
+      [section.projectId, ...movingRows.map((test) => test.projectId)],
+      'editor',
+    )
 
     await db.transaction(async (tx) => {
       const now = new Date().toISOString()
@@ -2498,6 +2534,12 @@ export const bulkRestoreTestCases = createServerFn({ method: 'POST' })
       .from(tests)
       .where(inArray(tests.id, data.ids))
 
+    const { requireProjectsAccess } = await import('../auth/project-access.server')
+    await requireProjectsAccess(
+      rows.map((test) => test.projectId),
+      'editor',
+    )
+
     const archivedRows = rows.filter((test) => test.status === 'Archived')
 
     if (archivedRows.length === 0) {
@@ -2552,9 +2594,16 @@ export const bulkDeleteArchivedTestCases = createServerFn({ method: 'POST' })
       .select({
         id: tests.id,
         status: tests.status,
+        projectId: tests.projectId,
       })
       .from(tests)
       .where(inArray(tests.id, data.ids))
+
+    const { requireProjectsAccess } = await import('../auth/project-access.server')
+    await requireProjectsAccess(
+      rows.map((test) => test.projectId),
+      'editor',
+    )
 
     const archivedRows = rows.filter((test) => test.status === 'Archived')
 
@@ -2736,7 +2785,7 @@ export const getCreateTestFormState = createServerFn({ method: 'POST' })
   .inputValidator(createTestFormInput)
   .handler(async ({ data }): Promise<CreateTestFormState> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const sessionUser = await requireSessionUser()
     await ensureTestServerDeps()
 
     if (!isDatabaseConfigured()) {
@@ -2749,6 +2798,25 @@ export const getCreateTestFormState = createServerFn({ method: 'POST' })
     const db = getDb()
     const projectId = data.projectId
     await ensureProjectSlugs()
+
+    let accessibleIds: number[] = []
+
+    if (projectId) {
+      await requireProjectAccessById(projectId, 'editor')
+    } else {
+      const { getAccessibleProjectIds } = await import(
+        '../auth/project-access.server'
+      )
+      accessibleIds = await getAccessibleProjectIds(sessionUser.id)
+
+      if (accessibleIds.length === 0) {
+        return {
+          databaseConfigured: true,
+          sections: [],
+        }
+      }
+    }
+
     const rows = projectId
       ? await db
           .select({
@@ -2766,6 +2834,7 @@ export const getCreateTestFormState = createServerFn({ method: 'POST' })
             projectId: sections.projectId,
           })
           .from(sections)
+          .where(inArray(sections.projectId, accessibleIds))
           .orderBy(asc(sections.id))
 
     const projectRows = projectId
@@ -2784,6 +2853,7 @@ export const getCreateTestFormState = createServerFn({ method: 'POST' })
             slug: projects.slug,
           })
           .from(projects)
+          .where(inArray(projects.id, accessibleIds))
 
     const projectById = new Map(projectRows.map((project) => [project.id, project]))
 
@@ -2990,9 +3060,12 @@ export const getEditTestFormState = createServerFn({ method: 'POST' })
 
     const test = testRows[0]
 
-    if (!test || test.sectionId === null) {
+    if (!test || test.sectionId === null || test.projectId === null) {
       throw notFound()
     }
+
+    await requireProjectAccessById(test.projectId, 'editor')
+    const projectId = test.projectId
 
     const sectionsRows = await db
       .select({
@@ -3001,6 +3074,7 @@ export const getEditTestFormState = createServerFn({ method: 'POST' })
         projectId: sections.projectId,
       })
       .from(sections)
+      .where(eq(sections.projectId, projectId))
       .orderBy(asc(sections.id))
 
     const projectRows = await db
@@ -3010,6 +3084,7 @@ export const getEditTestFormState = createServerFn({ method: 'POST' })
         slug: projects.slug,
       })
       .from(projects)
+      .where(eq(projects.id, projectId))
 
     const projectById = new Map(projectRows.map((project) => [project.id, project]))
 
