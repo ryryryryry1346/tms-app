@@ -385,12 +385,21 @@ export const deleteProject = createServerFn({ method: 'POST' })
 
 export const listProjectMembers = createServerFn({ method: 'POST' })
   .inputValidator(projectMembersInput)
-  .handler(async ({ data }): Promise<{ members: ProjectMemberSummary[] }> => {
+  .handler(
+    async ({
+      data,
+    }): Promise<{
+      members: ProjectMemberSummary[]
+      currentUserRole: 'owner' | 'editor' | 'viewer'
+    }> => {
     const { requireProjectAccess } = await import(
       '../auth/project-access.server'
     )
     await ensureProjectServerDeps()
-    await requireProjectAccess(data.projectId, 'viewer')
+    const { role: currentUserRole } = await requireProjectAccess(
+      data.projectId,
+      'viewer',
+    )
 
     const db = getDb()
     const rows = await db
@@ -407,6 +416,7 @@ export const listProjectMembers = createServerFn({ method: 'POST' })
       .orderBy(asc(projectMembers.id))
 
     return {
+      currentUserRole,
       members: rows.map((row) => ({
         userId: row.userId,
         name: row.name,

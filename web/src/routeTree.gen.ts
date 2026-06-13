@@ -23,6 +23,7 @@ import { Route as EditTestTestIdRouteImport } from './routes/edit-test.$testId'
 import { Route as ProjectProjectSlugRepositoryRouteImport } from './routes/project_.$projectSlug.repository'
 import { Route as ProjectProjectSlugRunsRouteImport } from './routes/project.$projectSlug.runs'
 import { Route as ProjectProjectSlugReportsRouteImport } from './routes/project.$projectSlug.reports'
+import { Route as ProjectProjectSlugMembersRouteImport } from './routes/project.$projectSlug.members'
 import { Route as ProjectProjectSlugDocsRouteImport } from './routes/project.$projectSlug.docs'
 import { Route as ProjectProjectSlugAutomationRouteImport } from './routes/project.$projectSlug.automation'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -105,6 +106,12 @@ const ProjectProjectSlugReportsRoute =
     path: '/reports',
     getParentRoute: () => ProjectProjectSlugRoute,
   } as any)
+const ProjectProjectSlugMembersRoute =
+  ProjectProjectSlugMembersRouteImport.update({
+    id: '/members',
+    path: '/members',
+    getParentRoute: () => ProjectProjectSlugRoute,
+  } as any)
 const ProjectProjectSlugDocsRoute = ProjectProjectSlugDocsRouteImport.update({
   id: '/docs',
   path: '/docs',
@@ -173,6 +180,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/project/$projectSlug/automation': typeof ProjectProjectSlugAutomationRouteWithChildren
   '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRoute
+  '/project/$projectSlug/members': typeof ProjectProjectSlugMembersRoute
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
@@ -198,6 +206,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/project/$projectSlug/automation': typeof ProjectProjectSlugAutomationRouteWithChildren
   '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRoute
+  '/project/$projectSlug/members': typeof ProjectProjectSlugMembersRoute
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
@@ -224,6 +233,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/project/$projectSlug/automation': typeof ProjectProjectSlugAutomationRouteWithChildren
   '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRoute
+  '/project/$projectSlug/members': typeof ProjectProjectSlugMembersRoute
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
   '/project_/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
@@ -251,6 +261,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/project/$projectSlug/automation'
     | '/project/$projectSlug/docs'
+    | '/project/$projectSlug/members'
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/runs'
     | '/project/$projectSlug/repository'
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/project/$projectSlug/automation'
     | '/project/$projectSlug/docs'
+    | '/project/$projectSlug/members'
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/runs'
     | '/project/$projectSlug/repository'
@@ -301,6 +313,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/project/$projectSlug/automation'
     | '/project/$projectSlug/docs'
+    | '/project/$projectSlug/members'
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/runs'
     | '/project_/$projectSlug/repository'
@@ -430,6 +443,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectProjectSlugReportsRouteImport
       parentRoute: typeof ProjectProjectSlugRoute
     }
+    '/project/$projectSlug/members': {
+      id: '/project/$projectSlug/members'
+      path: '/members'
+      fullPath: '/project/$projectSlug/members'
+      preLoaderRoute: typeof ProjectProjectSlugMembersRouteImport
+      parentRoute: typeof ProjectProjectSlugRoute
+    }
     '/project/$projectSlug/docs': {
       id: '/project/$projectSlug/docs'
       path: '/docs'
@@ -532,6 +552,7 @@ const ProjectProjectSlugAutomationRouteWithChildren =
 interface ProjectProjectSlugRouteChildren {
   ProjectProjectSlugAutomationRoute: typeof ProjectProjectSlugAutomationRouteWithChildren
   ProjectProjectSlugDocsRoute: typeof ProjectProjectSlugDocsRoute
+  ProjectProjectSlugMembersRoute: typeof ProjectProjectSlugMembersRoute
   ProjectProjectSlugReportsRoute: typeof ProjectProjectSlugReportsRoute
   ProjectProjectSlugRunsRoute: typeof ProjectProjectSlugRunsRoute
 }
@@ -540,6 +561,7 @@ const ProjectProjectSlugRouteChildren: ProjectProjectSlugRouteChildren = {
   ProjectProjectSlugAutomationRoute:
     ProjectProjectSlugAutomationRouteWithChildren,
   ProjectProjectSlugDocsRoute: ProjectProjectSlugDocsRoute,
+  ProjectProjectSlugMembersRoute: ProjectProjectSlugMembersRoute,
   ProjectProjectSlugReportsRoute: ProjectProjectSlugReportsRoute,
   ProjectProjectSlugRunsRoute: ProjectProjectSlugRunsRoute,
 }

@@ -19,6 +19,7 @@ import {
   PanelsTopLeft,
   PlayCircle,
   SunMedium,
+  Users,
   X,
 } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
@@ -47,6 +48,7 @@ type NavItem = {
     | '/project/$projectSlug/automation/runs'
     | '/project/$projectSlug/docs'
     | '/project/$projectSlug/reports'
+    | '/project/$projectSlug/members'
   params?: {
     projectSlug: string
   }
@@ -117,6 +119,10 @@ function getHeaderCopy(
 
   if (pathname.startsWith('/project/') && pathname.endsWith('/reports')) {
     return { label: projectLabel, title: 'Reports' }
+  }
+
+  if (pathname.startsWith('/project/') && pathname.endsWith('/members')) {
+    return { label: projectLabel, title: 'Members' }
   }
 
   if (pathname.startsWith('/project/')) {
@@ -414,6 +420,13 @@ export default function AppShell({ user, children }: AppShellProps) {
           params: { projectSlug },
           matchPath: `/project/${projectSlug}/reports`,
           icon: <BarChart3 size={16} strokeWidth={2} />,
+        },
+        {
+          label: 'Members',
+          to: '/project/$projectSlug/members',
+          params: { projectSlug },
+          matchPath: `/project/${projectSlug}/members`,
+          icon: <Users size={16} strokeWidth={2} />,
         },
       ]
     : []
