@@ -1,6 +1,8 @@
 import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import type { ProjectRole } from '../auth/project-access.server'
+import type { SessionUser } from '../auth/helpers.server'
 
 let and: typeof import('drizzle-orm')['and']
 let asc: typeof import('drizzle-orm')['asc']
@@ -45,6 +47,32 @@ async function ensureTestServerDeps(): Promise<void> {
   tests = schema.tests
   testRunItems = schema.testRunItems
   ensureProjectSlugs = slug.ensureProjectSlugs
+}
+
+async function requireProjectAccessById(
+  projectId: number | null | undefined,
+  minRole: ProjectRole,
+): Promise<{ user: SessionUser; role: ProjectRole }> {
+  const { requireProjectAccess } = await import('../auth/project-access.server')
+
+  if (!projectId) {
+    throw notFound()
+  }
+
+  return requireProjectAccess(projectId, minRole)
+}
+
+async function requireTestAccess(
+  testId: number,
+  minRole: ProjectRole,
+): Promise<{ user: SessionUser; role: ProjectRole }> {
+  const rows = await getDb()
+    .select({ projectId: tests.projectId })
+    .from(tests)
+    .where(eq(tests.id, testId))
+    .limit(1)
+
+  return requireProjectAccessById(rows[0]?.projectId ?? null, minRole)
 }
 
 const dashboardInput = z.object({
@@ -624,6 +652,8 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
       }
     }
 
+    await requireProjectAccessById(project.id, 'viewer')
+
     const pageSize = data.pageSize ?? 30
     const page = data.page ?? 1
     const offset = (page - 1) * pageSize
@@ -809,6 +839,8 @@ export const getRepositorySummary = createServerFn({ method: 'POST' })
       return emptySummary
     }
 
+    await requireProjectAccessById(project.id, 'viewer')
+
     const suiteStatsRows = await timeRepositoryStep(timing, 'suite-summary', () =>
       db
         .select({
@@ -911,6 +943,8 @@ export const getRepositoryCount = createServerFn({ method: 'POST' })
       logRepositoryTiming(timing, 'complete', { projectFound: false })
       return emptyCount
     }
+
+    await requireProjectAccessById(project.id, 'viewer')
 
     const statusFilter = data.status ?? 'All'
     const priorityFilter = data.priority ?? 'All'
@@ -1049,6 +1083,8 @@ export const exportRepositoryCasesCsv = createServerFn({ method: 'POST' })
     if (!project) {
       throw notFound()
     }
+
+    await requireProjectAccessById(project.id, 'viewer')
 
     const selectedIds = Array.from(new Set(data.ids ?? []))
     const statusFilter = data.status ?? 'All'
@@ -1884,6 +1920,7 @@ export const previewRepositoryImportCsv = createServerFn({ method: 'POST' })
     await ensureTestServerDeps()
 
     const { file, projectId, requestedSource } = readRepositoryImportFormData(data)
+    await requireProjectAccessById(projectId, 'editor')
     const createMissingSuites =
       data instanceof FormData &&
       String(data.get('createMissingSuites') ?? 'true') === 'true'
@@ -1913,6 +1950,7 @@ export const importRepositoryCsv = createServerFn({ method: 'POST' })
     const { file, projectId, requestedSource } = readRepositoryImportFormData(
       maybeFormData,
     )
+    await requireProjectAccessById(projectId, 'editor')
     const createMissingSuites =
       maybeFormData instanceof FormData &&
       String(maybeFormData.get('createMissingSuites') ?? 'false') === 'true'
@@ -2056,6 +2094,7 @@ export const updateTestStatus = createServerFn({ method: 'POST' })
     const { requireSessionUser } = await import('../auth/helpers.server')
     const user = await requireSessionUser()
     await ensureTestServerDeps()
+    await requireTestAccess(data.id, 'editor')
 
     const db = getDb()
     const rows = await db
@@ -2097,6 +2136,7 @@ export const updateTestTitle = createServerFn({ method: 'POST' })
     const { requireSessionUser } = await import('../auth/helpers.server')
     const user = await requireSessionUser()
     await ensureTestServerDeps()
+    await requireTestAccess(data.id, 'editor')
 
     const db = getDb()
     const rows = await db
@@ -2138,6 +2178,7 @@ export const updateTestContent = createServerFn({ method: 'POST' })
     const { requireSessionUser } = await import('../auth/helpers.server')
     const user = await requireSessionUser()
     await ensureTestServerDeps()
+    await requireTestAccess(data.id, 'editor')
 
     const db = getDb()
     const rows = await db
@@ -2565,6 +2606,8 @@ export const archiveTestCase = createServerFn({ method: 'POST' })
       throw notFound()
     }
 
+    await requireProjectAccessById(test.projectId, 'editor')
+
     await db
       .update(tests)
       .set({
@@ -2614,6 +2657,8 @@ export const restoreTestCase = createServerFn({ method: 'POST' })
       throw notFound()
     }
 
+    await requireProjectAccessById(test.projectId, 'editor')
+
     await db
       .update(tests)
       .set({
@@ -2646,6 +2691,7 @@ export const deleteArchivedTestCase = createServerFn({ method: 'POST' })
     const { requireSessionUser } = await import('../auth/helpers.server')
     await requireSessionUser()
     await ensureTestServerDeps()
+    await requireTestAccess(data.id, 'editor')
 
     const db = getDb()
     const rows = await db
@@ -2783,6 +2829,8 @@ export const createTestCase = createServerFn({ method: 'POST' })
       )
     }
 
+    await requireProjectAccessById(section.projectId, 'editor')
+
     const result = await db.insert(tests).values({
       title: data.title,
       steps: data.steps,
@@ -2846,6 +2894,8 @@ export const duplicateTestCase = createServerFn({ method: 'POST' })
     if (!source || !source.sectionId || !source.projectId) {
       throw new Error('The source test case is missing or incomplete.')
     }
+
+    await requireProjectAccessById(source.projectId, 'editor')
 
     const suiteRows = await db
       .select({
@@ -3052,6 +3102,8 @@ export const updateTestCase = createServerFn({ method: 'POST' })
       )
     }
 
+    await requireProjectAccessById(section.projectId, 'editor')
+
     await db
       .update(tests)
       .set({
@@ -3125,6 +3177,8 @@ export const getTestDetail = createServerFn({ method: 'POST' })
     if (!test) {
       throw notFound()
     }
+
+    await requireProjectAccessById(test.projectId, 'viewer')
 
     const sectionRows =
       test.sectionId === null

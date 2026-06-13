@@ -65,6 +65,36 @@ export async function requireProjectAccess(
   return { user, role }
 }
 
+/**
+ * Ensures the current user has at least `minRole` in EVERY distinct project the
+ * given rows belong to. Used by bulk operations that span multiple test cases.
+ */
+export async function requireProjectsAccess(
+  projectIds: Array<number | null | undefined>,
+  minRole: ProjectRole = 'viewer',
+): Promise<SessionUser> {
+  const user = await requireSessionUser()
+  const distinct = Array.from(
+    new Set(projectIds.filter((id): id is number => typeof id === 'number')),
+  )
+
+  for (const projectId of distinct) {
+    const role = await getProjectRole(projectId, user.id)
+
+    if (!role) {
+      throw notFound()
+    }
+
+    if (!roleAtLeast(role, minRole)) {
+      throw new Error(
+        'You do not have permission to perform this action in this project.',
+      )
+    }
+  }
+
+  return user
+}
+
 export async function getAccessibleProjectIds(
   userId: string,
 ): Promise<number[]> {
