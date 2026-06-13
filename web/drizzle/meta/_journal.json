@@ -15,6 +15,13 @@
       "when": 1781335602160,
       "tag": "0001_purple_havok",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1781337476091,
+      "tag": "0002_glamorous_harrier",
+      "breakpoints": true
     }
   ]
 }

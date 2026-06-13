@@ -457,8 +457,31 @@ export const projectApiTokens = mysqlTable(
   }),
 )
 
+export const projectMembers = mysqlTable(
+  'project_members',
+  {
+    id: int('id').autoincrement().primaryKey(),
+    projectId: int('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    userId: varchar('user_id', { length: 255 })
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    role: varchar('role', { length: 32 }).notNull().default('editor'),
+    createdAt: varchar('created_at', { length: 32 }).notNull(),
+  },
+  (table) => ({
+    projectUserUnique: uniqueIndex('project_members_project_user_unique').on(
+      table.projectId,
+      table.userId,
+    ),
+    userIdIndex: index('project_members_user_id_idx').on(table.userId),
+  }),
+)
+
 export type Project = typeof projects.$inferSelect
 export type NewProject = typeof projects.$inferInsert
+export type ProjectMember = typeof projectMembers.$inferSelect
 export type AuthUser = typeof user.$inferSelect
 export type AutomationRun = typeof automationRuns.$inferSelect
 export type AutomationTestResult = typeof automationTestResults.$inferSelect

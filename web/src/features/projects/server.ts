@@ -1,16 +1,19 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
+let and: typeof import('drizzle-orm')['and']
 let asc: typeof import('drizzle-orm')['asc']
 let eq: typeof import('drizzle-orm')['eq']
 let inArray: typeof import('drizzle-orm')['inArray']
 let getDb: typeof import('../../db/client')['getDb']
 let isDatabaseConfigured: typeof import('../../db/client')['isDatabaseConfigured']
 let projects: typeof import('../../db/schema')['projects']
+let projectMembers: typeof import('../../db/schema')['projectMembers']
 let sections: typeof import('../../db/schema')['sections']
 let testRunItems: typeof import('../../db/schema')['testRunItems']
 let testRuns: typeof import('../../db/schema')['testRuns']
 let tests: typeof import('../../db/schema')['tests']
+let user: typeof import('../../db/schema')['user']
 let ensureProjectSlugs: typeof import('./slug')['ensureProjectSlugs']
 let ensureUniqueProjectSlug: typeof import('./slug')['ensureUniqueProjectSlug']
 
@@ -26,16 +29,19 @@ async function ensureProjectServerDeps(): Promise<void> {
     import('./slug'),
   ])
 
+  and = drizzle.and
   asc = drizzle.asc
   eq = drizzle.eq
   inArray = drizzle.inArray
   getDb = dbClient.getDb
   isDatabaseConfigured = dbClient.isDatabaseConfigured
   projects = schema.projects
+  projectMembers = schema.projectMembers
   sections = schema.sections
   testRunItems = schema.testRunItems
   testRuns = schema.testRuns
   tests = schema.tests
+  user = schema.user
   ensureProjectSlugs = slug.ensureProjectSlugs
   ensureUniqueProjectSlug = slug.ensureUniqueProjectSlug
 }
@@ -66,6 +72,29 @@ const updateProjectStatusInput = z.object({
   projectId: z.number().int().positive(),
 })
 
+const projectMembersInput = z.object({
+  projectId: z.number().int().positive(),
+})
+
+const projectRoleSchema = z.enum(['owner', 'editor', 'viewer'])
+
+const addProjectMemberInput = z.object({
+  projectId: z.number().int().positive(),
+  email: z.string().trim().email(),
+  role: projectRoleSchema.default('editor'),
+})
+
+const updateProjectMemberRoleInput = z.object({
+  projectId: z.number().int().positive(),
+  userId: z.string().trim().min(1),
+  role: projectRoleSchema,
+})
+
+const removeProjectMemberInput = z.object({
+  projectId: z.number().int().positive(),
+  userId: z.string().trim().min(1),
+})
+
 export type ProjectsDashboardState = {
   databaseConfigured: boolean
   projects: Array<{
@@ -76,10 +105,35 @@ export type ProjectsDashboardState = {
   }>
 }
 
+export type ProjectMemberSummary = {
+  userId: string
+  name: string
+  email: string
+  role: 'owner' | 'editor' | 'viewer'
+  createdAt: string
+}
+
+async function resolveSuiteProjectId(suiteId: number): Promise<number> {
+  const db = getDb()
+  const rows = await db
+    .select({ projectId: sections.projectId })
+    .from(sections)
+    .where(eq(sections.id, suiteId))
+    .limit(1)
+
+  const projectId = rows[0]?.projectId
+
+  if (!projectId) {
+    throw new Error('Suite was not found.')
+  }
+
+  return projectId
+}
+
 export const listProjects = createServerFn({ method: 'GET' }).handler(
   async (): Promise<ProjectsDashboardState> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const sessionUser = await requireSessionUser()
     await ensureProjectServerDeps()
 
     if (!isDatabaseConfigured()) {
@@ -100,6 +154,8 @@ export const listProjects = createServerFn({ method: 'GET' }).handler(
         status: projects.status,
       })
       .from(projects)
+      .innerJoin(projectMembers, eq(projectMembers.projectId, projects.id))
+      .where(eq(projectMembers.userId, sessionUser.id))
       .orderBy(asc(projects.id))
 
     return {
@@ -113,7 +169,10 @@ export const createProject = createServerFn({ method: 'POST' })
   .inputValidator(createProjectInput)
   .handler(async ({ data }): Promise<{ id: number }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const { addProjectMembership } = await import(
+      '../auth/project-access.server'
+    )
+    const sessionUser = await requireSessionUser()
     await ensureProjectServerDeps()
 
     const db = getDb()
@@ -124,17 +183,24 @@ export const createProject = createServerFn({ method: 'POST' })
       status: 'Active',
     })
 
+    const projectId = result[0].insertId
+
+    // Creator becomes the project owner.
+    await addProjectMembership(projectId, sessionUser.id, 'owner')
+
     return {
-      id: result[0].insertId,
+      id: projectId,
     }
   })
 
 export const createSuite = createServerFn({ method: 'POST' })
   .inputValidator(createSuiteInput)
   .handler(async ({ data }): Promise<{ id: number }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
     await ensureProjectServerDeps()
+    await requireProjectAccess(data.projectId, 'editor')
 
     const db = getDb()
     const result = await db.insert(sections).values({
@@ -150,9 +216,12 @@ export const createSuite = createServerFn({ method: 'POST' })
 export const updateSuite = createServerFn({ method: 'POST' })
   .inputValidator(updateSuiteInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
     await ensureProjectServerDeps()
+    const projectId = await resolveSuiteProjectId(data.suiteId)
+    await requireProjectAccess(projectId, 'editor')
 
     const db = getDb()
     await db
@@ -170,9 +239,12 @@ export const updateSuite = createServerFn({ method: 'POST' })
 export const deleteSuite = createServerFn({ method: 'POST' })
   .inputValidator(deleteSuiteInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
     await ensureProjectServerDeps()
+    const projectId = await resolveSuiteProjectId(data.suiteId)
+    await requireProjectAccess(projectId, 'editor')
 
     const db = getDb()
     const linkedTests = await db
@@ -199,9 +271,11 @@ export const deleteSuite = createServerFn({ method: 'POST' })
 export const archiveProject = createServerFn({ method: 'POST' })
   .inputValidator(updateProjectStatusInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
     await ensureProjectServerDeps()
+    await requireProjectAccess(data.projectId, 'owner')
 
     const db = getDb()
     await db
@@ -219,9 +293,11 @@ export const archiveProject = createServerFn({ method: 'POST' })
 export const restoreProject = createServerFn({ method: 'POST' })
   .inputValidator(updateProjectStatusInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
     await ensureProjectServerDeps()
+    await requireProjectAccess(data.projectId, 'owner')
 
     const db = getDb()
     await db
@@ -239,9 +315,11 @@ export const restoreProject = createServerFn({ method: 'POST' })
 export const deleteProject = createServerFn({ method: 'POST' })
   .inputValidator(deleteProjectInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
     await ensureProjectServerDeps()
+    await requireProjectAccess(data.projectId, 'owner')
 
     const db = getDb()
 
@@ -304,3 +382,172 @@ export const deleteProject = createServerFn({ method: 'POST' })
       ok: true,
     }
   })
+
+export const listProjectMembers = createServerFn({ method: 'POST' })
+  .inputValidator(projectMembersInput)
+  .handler(async ({ data }): Promise<{ members: ProjectMemberSummary[] }> => {
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
+    await ensureProjectServerDeps()
+    await requireProjectAccess(data.projectId, 'viewer')
+
+    const db = getDb()
+    const rows = await db
+      .select({
+        userId: projectMembers.userId,
+        role: projectMembers.role,
+        createdAt: projectMembers.createdAt,
+        name: user.name,
+        email: user.email,
+      })
+      .from(projectMembers)
+      .innerJoin(user, eq(user.id, projectMembers.userId))
+      .where(eq(projectMembers.projectId, data.projectId))
+      .orderBy(asc(projectMembers.id))
+
+    return {
+      members: rows.map((row) => ({
+        userId: row.userId,
+        name: row.name,
+        email: row.email,
+        role: (row.role as ProjectMemberSummary['role']) ?? 'viewer',
+        createdAt: row.createdAt,
+      })),
+    }
+  })
+
+export const addProjectMember = createServerFn({ method: 'POST' })
+  .inputValidator(addProjectMemberInput)
+  .handler(async ({ data }): Promise<{ member: ProjectMemberSummary }> => {
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
+    await ensureProjectServerDeps()
+    await requireProjectAccess(data.projectId, 'owner')
+
+    const db = getDb()
+    const targetRows = await db
+      .select({ id: user.id, name: user.name, email: user.email })
+      .from(user)
+      .where(eq(user.email, data.email))
+      .limit(1)
+
+    const targetUser = targetRows[0]
+
+    if (!targetUser) {
+      throw new Error(
+        'No registered user with that email. Ask them to sign up first.',
+      )
+    }
+
+    const existing = await db
+      .select({ id: projectMembers.id })
+      .from(projectMembers)
+      .where(
+        and(
+          eq(projectMembers.projectId, data.projectId),
+          eq(projectMembers.userId, targetUser.id),
+        ),
+      )
+      .limit(1)
+
+    if (existing.length > 0) {
+      throw new Error('That user is already a member of this project.')
+    }
+
+    const createdAt = new Date().toISOString()
+    await db.insert(projectMembers).values({
+      projectId: data.projectId,
+      userId: targetUser.id,
+      role: data.role,
+      createdAt,
+    })
+
+    return {
+      member: {
+        userId: targetUser.id,
+        name: targetUser.name,
+        email: targetUser.email,
+        role: data.role,
+        createdAt,
+      },
+    }
+  })
+
+export const updateProjectMemberRole = createServerFn({ method: 'POST' })
+  .inputValidator(updateProjectMemberRoleInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
+    await ensureProjectServerDeps()
+    await requireProjectAccess(data.projectId, 'owner')
+
+    const db = getDb()
+
+    // Prevent removing the last owner of a project.
+    if (data.role !== 'owner') {
+      await assertNotLastOwner(data.projectId, data.userId)
+    }
+
+    await db
+      .update(projectMembers)
+      .set({ role: data.role })
+      .where(
+        and(
+          eq(projectMembers.projectId, data.projectId),
+          eq(projectMembers.userId, data.userId),
+        ),
+      )
+
+    return { ok: true }
+  })
+
+export const removeProjectMember = createServerFn({ method: 'POST' })
+  .inputValidator(removeProjectMemberInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
+    await ensureProjectServerDeps()
+    await requireProjectAccess(data.projectId, 'owner')
+
+    await assertNotLastOwner(data.projectId, data.userId)
+
+    const db = getDb()
+    await db
+      .delete(projectMembers)
+      .where(
+        and(
+          eq(projectMembers.projectId, data.projectId),
+          eq(projectMembers.userId, data.userId),
+        ),
+      )
+
+    return { ok: true }
+  })
+
+async function assertNotLastOwner(
+  projectId: number,
+  userId: string,
+): Promise<void> {
+  const db = getDb()
+  const owners = await db
+    .select({ userId: projectMembers.userId })
+    .from(projectMembers)
+    .where(
+      and(
+        eq(projectMembers.projectId, projectId),
+        eq(projectMembers.role, 'owner'),
+      ),
+    )
+
+  const isTargetOwner = owners.some((owner) => owner.userId === userId)
+
+  if (isTargetOwner && owners.length <= 1) {
+    throw new Error(
+      'You cannot remove or demote the last owner of a project. Assign another owner first.',
+    )
+  }
+}
