@@ -28,6 +28,22 @@ async function ensureDocsServerDeps(): Promise<void> {
   projects = schema.projects
 }
 
+async function resolveDocProjectId(docId: number): Promise<number> {
+  const rows = await getDb()
+    .select({ projectId: projectDocs.projectId })
+    .from(projectDocs)
+    .where(eq(projectDocs.id, docId))
+    .limit(1)
+
+  const projectId = rows[0]?.projectId
+
+  if (!projectId) {
+    throw notFound()
+  }
+
+  return projectId
+}
+
 const projectDocsInput = z.object({
   projectId: z.number().int().positive(),
 })
@@ -84,13 +100,16 @@ function nowIso(): string {
 export const getProjectDocs = createServerFn({ method: 'POST' })
   .inputValidator(projectDocsInput)
   .handler(async ({ data }): Promise<{ docs: ProjectDoc[] }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
     await ensureDocsServerDeps()
 
     if (!isDatabaseConfigured()) {
       return { docs: [] }
     }
+
+    await requireProjectAccess(data.projectId, 'viewer')
 
     const db = getDb()
     const docs = await db
@@ -107,9 +126,13 @@ export const getProjectDocs = createServerFn({ method: 'POST' })
 export const getProjectDoc = createServerFn({ method: 'POST' })
   .inputValidator(projectDocInput)
   .handler(async ({ data }): Promise<{ doc: ProjectDoc }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
     await ensureDocsServerDeps()
+
+    const projectId = await resolveDocProjectId(data.docId)
+    await requireProjectAccess(projectId, 'viewer')
 
     const db = getDb()
     const rows = await db
@@ -133,8 +156,9 @@ export const getProjectDocDetail = createServerFn({ method: 'POST' })
     async ({
       data,
     }): Promise<{ project: ProjectDocProject; doc: ProjectDoc }> => {
-      const { requireSessionUser } = await import('../auth/helpers.server')
-      await requireSessionUser()
+      const { requireProjectAccess } = await import(
+        '../auth/project-access.server'
+      )
       await ensureDocsServerDeps()
 
       const db = getDb()
@@ -155,6 +179,8 @@ export const getProjectDocDetail = createServerFn({ method: 'POST' })
         throw notFound()
       }
 
+      await requireProjectAccess(project.id, 'viewer')
+
       const docRows = await db
         .select()
         .from(projectDocs)
@@ -174,9 +200,11 @@ export const getProjectDocDetail = createServerFn({ method: 'POST' })
 export const createProjectDoc = createServerFn({ method: 'POST' })
   .inputValidator(createProjectDocInput)
   .handler(async ({ data }): Promise<{ id: number }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
     await ensureDocsServerDeps()
+    await requireProjectAccess(data.projectId, 'editor')
 
     const db = getDb()
     const projectRows = await db
@@ -208,9 +236,13 @@ export const createProjectDoc = createServerFn({ method: 'POST' })
 export const updateProjectDoc = createServerFn({ method: 'POST' })
   .inputValidator(updateProjectDocInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
     await ensureDocsServerDeps()
+
+    const projectId = await resolveDocProjectId(data.docId)
+    await requireProjectAccess(projectId, 'editor')
 
     const db = getDb()
     await db
@@ -229,9 +261,13 @@ export const updateProjectDoc = createServerFn({ method: 'POST' })
 export const deleteProjectDoc = createServerFn({ method: 'POST' })
   .inputValidator(deleteProjectDocInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
     await ensureDocsServerDeps()
+
+    const projectId = await resolveDocProjectId(data.docId)
+    await requireProjectAccess(projectId, 'editor')
 
     const db = getDb()
     await db.delete(projectDocs).where(eq(projectDocs.id, data.docId))

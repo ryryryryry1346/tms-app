@@ -305,9 +305,11 @@ export type AutomationResultAttachment = {
 export const importAutomationJunitXml = createServerFn({ method: 'POST' })
   .inputValidator(automationJunitImportInput)
   .handler(async ({ data }): Promise<AutomationImportResult> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
     await ensureAutomationServerDeps()
+    await requireProjectAccess(data.projectId, 'editor')
 
     return importJunitAutomationRun(data)
   })
@@ -315,9 +317,11 @@ export const importAutomationJunitXml = createServerFn({ method: 'POST' })
 export const importAutomationJson = createServerFn({ method: 'POST' })
   .inputValidator(automationJsonImportInput)
   .handler(async ({ data }): Promise<AutomationImportResult> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
     await ensureAutomationServerDeps()
+    await requireProjectAccess(data.projectId, 'editor')
 
     return importJsonAutomationRun(data)
   })
@@ -325,13 +329,16 @@ export const importAutomationJson = createServerFn({ method: 'POST' })
 export const getProjectApiTokens = createServerFn({ method: 'POST' })
   .inputValidator(projectAutomationInput)
   .handler(async ({ data }): Promise<{ tokens: ProjectApiTokenSummary[] }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
     await ensureAutomationServerDeps()
 
     if (!isDatabaseConfigured()) {
       return { tokens: [] }
     }
+
+    await requireProjectAccess(data.projectId, 'owner')
 
     const db = getDb()
     const tokens = await db
@@ -356,13 +363,16 @@ export const createProjectApiToken = createServerFn({ method: 'POST' })
     async ({
       data,
     }): Promise<{ token: string; tokenRecord: ProjectApiTokenSummary }> => {
-      const { requireSessionUser } = await import('../auth/helpers.server')
-      await requireSessionUser()
+      const { requireProjectAccess } = await import(
+        '../auth/project-access.server'
+      )
       await ensureAutomationServerDeps()
 
       if (!isDatabaseConfigured()) {
         throw new Error('Database is not configured.')
       }
+
+      await requireProjectAccess(data.projectId, 'owner')
 
       const db = getDb()
       const projectRows = await db
@@ -411,13 +421,16 @@ export const createProjectApiToken = createServerFn({ method: 'POST' })
 export const revokeProjectApiToken = createServerFn({ method: 'POST' })
   .inputValidator(revokeProjectApiTokenInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
     await ensureAutomationServerDeps()
 
     if (!isDatabaseConfigured()) {
       throw new Error('Database is not configured.')
     }
+
+    await requireProjectAccess(data.projectId, 'owner')
 
     await getDb()
       .update(projectApiTokens)
@@ -444,13 +457,16 @@ export const getAutomationRuns = createServerFn({ method: 'POST' })
       runs: AutomationRunListItem[]
       recentResults: AutomationRunResultSummary[]
     }> => {
-      const { requireSessionUser } = await import('../auth/helpers.server')
-      await requireSessionUser()
+      const { requireProjectAccess } = await import(
+        '../auth/project-access.server'
+      )
       await ensureAutomationServerDeps()
 
       if (!isDatabaseConfigured()) {
         return { runs: [], recentResults: [] }
       }
+
+      await requireProjectAccess(data.projectId, 'viewer')
 
       const db = getDb()
       const rows = await db
@@ -502,13 +518,16 @@ export const getAutomationFlakyTests = createServerFn({ method: 'POST' })
   .inputValidator(projectAutomationInput)
   .handler(
     async ({ data }): Promise<{ tests: AutomationFlakyTestItem[] }> => {
-      const { requireSessionUser } = await import('../auth/helpers.server')
-      await requireSessionUser()
+      const { requireProjectAccess } = await import(
+        '../auth/project-access.server'
+      )
       await ensureAutomationServerDeps()
 
       if (!isDatabaseConfigured()) {
         return { tests: [] }
       }
+
+      await requireProjectAccess(data.projectId, 'viewer')
 
       const rows = await getDb()
         .select({
@@ -667,13 +686,16 @@ export const getAutomationFlakyTests = createServerFn({ method: 'POST' })
 export const getAutomationRunDetail = createServerFn({ method: 'POST' })
   .inputValidator(automationRunDetailInput)
   .handler(async ({ data }): Promise<{ run: AutomationRunDetail }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
     await ensureAutomationServerDeps()
 
     if (!isDatabaseConfigured()) {
       throw new Error('Database is not configured.')
     }
+
+    await requireProjectAccess(data.projectId, 'viewer')
 
     const db = getDb()
     const runRows = await db
@@ -828,8 +850,9 @@ export const getAutomationHistoryForTestCase = createServerFn({ method: 'POST' }
     async ({
       data,
     }): Promise<{ history: AutomationTestCaseHistory }> => {
-      const { requireSessionUser } = await import('../auth/helpers.server')
-      await requireSessionUser()
+      const { requireProjectAccess } = await import(
+        '../auth/project-access.server'
+      )
       await ensureAutomationServerDeps()
 
       const emptyHistory: AutomationTestCaseHistory = {
@@ -850,6 +873,8 @@ export const getAutomationHistoryForTestCase = createServerFn({ method: 'POST' }
       if (!isDatabaseConfigured()) {
         return { history: emptyHistory }
       }
+
+      await requireProjectAccess(data.projectId, 'viewer')
 
       const db = getDb()
       const [manualCase] = await db
@@ -951,13 +976,16 @@ export const searchManualTestCasesForAutomation = createServerFn({ method: 'POST
     async ({
       data,
     }): Promise<{ cases: AutomationManualCaseOption[] }> => {
-      const { requireSessionUser } = await import('../auth/helpers.server')
-      await requireSessionUser()
+      const { requireProjectAccess } = await import(
+        '../auth/project-access.server'
+      )
       await ensureAutomationServerDeps()
 
       if (!isDatabaseConfigured()) {
         return { cases: [] }
       }
+
+      await requireProjectAccess(data.projectId, 'viewer')
 
       const search = data.query?.trim() ?? ''
       const numericId = Number(search.replace(/^#|^TMS-/i, ''))
@@ -1008,13 +1036,16 @@ export const linkAutomationResultToManualCase = createServerFn({ method: 'POST' 
     async ({
       data,
     }): Promise<{ manualCase: AutomationManualCaseOption }> => {
-      const { requireSessionUser } = await import('../auth/helpers.server')
-      await requireSessionUser()
+      const { requireProjectAccess } = await import(
+        '../auth/project-access.server'
+      )
       await ensureAutomationServerDeps()
 
       if (!isDatabaseConfigured()) {
         throw new Error('Database is not configured.')
       }
+
+      await requireProjectAccess(data.projectId, 'editor')
 
       const db = getDb()
       const [result] = await db
@@ -1090,13 +1121,16 @@ export const linkAutomationResultToManualCase = createServerFn({ method: 'POST' 
 export const unlinkAutomationResultFromManualCase = createServerFn({ method: 'POST' })
   .inputValidator(automationResultLinkInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
     await ensureAutomationServerDeps()
 
     if (!isDatabaseConfigured()) {
       throw new Error('Database is not configured.')
     }
+
+    await requireProjectAccess(data.projectId, 'editor')
 
     const db = getDb()
     const [result] = await db
