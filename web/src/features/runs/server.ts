@@ -1,6 +1,8 @@
 import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
+import type { ProjectRole } from '../auth/project-access.server'
+import type { SessionUser } from '../auth/helpers.server'
 
 const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024
 
@@ -45,6 +47,52 @@ async function ensureRunServerDeps(): Promise<void> {
   tests = schema.tests
   runItemAttachments = schema.runItemAttachments
   ensureProjectSlugs = slug.ensureProjectSlugs
+}
+
+async function requireProjectAccessById(
+  projectId: number | null | undefined,
+  minRole: ProjectRole,
+): Promise<{ user: SessionUser; role: ProjectRole }> {
+  const { requireProjectAccess } = await import('../auth/project-access.server')
+
+  if (!projectId) {
+    throw notFound()
+  }
+
+  return requireProjectAccess(projectId, minRole)
+}
+
+async function resolveRunProjectId(runId: number): Promise<number | null> {
+  const rows = await getDb()
+    .select({ projectId: testRuns.projectId })
+    .from(testRuns)
+    .where(eq(testRuns.id, runId))
+    .limit(1)
+
+  return rows[0]?.projectId ?? null
+}
+
+async function resolveTestProjectId(testId: number): Promise<number | null> {
+  const rows = await getDb()
+    .select({ projectId: tests.projectId })
+    .from(tests)
+    .where(eq(tests.id, testId))
+    .limit(1)
+
+  return rows[0]?.projectId ?? null
+}
+
+async function resolveAttachmentProjectId(
+  attachmentId: number,
+): Promise<number | null> {
+  const rows = await getDb()
+    .select({ projectId: testRuns.projectId })
+    .from(runItemAttachments)
+    .innerJoin(testRuns, eq(testRuns.id, runItemAttachments.runId))
+    .where(eq(runItemAttachments.id, attachmentId))
+    .limit(1)
+
+  return rows[0]?.projectId ?? null
 }
 
 const runsForProjectInput = z.object({
@@ -162,13 +210,13 @@ export type RunItemAttachment = {
 export const getRunsForProject = createServerFn({ method: 'POST' })
   .inputValidator(runsForProjectInput)
   .handler(async ({ data }): Promise<{ runs: ProjectRun[] }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
     await ensureRunServerDeps()
 
     if (!isDatabaseConfigured() || !data.projectId) {
       return { runs: [] }
     }
+
+    await requireProjectAccessById(data.projectId, 'viewer')
 
     const db = getDb()
     await ensureProjectSlugs()
@@ -252,9 +300,8 @@ export const getRunsForProject = createServerFn({ method: 'POST' })
 export const createRun = createServerFn({ method: 'POST' })
   .inputValidator(createRunInput)
   .handler(async ({ data }): Promise<{ id: number }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
     await ensureRunServerDeps()
+    await requireProjectAccessById(data.projectId, 'editor')
 
     const db = getDb()
     const result = await db.transaction(async (tx) => {
@@ -307,8 +354,6 @@ export const createRun = createServerFn({ method: 'POST' })
 export const getRunDetail = createServerFn({ method: 'POST' })
   .inputValidator(getRunDetailInput)
   .handler(async ({ data }): Promise<RunDetail> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    const sessionUser = await requireSessionUser()
     await ensureRunServerDeps()
 
     const db = getDb()
@@ -329,6 +374,11 @@ export const getRunDetail = createServerFn({ method: 'POST' })
     if (!run) {
       throw notFound()
     }
+
+    const { user: sessionUser } = await requireProjectAccessById(
+      run.projectId,
+      'viewer',
+    )
 
     const projectRows =
       run.projectId === null
@@ -449,9 +499,11 @@ export const getCaseExecutionHistory = createServerFn({ method: 'POST' })
     async ({
       data,
     }): Promise<{ entries: CaseExecutionHistoryEntry[] }> => {
-      const { requireSessionUser } = await import('../auth/helpers.server')
-      await requireSessionUser()
       await ensureRunServerDeps()
+      await requireProjectAccessById(
+        await resolveTestProjectId(data.testId),
+        'viewer',
+      )
 
       const db = getDb()
       const rows = await db
@@ -501,9 +553,11 @@ export const getRunItemAttachments = createServerFn({ method: 'POST' })
   .inputValidator(runItemAttachmentsInput)
   .handler(
     async ({ data }): Promise<{ attachments: RunItemAttachment[] }> => {
-      const { requireSessionUser } = await import('../auth/helpers.server')
-      await requireSessionUser()
       await ensureRunServerDeps()
+      await requireProjectAccessById(
+        await resolveRunProjectId(data.runId),
+        'viewer',
+      )
 
       const db = getDb()
       const rows = await db
@@ -543,9 +597,7 @@ export const addRunItemAttachment = createServerFn({ method: 'POST' })
   .inputValidator((data: FormData) => data)
   .handler(
   async ({ data }): Promise<{ attachment: RunItemAttachment }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
     const { uploadMediaToCloudinary } = await import('../media/helpers.server')
-    const sessionUser = await requireSessionUser()
     await ensureRunServerDeps()
 
     const form = data as unknown as FormData
@@ -573,6 +625,11 @@ export const addRunItemAttachment = createServerFn({ method: 'POST' })
     if (file.size > MAX_ATTACHMENT_BYTES) {
       throw new Error('Attachment is too large. Maximum size is 15 MB.')
     }
+
+    const { user: sessionUser } = await requireProjectAccessById(
+      await resolveRunProjectId(runId),
+      'editor',
+    )
 
     const url = await uploadMediaToCloudinary(file)
     const createdAt = new Date().toISOString()
@@ -606,9 +663,11 @@ export const addRunItemAttachment = createServerFn({ method: 'POST' })
 export const deleteRunItemAttachment = createServerFn({ method: 'POST' })
   .inputValidator(deleteAttachmentInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
     await ensureRunServerDeps()
+    await requireProjectAccessById(
+      await resolveAttachmentProjectId(data.attachmentId),
+      'editor',
+    )
 
     const db = getDb()
     await db
@@ -621,9 +680,11 @@ export const deleteRunItemAttachment = createServerFn({ method: 'POST' })
 export const updateRunName = createServerFn({ method: 'POST' })
   .inputValidator(updateRunNameInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
     await ensureRunServerDeps()
+    await requireProjectAccessById(
+      await resolveRunProjectId(data.runId),
+      'editor',
+    )
 
     const db = getDb()
     const existingRun = await db
@@ -651,9 +712,11 @@ export const updateRunName = createServerFn({ method: 'POST' })
 export const updateRunStatus = createServerFn({ method: 'POST' })
   .inputValidator(updateRunStatusInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
     await ensureRunServerDeps()
+    await requireProjectAccessById(
+      await resolveRunProjectId(data.runId),
+      'editor',
+    )
 
     const db = getDb()
     const existingRun = await db
@@ -681,8 +744,6 @@ export const updateRunStatus = createServerFn({ method: 'POST' })
 export const executeRunTest = createServerFn({ method: 'POST' })
   .inputValidator(executeRunTestInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    const sessionUser = await requireSessionUser()
     await ensureRunServerDeps()
 
     const db = getDb()
@@ -700,6 +761,11 @@ export const executeRunTest = createServerFn({ method: 'POST' })
     if (!run) {
       throw notFound()
     }
+
+    const { user: sessionUser } = await requireProjectAccessById(
+      run.projectId,
+      'editor',
+    )
 
     const testRows = await db
       .select({
@@ -788,8 +854,6 @@ export const executeRunTest = createServerFn({ method: 'POST' })
 export const saveRunItemComment = createServerFn({ method: 'POST' })
   .inputValidator(runItemCommentInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
-    const { requireSessionUser } = await import('../auth/helpers.server')
-    await requireSessionUser()
     await ensureRunServerDeps()
 
     const db = getDb()
@@ -807,6 +871,8 @@ export const saveRunItemComment = createServerFn({ method: 'POST' })
     if (!run) {
       throw notFound()
     }
+
+    await requireProjectAccessById(run.projectId, 'editor')
 
     const testRows = await db
       .select({

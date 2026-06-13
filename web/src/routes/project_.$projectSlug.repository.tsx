@@ -1012,91 +1012,6 @@ function ProjectRepositoryPage() {
     }))
   }
 
-  function addRepositoryTest(test: DashboardTest): void {
-    const normalizedStatus = test.status ?? 'Draft'
-    const matchesLifecycleFilter =
-      caseFilter === 'All'
-        ? normalizedStatus !== 'Archived'
-        : normalizedStatus === caseFilter
-    const matchesSuiteFilter =
-      suiteFilterId === ALL_SUITES_FILTER || String(test.sectionId) === suiteFilterId
-    const matchesPriorityFilter =
-      priorityFilter === 'All' || (test.priority ?? 'Medium') === priorityFilter
-    const matchesTypeFilter =
-      caseTypeFilter === 'All' || (test.caseType ?? 'Functional') === caseTypeFilter
-    const normalizedTitle = test.title.toLowerCase()
-    const normalizedQuery = searchValue.trim().toLowerCase()
-    const matchesSearch =
-      normalizedQuery.length === 0 ||
-      normalizedTitle.includes(normalizedQuery) ||
-      String(test.id).includes(normalizedQuery)
-    const shouldAppearInCurrentView =
-      matchesLifecycleFilter &&
-      matchesSuiteFilter &&
-      matchesPriorityFilter &&
-      matchesTypeFilter &&
-      matchesSearch
-
-    setDashboard((current) => {
-      const nextFilteredTotal = shouldAppearInCurrentView
-        ? current.pagination.totalCases + 1
-        : current.pagination.totalCases
-
-      return {
-        ...current,
-        tests: shouldAppearInCurrentView ? [...current.tests, test] : current.tests,
-        suiteStats: current.suiteStats.map((stats) =>
-          stats.sectionId === test.sectionId
-            ? {
-                ...stats,
-                totalCases: stats.totalCases + 1,
-                activeCases:
-                  normalizedStatus === 'Archived'
-                    ? stats.activeCases
-                    : stats.activeCases + 1,
-                readyCases:
-                  normalizedStatus === 'Ready'
-                    ? stats.readyCases + 1
-                    : stats.readyCases,
-                draftCases:
-                  normalizedStatus === 'Draft'
-                    ? stats.draftCases + 1
-                    : stats.draftCases,
-                archivedCases:
-                  normalizedStatus === 'Archived'
-                    ? stats.archivedCases + 1
-                    : stats.archivedCases,
-              }
-            : stats,
-        ),
-        pagination: {
-          ...current.pagination,
-          totalCases: nextFilteredTotal,
-          totalPages: Math.max(
-            1,
-            Math.ceil(nextFilteredTotal / current.pagination.pageSize),
-          ),
-        },
-        stats: {
-          ...current.stats,
-          totalCases: current.stats.totalCases + 1,
-          activeCases:
-            normalizedStatus === 'Archived'
-              ? current.stats.activeCases
-              : current.stats.activeCases + 1,
-          readyCases:
-            normalizedStatus === 'Ready'
-              ? current.stats.readyCases + 1
-              : current.stats.readyCases,
-          archivedCases:
-            normalizedStatus === 'Archived'
-              ? current.stats.archivedCases + 1
-              : current.stats.archivedCases,
-        },
-      }
-    })
-  }
-
   function addRepositorySuite(section: {
     id: number
     name: string
@@ -1743,24 +1658,6 @@ function ProjectRepositoryPage() {
         ? current.filter((id) => id !== testId)
         : [...current, testId],
     )
-  }
-
-  function toggleSuiteSelection(testIds: number[]): void {
-    if (testIds.length === 0) {
-      return
-    }
-
-    setBulkActionErrorMessage(null)
-    clearBulkConfirmations()
-    setSelectedTestIds((current) => {
-      const allSelected = testIds.every((id) => current.includes(id))
-
-      if (allSelected) {
-        return current.filter((id) => !testIds.includes(id))
-      }
-
-      return Array.from(new Set([...current, ...testIds]))
-    })
   }
 
   async function handleBulkStatusChange(
