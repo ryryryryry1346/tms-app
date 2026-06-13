@@ -100,7 +100,9 @@ export const sections = mysqlTable(
   {
     id: int('id').autoincrement().primaryKey(),
     name: text('name').notNull(),
-    projectId: int('project_id'),
+    projectId: int('project_id').references(() => projects.id, {
+      onDelete: 'cascade',
+    }),
   },
   (table) => ({
     projectIdIndex: index('sections_project_id_idx').on(table.projectId),
@@ -118,8 +120,12 @@ export const tests = mysqlTable(
     priority: varchar('priority', { length: 64 }),
     caseType: varchar('case_type', { length: 64 }),
     archivedFromStatus: varchar('archived_from_status', { length: 64 }),
-    sectionId: int('section_id'),
-    projectId: int('project_id'),
+    sectionId: int('section_id').references(() => sections.id, {
+      onDelete: 'set null',
+    }),
+    projectId: int('project_id').references(() => projects.id, {
+      onDelete: 'cascade',
+    }),
     sortOrder: int('sort_order'),
     createdAt: varchar('created_at', { length: 32 }),
     updatedAt: varchar('updated_at', { length: 32 }),
@@ -163,8 +169,12 @@ export const testCaseActivity = mysqlTable(
   'test_case_activity',
   {
     id: int('id').autoincrement().primaryKey(),
-    testId: int('test_id').notNull(),
-    projectId: int('project_id'),
+    testId: int('test_id')
+      .notNull()
+      .references(() => tests.id, { onDelete: 'cascade' }),
+    projectId: int('project_id').references(() => projects.id, {
+      onDelete: 'cascade',
+    }),
     actorId: int('actor_id'),
     actorName: varchar('actor_name', { length: 255 }),
     action: varchar('action', { length: 64 }).notNull(),
@@ -181,7 +191,9 @@ export const testRuns = mysqlTable(
   'test_runs',
   {
     id: int('id').autoincrement().primaryKey(),
-    projectId: int('project_id'),
+    projectId: int('project_id').references(() => projects.id, {
+      onDelete: 'cascade',
+    }),
     name: text('name').notNull(),
     status: varchar('status', { length: 32 }).notNull().default('In progress'),
   },
@@ -194,8 +206,8 @@ export const testRunItems = mysqlTable(
   'test_run_items',
   {
     id: int('id').autoincrement().primaryKey(),
-    runId: int('run_id'),
-    testId: int('test_id'),
+    runId: int('run_id').references(() => testRuns.id, { onDelete: 'cascade' }),
+    testId: int('test_id').references(() => tests.id, { onDelete: 'set null' }),
     testTitle: text('test_title'),
     status: varchar('status', { length: 64 }),
     comment: text('comment'),
@@ -217,8 +229,12 @@ export const runItemAttachments = mysqlTable(
   'run_item_attachments',
   {
     id: int('id').autoincrement().primaryKey(),
-    runId: int('run_id').notNull(),
-    testId: int('test_id').notNull(),
+    runId: int('run_id')
+      .notNull()
+      .references(() => testRuns.id, { onDelete: 'cascade' }),
+    testId: int('test_id')
+      .notNull()
+      .references(() => tests.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 255 }).notNull(),
     url: text('url').notNull(),
     contentType: varchar('content_type', { length: 128 }),
@@ -238,7 +254,9 @@ export const projectDocs = mysqlTable(
   'project_docs',
   {
     id: int('id').autoincrement().primaryKey(),
-    projectId: int('project_id').notNull(),
+    projectId: int('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     category: varchar('category', { length: 128 }),
     content: text('content'),
@@ -256,7 +274,9 @@ export const automationRuns = mysqlTable(
   'automation_runs',
   {
     id: int('id').autoincrement().primaryKey(),
-    projectId: int('project_id').notNull(),
+    projectId: int('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
     externalId: varchar('external_id', { length: 255 }),
     name: text('name').notNull(),
     status: varchar('status', { length: 32 }).notNull().default('unknown'),
@@ -302,15 +322,21 @@ export const automationTestResults = mysqlTable(
   'automation_test_results',
   {
     id: int('id').autoincrement().primaryKey(),
-    runId: int('run_id').notNull(),
-    projectId: int('project_id').notNull(),
+    runId: int('run_id')
+      .notNull()
+      .references(() => automationRuns.id, { onDelete: 'cascade' }),
+    projectId: int('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
     externalId: varchar('external_id', { length: 255 }),
     name: varchar('name', { length: 512 }).notNull(),
     suite: varchar('suite', { length: 255 }),
     filePath: text('file_path'),
     status: varchar('status', { length: 32 }).notNull().default('unknown'),
     durationMs: int('duration_ms').notNull().default(0),
-    manualTestId: int('manual_test_id'),
+    manualTestId: int('manual_test_id').references(() => tests.id, {
+      onDelete: 'set null',
+    }),
     caseKey: varchar('case_key', { length: 128 }),
     errorMessage: text('error_message'),
     stackTrace: mediumtext('stack_trace'),
@@ -344,9 +370,15 @@ export const automationAttachments = mysqlTable(
   'automation_attachments',
   {
     id: int('id').autoincrement().primaryKey(),
-    resultId: int('result_id'),
-    runId: int('run_id').notNull(),
-    projectId: int('project_id').notNull(),
+    resultId: int('result_id').references(() => automationTestResults.id, {
+      onDelete: 'set null',
+    }),
+    runId: int('run_id')
+      .notNull()
+      .references(() => automationRuns.id, { onDelete: 'cascade' }),
+    projectId: int('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 255 }).notNull(),
     type: varchar('type', { length: 64 }),
     url: text('url').notNull(),
@@ -369,9 +401,15 @@ export const automationTestCaseLinks = mysqlTable(
   'automation_test_case_links',
   {
     id: int('id').autoincrement().primaryKey(),
-    projectId: int('project_id').notNull(),
-    resultId: int('result_id'),
-    testId: int('test_id').notNull(),
+    projectId: int('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    resultId: int('result_id').references(() => automationTestResults.id, {
+      onDelete: 'cascade',
+    }),
+    testId: int('test_id')
+      .notNull()
+      .references(() => tests.id, { onDelete: 'cascade' }),
     automationSuite: varchar('automation_suite', { length: 255 }),
     automationName: varchar('automation_name', { length: 512 }).notNull(),
     createdAt: varchar('created_at', { length: 32 }).notNull(),
@@ -395,7 +433,9 @@ export const projectApiTokens = mysqlTable(
   'project_api_tokens',
   {
     id: int('id').autoincrement().primaryKey(),
-    projectId: int('project_id').notNull(),
+    projectId: int('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 255 }).notNull(),
     tokenHash: varchar('token_hash', { length: 255 }).notNull(),
     tokenPrefix: varchar('token_prefix', { length: 32 }).notNull(),
