@@ -18,6 +18,7 @@ import {
   restoreProject,
 } from '../features/projects/server'
 import { getDashboardState } from '../features/tests/server'
+import { getErrorMessage } from '../lib/errors'
 
 export const Route = createFileRoute('/')({
   loader: async () =>
@@ -52,21 +53,27 @@ function WorkspacePage() {
   ): Promise<void> {
     event.preventDefault()
     setProjectErrorMessage(null)
+
+    const trimmedName = name.trim()
+
+    if (!trimmedName) {
+      setProjectErrorMessage('Enter a project name.')
+      return
+    }
+
     setIsSubmittingProject(true)
 
     try {
       await createProject({
         data: {
-          name,
+          name: trimmedName,
         },
       })
 
       setName('')
       await router.invalidate()
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to create project.'
-      setProjectErrorMessage(message)
+      setProjectErrorMessage(getErrorMessage(error, 'Failed to create project.'))
     } finally {
       setIsSubmittingProject(false)
     }
@@ -85,9 +92,7 @@ function WorkspacePage() {
 
       await router.invalidate()
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to delete project.'
-      setProjectErrorMessage(message)
+      setProjectErrorMessage(getErrorMessage(error, 'Failed to delete project.'))
     } finally {
       setDeleteConfirmProjectId((current) =>
         current === projectId ? null : current,
@@ -110,9 +115,7 @@ function WorkspacePage() {
 
       await router.invalidate()
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to archive project.'
-      setProjectErrorMessage(message)
+      setProjectErrorMessage(getErrorMessage(error, 'Failed to archive project.'))
     } finally {
       setArchivingProjectId(null)
     }
@@ -131,9 +134,7 @@ function WorkspacePage() {
 
       await router.invalidate()
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to restore project.'
-      setProjectErrorMessage(message)
+      setProjectErrorMessage(getErrorMessage(error, 'Failed to restore project.'))
     } finally {
       setRestoringProjectId(null)
     }
@@ -213,7 +214,11 @@ function WorkspacePage() {
               />
               <Button
                 type="submit"
-                disabled={isSubmittingProject || !dashboard.databaseConfigured}
+                disabled={
+                  isSubmittingProject ||
+                  !dashboard.databaseConfigured ||
+                  !name.trim()
+                }
                 variant="primary"
                 className="workspace-home__create-button"
               >
