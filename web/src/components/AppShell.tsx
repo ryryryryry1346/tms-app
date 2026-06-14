@@ -619,7 +619,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                       {(user.displayName || user.email || 'U').slice(0, 1).toUpperCase()}
                     </span>
                     <span className="app-shell__account-trigger-copy">
-                      {user.email}
+                      {user.displayName}
                     </span>
                     <ChevronDown size={14} strokeWidth={2} aria-hidden="true" />
                   </Button>
@@ -630,7 +630,14 @@ export default function AppShell({ user, children }: AppShellProps) {
                     {(user.displayName || user.email || 'U').slice(0, 1).toUpperCase()}
                   </div>
                   <div className="app-shell__account-copy">
-                    <span className="app-shell__account-name">{user.email}</span>
+                    <span className="app-shell__account-name">
+                      {user.displayName}
+                    </span>
+                    {user.email && user.email !== user.displayName ? (
+                      <span className="text-xs text-[var(--tms-text-muted)]">
+                        {user.email}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
 
