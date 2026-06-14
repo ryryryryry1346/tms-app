@@ -678,7 +678,11 @@ export default function AppShell({ user, children }: AppShellProps) {
 
                 <div className="app-shell__account-actions">
                   <PopoverMenuItem
-                    className="flex items-center gap-2"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                    }}
                     onClick={() => {
                       setIsAccountMenuOpen(false)
                       void navigate({ to: '/account' })
