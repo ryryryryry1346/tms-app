@@ -8,11 +8,6 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
 import {
-  PopoverMenu,
-  PopoverMenuItem,
-  PopoverMenuSeparator,
-} from '../components/ui/PopoverMenu'
-import {
   archiveProject,
   createProject,
   deleteProject,
@@ -40,7 +35,9 @@ function WorkspacePage() {
   const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<number | null>(
     null,
   )
-  const [openProjectMenuId, setOpenProjectMenuId] = useState<number | null>(null)
+  const [archiveConfirmProjectId, setArchiveConfirmProjectId] = useState<
+    number | null
+  >(null)
   const [projectFilter, setProjectFilter] = useState<'Active' | 'Archived'>(
     'Active',
   )
@@ -116,6 +113,9 @@ function WorkspacePage() {
     } catch (error) {
       setProjectErrorMessage(getErrorMessage(error, 'Failed to archive project.'))
     } finally {
+      setArchiveConfirmProjectId((current) =>
+        current === projectId ? null : current,
+      )
       setArchivingProjectId(null)
     }
   }
@@ -154,8 +154,8 @@ function WorkspacePage() {
                 <p className="workspace-page-header__eyebrow">Workspace</p>
                 <h1 className="workspace-page-header__title">Projects</h1>
                 <p className="workspace-page-header__description">
-                  Create and manage TMS workspaces without extra chrome or dead-end
-                  controls.
+                  Create a project and open its workspace — test cases, runs,
+                  automation, and docs.
                 </p>
               </div>
             </div>
@@ -165,10 +165,10 @@ function WorkspacePage() {
             <div className="workspace-home__panel-header">
               <div className="workspace-home__panel-copy">
                 <p className="workspace-section-header__eyebrow">Projects</p>
-                <h2 className="workspace-home__panel-title">Workspace projects</h2>
+                <h2 className="workspace-home__panel-title">Your projects</h2>
                 <p className="workspace-home__panel-description">
-                  Keep the project list compact and focused on the workspaces your
-                  team actually uses.
+                  Open a project to work on it. Switch to Archived to see projects
+                  you&apos;ve set aside.
                 </p>
               </div>
               <div className="workspace-home__panel-meta">
@@ -285,77 +285,47 @@ function WorkspacePage() {
                             </Badge>
                           </div>
                           <p className="workspace-home__project-subtitle">
-                            Open the project workspace to manage repository, runs,
-                            and reports.
+                            Open to manage test cases, runs, automation, and docs.
                           </p>
                         </div>
                       </Link>
                       <div className="workspace-home__project-actions">
-                        <PopoverMenu
-                          isOpen={openProjectMenuId === project.id}
-                          onClose={() => setOpenProjectMenuId(null)}
-                          onOpenChange={(nextOpen) => {
-                            if (nextOpen) {
-                              setOpenProjectMenuId(project.id)
-                            }
-                          }}
-                          align="right"
-                          className="workspace-home__project-menu"
-                          trigger={
+                        {project.status === 'Archived' ? (
+                          <>
                             <Button
                               type="button"
                               size="sm"
                               variant="secondary"
-                              className="workspace-home__project-menu-trigger"
-                              aria-label={`Open actions for ${project.name}`}
-                              aria-expanded={openProjectMenuId === project.id}
+                              disabled={restoringProjectId === project.id}
+                              onClick={() => handleProjectRestore(project.id)}
                             >
-                              ...
+                              {restoringProjectId === project.id
+                                ? 'Restoring...'
+                                : 'Restore'}
                             </Button>
-                          }
-                        >
-                          {project.status === 'Archived' ? (
-                            <>
-                              <PopoverMenuItem
-                                onClick={() => {
-                                  setOpenProjectMenuId(null)
-                                  void handleProjectRestore(project.id)
-                                }}
-                                disabled={restoringProjectId === project.id}
-                              >
-                                {restoringProjectId === project.id
-                                  ? 'Restoring...'
-                                  : 'Restore project'}
-                              </PopoverMenuItem>
-                              <PopoverMenuSeparator />
-                              <PopoverMenuItem
-                                tone="danger"
-                                onClick={() => {
-                                  setOpenProjectMenuId(null)
-                                  setDeleteConfirmProjectId(project.id)
-                                }}
-                                disabled={deletingProjectId === project.id}
-                              >
-                                {deletingProjectId === project.id
-                                  ? 'Deleting...'
-                                  : 'Delete project'}
-                              </PopoverMenuItem>
-                            </>
-                          ) : (
-                            <PopoverMenuItem
-                              tone="warning"
-                              onClick={() => {
-                                setOpenProjectMenuId(null)
-                                void handleProjectArchive(project.id)
-                              }}
-                              disabled={archivingProjectId === project.id}
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="danger"
+                              disabled={deletingProjectId === project.id}
+                              onClick={() => setDeleteConfirmProjectId(project.id)}
                             >
-                              {archivingProjectId === project.id
-                                ? 'Archiving...'
-                                : 'Archive project'}
-                            </PopoverMenuItem>
-                          )}
-                        </PopoverMenu>
+                              Delete
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            disabled={archivingProjectId === project.id}
+                            onClick={() => setArchiveConfirmProjectId(project.id)}
+                          >
+                            {archivingProjectId === project.id
+                              ? 'Archiving...'
+                              : 'Archive'}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )
@@ -392,6 +362,35 @@ function WorkspacePage() {
               }
             }}
             onCancel={() => setDeleteConfirmProjectId(null)}
+          />
+
+          <ConfirmDialog
+            open={archiveConfirmProjectId !== null}
+            title="Archive this project?"
+            description={
+              <>
+                <strong className="text-[var(--tms-text)]">
+                  {dashboard.projects.find(
+                    (project) => project.id === archiveConfirmProjectId,
+                  )?.name ?? 'This project'}
+                </strong>{' '}
+                will be hidden from the active list. You can restore it anytime
+                from the Archived tab.
+              </>
+            }
+            confirmLabel="Archive"
+            confirmVariant="primary"
+            isPending={
+              archivingProjectId !== null &&
+              archivingProjectId === archiveConfirmProjectId
+            }
+            pendingLabel="Archiving..."
+            onConfirm={() => {
+              if (archiveConfirmProjectId !== null) {
+                void handleProjectArchive(archiveConfirmProjectId)
+              }
+            }}
+            onCancel={() => setArchiveConfirmProjectId(null)}
           />
         </div>
       </div>
