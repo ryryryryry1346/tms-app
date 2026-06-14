@@ -18,6 +18,7 @@ import {
   MoonStar,
   PanelsTopLeft,
   PlayCircle,
+  Settings,
   SunMedium,
   Users,
   X,
@@ -123,6 +124,10 @@ function getHeaderCopy(
 
   if (pathname.startsWith('/project/') && pathname.endsWith('/members')) {
     return { label: projectLabel, title: 'Members' }
+  }
+
+  if (pathname === '/account') {
+    return { label: 'Account', title: 'Settings' }
   }
 
   if (pathname.startsWith('/project/')) {
@@ -672,6 +677,15 @@ export default function AppShell({ user, children }: AppShellProps) {
                 </div>
 
                 <div className="app-shell__account-actions">
+                  <PopoverMenuItem
+                    onClick={() => {
+                      setIsAccountMenuOpen(false)
+                      void navigate({ to: '/account' })
+                    }}
+                  >
+                    <Settings size={13} strokeWidth={2} aria-hidden="true" />
+                    <span>Account settings</span>
+                  </PopoverMenuItem>
                   <PopoverMenuItem
                     tone="danger"
                     className="app-shell__account-logout"
