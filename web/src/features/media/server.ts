@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { logger, serializeError } from '../../lib/logger'
 
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 
@@ -32,11 +33,11 @@ export const uploadTestMedia = createServerFn({ method: 'POST' })
 
       return { url }
     } catch (error) {
-      console.error('uploadTestMedia failed', {
+      logger.error('uploadTestMedia failed', {
         name: file.name,
         type: file.type,
         size: file.size,
-        error,
+        ...serializeError(error),
       })
 
       throw error

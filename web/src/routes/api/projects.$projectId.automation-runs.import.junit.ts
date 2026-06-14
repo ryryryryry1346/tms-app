@@ -3,6 +3,7 @@ import {
   assertProjectApiToken,
   importJunitAutomationRun,
 } from '../../features/automation/server'
+import { logger, serializeError } from '../../lib/logger'
 
 const MAX_IMPORT_BYTES = 20 * 1024 * 1024
 
@@ -101,6 +102,11 @@ export const Route = createFileRoute(
           if (error instanceof Response) {
             throw error
           }
+
+          logger.error('junit import failed', {
+            projectId,
+            ...serializeError(error),
+          })
 
           return jsonResponse(
             { error: error instanceof Error ? error.message : 'Import failed.' },

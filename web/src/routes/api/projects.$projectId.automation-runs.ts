@@ -3,6 +3,7 @@ import {
   assertProjectApiToken,
   importJsonAutomationRun,
 } from '../../features/automation/server'
+import { logger, serializeError } from '../../lib/logger'
 
 const MAX_IMPORT_BYTES = 20 * 1024 * 1024
 
@@ -45,6 +46,11 @@ export const Route = createFileRoute('/api/projects/$projectId/automation-runs')
             if (error instanceof Response) {
               throw error
             }
+
+            logger.error('json import failed', {
+              projectId,
+              ...serializeError(error),
+            })
 
             return jsonResponse(
               {

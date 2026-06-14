@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import type { ProjectRole } from '../auth/project-access.server'
 import type { SessionUser } from '../auth/helpers.server'
+import { logger, serializeError } from '../../lib/logger'
 
 let and: typeof import('drizzle-orm')['and']
 let asc: typeof import('drizzle-orm')['asc']
@@ -3306,7 +3307,10 @@ export const getTestDetail = createServerFn({ method: 'POST' })
         limit: 20,
       })
     } catch (error) {
-      console.error('Failed to load test case activity', error)
+      logger.error('Failed to load test case activity', {
+        testId: test.id,
+        ...serializeError(error),
+      })
     }
 
     return {

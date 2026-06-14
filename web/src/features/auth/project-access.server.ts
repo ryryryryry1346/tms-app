@@ -3,22 +3,10 @@ import { and, eq } from 'drizzle-orm'
 import { getDb } from '../../db/client'
 import { projectMembers } from '../../db/schema'
 import { requireSessionUser, type SessionUser } from './helpers.server'
+import { isProjectRole, roleAtLeast, type ProjectRole } from './roles'
 
-export type ProjectRole = 'owner' | 'editor' | 'viewer'
-
-const ROLE_RANK: Record<ProjectRole, number> = {
-  viewer: 1,
-  editor: 2,
-  owner: 3,
-}
-
-export function isProjectRole(value: unknown): value is ProjectRole {
-  return value === 'owner' || value === 'editor' || value === 'viewer'
-}
-
-export function roleAtLeast(role: ProjectRole, minRole: ProjectRole): boolean {
-  return ROLE_RANK[role] >= ROLE_RANK[minRole]
-}
+export type { ProjectRole }
+export { isProjectRole, roleAtLeast }
 
 export async function getProjectRole(
   projectId: number,

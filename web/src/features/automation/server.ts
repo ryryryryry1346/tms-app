@@ -1648,8 +1648,10 @@ function getXmlBlocks(
   tagName: string,
 ): Array<{ attributes: string; content: string }> {
   const blocks: Array<{ attributes: string; content: string }> = []
+  // (?<!/) ensures a self-closing tag (<tag ... />) is not treated as an
+  // opening tag, which would otherwise swallow content up to the next close.
   const pattern = new RegExp(
-    `<${tagName}\\b([^>]*)>([\\s\\S]*?)<\\/${tagName}>`,
+    `<${tagName}\\b([^>]*)(?<!/)>([\\s\\S]*?)<\\/${tagName}>`,
     'gi',
   )
   let match: RegExpExecArray | null
@@ -1886,7 +1888,12 @@ function buildAttachmentName(name: string | null | undefined, url: string): stri
 }
 
 function getXmlAttribute(attributes: string, name: string): string | null {
-  const pattern = new RegExp(`${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, 'i')
+  // The leading (?:^|\s) prevents matching an attribute name that is a
+  // substring of another (e.g. `name` inside `classname`).
+  const pattern = new RegExp(
+    `(?:^|\\s)${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`,
+    'i',
+  )
   const match = attributes.match(pattern)
 
   return match?.[1] ?? match?.[2] ?? null
@@ -1938,7 +1945,9 @@ function readBearerToken(authorizationHeader: string | null): string | null {
 }
 
 function stripXml(value: string): string {
-  return value.replace(/<[^>]+>/g, ' ')
+  return value
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/<[^>]+>/g, ' ')
 }
 
 function normalizeText(value: string): string {

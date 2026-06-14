@@ -20,6 +20,7 @@ import { Route as TestTestIdRouteImport } from './routes/test.$testId'
 import { Route as RunRunIdRouteImport } from './routes/run.$runId'
 import { Route as ProjectProjectSlugRouteImport } from './routes/project.$projectSlug'
 import { Route as EditTestTestIdRouteImport } from './routes/edit-test.$testId'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ProjectProjectSlugRepositoryRouteImport } from './routes/project_.$projectSlug.repository'
 import { Route as ProjectProjectSlugRunsRouteImport } from './routes/project.$projectSlug.runs'
 import { Route as ProjectProjectSlugReportsRouteImport } from './routes/project.$projectSlug.reports'
@@ -87,6 +88,11 @@ const ProjectProjectSlugRoute = ProjectProjectSlugRouteImport.update({
 const EditTestTestIdRoute = EditTestTestIdRouteImport.update({
   id: '/edit-test/$testId',
   path: '/edit-test/$testId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectProjectSlugRepositoryRoute =
@@ -173,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/api/health': typeof ApiHealthRoute
   '/edit-test/$testId': typeof EditTestTestIdRoute
   '/project/$projectSlug': typeof ProjectProjectSlugRouteWithChildren
   '/run/$runId': typeof RunRunIdRoute
@@ -199,6 +206,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/api/health': typeof ApiHealthRoute
   '/edit-test/$testId': typeof EditTestTestIdRoute
   '/project/$projectSlug': typeof ProjectProjectSlugRouteWithChildren
   '/run/$runId': typeof RunRunIdRoute
@@ -226,6 +234,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/api/health': typeof ApiHealthRoute
   '/edit-test/$testId': typeof EditTestTestIdRoute
   '/project/$projectSlug': typeof ProjectProjectSlugRouteWithChildren
   '/run/$runId': typeof RunRunIdRoute
@@ -254,6 +263,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/reset-password'
+    | '/api/health'
     | '/edit-test/$testId'
     | '/project/$projectSlug'
     | '/run/$runId'
@@ -280,6 +290,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/reset-password'
+    | '/api/health'
     | '/edit-test/$testId'
     | '/project/$projectSlug'
     | '/run/$runId'
@@ -306,6 +317,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/reset-password'
+    | '/api/health'
     | '/edit-test/$testId'
     | '/project/$projectSlug'
     | '/run/$runId'
@@ -333,6 +345,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiHealthRoute: typeof ApiHealthRoute
   EditTestTestIdRoute: typeof EditTestTestIdRoute
   ProjectProjectSlugRoute: typeof ProjectProjectSlugRouteWithChildren
   RunRunIdRoute: typeof RunRunIdRoute
@@ -420,6 +433,13 @@ declare module '@tanstack/react-router' {
       path: '/edit-test/$testId'
       fullPath: '/edit-test/$testId'
       preLoaderRoute: typeof EditTestTestIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/project_/$projectSlug/repository': {
@@ -592,6 +612,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiHealthRoute: ApiHealthRoute,
   EditTestTestIdRoute: EditTestTestIdRoute,
   ProjectProjectSlugRoute: ProjectProjectSlugRouteWithChildren,
   RunRunIdRoute: RunRunIdRoute,
