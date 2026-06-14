@@ -1,5 +1,7 @@
-import { createRouter as createTanStackRouter } from '@tanstack/react-router'
+import { Link, createRouter as createTanStackRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
+import { Button, buttonVariants } from './components/ui/Button'
+import { cx } from './components/ui/utils'
 
 export function getRouter() {
   const router = createTanStackRouter({
@@ -10,9 +12,78 @@ export function getRouter() {
     defaultPendingComponent: RoutePendingState,
     defaultPendingMs: 0,
     defaultPendingMinMs: 250,
+    defaultErrorComponent: RouteErrorState,
+    defaultNotFoundComponent: RouteNotFoundState,
   })
 
   return router
+}
+
+function CenteredCard({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="flex min-h-[calc(100vh-65px)] items-center justify-center bg-[var(--tms-bg)] px-6">
+      <div className="w-full max-w-md rounded-3xl border border-[var(--tms-border)] bg-[var(--tms-surface)] p-8 text-center shadow-[var(--tms-shadow-panel)]">
+        {children}
+      </div>
+    </main>
+  )
+}
+
+function RouteErrorState({
+  error,
+  reset,
+}: {
+  error: Error
+  reset: () => void
+}) {
+  return (
+    <CenteredCard>
+      <h1 className="m-0 text-xl font-semibold text-[var(--tms-text)]">
+        Something went wrong
+      </h1>
+      <p className="mt-2 text-sm leading-6 text-[var(--tms-text-muted)]">
+        An unexpected error occurred while loading this page. Try again, or head
+        back to your projects.
+      </p>
+      {import.meta.env.DEV ? (
+        <pre className="mt-4 max-h-40 overflow-auto rounded-xl bg-[var(--tms-surface-soft)] p-3 text-left text-xs text-[var(--tms-text-muted)]">
+          {error.message}
+        </pre>
+      ) : null}
+      <div className="mt-6 flex items-center justify-center gap-2">
+        <Button variant="primary" onClick={reset}>
+          Try again
+        </Button>
+        <Link
+          to="/"
+          className={cx(buttonVariants({ variant: 'default' }), 'no-underline')}
+        >
+          Back to projects
+        </Link>
+      </div>
+    </CenteredCard>
+  )
+}
+
+function RouteNotFoundState() {
+  return (
+    <CenteredCard>
+      <h1 className="m-0 text-xl font-semibold text-[var(--tms-text)]">
+        Not found
+      </h1>
+      <p className="mt-2 text-sm leading-6 text-[var(--tms-text-muted)]">
+        This page doesn&apos;t exist, or you don&apos;t have access to it.
+      </p>
+      <div className="mt-6 flex items-center justify-center">
+        <Link
+          to="/"
+          className={cx(buttonVariants({ variant: 'primary' }), 'no-underline')}
+        >
+          Back to projects
+        </Link>
+      </div>
+    </CenteredCard>
+  )
 }
 
 declare module '@tanstack/react-router' {
