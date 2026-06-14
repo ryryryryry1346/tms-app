@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
@@ -39,7 +40,6 @@ function WorkspacePage() {
   const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<number | null>(
     null,
   )
-  const [deleteConfirmName, setDeleteConfirmName] = useState('')
   const [openProjectMenuId, setOpenProjectMenuId] = useState<number | null>(null)
   const [projectFilter, setProjectFilter] = useState<'Active' | 'Archived'>(
     'Active',
@@ -97,7 +97,6 @@ function WorkspacePage() {
       setDeleteConfirmProjectId((current) =>
         current === projectId ? null : current,
       )
-      setDeleteConfirmName('')
       setDeletingProjectId(null)
     }
   }
@@ -333,10 +332,7 @@ function WorkspacePage() {
                                 tone="danger"
                                 onClick={() => {
                                   setOpenProjectMenuId(null)
-                                  setDeleteConfirmProjectId((current) =>
-                                    current === project.id ? null : project.id,
-                                  )
-                                  setDeleteConfirmName('')
+                                  setDeleteConfirmProjectId(project.id)
                                 }}
                                 disabled={deletingProjectId === project.id}
                               >
@@ -361,61 +357,42 @@ function WorkspacePage() {
                           )}
                         </PopoverMenu>
                       </div>
-
-                      {deleteConfirmProjectId === project.id ? (
-                        <Alert variant="danger" className="workspace-home__delete-alert">
-                          <div className="workspace-home__delete-stack">
-                            <p className="m-0">
-                              Delete project <strong>{project.name}</strong> permanently?
-                              This also removes its suites, test cases, and runs.
-                            </p>
-                            <label className="workspace-home__delete-field">
-                              <span className="workspace-home__delete-label">
-                                Type the project name to confirm
-                              </span>
-                              <Input
-                                value={deleteConfirmName}
-                                onChange={(event) =>
-                                  setDeleteConfirmName(event.target.value)
-                                }
-                                placeholder={project.name}
-                              />
-                            </label>
-                            <div className="workspace-home__delete-actions">
-                              <Button
-                                type="button"
-                                onClick={() => handleProjectDelete(project.id)}
-                                disabled={
-                                  deletingProjectId === project.id ||
-                                  deleteConfirmName.trim() !== project.name
-                                }
-                                variant="danger"
-                              >
-                                {deletingProjectId === project.id
-                                  ? 'Deleting...'
-                                  : 'Confirm delete'}
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={() => {
-                                  setDeleteConfirmProjectId(null)
-                                  setDeleteConfirmName('')
-                                }}
-                                disabled={deletingProjectId === project.id}
-                              >
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        </Alert>
-                      ) : null}
                     </div>
                   )
                 })}
               </div>
             )}
           </Panel>
+
+          <ConfirmDialog
+            open={deleteConfirmProjectId !== null}
+            title="Delete project permanently?"
+            description={
+              <>
+                Deleting{' '}
+                <strong className="text-[var(--tms-text)]">
+                  {dashboard.projects.find(
+                    (project) => project.id === deleteConfirmProjectId,
+                  )?.name ?? 'this project'}
+                </strong>{' '}
+                also removes its suites, test cases, and runs. This cannot be
+                undone.
+              </>
+            }
+            confirmLabel="Delete permanently"
+            confirmVariant="danger"
+            isPending={
+              deletingProjectId !== null &&
+              deletingProjectId === deleteConfirmProjectId
+            }
+            pendingLabel="Deleting..."
+            onConfirm={() => {
+              if (deleteConfirmProjectId !== null) {
+                void handleProjectDelete(deleteConfirmProjectId)
+              }
+            }}
+            onCancel={() => setDeleteConfirmProjectId(null)}
+          />
         </div>
       </div>
     </main>
