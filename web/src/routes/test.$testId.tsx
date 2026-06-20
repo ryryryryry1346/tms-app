@@ -4,7 +4,7 @@ import {
   notFound,
   useRouter,
 } from '@tanstack/react-router'
-import { MoreHorizontal, Pencil } from 'lucide-react'
+import { MoreHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { sanitizeHtml } from '../lib/sanitize-html'
@@ -788,19 +788,7 @@ function TestDetailPage() {
                         Cancel
                       </Button>
                       </>
-                    ) : (
-                      <Button
-                        type="button"
-                        onClick={startTitleEdit}
-                        variant="secondary"
-                        size="sm"
-                        className="test-detail-title-edit-button"
-                        aria-label="Edit title"
-                        title="Edit title"
-                      >
-                        <Pencil size={14} strokeWidth={2} aria-hidden="true" />
-                      </Button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
                 <div className="test-detail-badges">
@@ -871,6 +859,15 @@ function TestDetailPage() {
                     </Button>
                   }
                 >
+                  <PopoverMenuItem
+                    onClick={() => {
+                      setIsMoreActionsOpen(false)
+                      startTitleEdit()
+                    }}
+                  >
+                    Rename
+                  </PopoverMenuItem>
+                  <PopoverMenuSeparator />
                   <Link
                     to="/edit-test/$testId"
                     params={{ testId: test.id.toString() }}
