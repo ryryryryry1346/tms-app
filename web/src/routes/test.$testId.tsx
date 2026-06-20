@@ -361,7 +361,9 @@ function TestDetailPage() {
   const [stepsValue, setStepsValue] = useState(test.steps ?? '')
   const [expectedValue, setExpectedValue] = useState(test.expected ?? '')
   const [isSavingContent, setIsSavingContent] = useState(false)
-  const [isUploadingMedia, setIsUploadingMedia] = useState(false)
+  const [isUploadingSteps, setIsUploadingSteps] = useState(false)
+  const [isUploadingExpected, setIsUploadingExpected] = useState(false)
+  const isUploadingMedia = isUploadingSteps || isUploadingExpected
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [caseTitle, setCaseTitle] = useState(test.title)
   const [titleValue, setTitleValue] = useState(test.title)
@@ -465,8 +467,11 @@ function TestDetailPage() {
     setIsEditingContent(false)
   }
 
-  async function uploadInlineMedia(file: File): Promise<string> {
-    setIsUploadingMedia(true)
+  async function uploadInlineMedia(
+    file: File,
+    setUploading: (value: boolean) => void,
+  ): Promise<string> {
+    setUploading(true)
 
     try {
       const formData = new FormData()
@@ -478,7 +483,7 @@ function TestDetailPage() {
 
       return result.url
     } finally {
-      setIsUploadingMedia(false)
+      setUploading(false)
     }
   }
 
@@ -955,16 +960,20 @@ function TestDetailPage() {
                       placeholder="Describe the test steps"
                       value={stepsValue}
                       onChange={setStepsValue}
-                      onUploadMedia={uploadInlineMedia}
-                      isUploading={isUploadingMedia}
+                      onUploadMedia={(file) =>
+                        uploadInlineMedia(file, setIsUploadingSteps)
+                      }
+                      isUploading={isUploadingSteps}
                     />
                     <RichTextEditor
                       label="Expected result"
                       placeholder="Describe the expected result"
                       value={expectedValue}
                       onChange={setExpectedValue}
-                      onUploadMedia={uploadInlineMedia}
-                      isUploading={isUploadingMedia}
+                      onUploadMedia={(file) =>
+                        uploadInlineMedia(file, setIsUploadingExpected)
+                      }
+                      isUploading={isUploadingExpected}
                     />
                   </>
                 ) : (

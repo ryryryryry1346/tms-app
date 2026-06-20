@@ -59,15 +59,20 @@ function EditTestPage() {
   const [expected, setExpected] = useState(formState.test.expected)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isUploading, setIsUploading] = useState(false)
+  const [isUploadingSteps, setIsUploadingSteps] = useState(false)
+  const [isUploadingExpected, setIsUploadingExpected] = useState(false)
+  const isUploading = isUploadingSteps || isUploadingExpected
 
   const selectedSection =
     formState.sections.find((section) => section.id.toString() === sectionId) ?? null
   const selectedProjectSlug = selectedSection?.projectSlug ?? null
 
-  async function uploadMedia(file: File): Promise<string> {
+  async function uploadMedia(
+    file: File,
+    setUploading: (value: boolean) => void,
+  ): Promise<string> {
     setErrorMessage(null)
-    setIsUploading(true)
+    setUploading(true)
 
     try {
       const formData = new FormData()
@@ -83,7 +88,7 @@ function EditTestPage() {
       setErrorMessage(message)
       throw error
     } finally {
-      setIsUploading(false)
+      setUploading(false)
     }
   }
 
@@ -289,8 +294,8 @@ function EditTestPage() {
                 placeholder="Describe the test steps"
                 value={steps}
                 onChange={setSteps}
-                onUploadMedia={uploadMedia}
-                isUploading={isUploading}
+                onUploadMedia={(file) => uploadMedia(file, setIsUploadingSteps)}
+                isUploading={isUploadingSteps}
               />
 
               <RichTextEditor
@@ -298,8 +303,10 @@ function EditTestPage() {
                 placeholder="Describe the expected result"
                 value={expected}
                 onChange={setExpected}
-                onUploadMedia={uploadMedia}
-                isUploading={isUploading}
+                onUploadMedia={(file) =>
+                  uploadMedia(file, setIsUploadingExpected)
+                }
+                isUploading={isUploadingExpected}
               />
             </EditingSurfaceSection>
 
