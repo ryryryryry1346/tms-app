@@ -10,7 +10,7 @@ export function PasswordInput({ style, ...props }: Omit<InputProps, 'type'>) {
       <Input
         {...props}
         type={visible ? 'text' : 'password'}
-        style={{ ...style, paddingRight: '2.75rem' }}
+        style={{ ...style, paddingRight: '2.75rem', width: '100%' }}
       />
       <button
         type="button"
