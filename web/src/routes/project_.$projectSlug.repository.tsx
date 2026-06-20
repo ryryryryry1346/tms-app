@@ -31,6 +31,7 @@ import { Checkbox } from '../components/ui/Checkbox'
 import { FileInput } from '../components/ui/FileInput'
 import { Input } from '../components/ui/Input'
 import { LinkButton } from '../components/ui/LinkButton'
+import { Modal } from '../components/ui/Modal'
 import {
   PopoverMenu,
   PopoverMenuItem,
@@ -2850,40 +2851,62 @@ function ProjectRepositoryPage() {
             </Alert>
           ) : null}
 
-          {activeComposer ? (
-            <section className="tms-panel mb-6 px-6 py-5">
-              <form
-                className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px]"
-                onSubmit={handleCreateSuite}
-              >
-                <div className="text-base font-semibold text-[var(--tms-text)] md:col-span-2">
-                  Create suite
-                </div>
+          <Modal
+            open={activeComposer === 'suite'}
+            title="Create suite"
+            onClose={() => {
+              setActiveComposer(null)
+              setSuiteName('')
+              setSuiteErrorMessage(null)
+            }}
+          >
+            <form className="grid gap-4" onSubmit={handleCreateSuite}>
+              <label className="grid gap-1.5">
+                <span className="text-sm font-medium text-[var(--tms-text)]">
+                  Suite name
+                </span>
                 <Input
+                  autoFocus
                   value={suiteName}
                   onChange={(event) => setSuiteName(event.target.value)}
-                  className="px-3 py-2 text-sm"
-                  placeholder="Checkout smoke"
+                  placeholder="e.g. Checkout smoke"
                 />
+                <span className="text-xs text-[var(--tms-text-muted)]">
+                  A suite is a folder that groups related test cases.
+                </span>
+              </label>
+
+              {suiteErrorMessage ? (
+                <Alert variant="danger">{suiteErrorMessage}</Alert>
+              ) : null}
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={isSubmittingSuite}
+                  onClick={() => {
+                    setActiveComposer(null)
+                    setSuiteName('')
+                    setSuiteErrorMessage(null)
+                  }}
+                >
+                  Cancel
+                </Button>
                 <Button
                   type="submit"
+                  variant="primary"
                   disabled={
                     isSubmittingSuite ||
                     !dashboard.databaseConfigured ||
                     !suiteName.trim()
                   }
-                  className="border-[var(--status-ready-border)] bg-[var(--status-ready-bg)] px-3 py-2 text-sm text-[var(--status-ready-text)]"
                 >
                   {isSubmittingSuite ? 'Creating...' : 'Create suite'}
                 </Button>
-                {suiteErrorMessage ? (
-                  <Alert variant="danger" className="md:col-span-2">
-                    {suiteErrorMessage}
-                  </Alert>
-                ) : null}
-              </form>
-            </section>
-          ) : null}
+              </div>
+            </form>
+          </Modal>
 
           {isImportPanelOpen ? (
             <section className="repository-import-panel tms-panel mb-6 px-4 py-4 sm:px-5">
