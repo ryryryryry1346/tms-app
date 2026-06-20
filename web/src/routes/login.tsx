@@ -1,4 +1,5 @@
 import {
+  Link,
   createFileRoute,
   redirect,
   useNavigate,
@@ -9,6 +10,7 @@ import { z } from 'zod'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { PasswordInput } from '../components/ui/PasswordInput'
 import { Panel } from '../components/ui/Panel'
 import { getCurrentUser } from '../features/auth/server'
 import { sendVerificationEmail, signIn } from '../lib/auth-client'
@@ -154,23 +156,16 @@ function LoginPage() {
             <span className="text-lg font-medium text-[var(--tms-text-muted)]">
               Password
             </span>
-            <Input
+            <PasswordInput
               name="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              type="password"
               size="lg"
               className="auth-input rounded-2xl px-5 py-4 text-lg"
               placeholder="Enter your password"
               autoComplete="current-password"
             />
           </label>
-
-          <input
-            type="hidden"
-            name="_auth_context"
-            value="login"
-          />
 
           {errorMessage ? (
             <Alert variant="danger">
@@ -213,19 +208,22 @@ function LoginPage() {
           </Button>
 
           <p className="pt-2 text-center text-lg text-[var(--tms-text-muted)]">
-            <a
-              href="/forgot-password"
+            <Link
+              to="/forgot-password"
               className="font-semibold text-[var(--tms-primary)] no-underline"
             >
               Forgot password?
-            </a>
+            </Link>
           </p>
 
           <p className="text-center text-lg text-[var(--tms-text-muted)]">
             Don&apos;t have an account?{' '}
-            <a href="/register" className="font-semibold text-[var(--tms-primary)] no-underline">
+            <Link
+              to="/register"
+              className="font-semibold text-[var(--tms-primary)] no-underline"
+            >
               Create one now
-            </a>
+            </Link>
             .
           </p>
         </form>

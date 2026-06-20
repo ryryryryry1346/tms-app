@@ -1,8 +1,9 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { PasswordInput } from '../components/ui/PasswordInput'
 import { Panel } from '../components/ui/Panel'
 import { getCurrentUser } from '../features/auth/server'
 import { signUp } from '../lib/auth-client'
@@ -86,12 +87,12 @@ function RegisterPage() {
               <span className="font-semibold">{submittedEmail}</span>. Open it
               to confirm your email before logging in.
             </Alert>
-            <a
-              href="/login"
+            <Link
+              to="/login"
               className="tms-button tms-button-primary justify-center rounded-2xl px-5 py-4 text-lg font-bold no-underline shadow-[var(--tms-shadow-subtle)]"
             >
               Go to login
-            </a>
+            </Link>
           </div>
         ) : (
           <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
@@ -130,16 +131,18 @@ function RegisterPage() {
               <span className="text-lg font-medium text-[var(--tms-text-muted)]">
                 Password
               </span>
-              <Input
+              <PasswordInput
                 name="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                type="password"
                 size="lg"
                 className="auth-input rounded-2xl px-5 py-4 text-lg"
                 placeholder="Create a password"
                 autoComplete="new-password"
               />
+              <span className="text-sm text-[var(--tms-text-muted)]">
+                At least 8 characters.
+              </span>
             </label>
 
             {errorMessage ? (
@@ -160,12 +163,12 @@ function RegisterPage() {
 
             <p className="pt-2 text-center text-lg text-[var(--tms-text-muted)]">
               Already have an account?{' '}
-              <a
-                href="/login"
+              <Link
+                to="/login"
                 className="font-semibold text-[var(--tms-primary)] no-underline"
               >
                 Log in
-              </a>
+              </Link>
               .
             </p>
           </form>

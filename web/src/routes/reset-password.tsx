@@ -1,9 +1,14 @@
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import {
+  Link,
+  createFileRoute,
+  redirect,
+  useNavigate,
+} from '@tanstack/react-router'
 import { useState } from 'react'
 import { z } from 'zod'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
-import { Input } from '../components/ui/Input'
+import { PasswordInput } from '../components/ui/PasswordInput'
 import { Panel } from '../components/ui/Panel'
 import { getCurrentUser } from '../features/auth/server'
 import { resetPassword } from '../lib/auth-client'
@@ -117,27 +122,28 @@ function ResetPasswordPage() {
               <span className="text-lg font-medium text-[var(--tms-text-muted)]">
                 New password
               </span>
-              <Input
+              <PasswordInput
                 name="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                type="password"
                 size="lg"
                 className="auth-input rounded-2xl px-5 py-4 text-lg"
                 placeholder="Create a new password"
                 autoComplete="new-password"
               />
+              <span className="text-sm text-[var(--tms-text-muted)]">
+                At least 8 characters.
+              </span>
             </label>
 
             <label className="grid gap-2 text-left">
               <span className="text-lg font-medium text-[var(--tms-text-muted)]">
                 Confirm password
               </span>
-              <Input
+              <PasswordInput
                 name="confirmPassword"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                type="password"
                 size="lg"
                 className="auth-input rounded-2xl px-5 py-4 text-lg"
                 placeholder="Repeat the new password"
@@ -163,12 +169,12 @@ function ResetPasswordPage() {
 
             <p className="pt-2 text-center text-lg text-[var(--tms-text-muted)]">
               Need a new link?{' '}
-              <a
-                href="/forgot-password"
+              <Link
+                to="/forgot-password"
                 className="font-semibold text-[var(--tms-primary)] no-underline"
               >
                 Request reset
-              </a>
+              </Link>
               .
             </p>
           </form>

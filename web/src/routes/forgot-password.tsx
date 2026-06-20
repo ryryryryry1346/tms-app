@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
@@ -80,12 +80,12 @@ function ForgotPasswordPage() {
               <span className="font-semibold">{submittedEmail}</span>, we sent a
               password reset link.
             </Alert>
-            <a
-              href="/login"
+            <Link
+              to="/login"
               className="tms-button tms-button-primary justify-center rounded-2xl px-5 py-4 text-lg font-bold no-underline shadow-[var(--tms-shadow-subtle)]"
             >
               Back to login
-            </a>
+            </Link>
           </div>
         ) : (
           <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
@@ -123,12 +123,12 @@ function ForgotPasswordPage() {
 
             <p className="pt-2 text-center text-lg text-[var(--tms-text-muted)]">
               Remembered it?{' '}
-              <a
-                href="/login"
+              <Link
+                to="/login"
                 className="font-semibold text-[var(--tms-primary)] no-underline"
               >
                 Log in
-              </a>
+              </Link>
               .
             </p>
           </form>
