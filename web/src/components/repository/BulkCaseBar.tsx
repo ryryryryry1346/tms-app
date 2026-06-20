@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
 import { ConfirmActionAlert } from '../ui/ConfirmActionAlert'
-import { Panel } from '../ui/Panel'
 import { PopoverMenu, PopoverMenuItem } from '../ui/PopoverMenu'
 
 export type RepositoryBulkStatus = 'Draft' | 'Ready' | 'Archived'
@@ -88,7 +87,8 @@ export function BulkCaseBar({
   }
 
   return (
-    <Panel className="mx-4 mt-4 rounded-[var(--tms-radius-overlay)] bg-[var(--tms-surface-muted)] px-4 py-3 shadow-none sm:mx-5">
+    <div className="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center px-4">
+      <div className="pointer-events-auto w-full max-w-3xl rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border)] bg-[var(--tms-surface)] px-4 py-3 shadow-[var(--tms-shadow-panel)]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm font-semibold text-[var(--tms-text)]">
           {selectedCount} selected
@@ -312,6 +312,7 @@ export function BulkCaseBar({
           {errorMessage}
         </Alert>
       ) : null}
-    </Panel>
+      </div>
+    </div>
   )
 }
