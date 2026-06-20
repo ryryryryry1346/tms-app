@@ -60,7 +60,7 @@ export function CaseActionsMenu({
           <Link
             to="/test/$testId"
             params={{ testId: testId.toString() }}
-            className="tms-menu-item"
+            className="tms-menu-item no-underline"
           >
             Open
           </Link>
@@ -70,11 +70,10 @@ export function CaseActionsMenu({
           <Link
             to="/edit-test/$testId"
             params={{ testId: testId.toString() }}
-            className="tms-menu-item"
+            className="tms-menu-item no-underline"
           >
             Edit
           </Link>
-          <PopoverMenuSeparator />
           <PopoverMenuItem
             disabled={isPending}
             onClick={onDuplicate}
