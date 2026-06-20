@@ -95,18 +95,18 @@ export function getRepositoryCaseGridTemplate(
 ): string {
   const visibleMetadataCount = Object.values(visibleColumns).filter(Boolean).length
   const titleColumn =
-    visibleMetadataCount <= 2 ? 'minmax(360px, 1fr)' : 'minmax(260px, 1fr)'
+    visibleMetadataCount <= 2 ? 'minmax(220px, 1fr)' : 'minmax(160px, 1fr)'
 
   return [
-    '48px',
-    '58px',
+    '44px',
+    '52px',
     titleColumn,
-    visibleColumns.priority ? '104px' : null,
-    visibleColumns.type ? '118px' : null,
-    visibleColumns.created ? '108px' : null,
-    visibleColumns.updated ? '108px' : null,
-    visibleColumns.status ? '104px' : null,
-    '64px',
+    visibleColumns.priority ? '92px' : null,
+    visibleColumns.type ? '100px' : null,
+    visibleColumns.created ? '96px' : null,
+    visibleColumns.updated ? '96px' : null,
+    visibleColumns.status ? '96px' : null,
+    '56px',
   ]
     .filter(Boolean)
     .join(' ')
