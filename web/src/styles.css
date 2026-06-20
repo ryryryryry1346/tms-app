@@ -1133,7 +1133,7 @@ pre code {
   min-height: var(--tms-control-height);
   border: 0;
   border-radius: var(--tms-radius-control);
-  background: var(--tms-surface);
+  background: var(--tms-surface-soft);
   color: var(--tms-text);
   padding: 0.55rem 0.8rem;
   font: inherit;
@@ -1152,7 +1152,7 @@ pre code {
   white-space: nowrap;
   border: 0;
   border-radius: var(--tms-radius-control);
-  background: var(--tms-surface);
+  background: var(--tms-surface-soft);
   color: var(--tms-text);
   padding: 0.55rem 0.8rem;
   font: inherit;
