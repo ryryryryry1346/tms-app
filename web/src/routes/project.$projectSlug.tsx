@@ -122,6 +122,32 @@ function runToneChipClass(tone: RunStatusTone): string {
   return 'tms-chip-run-not-run'
 }
 
+function OnboardingStep({
+  step,
+  title,
+  description,
+}: {
+  step: string
+  title: string
+  description: string
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-2xl border border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] p-4">
+      <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[var(--tms-primary)] text-sm font-semibold text-white">
+        {step}
+      </span>
+      <div>
+        <p className="m-0 text-sm font-semibold text-[var(--tms-text)]">
+          {title}
+        </p>
+        <p className="m-0 mt-0.5 text-sm leading-5 text-[var(--tms-text-muted)]">
+          {description}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 function ProjectOverviewPage() {
   const { project, dashboard, runs } = Route.useLoaderData()
   const { projectSlug: routeProjectSlug } = Route.useParams()
@@ -149,6 +175,7 @@ function ProjectOverviewPage() {
   const passedTotal = runs.reduce((sum, run) => sum + run.passed, 0)
   const passRate =
     executedTotal > 0 ? Math.round((passedTotal / executedTotal) * 100) : 0
+  const isEmptyProject = dashboard.tests.length === 0 && runs.length === 0
 
   return (
     <main className="workspace-view">
@@ -177,6 +204,46 @@ function ProjectOverviewPage() {
             }
           />
 
+          {isEmptyProject ? (
+            <Panel className="overview-panel px-6 py-8">
+              <div className="mx-auto max-w-2xl text-center">
+                <h2 className="m-0 text-lg font-semibold text-[var(--tms-text)]">
+                  Let&apos;s set up {project.name}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--tms-text-muted)]">
+                  This project is empty. Follow these steps to start tracking
+                  your testing.
+                </p>
+              </div>
+              <div className="mx-auto mt-6 grid max-w-2xl gap-3">
+                <OnboardingStep
+                  step="1"
+                  title="Create a suite"
+                  description="Group related test cases into a suite in the repository."
+                />
+                <OnboardingStep
+                  step="2"
+                  title="Add test cases"
+                  description="Write manual cases with clear steps and expected results."
+                />
+                <OnboardingStep
+                  step="3"
+                  title="Run and track"
+                  description="Create a run to execute cases and watch the pass rate."
+                />
+              </div>
+              <div className="mx-auto mt-6 flex max-w-2xl justify-center">
+                <LinkButton
+                  to="/project/$projectSlug/repository"
+                  params={{ projectSlug }}
+                  variant="primary"
+                >
+                  Open repository to start
+                </LinkButton>
+              </div>
+            </Panel>
+          ) : (
+            <>
           <section className="overview-kpis">
             <article className="overview-kpi overview-kpi--accent">
               <span className="overview-kpi__label">Readiness</span>
@@ -308,6 +375,8 @@ function ProjectOverviewPage() {
               </div>
             )}
           </Panel>
+            </>
+          )}
         </div>
       </div>
     </main>
