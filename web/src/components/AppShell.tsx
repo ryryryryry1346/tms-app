@@ -171,7 +171,9 @@ function deriveShellContext(
   const projectMatch = matches.find(
     (match) =>
       typeof match.routeId === 'string' &&
-      match.routeId.startsWith('/project/$projectSlug'),
+      (match.routeId.startsWith('/project/$projectSlug') ||
+        match.routeId === '/project_/$projectSlug/repository' ||
+        match.routeId === '/project_/$projectSlug/docs_/$docId'),
   )
   const projectData = projectMatch?.loaderData as
     | { project?: { slug?: string | null; id?: number; name?: string | null } }
