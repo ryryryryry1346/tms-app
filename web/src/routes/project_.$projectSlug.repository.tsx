@@ -1019,6 +1019,73 @@ function ProjectRepositoryPage() {
     }))
   }
 
+  function caseMatchesCurrentFilter(status: string | null): boolean {
+    const normalized = status ?? 'Draft'
+
+    if (caseFilter === 'All') {
+      return normalized !== 'Archived'
+    }
+
+    return normalized === caseFilter
+  }
+
+  // After a status change a case may no longer belong to the current filter
+  // (e.g. archived while viewing All) — drop it from the visible list so it
+  // doesn't linger with a mismatched status.
+  function pruneTestFromViewIfFiltered(testId: number): void {
+    setDashboard((current) => {
+      const test = current.tests.find((item) => item.id === testId)
+
+      if (!test || caseMatchesCurrentFilter(test.status)) {
+        return current
+      }
+
+      return {
+        ...current,
+        tests: current.tests.filter((item) => item.id !== testId),
+        pagination: {
+          ...current.pagination,
+          totalCases: Math.max(0, current.pagination.totalCases - 1),
+        },
+      }
+    })
+    setPreviewTestId((current) => (current === testId ? null : current))
+  }
+
+  function pruneTestsFromViewIfFiltered(testIds: number[]): void {
+    const idSet = new Set(testIds)
+
+    setDashboard((current) => {
+      const removableIds = new Set(
+        current.tests
+          .filter(
+            (test) =>
+              idSet.has(test.id) && !caseMatchesCurrentFilter(test.status),
+          )
+          .map((test) => test.id),
+      )
+
+      if (removableIds.size === 0) {
+        return current
+      }
+
+      return {
+        ...current,
+        tests: current.tests.filter((test) => !removableIds.has(test.id)),
+        pagination: {
+          ...current.pagination,
+          totalCases: Math.max(
+            0,
+            current.pagination.totalCases - removableIds.size,
+          ),
+        },
+      }
+    })
+    setPreviewTestId((current) =>
+      current !== null && idSet.has(current) ? null : current,
+    )
+  }
+
   function addRepositorySuite(section: {
     id: number
     name: string
@@ -1716,6 +1783,7 @@ function ProjectRepositoryPage() {
             : null,
         updatedAt,
       }))
+      pruneTestsFromViewIfFiltered(statusUpdateIds)
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
@@ -1858,6 +1926,8 @@ function ProjectRepositoryPage() {
             : null,
         updatedAt,
       }))
+
+      pruneTestFromViewIfFiltered(testId)
     } catch (error) {
       setCaseActionErrorMessage(
         error instanceof Error
@@ -1958,6 +2028,7 @@ function ProjectRepositoryPage() {
         archivedFromStatus: null,
         updatedAt,
       }))
+      pruneTestsFromViewIfFiltered(selectedTestIds)
       setSelectedTestIds([])
       setIsBulkArchiveConfirming(false)
       setIsBulkDeleteConfirming(false)
@@ -2488,6 +2559,8 @@ function ProjectRepositoryPage() {
             : detail.archivedFromStatus ?? 'Draft',
         updatedAt,
       }))
+
+      pruneTestFromViewIfFiltered(testId)
     } catch (error) {
       setCaseActionErrorMessage(
         error instanceof Error ? error.message : 'Failed to archive test case.',
@@ -2526,6 +2599,8 @@ function ProjectRepositoryPage() {
         archivedFromStatus: null,
         updatedAt,
       }))
+
+      pruneTestFromViewIfFiltered(testId)
     } catch (error) {
       setCaseActionErrorMessage(
         error instanceof Error ? error.message : 'Failed to restore test case.',
@@ -3559,6 +3634,7 @@ function ProjectRepositoryPage() {
                 selectedSuiteId={suiteFilterId}
                 allSuitesFilter={ALL_SUITES_FILTER}
                 totalActiveCases={repositoryTreeTotalCases}
+                caseFilter={caseFilter}
                 isLoadingCounts={isLoadingRepositorySummary}
                 editingSuiteId={editingSuiteId}
                 editingSuiteName={editingSuiteName}

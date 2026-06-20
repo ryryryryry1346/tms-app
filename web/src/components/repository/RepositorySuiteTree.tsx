@@ -22,12 +22,15 @@ type RepositorySuiteTreeStats = {
   archivedCases: number
 }
 
+type RepositoryCaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
+
 type RepositorySuiteTreeProps = {
   sections: RepositorySuiteTreeSection[]
   suiteStats: RepositorySuiteTreeStats[]
   selectedSuiteId: string
   allSuitesFilter: string
   totalActiveCases: number
+  caseFilter: RepositoryCaseFilter
   isLoadingCounts: boolean
   editingSuiteId: number | null
   editingSuiteName: string
@@ -90,6 +93,7 @@ export function RepositorySuiteTree({
   selectedSuiteId,
   allSuitesFilter,
   totalActiveCases,
+  caseFilter,
   isLoadingCounts,
   editingSuiteId,
   editingSuiteName,
@@ -116,6 +120,31 @@ export function RepositorySuiteTree({
     suiteStats.map((stats) => [stats.sectionId, stats]),
   )
   const areSuiteCountsPending = isLoadingCounts || suiteStats.length === 0
+
+  function countForFilter(stats: RepositorySuiteTreeStats | undefined): number {
+    if (!stats) {
+      return 0
+    }
+
+    if (caseFilter === 'Archived') {
+      return stats.archivedCases
+    }
+
+    if (caseFilter === 'Ready') {
+      return stats.readyCases
+    }
+
+    if (caseFilter === 'Draft') {
+      return stats.draftCases
+    }
+
+    return stats.activeCases
+  }
+
+  const displayedTotal =
+    caseFilter === 'All'
+      ? totalActiveCases
+      : suiteStats.reduce((sum, stats) => sum + countForFilter(stats), 0)
   const normalizedSuiteSearch = suiteSearchValue.trim().toLowerCase()
   const filteredSections = useMemo(() => {
     if (!normalizedSuiteSearch) {
@@ -165,14 +194,14 @@ export function RepositorySuiteTree({
           <span>All test cases</span>
         </span>
         <span className="repository-browser-tree__count">
-          {isLoadingCounts ? '...' : totalActiveCases}
+          {isLoadingCounts ? '...' : displayedTotal}
         </span>
       </button>
 
       <div className="repository-browser-tree__list">
         {filteredSections.map((section) => {
           const stats = statsBySectionId.get(section.id)
-          const activeCases = stats?.activeCases ?? 0
+          const suiteCount = countForFilter(stats)
           const isActive = selectedSuiteId === section.id.toString()
           const isEditing = editingSuiteId === section.id
           const isDeleteConfirming = deleteConfirmSuiteId === section.id
@@ -220,7 +249,7 @@ export function RepositorySuiteTree({
                       <span className="truncate">{section.name}</span>
                     </span>
                     <span className="repository-browser-tree__count">
-                      {areSuiteCountsPending ? '...' : activeCases}
+                      {areSuiteCountsPending ? '...' : suiteCount}
                     </span>
                   </button>
                   <PopoverMenu
