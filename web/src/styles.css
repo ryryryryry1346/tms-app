@@ -1131,7 +1131,7 @@ pre code {
 .tms-textarea,
 .tms-select {
   min-height: var(--tms-control-height);
-  border: 0;
+  border: 1px solid var(--tms-border-subtle);
   border-radius: var(--tms-radius-control);
   background: var(--tms-surface-soft);
   color: var(--tms-text);
@@ -1150,7 +1150,7 @@ pre code {
   justify-content: space-between;
   gap: 0.65rem;
   white-space: nowrap;
-  border: 0;
+  border: 1px solid var(--tms-border-subtle);
   border-radius: var(--tms-radius-control);
   background: var(--tms-surface-soft);
   color: var(--tms-text);
