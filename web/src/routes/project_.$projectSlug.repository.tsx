@@ -31,6 +31,11 @@ import { Checkbox } from '../components/ui/Checkbox'
 import { FileInput } from '../components/ui/FileInput'
 import { Input } from '../components/ui/Input'
 import { LinkButton } from '../components/ui/LinkButton'
+import {
+  PopoverMenu,
+  PopoverMenuItem,
+} from '../components/ui/PopoverMenu'
+import { getErrorMessage } from '../lib/errors'
 import { SelectMenu } from '../components/ui/SelectMenu'
 import { uploadTestMedia } from '../features/media/server'
 import { createShortcutRepositoryStory } from '../features/shortcut/server'
@@ -637,6 +642,7 @@ function ProjectRepositoryPage() {
   const [selectedTestIds, setSelectedTestIds] = useState<number[]>([])
   const [isApplyingBulkAction, setIsApplyingBulkAction] = useState(false)
   const [isExportingCsv, setIsExportingCsv] = useState(false)
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
   const [isCreatingShortcutStory, setIsCreatingShortcutStory] = useState(false)
   const [shortcutStoryResult, setShortcutStoryResult] = useState<{
     name: string
@@ -2582,27 +2588,33 @@ function ProjectRepositoryPage() {
   ): Promise<void> {
     event.preventDefault()
     setSuiteErrorMessage(null)
+
+    const trimmedSuiteName = suiteName.trim()
+
+    if (!trimmedSuiteName) {
+      setSuiteErrorMessage('Enter a suite name.')
+      return
+    }
+
     setIsSubmittingSuite(true)
 
     try {
       const result = await createSuite({
         data: {
           projectId: project.id,
-          name: suiteName,
+          name: trimmedSuiteName,
         },
       })
 
       addRepositorySuite({
         id: result.id,
-        name: suiteName.trim(),
+        name: trimmedSuiteName,
         projectId: project.id,
       })
       setSuiteName('')
       setActiveComposer(null)
     } catch (error) {
-      setSuiteErrorMessage(
-        error instanceof Error ? error.message : 'Failed to create suite.',
-      )
+      setSuiteErrorMessage(getErrorMessage(error, 'Failed to create suite.'))
     } finally {
       setIsSubmittingSuite(false)
     }
@@ -2745,15 +2757,6 @@ function ProjectRepositoryPage() {
             actions={
               <>
                 <Button
-                  onClick={() => {
-                    void handleCreateShortcutStory()
-                  }}
-                  disabled={isCreatingShortcutStory}
-                  variant="secondary"
-                >
-                  {isCreatingShortcutStory ? 'Creating ticket...' : 'Create ticket'}
-                </Button>
-                <Button
                   onClick={() =>
                     setActiveComposer((current) => (current === 'suite' ? null : 'suite'))
                   }
@@ -2761,28 +2764,55 @@ function ProjectRepositoryPage() {
                 >
                   + Suite
                 </Button>
-                <Button
-                  onClick={() => {
-                    setIsImportPanelOpen((current) => !current)
-                    setImportErrorMessage(null)
-                    setImportResult(null)
-                    setIsImportConfirming(false)
-                  }}
-                  variant="secondary"
-                >
-                  Import CSV
-                </Button>
-                <Button
-                  onClick={() => {
-                    void handleExportCsv('filtered')
-                  }}
-                  disabled={
-                    isExportingCsv || dashboard.pagination.totalCases === 0
+                <PopoverMenu
+                  isOpen={isMoreMenuOpen}
+                  onClose={() => setIsMoreMenuOpen(false)}
+                  onOpenChange={setIsMoreMenuOpen}
+                  align="right"
+                  trigger={
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      aria-expanded={isMoreMenuOpen}
+                    >
+                      More
+                    </Button>
                   }
-                  variant="secondary"
                 >
-                  {isExportingCsv ? 'Exporting...' : 'Export CSV'}
-                </Button>
+                  <PopoverMenuItem
+                    onClick={() => {
+                      setIsMoreMenuOpen(false)
+                      setIsImportPanelOpen((current) => !current)
+                      setImportErrorMessage(null)
+                      setImportResult(null)
+                      setIsImportConfirming(false)
+                    }}
+                  >
+                    Import CSV
+                  </PopoverMenuItem>
+                  <PopoverMenuItem
+                    disabled={
+                      isExportingCsv || dashboard.pagination.totalCases === 0
+                    }
+                    onClick={() => {
+                      setIsMoreMenuOpen(false)
+                      void handleExportCsv('filtered')
+                    }}
+                  >
+                    {isExportingCsv ? 'Exporting...' : 'Export CSV'}
+                  </PopoverMenuItem>
+                  <PopoverMenuItem
+                    disabled={isCreatingShortcutStory}
+                    onClick={() => {
+                      setIsMoreMenuOpen(false)
+                      void handleCreateShortcutStory()
+                    }}
+                  >
+                    {isCreatingShortcutStory
+                      ? 'Creating story...'
+                      : 'Create Shortcut story'}
+                  </PopoverMenuItem>
+                </PopoverMenu>
                 <LinkButton
                   to="/create-test"
                   search={{ projectId: project.id }}
@@ -2837,7 +2867,11 @@ function ProjectRepositoryPage() {
                 />
                 <Button
                   type="submit"
-                  disabled={isSubmittingSuite || !dashboard.databaseConfigured}
+                  disabled={
+                    isSubmittingSuite ||
+                    !dashboard.databaseConfigured ||
+                    !suiteName.trim()
+                  }
                   className="border-[var(--status-ready-border)] bg-[var(--status-ready-bg)] px-3 py-2 text-sm text-[var(--status-ready-text)]"
                 >
                   {isSubmittingSuite ? 'Creating...' : 'Create suite'}

@@ -292,7 +292,9 @@ export function RepositorySuiteTree({
         })}
         {filteredSections.length === 0 ? (
           <div className="repository-browser-tree__empty">
-            No suites match this search.
+            {sections.length === 0
+              ? 'No suites yet. Use + to create one.'
+              : 'No suites match your search.'}
           </div>
         ) : null}
       </div>
