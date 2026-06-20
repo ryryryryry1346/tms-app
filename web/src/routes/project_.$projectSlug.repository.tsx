@@ -1161,11 +1161,22 @@ function ProjectRepositoryPage() {
     () => dashboard.tests.filter((test) => selectedTestIdSet.has(test.id)),
     [dashboard.tests, selectedTestIdSet],
   )
+  // When the preview drawer is open the table area is narrower, so drop the
+  // least-important columns (Created/Updated) to avoid horizontal scroll.
+  const effectiveVisibleColumns = useMemo<RepositoryVisibleColumns>(
+    () =>
+      previewTestId === null
+        ? visibleColumns
+        : { ...visibleColumns, created: false, updated: false },
+    [visibleColumns, previewTestId],
+  )
   const repositoryGridStyle = useMemo(
     () => ({
-      gridTemplateColumns: getRepositoryCaseGridTemplate(visibleColumns),
+      gridTemplateColumns: getRepositoryCaseGridTemplate(
+        effectiveVisibleColumns,
+      ),
     }),
-    [visibleColumns],
+    [effectiveVisibleColumns],
   )
   const paginationStart =
     dashboard.pagination.totalCases === 0
@@ -3620,11 +3631,19 @@ function ProjectRepositoryPage() {
                     <span />
                     <span>ID</span>
                     <span>Title</span>
-                    {visibleColumns.priority ? <span>Priority</span> : null}
-                    {visibleColumns.type ? <span>Type</span> : null}
-                    {visibleColumns.created ? <span>Created</span> : null}
-                    {visibleColumns.updated ? <span>Updated</span> : null}
-                    {visibleColumns.status ? <span>Status</span> : null}
+                    {effectiveVisibleColumns.priority ? (
+                      <span>Priority</span>
+                    ) : null}
+                    {effectiveVisibleColumns.type ? <span>Type</span> : null}
+                    {effectiveVisibleColumns.created ? (
+                      <span>Created</span>
+                    ) : null}
+                    {effectiveVisibleColumns.updated ? (
+                      <span>Updated</span>
+                    ) : null}
+                    {effectiveVisibleColumns.status ? (
+                      <span>Status</span>
+                    ) : null}
                     <span>Actions</span>
                   </div>
 
@@ -3656,7 +3675,7 @@ function ProjectRepositoryPage() {
                           priorityOptions={PRIORITY_OPTIONS}
                           caseTypeOptions={CASE_TYPE_OPTIONS}
                           statusOptions={CASE_STATUS_OPTIONS}
-                          visibleColumns={visibleColumns}
+                          visibleColumns={effectiveVisibleColumns}
                           formatDate={formatRepositoryDate}
                           onToggleSelection={() => toggleTestSelection(test.id)}
                           onDragStart={(event) =>
