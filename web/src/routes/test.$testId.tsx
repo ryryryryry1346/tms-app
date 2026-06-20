@@ -1006,7 +1006,7 @@ function TestDetailPage() {
             <Panel className="test-detail-side-panel bg-[var(--tms-surface-soft)] px-4 py-5 sm:px-6 sm:py-6">
               <EditingSurfaceSection
                 dense
-                title="Metadata"
+                title="Details"
                 bodyClassName="test-detail-meta-grid"
               >
                   <div className="test-detail-meta-item">
