@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Alert } from '../ui/Alert'
+import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { ConfirmActionAlert } from '../ui/ConfirmActionAlert'
 import { PopoverMenu, PopoverMenuItem } from '../ui/PopoverMenu'
@@ -88,11 +89,9 @@ export function BulkCaseBar({
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center px-4">
-      <div className="pointer-events-auto w-full max-w-3xl rounded-[var(--tms-radius-overlay)] border border-[var(--tms-border)] bg-[var(--tms-surface)] px-4 py-3 shadow-[var(--tms-shadow-panel)]">
+      <div className="pointer-events-auto w-full max-w-3xl rounded-[var(--tms-radius-overlay)] border-2 border-[var(--tms-primary-border)] bg-[var(--tms-surface)] px-4 py-3 shadow-[0_16px_40px_-12px_rgba(2,6,23,0.45)]">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm font-semibold text-[var(--tms-text)]">
-          {selectedCount} selected
-        </div>
+        <Badge variant="primary">{selectedCount} selected</Badge>
         <div className="repository-suite-header__actions">
           <PopoverMenu
             isOpen={openMenu === 'move'}
