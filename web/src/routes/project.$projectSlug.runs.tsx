@@ -17,7 +17,6 @@ import { Panel } from '../components/ui/Panel'
 import {
   PopoverMenu,
   PopoverMenuItem,
-  PopoverMenuLabel,
 } from '../components/ui/PopoverMenu'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import { getDashboardState } from '../features/tests/server'
@@ -943,7 +942,6 @@ function ProjectRunsPage() {
                             </Button>
                           }
                         >
-                          <PopoverMenuLabel>Run</PopoverMenuLabel>
                           <Link
                             to="/run/$runId"
                             params={{ runId: run.id.toString() }}

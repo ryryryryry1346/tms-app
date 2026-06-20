@@ -17,7 +17,6 @@ import { Panel } from '../components/ui/Panel'
 import {
   PopoverMenu,
   PopoverMenuItem,
-  PopoverMenuLabel,
 } from '../components/ui/PopoverMenu'
 import {
   LazyRichTextEditor,
@@ -329,7 +328,6 @@ function ProjectDocDetailPage() {
                         </Button>
                       }
                     >
-                      <PopoverMenuLabel>Actions</PopoverMenuLabel>
                       <PopoverMenuItem
                         tone="danger"
                         onClick={() => {

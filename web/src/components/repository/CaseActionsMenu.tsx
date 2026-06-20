@@ -3,7 +3,6 @@ import { Button } from '../ui/Button'
 import {
   PopoverMenu,
   PopoverMenuItem,
-  PopoverMenuLabel,
   PopoverMenuSeparator,
 } from '../ui/PopoverMenu'
 
@@ -58,7 +57,6 @@ export function CaseActionsMenu({
           </Button>
         }
       >
-          <PopoverMenuLabel>Open</PopoverMenuLabel>
           <Link
             to="/test/$testId"
             params={{ testId: testId.toString() }}
@@ -77,7 +75,6 @@ export function CaseActionsMenu({
             Edit
           </Link>
           <PopoverMenuSeparator />
-          <PopoverMenuLabel>Actions</PopoverMenuLabel>
           <PopoverMenuItem
             disabled={isPending}
             onClick={onDuplicate}
@@ -87,7 +84,6 @@ export function CaseActionsMenu({
           {isArchived ? (
             <>
               <PopoverMenuSeparator />
-              <PopoverMenuLabel>Lifecycle</PopoverMenuLabel>
               <PopoverMenuItem
                 disabled={isPending}
                 onClick={onRestore}
@@ -106,7 +102,6 @@ export function CaseActionsMenu({
           ) : (
             <>
               <PopoverMenuSeparator />
-              <PopoverMenuLabel>Lifecycle</PopoverMenuLabel>
               <PopoverMenuItem
                 disabled={isPending}
                 onClick={onArchive}

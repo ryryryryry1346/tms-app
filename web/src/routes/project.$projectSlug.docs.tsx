@@ -16,7 +16,6 @@ import { Panel } from '../components/ui/Panel'
 import {
   PopoverMenu,
   PopoverMenuItem,
-  PopoverMenuLabel,
 } from '../components/ui/PopoverMenu'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import {
@@ -334,7 +333,6 @@ function ProjectDocsPage() {
                   </Button>
                 }
               >
-                <PopoverMenuLabel>New doc</PopoverMenuLabel>
                 {DOC_TEMPLATES.map((template) => (
                   <PopoverMenuItem
                     key={template.key}

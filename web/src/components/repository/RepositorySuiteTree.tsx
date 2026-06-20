@@ -6,7 +6,6 @@ import { Input } from '../ui/Input'
 import {
   PopoverMenu,
   PopoverMenuItem,
-  PopoverMenuLabel,
   PopoverMenuSeparator,
 } from '../ui/PopoverMenu'
 
@@ -247,7 +246,6 @@ export function RepositorySuiteTree({
                       </Button>
                     }
                   >
-                    <PopoverMenuLabel>Suite</PopoverMenuLabel>
                     <PopoverMenuItem onClick={() => onCreateCase(section.id)}>
                       Create case
                     </PopoverMenuItem>

@@ -4,7 +4,6 @@ import { Input } from '../ui/Input'
 import {
   PopoverMenu,
   PopoverMenuItem,
-  PopoverMenuLabel,
 } from '../ui/PopoverMenu'
 import { SelectMenu } from '../ui/SelectMenu'
 import type {
@@ -198,7 +197,6 @@ export function RepositoryToolbar({
           </Button>
         }
       >
-        <PopoverMenuLabel>Columns</PopoverMenuLabel>
         {(Object.keys(REPOSITORY_COLUMN_LABELS) as RepositoryColumnKey[]).map(
           (column) => {
             const isChecked = visibleColumns[column]
