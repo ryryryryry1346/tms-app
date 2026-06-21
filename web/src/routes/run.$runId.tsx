@@ -14,12 +14,21 @@ import {
   getRunDetail,
   getRunItemAttachments,
   saveRunItemComment,
+  setRunItemStepResult,
   updateRunStatus,
 } from '../features/runs/server'
 import type {
   CaseExecutionHistoryEntry,
   RunItemAttachment,
 } from '../features/runs/server'
+import { parseCaseContent } from '../lib/caseContent'
+import {
+  deriveCaseStatus,
+  parseStepResults,
+  serializeStepResults,
+  type StepRunStatus,
+} from '../lib/stepRun'
+import { RunStepExecution } from '../components/runs/RunStepExecution'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Checkbox } from '../components/ui/Checkbox'
@@ -30,6 +39,7 @@ import { Panel } from '../components/ui/Panel'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import { Textarea } from '../components/ui/Textarea'
 import { StepsView } from '../components/repository/StepsView'
+import { sanitizeHtml } from '../lib/sanitize-html'
 
 export const Route = createFileRoute('/run/$runId')({
   loader: async ({ params }) => {
@@ -234,6 +244,28 @@ function RunDetailPage() {
         ? null
         : tests.find((test) => test.id === previewTestId) ?? null,
     [tests, previewTestId],
+  )
+
+  const previewContent = useMemo(
+    () =>
+      previewTest
+        ? parseCaseContent(previewTest.stepsSnapshot ?? previewTest.steps, '')
+        : null,
+    [previewTest],
+  )
+  const previewIsStructured =
+    previewContent !== null &&
+    previewContent.isStructured &&
+    previewContent.steps.length > 0
+  const previewStepResults = useMemo(
+    () =>
+      previewIsStructured && previewContent
+        ? parseStepResults(
+            previewTest?.stepResults,
+            previewContent.steps.length,
+          )
+        : [],
+    [previewIsStructured, previewContent, previewTest?.stepResults],
   )
 
   const visibleTestIds = filteredTests.map((test) => test.id)
@@ -653,6 +685,82 @@ function RunDetailPage() {
     } finally {
       setPendingCommentByTestId((current) => {
         const nextState = { ...current }
+        delete nextState[testId]
+        return nextState
+      })
+    }
+  }
+
+  async function handleStepResult(
+    testId: number,
+    stepIndex: number,
+    patch: { status?: StepRunStatus | null; comment?: string },
+  ): Promise<void> {
+    if (isRunLocked) {
+      return
+    }
+
+    setErrorMessage(null)
+
+    const previousTests = tests
+    const target = tests.find((test) => test.id === testId)
+
+    if (!target) {
+      return
+    }
+
+    const content = parseCaseContent(target.stepsSnapshot ?? target.steps, '')
+    const stepCount = content.steps.length
+    const results = parseStepResults(target.stepResults, stepCount)
+    const current = results[stepIndex] ?? { status: null, comment: '' }
+    results[stepIndex] = {
+      status: patch.status !== undefined ? patch.status : current.status,
+      comment: patch.comment !== undefined ? patch.comment : current.comment,
+    }
+
+    const derived = deriveCaseStatus(results)
+    const serialized = serializeStepResults(results)
+    const executedBy = derived ? data.currentUser.name : null
+    const executedAt = derived ? new Date().toISOString() : null
+
+    setTests((currentTests) =>
+      currentTests.map((test) =>
+        test.id === testId
+          ? {
+              ...test,
+              stepResults: serialized,
+              status: derived,
+              executedBy,
+              executedAt,
+            }
+          : test,
+      ),
+    )
+    setPendingStatusByTestId((currentPending) => ({
+      ...currentPending,
+      [testId]: true,
+    }))
+
+    try {
+      await setRunItemStepResult({
+        data: {
+          runId: data.run.id,
+          testId,
+          stepIndex,
+          status: patch.status,
+          comment: patch.comment,
+        },
+      })
+
+      setHistoryRefreshKey((key) => key + 1)
+    } catch (error) {
+      setTests(previousTests)
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Failed to save step result.',
+      )
+    } finally {
+      setPendingStatusByTestId((currentPending) => {
+        const nextState = { ...currentPending }
         delete nextState[testId]
         return nextState
       })
@@ -1189,47 +1297,91 @@ function RunDetailPage() {
 
                   <div className="run-execution-preview-panel__quick">
                     <div className="run-execution-preview-panel__section-header">
-                      <h3>Quick result</h3>
+                      <h3>
+                        {previewIsStructured ? 'Result (from steps)' : 'Quick result'}
+                      </h3>
                       <span className="run-execution-preview-panel__current-status">
                         {previewTest.status ?? 'Not run'}
                       </span>
                     </div>
-                    <div className="run-execution-preview-panel__result-actions">
-                      {RUN_RESULT_OPTIONS.map((status) => {
-                        const nextStatus = getRunResultFromValue(status)
-                        const isActive = (previewTest.status ?? 'Not run') === status
+                    {previewIsStructured ? (
+                      <p className="run-execution-preview-panel__empty">
+                        {`${
+                          previewStepResults.filter((r) => r.status !== null)
+                            .length
+                        } / ${previewStepResults.length} steps marked · overall result is derived automatically.`}
+                      </p>
+                    ) : (
+                      <div className="run-execution-preview-panel__result-actions">
+                        {RUN_RESULT_OPTIONS.map((status) => {
+                          const nextStatus = getRunResultFromValue(status)
+                          const isActive =
+                            (previewTest.status ?? 'Not run') === status
 
-                        return (
-                          <Button
-                            key={status}
-                            variant={isActive ? 'primary' : 'secondary'}
-                            size="sm"
-                            disabled={
-                              Boolean(pendingStatusByTestId[previewTest.id]) ||
-                              isRunLocked
-                            }
-                            className={`${getRunResultChipClass(nextStatus)}${
-                              isActive
-                                ? ' run-execution-preview-panel__status-button--active'
-                                : ''
-                            }`}
-                            onClick={() =>
-                              void handleRunTest(previewTest.id, nextStatus)
-                            }
-                          >
-                            {status}
-                          </Button>
-                        )
-                      })}
-                    </div>
+                          return (
+                            <Button
+                              key={status}
+                              variant={isActive ? 'primary' : 'secondary'}
+                              size="sm"
+                              disabled={
+                                Boolean(pendingStatusByTestId[previewTest.id]) ||
+                                isRunLocked
+                              }
+                              className={`${getRunResultChipClass(nextStatus)}${
+                                isActive
+                                  ? ' run-execution-preview-panel__status-button--active'
+                                  : ''
+                              }`}
+                              onClick={() =>
+                                void handleRunTest(previewTest.id, nextStatus)
+                              }
+                            >
+                              {status}
+                            </Button>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   <div className="run-execution-preview-panel__body">
                     <section className="run-execution-preview-panel__content-block">
-                      <StepsView
-                        steps={previewTest.steps ?? null}
-                        expected={previewTest.expected ?? null}
-                      />
+                      {previewIsStructured && previewContent ? (
+                        <div className="grid gap-3">
+                          {previewContent.description.trim() ? (
+                            <div
+                              className="run-execution-preview-panel__rich rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
+                              dangerouslySetInnerHTML={{
+                                __html: sanitizeHtml(previewContent.description),
+                              }}
+                            />
+                          ) : null}
+                          <RunStepExecution
+                            key={previewTest.id}
+                            steps={previewContent.steps}
+                            results={previewStepResults}
+                            disabled={
+                              Boolean(pendingStatusByTestId[previewTest.id]) ||
+                              isRunLocked
+                            }
+                            onStepStatus={(stepIndex, status) =>
+                              void handleStepResult(previewTest.id, stepIndex, {
+                                status,
+                              })
+                            }
+                            onStepCommentSave={(stepIndex, comment) =>
+                              void handleStepResult(previewTest.id, stepIndex, {
+                                comment,
+                              })
+                            }
+                          />
+                        </div>
+                      ) : (
+                        <StepsView
+                          steps={previewTest.steps ?? null}
+                          expected={previewTest.expected ?? null}
+                        />
+                      )}
                     </section>
                     <section className="run-execution-preview-panel__content-block">
                       <h3>Execution history</h3>

@@ -211,6 +211,8 @@ export const testRunItems = mysqlTable(
     testTitle: text('test_title'),
     status: varchar('status', { length: 64 }),
     comment: text('comment'),
+    stepsSnapshot: longtext('steps_snapshot'),
+    stepResults: longtext('step_results'),
     executedById: varchar('executed_by_id', { length: 255 }),
     executedByName: varchar('executed_by_name', { length: 255 }),
     executedAt: varchar('executed_at', { length: 32 }),

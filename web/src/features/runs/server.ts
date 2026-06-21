@@ -3,6 +3,12 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import type { ProjectRole } from '../auth/project-access.server'
 import type { SessionUser } from '../auth/helpers.server'
+import { parseCaseContent } from '../../lib/caseContent'
+import {
+  deriveCaseStatus,
+  parseStepResults,
+  serializeStepResults,
+} from '../../lib/stepRun'
 
 const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024
 
@@ -145,6 +151,17 @@ const runItemCommentInput = z.object({
   comment: z.string().max(10_000),
 })
 
+const setStepResultInput = z.object({
+  runId: z.number().int().positive(),
+  testId: z.number().int().positive(),
+  stepIndex: z.number().int().min(0),
+  status: z
+    .enum(['Passed', 'Failed', 'Blocked', 'Skipped'])
+    .nullable()
+    .optional(),
+  comment: z.string().max(10_000).optional(),
+})
+
 type RunItemStatus = 'Passed' | 'Failed' | 'Blocked' | null
 type RunStatus = 'In progress' | 'Completed' | 'Closed'
 
@@ -179,6 +196,8 @@ export type RunDetail = {
     caseType: string | null
     steps: string | null
     expected: string | null
+    stepsSnapshot: string | null
+    stepResults: string | null
     executedBy: string | null
     executedAt: string | null
   }>
@@ -316,6 +335,7 @@ export const createRun = createServerFn({ method: 'POST' })
           id: tests.id,
           title: tests.title,
           status: tests.status,
+          steps: tests.steps,
         })
         .from(tests)
         .where(eq(tests.projectId, data.projectId))
@@ -339,6 +359,8 @@ export const createRun = createServerFn({ method: 'POST' })
             testId: test.id,
             testTitle: test.title,
             status: null,
+            stepsSnapshot: test.steps ?? null,
+            stepResults: null,
           })),
         )
       }
@@ -402,6 +424,8 @@ export const getRunDetail = createServerFn({ method: 'POST' })
         testTitle: testRunItems.testTitle,
         status: testRunItems.status,
         comment: testRunItems.comment,
+        stepsSnapshot: testRunItems.stepsSnapshot,
+        stepResults: testRunItems.stepResults,
         executedByName: testRunItems.executedByName,
         executedAt: testRunItems.executedAt,
         title: tests.title,
@@ -433,6 +457,8 @@ export const getRunDetail = createServerFn({ method: 'POST' })
             caseType: row.caseType ?? null,
             steps: row.steps ?? null,
             expected: row.expected ?? null,
+            stepsSnapshot: row.stepsSnapshot ?? row.steps ?? null,
+            stepResults: row.stepResults ?? null,
             executedBy: row.executedByName ?? null,
             executedAt: row.executedAt ?? null,
           }))
@@ -465,6 +491,8 @@ export const getRunDetail = createServerFn({ method: 'POST' })
             caseType: test.caseType ?? null,
             steps: test.steps ?? null,
             expected: test.expected ?? null,
+            stepsSnapshot: test.steps ?? null,
+            stepResults: null,
             executedBy: null,
             executedAt: null,
           }))
@@ -850,6 +878,98 @@ export const executeRunTest = createServerFn({ method: 'POST' })
 
     return { ok: true }
   })
+
+export const setRunItemStepResult = createServerFn({ method: 'POST' })
+  .inputValidator(setStepResultInput)
+  .handler(
+    async ({
+      data,
+    }): Promise<{ ok: true; status: 'Passed' | 'Failed' | 'Blocked' | null }> => {
+      await ensureRunServerDeps()
+
+      const db = getDb()
+      const runRows = await db
+        .select({ id: testRuns.id, projectId: testRuns.projectId })
+        .from(testRuns)
+        .where(eq(testRuns.id, data.runId))
+        .limit(1)
+
+      const run = runRows[0]
+
+      if (!run) {
+        throw notFound()
+      }
+
+      const { user: sessionUser } = await requireProjectAccessById(
+        run.projectId,
+        'editor',
+      )
+
+      const itemRows = await db
+        .select({
+          id: testRunItems.id,
+          testId: testRunItems.testId,
+          stepsSnapshot: testRunItems.stepsSnapshot,
+          stepResults: testRunItems.stepResults,
+        })
+        .from(testRunItems)
+        .where(eq(testRunItems.runId, data.runId))
+
+      const item = itemRows.find((row) => row.testId === data.testId)
+
+      if (!item) {
+        throw notFound()
+      }
+
+      // Prefer the stored snapshot; backfill from the live case for older runs.
+      let snapshotRaw = item.stepsSnapshot ?? null
+
+      if (snapshotRaw === null) {
+        const testRows = await db
+          .select({ steps: tests.steps })
+          .from(tests)
+          .where(eq(tests.id, data.testId))
+          .limit(1)
+        snapshotRaw = testRows[0]?.steps ?? null
+      }
+
+      const content = parseCaseContent(snapshotRaw, '')
+      const stepCount = content.steps.length
+
+      if (stepCount === 0) {
+        throw new Error('This case has no structured steps to execute.')
+      }
+
+      if (data.stepIndex >= stepCount) {
+        throw new Error('Step index is out of range for this case.')
+      }
+
+      const results = parseStepResults(item.stepResults, stepCount)
+      const current = results[data.stepIndex]
+      results[data.stepIndex] = {
+        status:
+          data.status !== undefined ? (data.status ?? null) : current.status,
+        comment: data.comment !== undefined ? data.comment : current.comment,
+      }
+
+      const derivedStatus = deriveCaseStatus(results)
+      const now = new Date().toISOString()
+
+      await db
+        .update(testRunItems)
+        .set({
+          stepsSnapshot: snapshotRaw,
+          stepResults: serializeStepResults(results),
+          status: derivedStatus,
+          executedById: derivedStatus ? sessionUser.id : null,
+          executedByName: derivedStatus ? sessionUser.displayName : null,
+          executedAt: derivedStatus ? now : null,
+        })
+        .where(eq(testRunItems.id, item.id))
+
+      return { ok: true, status: derivedStatus }
+    },
+  )
 
 export const saveRunItemComment = createServerFn({ method: 'POST' })
   .inputValidator(runItemCommentInput)
