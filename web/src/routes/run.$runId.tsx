@@ -29,7 +29,7 @@ import { Select } from '../components/ui/Select'
 import { Panel } from '../components/ui/Panel'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import { Textarea } from '../components/ui/Textarea'
-import { sanitizeHtml } from '../lib/sanitize-html'
+import { StepsView } from '../components/repository/StepsView'
 
 export const Route = createFileRoute('/run/$runId')({
   loader: async ({ params }) => {
@@ -114,25 +114,6 @@ function formatExecutedAt(value: string | null | undefined): string | null {
     hour: '2-digit',
     minute: '2-digit',
   })
-}
-
-function RunExecutionRichContent({
-  html,
-  emptyLabel,
-}: {
-  html: string | null | undefined
-  emptyLabel: string
-}) {
-  if (!html || html.trim().length === 0) {
-    return <p className="run-execution-preview-panel__empty">{emptyLabel}</p>
-  }
-
-  return (
-    <div
-      className="run-execution-preview-panel__rich rich-output"
-      dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
-    />
-  )
 }
 
 function RunDetailPage() {
@@ -1245,17 +1226,9 @@ function RunDetailPage() {
 
                   <div className="run-execution-preview-panel__body">
                     <section className="run-execution-preview-panel__content-block">
-                      <h3>Steps</h3>
-                      <RunExecutionRichContent
-                        html={previewTest.steps}
-                        emptyLabel="No steps were added for this case."
-                      />
-                    </section>
-                    <section className="run-execution-preview-panel__content-block">
-                      <h3>Expected result</h3>
-                      <RunExecutionRichContent
-                        html={previewTest.expected}
-                        emptyLabel="No expected result was added for this case."
+                      <StepsView
+                        steps={previewTest.steps ?? null}
+                        expected={previewTest.expected ?? null}
                       />
                     </section>
                     <section className="run-execution-preview-panel__content-block">

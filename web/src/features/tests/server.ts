@@ -4,6 +4,10 @@ import { z } from 'zod'
 import type { ProjectRole } from '../auth/project-access.server'
 import type { SessionUser } from '../auth/helpers.server'
 import { logger, serializeError } from '../../lib/logger'
+import {
+  flattenCaseContentToText,
+  parseCaseContent,
+} from '../../lib/caseContent'
 
 let and: typeof import('drizzle-orm')['and']
 let asc: typeof import('drizzle-orm')['asc']
@@ -1177,20 +1181,24 @@ export const exportRepositoryCasesCsv = createServerFn({ method: 'POST' })
         'created_at',
         'updated_at',
       ]),
-      ...testRows.map((test) =>
-        csvRow([
+      ...testRows.map((test) => {
+        const flat = flattenCaseContentToText(
+          parseCaseContent(test.steps, test.expected),
+        )
+
+        return csvRow([
           test.id,
           test.sectionId ? suiteNameById.get(test.sectionId) ?? '' : '',
           test.title,
           test.status ?? 'Draft',
           test.priority ?? 'Medium',
           test.caseType ?? 'Functional',
-          test.steps ?? '',
-          test.expected ?? '',
+          flat.steps,
+          flat.expected,
           test.createdAt ?? '',
           test.updatedAt ?? '',
-        ]),
-      ),
+        ])
+      }),
     ]
 
     return {

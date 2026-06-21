@@ -1,6 +1,6 @@
 import { Link, createFileRoute, notFound, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { RichTextEditor } from '../components/RichTextEditor'
+import { StepsEditor } from '../components/repository/StepsEditor'
 import { EditingFieldGroup, EditingSurfaceSection } from '../components/layout/EditingSurface'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
@@ -9,6 +9,11 @@ import { SelectMenu } from '../components/ui/SelectMenu'
 import { uploadTestMedia } from '../features/media/server'
 import { getEditTestFormState, updateTestCase } from '../features/tests/server'
 import { markRepositoryPreviewDetailStale } from '../lib/repositoryPreviewCache'
+import {
+  caseContentForEditing,
+  serializeCaseContent,
+  type CaseStep,
+} from '../lib/caseContent'
 
 export const Route = createFileRoute('/edit-test/$testId')({
   loader: async ({ params }) => {
@@ -55,24 +60,24 @@ function EditTestPage() {
   )
   const [priority, setPriority] = useState(formState.test.priority)
   const [caseType, setCaseType] = useState(formState.test.caseType)
-  const [steps, setSteps] = useState(formState.test.steps)
-  const [expected, setExpected] = useState(formState.test.expected)
+  const initialContent = caseContentForEditing(
+    formState.test.steps,
+    formState.test.expected,
+  )
+  const [description, setDescription] = useState(initialContent.description)
+  const [steps, setSteps] = useState<CaseStep[]>(initialContent.steps)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isUploadingSteps, setIsUploadingSteps] = useState(false)
-  const [isUploadingExpected, setIsUploadingExpected] = useState(false)
-  const isUploading = isUploadingSteps || isUploadingExpected
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false)
+  const isUploading = isUploadingMedia
 
   const selectedSection =
     formState.sections.find((section) => section.id.toString() === sectionId) ?? null
   const selectedProjectSlug = selectedSection?.projectSlug ?? null
 
-  async function uploadMedia(
-    file: File,
-    setUploading: (value: boolean) => void,
-  ): Promise<string> {
+  async function uploadMedia(file: File): Promise<string> {
     setErrorMessage(null)
-    setUploading(true)
+    setIsUploadingMedia(true)
 
     try {
       const formData = new FormData()
@@ -88,7 +93,7 @@ function EditTestPage() {
       setErrorMessage(message)
       throw error
     } finally {
-      setUploading(false)
+      setIsUploadingMedia(false)
     }
   }
 
@@ -108,8 +113,8 @@ function EditTestPage() {
           status,
           priority,
           caseType,
-          steps,
-          expected,
+          steps: serializeCaseContent(description, steps),
+          expected: '',
         },
       })
 
@@ -289,24 +294,13 @@ function EditTestPage() {
               className="mt-5"
               bodyClassName="editing-rich-stack"
             >
-              <RichTextEditor
-                label="Steps"
-                placeholder="Describe the test steps"
-                value={steps}
-                onChange={setSteps}
-                onUploadMedia={(file) => uploadMedia(file, setIsUploadingSteps)}
-                isUploading={isUploadingSteps}
-              />
-
-              <RichTextEditor
-                label="Expected result"
-                placeholder="Describe the expected result"
-                value={expected}
-                onChange={setExpected}
-                onUploadMedia={(file) =>
-                  uploadMedia(file, setIsUploadingExpected)
-                }
-                isUploading={isUploadingExpected}
+              <StepsEditor
+                description={description}
+                steps={steps}
+                onDescriptionChange={setDescription}
+                onStepsChange={setSteps}
+                onUploadMedia={uploadMedia}
+                isUploadingMedia={isUploadingMedia}
               />
             </EditingSurfaceSection>
 

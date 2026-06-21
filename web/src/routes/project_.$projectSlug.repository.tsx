@@ -5,13 +5,13 @@ import {
   useNavigate,
   useRouter,
 } from '@tanstack/react-router'
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
-import { LazyRichTextEditor } from '../components/RichTextEditor.lazy'
-import { sanitizeHtml } from '../lib/sanitize-html'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { z } from 'zod'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { BulkCaseBar } from '../components/repository/BulkCaseBar'
 import { CasePreviewDrawer } from '../components/repository/CasePreviewDrawer'
+import { StepsEditor } from '../components/repository/StepsEditor'
+import { StepsView } from '../components/repository/StepsView'
 import { RepositoryEmptyState } from '../components/repository/RepositoryEmptyState'
 import { RepositoryErrorBanner } from '../components/repository/RepositoryErrorBanner'
 import { RepositoryPanel } from '../components/repository/RepositoryPanel'
@@ -37,6 +37,11 @@ import {
   PopoverMenuItem,
 } from '../components/ui/PopoverMenu'
 import { getErrorMessage } from '../lib/errors'
+import {
+  caseContentForEditing,
+  serializeCaseContent,
+  type CaseStep,
+} from '../lib/caseContent'
 import { SelectMenu } from '../components/ui/SelectMenu'
 import { uploadTestMedia } from '../features/media/server'
 import { createShortcutRepositoryStory } from '../features/shortcut/server'
@@ -416,20 +421,6 @@ function formatRepositoryDateTime(value: string | null | undefined): string {
   return `${REPOSITORY_MONTH_LABELS[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}, ${hours}:${minutes}`
 }
 
-function hasRepositoryRichContent(value: string | null | undefined): boolean {
-  if (!value) {
-    return false
-  }
-
-  const text = value
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-
-  return text.length > 0
-}
-
 function isRepositoryPreviewDetailFresh(
   detail: TestDetail | undefined,
   test: DashboardTest | null,
@@ -678,8 +669,8 @@ function ProjectRepositoryPage() {
     string | null
   >(null)
   const [isEditingPreviewContent, setIsEditingPreviewContent] = useState(false)
-  const [previewStepsValue, setPreviewStepsValue] = useState('')
-  const [previewExpectedValue, setPreviewExpectedValue] = useState('')
+  const [previewDescriptionValue, setPreviewDescriptionValue] = useState('')
+  const [previewStepsValue, setPreviewStepsValue] = useState<CaseStep[]>([])
   const [isSavingPreviewContent, setIsSavingPreviewContent] = useState(false)
   const [isUploadingPreviewMedia, setIsUploadingPreviewMedia] = useState(false)
   const [isSplitPreviewViewport, setIsSplitPreviewViewport] = useState(false)
@@ -1391,10 +1382,6 @@ function ProjectRepositoryPage() {
   const shouldShowSplitPreview =
     isSplitPreviewViewport && previewDrawerTest !== null
   const splitPreviewTest = shouldShowSplitPreview ? previewDrawerTest : null
-  const splitPreviewHasSteps = hasRepositoryRichContent(splitPreviewTest?.steps)
-  const splitPreviewHasExpected = hasRepositoryRichContent(
-    splitPreviewTest?.expected,
-  )
   const previewIndex =
     previewTestId === null
       ? -1
@@ -1525,14 +1512,18 @@ function ProjectRepositoryPage() {
   useEffect(() => {
     if (!previewTestDetail) {
       setIsEditingPreviewContent(false)
-      setPreviewStepsValue('')
-      setPreviewExpectedValue('')
+      setPreviewDescriptionValue('')
+      setPreviewStepsValue([])
       return
     }
 
     if (!isEditingPreviewContent) {
-      setPreviewStepsValue(previewTestDetail.steps ?? '')
-      setPreviewExpectedValue(previewTestDetail.expected ?? '')
+      const content = caseContentForEditing(
+        previewTestDetail.steps,
+        previewTestDetail.expected,
+      )
+      setPreviewDescriptionValue(content.description)
+      setPreviewStepsValue(content.steps)
     }
   }, [isEditingPreviewContent, previewTestDetail])
 
@@ -1657,15 +1648,23 @@ function ProjectRepositoryPage() {
     }
 
     setCaseActionErrorMessage(null)
-    setPreviewStepsValue(previewTestDetail.steps ?? '')
-    setPreviewExpectedValue(previewTestDetail.expected ?? '')
+    const content = caseContentForEditing(
+      previewTestDetail.steps,
+      previewTestDetail.expected,
+    )
+    setPreviewDescriptionValue(content.description)
+    setPreviewStepsValue(content.steps)
     setIsEditingPreviewContent(true)
   }
 
   function cancelPreviewContentEdit(): void {
     setIsEditingPreviewContent(false)
-    setPreviewStepsValue(previewTestDetail?.steps ?? '')
-    setPreviewExpectedValue(previewTestDetail?.expected ?? '')
+    const content = caseContentForEditing(
+      previewTestDetail?.steps,
+      previewTestDetail?.expected,
+    )
+    setPreviewDescriptionValue(content.description)
+    setPreviewStepsValue(content.steps)
   }
 
   async function uploadPreviewMedia(file: File): Promise<string> {
@@ -1693,12 +1692,17 @@ function ProjectRepositoryPage() {
     setCaseActionErrorMessage(null)
     setIsSavingPreviewContent(true)
 
+    const serializedSteps = serializeCaseContent(
+      previewDescriptionValue,
+      previewStepsValue,
+    )
+
     try {
       await updateTestContent({
         data: {
           id: previewTestDetail.id,
-          steps: previewStepsValue,
-          expected: previewExpectedValue,
+          steps: serializedSteps,
+          expected: '',
         },
       })
 
@@ -1706,8 +1710,8 @@ function ProjectRepositoryPage() {
 
       rememberPreviewDetail({
         ...previewTestDetail,
-        steps: previewStepsValue,
-        expected: previewExpectedValue,
+        steps: serializedSteps,
+        expected: '',
         updatedAt,
       })
       updateRepositoryTests([previewTestDetail.id], (test) => ({
@@ -4144,40 +4148,14 @@ function ProjectRepositoryPage() {
 
                   <div className="repository-preview-panel__body">
                     {isEditingPreviewContent ? (
-                      <div className="grid gap-4">
-                        <Suspense
-                          fallback={
-                            <div className="repository-preview-panel__state">
-                              Loading editor...
-                            </div>
-                          }
-                        >
-                          <LazyRichTextEditor
-                            label="Steps"
-                            placeholder="Describe the test steps"
-                            value={previewStepsValue}
-                            onChange={setPreviewStepsValue}
-                            onUploadMedia={uploadPreviewMedia}
-                            isUploading={isUploadingPreviewMedia}
-                          />
-                        </Suspense>
-                        <Suspense
-                          fallback={
-                            <div className="repository-preview-panel__state">
-                              Loading editor...
-                            </div>
-                          }
-                        >
-                          <LazyRichTextEditor
-                            label="Expected result"
-                            placeholder="Describe the expected result"
-                            value={previewExpectedValue}
-                            onChange={setPreviewExpectedValue}
-                            onUploadMedia={uploadPreviewMedia}
-                            isUploading={isUploadingPreviewMedia}
-                          />
-                        </Suspense>
-                      </div>
+                      <StepsEditor
+                        description={previewDescriptionValue}
+                        steps={previewStepsValue}
+                        onDescriptionChange={setPreviewDescriptionValue}
+                        onStepsChange={setPreviewStepsValue}
+                        onUploadMedia={uploadPreviewMedia}
+                        isUploadingMedia={isUploadingPreviewMedia}
+                      />
                     ) : isLoadingPreviewDetail ? (
                       <div className="repository-preview-panel__skeleton">
                         <strong>Loading preview</strong>
@@ -4204,36 +4182,11 @@ function ProjectRepositoryPage() {
                     ) : (
                       <>
                         <section className="repository-preview-panel__section">
-                          <h3>Steps</h3>
-                          {splitPreviewHasSteps ? (
-                            <div
-                              className="rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
-                              onClick={handleRichContentClick}
-                              dangerouslySetInnerHTML={{
-                                __html: sanitizeHtml(splitPreviewTest.steps ?? ''),
-                              }}
-                            />
-                          ) : (
-                            <p className="repository-preview-panel__muted">
-                              No steps yet.
-                            </p>
-                          )}
-                        </section>
-                        <section className="repository-preview-panel__section">
-                          <h3>Expected result</h3>
-                          {splitPreviewHasExpected ? (
-                            <div
-                              className="rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
-                              onClick={handleRichContentClick}
-                              dangerouslySetInnerHTML={{
-                                __html: sanitizeHtml(splitPreviewTest.expected ?? ''),
-                              }}
-                            />
-                          ) : (
-                            <p className="repository-preview-panel__muted">
-                              No expected result yet.
-                            </p>
-                          )}
+                          <StepsView
+                            steps={splitPreviewTest.steps ?? null}
+                            expected={splitPreviewTest.expected ?? null}
+                            onMediaClick={handleRichContentClick}
+                          />
                         </section>
                         <section className="repository-preview-panel__section">
                           <h3>Activity</h3>
@@ -4273,8 +4226,8 @@ function ProjectRepositoryPage() {
               isLoadingContent={isLoadingPreviewDetail}
               errorMessage={previewDetailErrorMessage}
               isEditingContent={isEditingPreviewContent}
+              descriptionValue={previewDescriptionValue}
               stepsValue={previewStepsValue}
-              expectedValue={previewExpectedValue}
               isSavingContent={isSavingPreviewContent}
               isUploadingMedia={isUploadingPreviewMedia}
               isPendingAction={pendingCaseActionId === previewDrawerTest.id}
@@ -4284,8 +4237,8 @@ function ProjectRepositoryPage() {
               onSaveContent={() => {
                 void savePreviewContent()
               }}
+              onDescriptionChange={setPreviewDescriptionValue}
               onStepsChange={setPreviewStepsValue}
-              onExpectedChange={setPreviewExpectedValue}
               onUploadMedia={uploadPreviewMedia}
               onRichContentClick={handleRichContentClick}
               onRestore={() => {

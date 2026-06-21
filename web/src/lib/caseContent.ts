@@ -72,6 +72,30 @@ export function parseCaseContent(
   }
 }
 
+/**
+ * Prepares a case's stored content for the structured editor. Structured cases
+ * load as-is; legacy free-text cases fold their old "expected result" into the
+ * description so nothing is lost when the case is first edited.
+ */
+export function caseContentForEditing(
+  stepsRaw: string | null | undefined,
+  expectedRaw: string | null | undefined,
+): { description: string; steps: CaseStep[] } {
+  const content = parseCaseContent(stepsRaw, expectedRaw)
+
+  if (content.isStructured) {
+    return { description: content.description, steps: content.steps }
+  }
+
+  const parts = [content.description]
+
+  if (content.legacyExpected.trim()) {
+    parts.push('<p><strong>Expected result:</strong></p>', content.legacyExpected)
+  }
+
+  return { description: parts.filter(Boolean).join(''), steps: [] }
+}
+
 export function serializeCaseContent(
   description: string,
   steps: CaseStep[],

@@ -6,7 +6,7 @@ import {
 } from '@tanstack/react-router'
 import { MoreHorizontal } from 'lucide-react'
 import { useState } from 'react'
-import { RichTextEditor } from '../components/RichTextEditor'
+import { StepsEditor } from '../components/repository/StepsEditor'
 import { StepsView } from '../components/repository/StepsView'
 import { EditingFieldGroup, EditingSurfaceSection } from '../components/layout/EditingSurface'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
@@ -28,6 +28,11 @@ import {
 } from '../features/automation/server'
 import { uploadTestMedia } from '../features/media/server'
 import { markRepositoryPreviewDetailStale } from '../lib/repositoryPreviewCache'
+import {
+  caseContentForEditing,
+  serializeCaseContent,
+  type CaseStep,
+} from '../lib/caseContent'
 import {
   archiveTestCase,
   bulkMoveTestCases,
@@ -358,12 +363,15 @@ function TestDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDuplicating, setIsDuplicating] = useState(false)
   const [isEditingContent, setIsEditingContent] = useState(false)
-  const [stepsValue, setStepsValue] = useState(test.steps ?? '')
-  const [expectedValue, setExpectedValue] = useState(test.expected ?? '')
+  const initialEditContent = caseContentForEditing(test.steps, test.expected)
+  const [descriptionValue, setDescriptionValue] = useState(
+    initialEditContent.description,
+  )
+  const [stepsValue, setStepsValue] = useState<CaseStep[]>(
+    initialEditContent.steps,
+  )
   const [isSavingContent, setIsSavingContent] = useState(false)
-  const [isUploadingSteps, setIsUploadingSteps] = useState(false)
-  const [isUploadingExpected, setIsUploadingExpected] = useState(false)
-  const isUploadingMedia = isUploadingSteps || isUploadingExpected
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [caseTitle, setCaseTitle] = useState(test.title)
   const [titleValue, setTitleValue] = useState(test.title)
@@ -456,22 +464,21 @@ function TestDetailPage() {
 
   function startContentEdit(): void {
     setActionError(null)
-    setStepsValue(test.steps ?? '')
-    setExpectedValue(test.expected ?? '')
+    const content = caseContentForEditing(test.steps, test.expected)
+    setDescriptionValue(content.description)
+    setStepsValue(content.steps)
     setIsEditingContent(true)
   }
 
   function cancelContentEdit(): void {
-    setStepsValue(test.steps ?? '')
-    setExpectedValue(test.expected ?? '')
+    const content = caseContentForEditing(test.steps, test.expected)
+    setDescriptionValue(content.description)
+    setStepsValue(content.steps)
     setIsEditingContent(false)
   }
 
-  async function uploadInlineMedia(
-    file: File,
-    setUploading: (value: boolean) => void,
-  ): Promise<string> {
-    setUploading(true)
+  async function uploadInlineMedia(file: File): Promise<string> {
+    setIsUploadingMedia(true)
 
     try {
       const formData = new FormData()
@@ -483,7 +490,7 @@ function TestDetailPage() {
 
       return result.url
     } finally {
-      setUploading(false)
+      setIsUploadingMedia(false)
     }
   }
 
@@ -495,8 +502,8 @@ function TestDetailPage() {
       await updateTestContent({
         data: {
           id: test.id,
-          steps: stepsValue,
-          expected: expectedValue,
+          steps: serializeCaseContent(descriptionValue, stepsValue),
+          expected: '',
         },
       })
 
@@ -954,28 +961,14 @@ function TestDetailPage() {
                 bodyClassName="test-detail-content-stack"
               >
                 {isEditingContent ? (
-                  <>
-                    <RichTextEditor
-                      label="Steps"
-                      placeholder="Describe the test steps"
-                      value={stepsValue}
-                      onChange={setStepsValue}
-                      onUploadMedia={(file) =>
-                        uploadInlineMedia(file, setIsUploadingSteps)
-                      }
-                      isUploading={isUploadingSteps}
-                    />
-                    <RichTextEditor
-                      label="Expected result"
-                      placeholder="Describe the expected result"
-                      value={expectedValue}
-                      onChange={setExpectedValue}
-                      onUploadMedia={(file) =>
-                        uploadInlineMedia(file, setIsUploadingExpected)
-                      }
-                      isUploading={isUploadingExpected}
-                    />
-                  </>
+                  <StepsEditor
+                    description={descriptionValue}
+                    steps={stepsValue}
+                    onDescriptionChange={setDescriptionValue}
+                    onStepsChange={setStepsValue}
+                    onUploadMedia={uploadInlineMedia}
+                    isUploadingMedia={isUploadingMedia}
+                  />
                 ) : (
                   <StepsView
                     steps={test.steps}
