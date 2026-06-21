@@ -7,7 +7,7 @@ import {
 import { MoreHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { RichTextEditor } from '../components/RichTextEditor'
-import { sanitizeHtml } from '../lib/sanitize-html'
+import { StepsView } from '../components/repository/StepsView'
 import { EditingFieldGroup, EditingSurfaceSection } from '../components/layout/EditingSurface'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Alert } from '../components/ui/Alert'
@@ -977,37 +977,11 @@ function TestDetailPage() {
                     />
                   </>
                 ) : (
-                  <>
-                    <section className="test-detail-rich-block">
-                      <WorkspaceSectionHeader
-                        dense
-                        title="Steps"
-                        className="test-detail-rich-block__header"
-                      />
-                      <div
-                        className="test-detail-rich-block__body rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
-                        onClick={handleRichContentClick}
-                        dangerouslySetInnerHTML={{
-                          __html: sanitizeHtml(test.steps || '<p>-</p>'),
-                        }}
-                      />
-                    </section>
-
-                    <section className="test-detail-rich-block">
-                      <WorkspaceSectionHeader
-                        dense
-                        title="Expected result"
-                        className="test-detail-rich-block__header"
-                      />
-                      <div
-                        className="test-detail-rich-block__body rich-output prose prose-sm max-w-none text-[var(--tms-text)]"
-                        onClick={handleRichContentClick}
-                        dangerouslySetInnerHTML={{
-                          __html: sanitizeHtml(test.expected || '<p>-</p>'),
-                        }}
-                      />
-                    </section>
-                  </>
+                  <StepsView
+                    steps={test.steps}
+                    expected={test.expected}
+                    onMediaClick={handleRichContentClick}
+                  />
                 )}
               </EditingSurfaceSection>
             </Panel>
