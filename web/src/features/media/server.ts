@@ -8,7 +8,7 @@ export const uploadTestMedia = createServerFn({ method: 'POST' })
   .handler(
   async ({ data }): Promise<{ url: string }> => {
     const { requireSessionUser } = await import('../auth/helpers.server')
-    const { uploadMediaToCloudinary } = await import('./helpers.server')
+    const { uploadMedia } = await import('./helpers.server')
 
     await requireSessionUser()
 
@@ -29,7 +29,7 @@ export const uploadTestMedia = createServerFn({ method: 'POST' })
     }
 
     try {
-      const url = await uploadMediaToCloudinary(file)
+      const url = await uploadMedia(file)
 
       return { url }
     } catch (error) {

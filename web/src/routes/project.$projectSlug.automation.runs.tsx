@@ -4,6 +4,7 @@ import {
   notFound,
   redirect,
   useLocation,
+  useNavigate,
 } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
@@ -13,7 +14,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { Input } from '../components/ui/Input'
 import { LinkButton } from '../components/ui/LinkButton'
 import { Panel } from '../components/ui/Panel'
-import { Select } from '../components/ui/Select'
+import { SelectMenu } from '../components/ui/SelectMenu'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import {
   getAutomationRuns,
@@ -436,8 +437,13 @@ function AutomationRunsIndex({
           Math.round(runs.reduce((sum, run) => sum + run.durationMs, 0) / totalRuns),
         )
 
+  const navigate = useNavigate()
+
   function openAutomationRun(runId: number): void {
-    window.location.href = `/project/${projectSlug}/automation/runs/${runId}`
+    void navigate({
+      to: '/project/$projectSlug/automation/runs/$runId',
+      params: { projectSlug, runId: String(runId) },
+    })
   }
 
   return (
@@ -548,50 +554,48 @@ function AutomationRunsIndex({
 
             {showAdvancedFilters ? (
               <div className="automation-runs-advanced-filters">
-                <Select
+                <SelectMenu
                   value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value)}
-                >
-                  <option value="All">All statuses</option>
-                  <option value="passed">Passed</option>
-                  <option value="failed">Failed</option>
-                  <option value="skipped">Skipped</option>
-                  <option value="blocked">Blocked</option>
-                  <option value="unknown">Unknown</option>
-                </Select>
-                <Select
+                  onValueChange={setStatusFilter}
+                  options={[
+                    { value: 'All', label: 'All statuses' },
+                    { value: 'passed', label: 'Passed' },
+                    { value: 'failed', label: 'Failed' },
+                    { value: 'skipped', label: 'Skipped' },
+                    { value: 'blocked', label: 'Blocked' },
+                    { value: 'unknown', label: 'Unknown' },
+                  ]}
+                />
+                <SelectMenu
                   value={environmentFilter}
-                  onChange={(event) => setEnvironmentFilter(event.target.value)}
-                >
-                  <option value="All">All environments</option>
-                  {environments.map((environment) => (
-                    <option key={environment} value={environment}>
-                      {environment}
-                    </option>
-                  ))}
-                </Select>
-                <Select
+                  onValueChange={setEnvironmentFilter}
+                  options={[
+                    { value: 'All', label: 'All environments' },
+                    ...environments.map((environment) => ({
+                      value: environment,
+                      label: environment,
+                    })),
+                  ]}
+                />
+                <SelectMenu
                   value={branchFilter}
-                  onChange={(event) => setBranchFilter(event.target.value)}
-                >
-                  <option value="All">All branches</option>
-                  {branches.map((branch) => (
-                    <option key={branch} value={branch}>
-                      {branch}
-                    </option>
-                  ))}
-                </Select>
-                <Select
+                  onValueChange={setBranchFilter}
+                  options={[
+                    { value: 'All', label: 'All branches' },
+                    ...branches.map((branch) => ({ value: branch, label: branch })),
+                  ]}
+                />
+                <SelectMenu
                   value={sourceFilter}
-                  onChange={(event) => setSourceFilter(event.target.value)}
-                >
-                  <option value="All">All sources</option>
-                  {sources.map((source) => (
-                    <option key={source} value={source}>
-                      {humanizeStatus(source)}
-                    </option>
-                  ))}
-                </Select>
+                  onValueChange={setSourceFilter}
+                  options={[
+                    { value: 'All', label: 'All sources' },
+                    ...sources.map((source) => ({
+                      value: source,
+                      label: humanizeStatus(source),
+                    })),
+                  ]}
+                />
               </div>
             ) : null}
 

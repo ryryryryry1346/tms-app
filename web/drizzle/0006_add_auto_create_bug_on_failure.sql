@@ -1,0 +1,1 @@
+ALTER TABLE `project_integrations` ADD `auto_create_bug_on_failure` boolean DEFAULT false NOT NULL;

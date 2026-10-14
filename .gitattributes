@@ -1,0 +1,22 @@
+# Normalize line endings to LF in the repository for anything Git detects as
+# text, regardless of what line endings a given OS/editor checks it out
+# with. Without this, files committed with CRLF (Windows) and LF (Linux/Mac)
+# get mixed in the same repo, which is what caused `git status` to show
+# nearly the whole tree as "modified" throughout 2026-09-12's session even
+# with no real changes.
+* text=auto eol=lf
+
+# Known binary types: never touch these regardless of Git's text heuristic.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.pdf binary
+*.zip binary

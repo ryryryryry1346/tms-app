@@ -1,4 +1,5 @@
 import DOMPurify from 'isomorphic-dompurify'
+import { highlightCodeInHtml } from './codeHighlight'
 
 /**
  * Sanitize user-authored rich text (Tiptap output) before rendering it via
@@ -10,7 +11,7 @@ export function sanitizeHtml(html: string | null | undefined): string {
     return ''
   }
 
-  return DOMPurify.sanitize(html, {
+  return DOMPurify.sanitize(highlightCodeInHtml(html), {
     USE_PROFILES: { html: true },
     ADD_ATTR: ['target', 'rel'],
   })

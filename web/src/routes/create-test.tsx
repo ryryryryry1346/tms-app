@@ -1,19 +1,29 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { z } from 'zod'
+import { RichTextEditor } from '../components/RichTextEditor'
 import { StepsEditor } from '../components/repository/StepsEditor'
-import { EditingFieldGroup, EditingSurfaceSection } from '../components/layout/EditingSurface'
+import { TagsInput } from '../components/repository/TagsInput'
+import { RefsEditor } from '../components/repository/RefsEditor'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
-import { Input } from '../components/ui/Input'
 import { SelectMenu } from '../components/ui/SelectMenu'
+import { cx } from '../components/ui/utils'
 import { uploadTestMedia } from '../features/media/server'
 import {
   createTestCase,
   getCreateTestFormState,
 } from '../features/tests/server'
 import { serializeCaseContent, type CaseStep } from '../lib/caseContent'
+import {
+  serializeRefs,
+  serializeTags,
+  type CaseRef,
+} from '../lib/caseFields'
+import { getErrorMessage } from '../lib/errors'
+import { useT } from '../lib/i18n'
 
 export const Route = createFileRoute('/create-test')({
   validateSearch: z.object({
@@ -30,27 +40,18 @@ export const Route = createFileRoute('/create-test')({
   component: CreateTestPage,
 })
 
-function getErrorMessage(
-  error: unknown,
-  fallback: string,
-): string {
-  if (error instanceof Error && error.message) {
-    return error.message
-  }
-
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof error.message === 'string'
-  ) {
-    return error.message
-  }
-
-  return fallback
+function RequiredMark() {
+  return (
+    <span className="text-[var(--tms-danger)]" aria-hidden="true">
+      {' '}
+      *
+    </span>
+  )
 }
 
 function CreateTestPage() {
+  const t = useT()
+
   const formState = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = useNavigate()
@@ -71,6 +72,9 @@ function CreateTestPage() {
   >('Functional')
   const [description, setDescription] = useState('')
   const [steps, setSteps] = useState<CaseStep[]>([])
+  const [preconditions, setPreconditions] = useState('')
+  const [tags, setTags] = useState<string[]>([])
+  const [refs, setRefs] = useState<CaseRef[]>([])
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploadingMedia, setIsUploadingMedia] = useState(false)
@@ -79,6 +83,12 @@ function CreateTestPage() {
     formState.sections.find((section) => section.id.toString() === sectionId) ??
     null
   const selectedProjectSlug = selectedSection?.projectSlug ?? null
+  const trimmedTitle = title.trim()
+  const canSubmit =
+    Boolean(trimmedTitle) &&
+    Boolean(sectionId) &&
+    formState.databaseConfigured &&
+    formState.sections.length > 0
 
   async function uploadMedia(file: File): Promise<string> {
     setErrorMessage(null)
@@ -106,19 +116,27 @@ function CreateTestPage() {
     event: React.FormEvent<HTMLFormElement>,
   ): Promise<void> {
     event.preventDefault()
+
+    if (!canSubmit) {
+      return
+    }
+
     setErrorMessage(null)
     setIsSubmitting(true)
 
     try {
       const result = await createTestCase({
         data: {
-          title,
+          title: trimmedTitle,
           sectionId: Number(sectionId),
           status,
           priority,
           caseType,
           steps: serializeCaseContent(description, steps),
           expected: '',
+          preconditions,
+          tags: serializeTags(tags),
+          refs: serializeRefs(refs),
         },
       })
 
@@ -136,110 +154,145 @@ function CreateTestPage() {
     }
   }
 
+  const isDirty =
+    title.trim() !== '' ||
+    preconditions.trim() !== '' ||
+    description.trim() !== '' ||
+    steps.length > 0 ||
+    tags.length > 0 ||
+    refs.length > 0
+
+  function handleFormKeyDown(event: React.KeyboardEvent<HTMLFormElement>): void {
+    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault()
+      event.currentTarget.requestSubmit()
+    }
+  }
+
   return (
-    <main className="min-h-[calc(100vh-65px)] bg-[var(--tms-bg)]">
-      <div className="mx-auto max-w-[1180px] px-4 py-6 sm:px-6 sm:py-8">
-      <section className="mb-5 flex flex-wrap items-end justify-between gap-4">
-        <div className="max-w-2xl">
-          <div className="mb-2 flex flex-wrap items-center gap-2 text-sm font-semibold text-[var(--tms-text-muted)]">
-            <Link to="/" className="no-underline text-[var(--tms-primary)]">
-              Workspace
-            </Link>
-            <span>/</span>
-            <span>{selectedSection?.projectName ?? 'Project'}</span>
-            <span>/</span>
-            <span>{selectedSection?.name ?? 'Suite'}</span>
+    <main className="case-form-page">
+      <form
+        className="case-form"
+        onSubmit={handleSubmit}
+        onKeyDown={handleFormKeyDown}
+      >
+        <div className="case-bar">
+          <div className="case-bar__inner">
+            <nav className="case-crumbs" aria-label={t('Navigation')}>
+              {selectedProjectSlug ? (
+                <Link
+                  to="/project/$projectSlug/repository"
+                  params={{ projectSlug: selectedProjectSlug }}
+                >{t('Repository')}</Link>
+              ) : (
+                <span>{t('Repository')}</span>
+              )}
+              <ChevronRight size={13} aria-hidden="true" />
+              <span className="case-crumbs__suite">
+                {selectedSection?.name ?? t('Choose a suite')}
+              </span>
+              <ChevronRight size={13} aria-hidden="true" />
+              <strong>{t('New case')}</strong>
+            </nav>
+            <div className="case-bar__actions">
+              {isDirty ? (
+                <span className="case-dirty">{t('You have unsaved changes')}</span>
+              ) : null}
+              {selectedProjectSlug ? (
+                <Link
+                  to="/project/$projectSlug/repository"
+                  params={{ projectSlug: selectedProjectSlug }}
+                  className="tms-button no-underline"
+                >{t('Cancel')}</Link>
+              ) : null}
+              <Button
+                type="submit"
+                disabled={isSubmitting || isUploading || !canSubmit}
+                variant="primary"
+              >
+                {isUploading
+                  ? t('Uploading media…')
+                  : isSubmitting
+                    ? t('Saving…')
+                    : t('Create case')}
+                <kbd className="case-kbd">{t('Ctrl ⏎')}</kbd>
+              </Button>
+            </div>
           </div>
-          <h1 className="m-0 text-3xl font-bold tracking-tight text-[var(--tms-text)] sm:text-4xl">
-            Create Test Case
-          </h1>
         </div>
-        {selectedProjectSlug ? (
-          <Link
-            to="/project/$projectSlug/repository"
-            params={{ projectSlug: selectedProjectSlug }}
-            className="tms-button no-underline hover:text-[var(--tms-primary)]"
-          >
-            Back to repository
-          </Link>
-        ) : null}
-      </section>
 
-      <section>
-        <form
-          className="tms-panel p-4 sm:p-6"
-          onSubmit={handleSubmit}
-        >
-          <EditingSurfaceSection
-            title="Case details"
-            description="Define the destination suite, metadata, and rich content for this new test case."
-          >
-          <EditingFieldGroup label="Test case title">
-            <Input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              size="lg"
-              placeholder="Verify order cancellation"
-            />
-          </EditingFieldGroup>
+        <div className="case-body">
+          {errorMessage ? <Alert variant="danger">{errorMessage}</Alert> : null}
 
-          <div className="editing-field-grid editing-field-grid--metadata">
-            <EditingFieldGroup label="Test suite">
+          <input
+            className="case-title-input"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder={t('Case title, e.g. “Checkout with card payment”')}
+            aria-label={t('Case title')}
+            aria-required="true"
+            autoFocus
+          />
+
+          <section className="case-card case-props" aria-label={t('Case properties')}>
+            <div className="case-field case-field--suite">
+              <span className="case-field__label">{t('Suite')}<RequiredMark />
+              </span>
               <SelectMenu
                 value={sectionId}
                 onValueChange={setSectionId}
                 options={formState.sections.map((section) => ({
                   value: section.id.toString(),
                   label: section.projectName
-                      ? `${section.projectName} / ${section.name}`
-                      : section.name,
+                    ? `${section.projectName} / ${section.name}`
+                    : section.name,
                 }))}
-                className="w-full px-4 py-3 text-base"
-                aria-label="Choose test suite"
+                className="test-detail-meta-select"
+                aria-label={t('Choose a suite')}
               />
-            </EditingFieldGroup>
+            </div>
 
-            <EditingFieldGroup label="Status">
-              <SelectMenu
-                value={status}
-                onValueChange={(value) =>
-                  setStatus(value === 'Ready' ? 'Ready' : 'Draft')
-                }
-                options={[
-                  { value: 'Draft', label: 'Draft' },
-                  { value: 'Ready', label: 'Ready' },
-                ]}
-                className="w-full px-4 py-3 text-base"
-                aria-label="Choose case status"
-              />
-            </EditingFieldGroup>
+            <div className="case-field">
+              <span className="case-field__label">{t('Status')}</span>
+              <div className="case-seg" role="group" aria-label={t('Case status')}>
+                {(['Draft', 'Ready'] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={cx(value === status && 'is-on')}
+                    aria-pressed={value === status}
+                    onClick={() => setStatus(value)}
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-            <EditingFieldGroup label="Priority">
-              <SelectMenu
-                value={priority}
-                onValueChange={(value) =>
-                  setPriority(
-                    value === 'Low'
-                      ? 'Low'
-                      : value === 'High'
-                        ? 'High'
-                        : value === 'Critical'
-                          ? 'Critical'
-                          : 'Medium',
-                  )
-                }
-                options={[
-                  { value: 'Low', label: 'Low' },
-                  { value: 'Medium', label: 'Medium' },
-                  { value: 'High', label: 'High' },
-                  { value: 'Critical', label: 'Critical' },
-                ]}
-                className="w-full px-4 py-3 text-base"
-                aria-label="Choose case priority"
-              />
-            </EditingFieldGroup>
+            <div className="case-field">
+              <span className="case-field__label">{t('Priority')}</span>
+              <div
+                className="case-seg case-seg--priority"
+                role="group"
+                aria-label={t('Case priority')}
+              >
+                {(['Low', 'Medium', 'High', 'Critical'] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    data-priority={value}
+                    className={cx(value === priority && 'is-on')}
+                    aria-pressed={value === priority}
+                    onClick={() => setPriority(value)}
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-            <EditingFieldGroup label="Type">
+            <div className="case-field">
+              <span className="case-field__label">{t('Type')}</span>
               <SelectMenu
                 value={caseType}
                 onValueChange={(value) =>
@@ -258,93 +311,103 @@ function CreateTestPage() {
                   )
                 }
                 options={[
-                  { value: 'Functional', label: 'Functional' },
-                  { value: 'Regression', label: 'Regression' },
-                  { value: 'Smoke', label: 'Smoke' },
+                  { value: 'Functional', label: t('Functional') },
+                  { value: 'Regression', label: t('Regression') },
+                  { value: 'Smoke', label: t('Smoke') },
                   { value: 'E2E', label: 'E2E' },
-                  { value: 'UI', label: 'UI' },
-                  { value: 'API', label: 'API' },
+                  { value: 'UI', label: t('UI') },
+                  { value: 'API', label: t('API') },
                 ]}
-                className="w-full px-4 py-3 text-base"
-                aria-label="Choose case type"
+                className="test-detail-meta-select"
+                aria-label={t('Case type')}
               />
-            </EditingFieldGroup>
-          </div>
-          </EditingSurfaceSection>
+            </div>
 
-          <EditingSurfaceSection
-            title="Content"
-            description="Capture steps and expected result with inline attachments."
-            className="mt-5"
-            bodyClassName="editing-rich-stack"
-          >
-            <StepsEditor
-              description={description}
-              steps={steps}
-              onDescriptionChange={setDescription}
-              onStepsChange={setSteps}
-              onUploadMedia={uploadMedia}
-              isUploadingMedia={isUploadingMedia}
-            />
-          </EditingSurfaceSection>
+            <div className="case-field case-field--tags">
+              <span className="case-field__label">{t('Tags')}</span>
+              <TagsInput
+                value={tags}
+                onChange={setTags}
+                placeholder={t('Add a tag and press Enter')}
+              />
+            </div>
+          </section>
 
-          {errorMessage ? (
-            <Alert variant="danger" className="mt-5">
-              {errorMessage}
-            </Alert>
+          <section className="case-card">
+            <div className="case-card__head">
+              <h2>{t('Preconditions')}</h2>
+              <span>{t('what must be ready before running')}</span>
+            </div>
+            <div className="case-card__body">
+              <RichTextEditor
+                label={t('Preconditions')}
+                placeholder={t('Data, environment and system state before running')}
+                value={preconditions}
+                onChange={setPreconditions}
+                onUploadMedia={uploadMedia}
+                isUploading={isUploadingMedia}
+                minHeightClassName="min-h-16"
+              />
+            </div>
+          </section>
+
+          <section className="case-card">
+            <div className="case-card__head">
+              <h2>{t('Description')}</h2>
+              <span>{t('optional')}</span>
+            </div>
+            <div className="case-card__body">
+              <RichTextEditor
+                label={t('Description')}
+                placeholder={t('What the case verifies and why it is needed')}
+                value={description}
+                onChange={setDescription}
+                onUploadMedia={uploadMedia}
+                isUploading={isUploadingMedia}
+                minHeightClassName="min-h-16"
+              />
+            </div>
+          </section>
+
+          <section className="case-card">
+            <div className="case-card__body case-card__body--steps">
+              <StepsEditor
+                description={description}
+                steps={steps}
+                onDescriptionChange={setDescription}
+                onStepsChange={setSteps}
+                onUploadMedia={uploadMedia}
+                isUploadingMedia={isUploadingMedia}
+                hideDescription
+              />
+            </div>
+          </section>
+
+          <section className="case-card">
+            <div className="case-card__head">
+              <h2>{t('Links')}</h2>
+              <span>{t('requirements, tickets, Docs articles')}</span>
+            </div>
+            <div className="case-card__body">
+              <RefsEditor value={refs} onChange={setRefs} />
+            </div>
+          </section>
+
+          {!selectedSection ? (
+            <p className="case-hint">{t('Choose a suite to create a case.')}</p>
           ) : null}
 
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--tms-border-subtle)] pt-5">
-            <div className="text-sm font-semibold text-[var(--tms-text-muted)]">
-              {selectedSection
-                ? `${selectedSection.projectName ?? 'Project'} / ${selectedSection.name}`
-                : 'Choose a suite to create this case.'}
-            </div>
-            <div className="workspace-secondary-actions create-edit-actions">
-              {selectedProjectSlug ? (
-                <Link
-                  to="/project/$projectSlug/repository"
-                  params={{ projectSlug: selectedProjectSlug }}
-                  className="tms-button no-underline"
-                >
-                  Cancel
-                </Link>
-              ) : null}
-              <Button
-                type="submit"
-                disabled={
-                  isSubmitting ||
-                  isUploading ||
-                  !formState.databaseConfigured ||
-                  formState.sections.length === 0
-                }
-                variant="primary"
-              >
-                {isUploading
-                  ? 'Uploading media...'
-                  : isSubmitting
-                    ? 'Saving...'
-                    : 'Create test case'}
-              </Button>
-            </div>
-          </div>
-        </form>
-      </section>
-
-      {!formState.databaseConfigured ? (
-        <Alert variant="warning" className="mx-auto mt-5 max-w-5xl p-6">
-          <strong>Database is not configured yet.</strong> Set
-          <code> MYSQL_DATABASE_URL </code>
-          and run the Drizzle migration first.
-        </Alert>
-      ) : formState.sections.length === 0 ? (
-        <EmptyState
-          className="mx-auto mt-5 max-w-5xl"
-          title="No suites available"
-          description="There are no suites in MySQL yet, so test case creation is blocked until suite management is added."
-        />
-      ) : null}
-      </div>
+          {!formState.databaseConfigured ? (
+            <Alert variant="warning" className="p-6">
+              <strong>{t('Database is not configured yet.')}</strong>{' '}{t('Set')}<code>{' '}{t('MYSQL_DATABASE_URL')}{' '}</code>{t('and run the Drizzle migration first.')}</Alert>
+          ) : formState.sections.length === 0 ? (
+            <EmptyState
+              title={t('No suites available')}
+              description={t('There are no suites in MySQL yet, so test case creation is blocked until suite management is added.')}
+            />
+          ) : null}
+        </div>
+      </form>
     </main>
   )
 }

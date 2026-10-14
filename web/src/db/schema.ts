@@ -1,4 +1,5 @@
 import {
+  foreignKey,
   index,
   int,
   boolean,
@@ -116,6 +117,9 @@ export const tests = mysqlTable(
     title: text('title').notNull(),
     steps: text('steps'),
     expected: text('expected'),
+    preconditions: longtext('preconditions'),
+    tags: longtext('tags'),
+    refs: longtext('refs'),
     status: varchar('status', { length: 64 }),
     priority: varchar('priority', { length: 64 }),
     caseType: varchar('case_type', { length: 64 }),
@@ -196,6 +200,8 @@ export const testRuns = mysqlTable(
     }),
     name: text('name').notNull(),
     status: varchar('status', { length: 32 }).notNull().default('In progress'),
+    releaseName: varchar('release_name', { length: 255 }),
+    jiraVersionId: varchar('jira_version_id', { length: 64 }),
   },
   (table) => ({
     projectIdIndex: index('test_runs_project_id_idx').on(table.projectId),
@@ -263,12 +269,81 @@ export const projectDocs = mysqlTable(
     category: varchar('category', { length: 128 }),
     content: text('content'),
     status: varchar('status', { length: 64 }).notNull().default('Published'),
+    /** Set when the article is pinned to the top of the project's Docs. */
+    pinnedAt: varchar('pinned_at', { length: 32 }),
+    createdBy: varchar('created_by', { length: 255 }).references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    updatedBy: varchar('updated_by', { length: 255 }).references(() => user.id, {
+      onDelete: 'set null',
+    }),
     createdAt: varchar('created_at', { length: 32 }),
     updatedAt: varchar('updated_at', { length: 32 }),
   },
   (table) => ({
     projectIdIndex: index('project_docs_project_id_idx').on(table.projectId),
     statusIndex: index('project_docs_status_idx').on(table.status),
+  }),
+)
+
+/**
+ * Per-project Docs categories. Docs reference a category by name (the legacy
+ * project_docs.category column), so renaming here must update the docs too
+ * (see features/docs/server.ts). "General" is the system fallback category.
+ */
+export const docCategories = mysqlTable(
+  'doc_categories',
+  {
+    id: int('id').autoincrement().primaryKey(),
+    projectId: int('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    name: varchar('name', { length: 128 }).notNull(),
+    color: varchar('color', { length: 16 }).notNull(),
+    icon: varchar('icon', { length: 32 }).notNull(),
+    position: int('position').notNull().default(0),
+    createdAt: varchar('created_at', { length: 32 }),
+  },
+  (table) => ({
+    projectNameUnique: uniqueIndex('doc_categories_project_name_unique').on(
+      table.projectId,
+      table.name,
+    ),
+  }),
+)
+
+/**
+ * Threaded discussion attached to any entity by (entity_type, entity_id).
+ * parent_id points at the thread's root comment (two levels: root + replies);
+ * deleted_at marks a root kept as a placeholder because it still has replies.
+ * There is deliberately no FK to the entity (it varies by type), so deleting
+ * an entity must also delete its comments.
+ */
+export const comments = mysqlTable(
+  'comments',
+  {
+    id: int('id').autoincrement().primaryKey(),
+    projectId: int('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    entityType: varchar('entity_type', { length: 32 }).notNull(),
+    entityId: int('entity_id').notNull(),
+    parentId: int('parent_id'),
+    authorId: varchar('author_id', { length: 255 }).references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    body: text('body').notNull(),
+    createdAt: varchar('created_at', { length: 32 }).notNull(),
+    updatedAt: varchar('updated_at', { length: 32 }),
+    deletedAt: varchar('deleted_at', { length: 32 }),
+  },
+  (table) => ({
+    entityIndex: index('comments_entity_idx').on(
+      table.entityType,
+      table.entityId,
+    ),
+    projectIdIndex: index('comments_project_id_idx').on(table.projectId),
+    parentIdIndex: index('comments_parent_id_idx').on(table.parentId),
   }),
 )
 
@@ -406,9 +481,7 @@ export const automationTestCaseLinks = mysqlTable(
     projectId: int('project_id')
       .notNull()
       .references(() => projects.id, { onDelete: 'cascade' }),
-    resultId: int('result_id').references(() => automationTestResults.id, {
-      onDelete: 'cascade',
-    }),
+    resultId: int('result_id'),
     testId: int('test_id')
       .notNull()
       .references(() => tests.id, { onDelete: 'cascade' }),
@@ -418,6 +491,11 @@ export const automationTestCaseLinks = mysqlTable(
     updatedAt: varchar('updated_at', { length: 32 }).notNull(),
   },
   (table) => ({
+    resultFk: foreignKey({
+      columns: [table.resultId],
+      foreignColumns: [automationTestResults.id],
+      name: 'atcl_result_id_fk',
+    }).onDelete('cascade'),
     resultIdIndex: index('automation_links_result_id_idx').on(table.resultId),
     testIdIndex: index('automation_links_test_id_idx').on(table.testId),
     projectSuiteIndex: index('automation_links_project_suite_idx').on(
@@ -478,6 +556,66 @@ export const projectMembers = mysqlTable(
       table.userId,
     ),
     userIdIndex: index('project_members_user_id_idx').on(table.userId),
+  }),
+)
+
+export const projectIntegrations = mysqlTable(
+  'project_integrations',
+  {
+    id: int('id').autoincrement().primaryKey(),
+    projectId: int('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    jiraBaseUrl: varchar('jira_base_url', { length: 255 }),
+    jiraEmail: varchar('jira_email', { length: 255 }),
+    jiraApiToken: text('jira_api_token'),
+    jiraProjectKey: varchar('jira_project_key', { length: 64 }),
+    jiraIssueType: varchar('jira_issue_type', { length: 64 }),
+    autoCreateBugOnFailure: boolean('auto_create_bug_on_failure')
+      .notNull()
+      .default(false),
+    createdAt: varchar('created_at', { length: 32 }).notNull(),
+    updatedAt: varchar('updated_at', { length: 32 }).notNull(),
+  },
+  (table) => ({
+    projectIdUnique: uniqueIndex('project_integrations_project_id_unique').on(
+      table.projectId,
+    ),
+  }),
+)
+
+export const projectNotificationChannels = mysqlTable(
+  'project_notification_channels',
+  {
+    id: int('id').autoincrement().primaryKey(),
+    projectId: int('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    // Discriminator for the kind of channel — 'teams' today; the same shape
+    // (webhook URL + per-event toggles) covers Slack/Discord/generic
+    // webhooks later without another migration.
+    type: varchar('type', { length: 32 }).notNull(),
+    webhookUrl: text('webhook_url'),
+    enabled: boolean('enabled').notNull().default(false),
+    notifyOnAutomationFailure: boolean('notify_on_automation_failure')
+      .notNull()
+      .default(true),
+    notifyOnJiraBugCreated: boolean('notify_on_jira_bug_created')
+      .notNull()
+      .default(true),
+    notifyOnRunCompleted: boolean('notify_on_run_completed')
+      .notNull()
+      .default(false),
+    notifyOnReleaseLinked: boolean('notify_on_release_linked')
+      .notNull()
+      .default(false),
+    createdAt: varchar('created_at', { length: 32 }).notNull(),
+    updatedAt: varchar('updated_at', { length: 32 }).notNull(),
+  },
+  (table) => ({
+    projectTypeUnique: uniqueIndex(
+      'project_notification_channels_project_type_unique',
+    ).on(table.projectId, table.type),
   }),
 )
 

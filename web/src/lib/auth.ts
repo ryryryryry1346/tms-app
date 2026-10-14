@@ -1,9 +1,9 @@
 import { drizzleAdapter } from '@better-auth/drizzle-adapter'
 import { betterAuth } from 'better-auth'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
-import { Resend } from 'resend'
 import { getDb } from '../db/client'
 import { account, session, user, verification } from '../db/schema'
+import { sendMail } from './mail.server'
 
 const localFallbackSecret =
   'local-development-only-better-auth-secret-change-before-production'
@@ -45,10 +45,6 @@ function getAuthBaseUrl(): string {
   return 'http://localhost:3000'
 }
 
-function getResendFrom(): string {
-  return process.env.RESEND_FROM ?? 'TMS <no-reply@example.com>'
-}
-
 async function sendVerificationEmail({
   email,
   url,
@@ -56,15 +52,7 @@ async function sendVerificationEmail({
   email: string
   url: string
 }): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY
-
-  if (!apiKey) {
-    throw new Error('RESEND_API_KEY is required to send verification emails.')
-  }
-
-  const resend = new Resend(apiKey)
-  await resend.emails.send({
-    from: getResendFrom(),
+  await sendMail({
     to: email,
     subject: 'Verify your TMS account',
     html: `
@@ -75,6 +63,14 @@ async function sendVerificationEmail({
         <p>If you did not create this account, you can ignore this email.</p>
       </div>
     `,
+    text: [
+      'Verify your TMS account',
+      '',
+      'Confirm your email address to finish creating your TMS account:',
+      url,
+      '',
+      'If you did not create this account, you can ignore this email.',
+    ].join('\n'),
   })
 }
 
@@ -85,15 +81,7 @@ async function sendResetPasswordEmail({
   email: string
   url: string
 }): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY
-
-  if (!apiKey) {
-    throw new Error('RESEND_API_KEY is required to send password reset emails.')
-  }
-
-  const resend = new Resend(apiKey)
-  await resend.emails.send({
-    from: getResendFrom(),
+  await sendMail({
     to: email,
     subject: 'Reset your TMS password',
     html: `
@@ -104,6 +92,14 @@ async function sendResetPasswordEmail({
         <p>If you did not request this, you can ignore this email.</p>
       </div>
     `,
+    text: [
+      'Reset your TMS password',
+      '',
+      'Use this link to choose a new password for your TMS account:',
+      url,
+      '',
+      'If you did not request this, you can ignore this email.',
+    ].join('\n'),
   })
 }
 

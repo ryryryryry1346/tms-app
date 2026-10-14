@@ -1,6 +1,9 @@
 import { Link, createFileRoute, notFound, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
+import { RichTextEditor } from '../components/RichTextEditor'
 import { StepsEditor } from '../components/repository/StepsEditor'
+import { TagsInput } from '../components/repository/TagsInput'
+import { RefsEditor } from '../components/repository/RefsEditor'
 import { EditingFieldGroup, EditingSurfaceSection } from '../components/layout/EditingSurface'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
@@ -14,6 +17,15 @@ import {
   serializeCaseContent,
   type CaseStep,
 } from '../lib/caseContent'
+import {
+  parseRefs,
+  parseTags,
+  serializeRefs,
+  serializeTags,
+  type CaseRef,
+} from '../lib/caseFields'
+import { getErrorMessage } from '../lib/errors'
+import { useT } from '../lib/i18n'
 
 export const Route = createFileRoute('/edit-test/$testId')({
   loader: async ({ params }) => {
@@ -32,24 +44,9 @@ export const Route = createFileRoute('/edit-test/$testId')({
   component: EditTestPage,
 })
 
-function getErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error && error.message) {
-    return error.message
-  }
-
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof error.message === 'string'
-  ) {
-    return error.message
-  }
-
-  return fallback
-}
-
 function EditTestPage() {
+  const t = useT()
+
   const formState = Route.useLoaderData()
   const navigate = useNavigate()
 
@@ -66,6 +63,11 @@ function EditTestPage() {
   )
   const [description, setDescription] = useState(initialContent.description)
   const [steps, setSteps] = useState<CaseStep[]>(initialContent.steps)
+  const [preconditions, setPreconditions] = useState(
+    formState.test.preconditions ?? '',
+  )
+  const [tags, setTags] = useState<string[]>(parseTags(formState.test.tags))
+  const [refs, setRefs] = useState<CaseRef[]>(parseRefs(formState.test.refs))
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploadingMedia, setIsUploadingMedia] = useState(false)
@@ -115,6 +117,9 @@ function EditTestPage() {
           caseType,
           steps: serializeCaseContent(description, steps),
           expected: '',
+          preconditions,
+          tags: serializeTags(tags),
+          refs: serializeRefs(refs),
         },
       })
 
@@ -139,19 +144,15 @@ function EditTestPage() {
         <section className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div className="max-w-3xl">
             <div className="mb-2 flex flex-wrap items-center gap-2 text-sm font-semibold text-[var(--tms-text-muted)]">
-              <Link to="/" className="no-underline text-[var(--tms-primary)]">
-                Workspace
-              </Link>
+              <Link to="/" className="no-underline text-[var(--tms-primary)]">{t('Workspace')}</Link>
               <span>/</span>
-              <span>{selectedSection?.projectName ?? 'Project'}</span>
+              <span>{selectedSection?.projectName ?? t('Project')}</span>
               <span>/</span>
-              <span>{selectedSection?.name ?? 'Suite'}</span>
+              <span>{selectedSection?.name ?? t('Suite')}</span>
               <span>/</span>
-              <span>Case #{formState.test.id}</span>
+              <span>{t('Case #{id}', { id: formState.test.id })}</span>
             </div>
-            <h1 className="m-0 text-3xl font-bold tracking-tight text-[var(--tms-text)] sm:text-4xl">
-              Edit Test Case
-            </h1>
+            <h1 className="m-0 text-3xl font-bold tracking-tight text-[var(--tms-text)] sm:text-4xl">{t('Edit Test Case')}</h1>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -160,17 +161,13 @@ function EditTestPage() {
                 to="/project/$projectSlug/repository"
                 params={{ projectSlug: selectedProjectSlug }}
                 className="tms-button no-underline hover:text-[var(--tms-primary)]"
-              >
-                Repository
-              </Link>
+              >{t('Repository')}</Link>
             ) : null}
             <Link
               to="/test/$testId"
               params={{ testId: formState.test.id.toString() }}
               className="tms-button no-underline hover:text-[var(--tms-primary)]"
-            >
-              View case
-            </Link>
+            >{t('View case')}</Link>
           </div>
         </section>
 
@@ -180,20 +177,20 @@ function EditTestPage() {
             onSubmit={handleSubmit}
           >
             <EditingSurfaceSection
-              title="Case details"
-              description="Update suite placement, metadata, and rich content for this test case."
+              title={t('Case details')}
+              description={t('Update suite placement, metadata, and rich content for this test case.')}
             >
-            <EditingFieldGroup label="Test case title">
+            <EditingFieldGroup label={t('Test case title')}>
               <Input
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 size="lg"
-                placeholder="Verify order cancellation"
+                placeholder={t('Verify order cancellation')}
               />
             </EditingFieldGroup>
 
             <div className="editing-field-grid editing-field-grid--metadata">
-              <EditingFieldGroup label="Test suite">
+              <EditingFieldGroup label={t('Test suite')}>
                 <SelectMenu
                   value={sectionId}
                   onValueChange={setSectionId}
@@ -204,11 +201,11 @@ function EditTestPage() {
                         : section.name,
                   }))}
                   className="w-full px-4 py-3 text-base"
-                  aria-label="Choose test suite"
+                  aria-label={t('Choose test suite')}
                 />
               </EditingFieldGroup>
 
-              <EditingFieldGroup label="Status">
+              <EditingFieldGroup label={t('Status')}>
                 <SelectMenu
                   value={status}
                   onValueChange={(value) =>
@@ -221,16 +218,16 @@ function EditTestPage() {
                     )
                   }
                   options={[
-                    { value: 'Draft', label: 'Draft' },
-                    { value: 'Ready', label: 'Ready' },
-                    { value: 'Archived', label: 'Archived' },
+                    { value: 'Draft', label: t('Draft') },
+                    { value: 'Ready', label: t('Ready') },
+                    { value: 'Archived', label: t('Archived') },
                   ]}
                   className="w-full px-4 py-3 text-base"
-                  aria-label="Choose case status"
+                  aria-label={t('Choose case status')}
                 />
               </EditingFieldGroup>
 
-              <EditingFieldGroup label="Priority">
+              <EditingFieldGroup label={t('Priority')}>
                 <SelectMenu
                   value={priority}
                   onValueChange={(value) =>
@@ -245,17 +242,17 @@ function EditTestPage() {
                     )
                   }
                   options={[
-                    { value: 'Low', label: 'Low' },
-                    { value: 'Medium', label: 'Medium' },
-                    { value: 'High', label: 'High' },
-                    { value: 'Critical', label: 'Critical' },
+                    { value: 'Low', label: t('Low') },
+                    { value: 'Medium', label: t('Medium') },
+                    { value: 'High', label: t('High') },
+                    { value: 'Critical', label: t('Critical') },
                   ]}
                   className="w-full px-4 py-3 text-base"
-                  aria-label="Choose case priority"
+                  aria-label={t('Choose case priority')}
                 />
               </EditingFieldGroup>
 
-              <EditingFieldGroup label="Type">
+              <EditingFieldGroup label={t('Type')}>
                 <SelectMenu
                   value={caseType}
                   onValueChange={(value) =>
@@ -274,26 +271,45 @@ function EditTestPage() {
                     )
                   }
                   options={[
-                    { value: 'Functional', label: 'Functional' },
-                    { value: 'Regression', label: 'Regression' },
-                    { value: 'Smoke', label: 'Smoke' },
+                    { value: 'Functional', label: t('Functional') },
+                    { value: 'Regression', label: t('Regression') },
+                    { value: 'Smoke', label: t('Smoke') },
                     { value: 'E2E', label: 'E2E' },
-                    { value: 'UI', label: 'UI' },
-                    { value: 'API', label: 'API' },
+                    { value: 'UI', label: t('UI') },
+                    { value: 'API', label: t('API') },
                   ]}
                   className="w-full px-4 py-3 text-base"
-                  aria-label="Choose case type"
+                  aria-label={t('Choose case type')}
                 />
               </EditingFieldGroup>
             </div>
+
+            <div className="editing-field-grid">
+              <EditingFieldGroup label={t('Tags')}>
+                <TagsInput value={tags} onChange={setTags} />
+              </EditingFieldGroup>
+            </div>
+
+            <EditingFieldGroup label={t('References')}>
+              <RefsEditor value={refs} onChange={setRefs} />
+            </EditingFieldGroup>
             </EditingSurfaceSection>
 
             <EditingSurfaceSection
-              title="Content"
-              description="Edit steps and expected result with inline attachments."
+              title={t('Content')}
+              description={t('Edit preconditions, steps, and expected result with inline attachments.')}
               className="mt-5"
               bodyClassName="editing-rich-stack"
             >
+              <RichTextEditor
+                label={t('Preconditions')}
+                placeholder={t('State setup, data, or environment required before running')}
+                value={preconditions}
+                onChange={setPreconditions}
+                onUploadMedia={uploadMedia}
+                isUploading={isUploadingMedia}
+              />
+
               <StepsEditor
                 description={description}
                 steps={steps}
@@ -314,16 +330,14 @@ function EditTestPage() {
               <div className="text-sm font-semibold text-[var(--tms-text-muted)]">
                 {selectedSection
                   ? `${selectedSection.projectName ?? 'Project'} / ${selectedSection.name}`
-                  : 'Choose a suite for this case.'}
+                  : t('Choose a suite for this case.')}
               </div>
               <div className="workspace-secondary-actions create-edit-actions">
                 <Link
                   to="/test/$testId"
                   params={{ testId: formState.test.id.toString() }}
                   className="tms-button no-underline"
-                >
-                  Cancel
-                </Link>
+                >{t('Cancel')}</Link>
                 <Button
                   type="submit"
                   disabled={
@@ -335,10 +349,10 @@ function EditTestPage() {
                   variant="primary"
                 >
                   {isUploading
-                    ? 'Uploading media...'
+                    ? t('Uploading media...')
                     : isSubmitting
-                      ? 'Saving...'
-                      : 'Save changes'}
+                      ? t('Saving...')
+                      : t('Save changes')}
                 </Button>
               </div>
             </div>

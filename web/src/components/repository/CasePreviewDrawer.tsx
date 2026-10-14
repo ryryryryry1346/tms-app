@@ -2,17 +2,22 @@ import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { StepsEditor } from './StepsEditor'
 import { StepsView } from './StepsView'
+import { CaseRefsList, CaseTags, PreconditionsBlock } from './CaseFieldsView'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { ConfirmActionAlert } from '../ui/ConfirmActionAlert'
 import { Panel } from '../ui/Panel'
 import type { CaseStep } from '../../lib/caseContent'
+import { useT } from '../../lib/i18n'
 
 type PreviewCase = {
   id: number
   title: string
   steps: string | null
   expected: string | null
+  preconditions?: string | null
+  tags?: string | null
+  refs?: string | null
   status: string | null
   priority: string | null
   caseType: string | null
@@ -37,6 +42,7 @@ type CasePreviewDrawerProps = {
   isLoadingContent: boolean
   errorMessage: string | null
   isEditingContent: boolean
+  preconditionsValue: string
   descriptionValue: string
   stepsValue: CaseStep[]
   isSavingContent: boolean
@@ -46,12 +52,14 @@ type CasePreviewDrawerProps = {
   onStartEdit: () => void
   onCancelEdit: () => void
   onSaveContent: () => void
+  onPreconditionsChange: (value: string) => void
   onDescriptionChange: (value: string) => void
   onStepsChange: (steps: CaseStep[]) => void
   onUploadMedia: (file: File) => Promise<string>
   onRichContentClick: (event: React.MouseEvent<HTMLElement>) => void
   onRestore: () => void
   onArchive: () => void
+  onSelectTag?: (tag: string) => void
   formatDateTime: (value: string | null | undefined) => string
 }
 
@@ -98,6 +106,7 @@ export function CasePreviewDrawer({
   isLoadingContent,
   errorMessage,
   isEditingContent,
+  preconditionsValue,
   descriptionValue,
   stepsValue,
   isSavingContent,
@@ -107,21 +116,25 @@ export function CasePreviewDrawer({
   onStartEdit,
   onCancelEdit,
   onSaveContent,
+  onPreconditionsChange,
   onDescriptionChange,
   onStepsChange,
   onUploadMedia,
   onRichContentClick,
   onRestore,
   onArchive,
+  onSelectTag,
   formatDateTime,
 }: CasePreviewDrawerProps) {
+  const t = useT()
+
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false)
 
   return (
     <div className="fixed inset-0 z-40">
       <button
         type="button"
-        aria-label="Close case preview"
+        aria-label={t('Close case preview')}
         onClick={onClose}
         className="absolute inset-0 bg-[var(--tms-backdrop)]"
       />
@@ -129,9 +142,7 @@ export function CasePreviewDrawer({
         <div className="border-b border-[var(--tms-border-subtle)] px-4 py-4 sm:px-6 sm:py-5">
           <div className="tms-transient-header">
             <div className="tms-transient-header__copy">
-              <p className="tms-transient-header__eyebrow">
-                Case #{test.id}
-              </p>
+              <p className="tms-transient-header__eyebrow">{t('Case #{id}', { id: test.id })}</p>
               <h2 className="tms-transient-header__title">
                 {test.title}
               </h2>
@@ -141,30 +152,33 @@ export function CasePreviewDrawer({
                 type="button"
                 onClick={onClose}
                 variant="secondary"
-              >
-                Close
-              </Button>
+              >{t('Close')}</Button>
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
             <Badge variant="primary">
-              {suite?.name ?? 'No suite'}
+              {suite?.name ?? t('No suite')}
             </Badge>
             <Badge variant={getPreviewStatusVariant(test.status)}>
-              {test.status ?? 'Draft'}
+              {test.status ?? t('Draft')}
             </Badge>
             <Badge variant={getPreviewPriorityVariant(test.priority)}>
-              {test.priority ?? 'Medium'}
+              {test.priority ?? t('Medium')}
             </Badge>
             <Badge>
-              {test.caseType ?? 'Functional'}
+              {test.caseType ?? t('Functional')}
             </Badge>
+          </div>
+          <div className="mt-3">
+            <CaseTags tags={test.tags} onSelect={onSelectTag} />
           </div>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {isEditingContent ? (
             <StepsEditor
+              preconditions={preconditionsValue}
+              onPreconditionsChange={onPreconditionsChange}
               description={descriptionValue}
               steps={stepsValue}
               onDescriptionChange={onDescriptionChange}
@@ -174,9 +188,7 @@ export function CasePreviewDrawer({
             />
           ) : isLoadingContent ? (
             <Panel className="rounded-xl border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-4 shadow-none">
-              <p className="m-0 text-sm font-semibold text-[var(--tms-text-muted)]">
-                Loading test case content...
-              </p>
+              <p className="m-0 text-sm font-semibold text-[var(--tms-text-muted)]">{t('Loading test case content...')}</p>
             </Panel>
           ) : errorMessage ? (
             <Panel className="rounded-xl border-[var(--tms-danger-border)] bg-[var(--tms-danger-soft)] px-4 py-4 shadow-none">
@@ -187,6 +199,10 @@ export function CasePreviewDrawer({
           ) : (
             <>
               <div className="mb-5 grid gap-5">
+                <PreconditionsBlock
+                  html={test.preconditions}
+                  onMediaClick={onRichContentClick}
+                />
                 <StepsView
                   steps={test.steps}
                   expected={test.expected}
@@ -194,14 +210,12 @@ export function CasePreviewDrawer({
                 />
               </div>
 
+              <CaseRefsList refs={test.refs} />
+
               <section className="mt-6 border-t border-[var(--tms-border-subtle)] pt-5">
-                <h3 className="tms-kicker m-0 text-sm">
-                  Activity
-                </h3>
+                <h3 className="tms-kicker m-0 text-sm">{t('Activity')}</h3>
                 {activities.length === 0 ? (
-                  <p className="m-0 mt-3 text-sm text-[var(--tms-text-muted)]">
-                    No activity recorded yet.
-                  </p>
+                  <p className="m-0 mt-3 text-sm text-[var(--tms-text-muted)]">{t('No activity recorded yet.')}</p>
                 ) : (
                   <div className="mt-3 grid gap-3">
                     {activities.map((activity) => (
@@ -234,10 +248,10 @@ export function CasePreviewDrawer({
           {showArchiveConfirm ? (
             <ConfirmActionAlert
               className="mb-3"
-              title="Archive this test case?"
-              description="The case will leave the active repository and can be restored later from the Archived filter."
-              confirmLabel="Archive test case"
-              pendingLabel="Archiving..."
+              title={t('Archive this test case?')}
+              description={t('The case will leave the active repository and can be restored later from the Archived filter.')}
+              confirmLabel={t('Archive test case')}
+              pendingLabel={t('Archiving...')}
               confirmVariant="primary"
               isPending={isPendingAction}
               onCancel={() => setShowArchiveConfirm(false)}
@@ -256,16 +270,14 @@ export function CasePreviewDrawer({
                 onClick={onSaveContent}
                 variant="primary"
               >
-                {isSavingContent ? 'Saving...' : 'Save content'}
+                {isSavingContent ? t('Saving...') : t('Save content')}
               </Button>
               <Button
                 type="button"
                 disabled={isSavingContent}
                 onClick={onCancelEdit}
                 variant="secondary"
-              >
-                Cancel
-              </Button>
+              >{t('Cancel')}</Button>
             </>
           ) : (
             <Button
@@ -273,42 +285,32 @@ export function CasePreviewDrawer({
               onClick={onStartEdit}
               disabled={isLoadingContent || Boolean(errorMessage)}
               variant="primary"
-            >
-              Edit content
-            </Button>
+            >{t('Edit content')}</Button>
           )}
           <Link
             to="/edit-test/$testId"
             params={{ testId: test.id.toString() }}
             className="tms-button tms-button-secondary no-underline"
-          >
-            Full editor
-          </Link>
+          >{t('Full editor')}</Link>
           <Link
             to="/test/$testId"
             params={{ testId: test.id.toString() }}
             className="tms-button tms-button-secondary no-underline"
-          >
-            Open full page
-          </Link>
+          >{t('Open full page')}</Link>
           {test.status === 'Archived' ? (
             <Button
               type="button"
               disabled={isPendingAction}
               onClick={onRestore}
               variant="secondary"
-            >
-              Restore
-            </Button>
+            >{t('Restore')}</Button>
           ) : (
             <Button
               type="button"
               disabled={isPendingAction}
               onClick={() => setShowArchiveConfirm(true)}
               variant="secondary"
-            >
-              Archive
-            </Button>
+            >{t('Archive')}</Button>
           )}
           </div>
         </div>

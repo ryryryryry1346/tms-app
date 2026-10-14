@@ -6,6 +6,7 @@ import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
 import { getCurrentUser } from '../features/auth/server'
 import { requestPasswordReset } from '../lib/auth-client'
+import { useT } from '../lib/i18n'
 
 export const Route = createFileRoute('/forgot-password')({
   loader: async () => {
@@ -23,6 +24,8 @@ export const Route = createFileRoute('/forgot-password')({
 })
 
 function ForgotPasswordPage() {
+  const t = useT()
+
   const [email, setEmail] = useState('')
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -68,31 +71,22 @@ function ForgotPasswordPage() {
     <main className="auth-page page-wrap px-4 py-8 sm:py-12">
       <Panel className="auth-card rise-in mx-auto flex min-h-[30rem] w-full max-w-[35rem] flex-col p-8 sm:p-10">
         <div className="mb-8 text-center">
-          <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--tms-text)]">
-            Reset password
-          </h1>
+          <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--tms-text)]">{t('Reset password')}</h1>
         </div>
 
         {submittedEmail ? (
           <div className="grid flex-1 content-start gap-5 text-center">
-            <Alert variant="success" className="px-5 py-4 text-left">
-              If an account exists for{' '}
-              <span className="font-semibold">{submittedEmail}</span>, we sent a
-              password reset link.
-            </Alert>
+            <Alert variant="success" className="px-5 py-4 text-left">{t('If an account exists for')}{' '}
+              <span className="font-semibold">{submittedEmail}</span>{t(', we sent a password reset link.')}</Alert>
             <Link
               to="/login"
               className="tms-button tms-button-primary justify-center rounded-2xl px-5 py-4 text-lg font-bold no-underline shadow-[var(--tms-shadow-subtle)]"
-            >
-              Back to login
-            </Link>
+            >{t('Back to login')}</Link>
           </div>
         ) : (
           <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
             <label className="grid gap-2 text-left">
-              <span className="text-lg font-medium text-[var(--tms-text-muted)]">
-                Email
-              </span>
+              <span className="text-lg font-medium text-[var(--tms-text-muted)]">{t('Email')}</span>
               <Input
                 name="email"
                 value={email}
@@ -100,7 +94,7 @@ function ForgotPasswordPage() {
                 type="email"
                 size="lg"
                 className="auth-input rounded-2xl px-5 py-4 text-lg"
-                placeholder="you@example.com"
+                placeholder={t('you@example.com')}
                 autoComplete="email"
               />
             </label>
@@ -118,17 +112,14 @@ function ForgotPasswordPage() {
               size="lg"
               className="mt-auto rounded-2xl px-5 py-4 text-lg font-bold shadow-[var(--tms-shadow-subtle)]"
             >
-              {isSubmitting ? 'Sending reset link...' : 'Send reset link'}
+              {isSubmitting ? t('Sending reset link...') : t('Send reset link')}
             </Button>
 
-            <p className="pt-2 text-center text-lg text-[var(--tms-text-muted)]">
-              Remembered it?{' '}
+            <p className="pt-2 text-center text-lg text-[var(--tms-text-muted)]">{t('Remembered it?')}{' '}
               <Link
                 to="/login"
                 className="font-semibold text-[var(--tms-primary)] no-underline"
-              >
-                Log in
-              </Link>
+              >{t('Log in')}</Link>
               .
             </p>
           </form>

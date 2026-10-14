@@ -30,3 +30,6 @@ __pycache__/
 # Editor / OS
 .DS_Store
 *.log
+
+# Local tooling output
+Claude outputs/

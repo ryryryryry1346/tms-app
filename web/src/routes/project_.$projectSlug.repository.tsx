@@ -1,17 +1,25 @@
 import {
   createFileRoute,
+  Link,
   notFound,
   redirect,
   useNavigate,
   useRouter,
+  useRouterState,
 } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { z } from 'zod'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { BulkCaseBar } from '../components/repository/BulkCaseBar'
 import { CasePreviewDrawer } from '../components/repository/CasePreviewDrawer'
 import { StepsEditor } from '../components/repository/StepsEditor'
 import { StepsView } from '../components/repository/StepsView'
+import {
+  CaseRefsList,
+  CaseTags,
+  PreconditionsBlock,
+} from '../components/repository/CaseFieldsView'
 import { RepositoryEmptyState } from '../components/repository/RepositoryEmptyState'
 import { RepositoryErrorBanner } from '../components/repository/RepositoryErrorBanner'
 import { RepositoryPanel } from '../components/repository/RepositoryPanel'
@@ -33,8 +41,17 @@ import { Input } from '../components/ui/Input'
 import { LinkButton } from '../components/ui/LinkButton'
 import { Modal } from '../components/ui/Modal'
 import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Link2,
+  MoreHorizontal,
+  X,
+} from 'lucide-react'
+import {
   PopoverMenu,
   PopoverMenuItem,
+  PopoverMenuSeparator,
 } from '../components/ui/PopoverMenu'
 import { getErrorMessage } from '../lib/errors'
 import {
@@ -80,6 +97,7 @@ import type {
   RepositoryImportSource,
   TestDetail,
 } from '../features/tests/server'
+import { useT } from '../lib/i18n'
 
 const REPOSITORY_PAGE_SIZE_OPTIONS = [25, 50, 75, 100] as const
 const REPOSITORY_DEFAULT_PAGE_SIZE = REPOSITORY_PAGE_SIZE_OPTIONS[0]
@@ -93,39 +111,39 @@ function normalizeRepositoryPageSize(value: number | undefined): RepositoryPageS
     : REPOSITORY_DEFAULT_PAGE_SIZE
 }
 
+const repositorySearchSchema = z.object({
+  q: z.string().optional().catch(''),
+  suiteId: z.coerce.number().int().positive().optional().catch(undefined),
+  status: z.enum(['All', 'Draft', 'Ready', 'Archived']).optional().catch('All'),
+  priority: z
+    .enum(['All', 'Low', 'Medium', 'High', 'Critical'])
+    .optional()
+    .catch('All'),
+  type: z
+    .enum(['All', 'Functional', 'Regression', 'Smoke', 'E2E', 'UI', 'API'])
+    .optional()
+    .catch('All'),
+  tag: z.string().optional().catch(undefined),
+  page: z.coerce.number().int().positive().optional().catch(1),
+  pageSize: z.coerce
+    .number()
+    .int()
+    .optional()
+    .transform((value) => normalizeRepositoryPageSize(value))
+    .catch(REPOSITORY_DEFAULT_PAGE_SIZE),
+  previewId: z.coerce.number().int().positive().optional().catch(undefined),
+})
+
 export const Route = createFileRoute('/project_/$projectSlug/repository')({
-  validateSearch: z.object({
-    q: z.string().optional().catch(''),
-    suiteId: z.coerce.number().int().positive().optional().catch(undefined),
-    status: z.enum(['All', 'Draft', 'Ready', 'Archived']).optional().catch('All'),
-    priority: z
-      .enum(['All', 'Low', 'Medium', 'High', 'Critical'])
-      .optional()
-      .catch('All'),
-    type: z
-      .enum(['All', 'Functional', 'Regression', 'Smoke', 'E2E', 'UI', 'API'])
-      .optional()
-      .catch('All'),
-    page: z.coerce.number().int().positive().optional().catch(1),
-    pageSize: z.coerce
-      .number()
-      .int()
-      .optional()
-      .transform((value) => normalizeRepositoryPageSize(value))
-      .catch(REPOSITORY_DEFAULT_PAGE_SIZE),
-    previewId: z.coerce.number().int().positive().optional().catch(undefined),
-  }),
-  loaderDeps: ({ search }) => ({
-    q: search.q,
-    suiteId: search.suiteId,
-    status: search.status,
-    priority: search.priority,
-    type: search.type,
-    page: search.page,
-    pageSize: search.pageSize,
-  }),
-  loader: async ({ params, deps }) => {
+  validateSearch: repositorySearchSchema,
+  // No loaderDeps on purpose: search / filter / page changes must not create
+  // a new route match (that swapped the page for the skeleton and remounted
+  // it, wiping the search box). The loader reads the URL only when the page
+  // is entered or invalidated; in-page filter changes are fetched by the
+  // component itself (see the listQueryKey effect in ProjectRepositoryPage).
+  loader: async ({ params, location }) => {
     const loaderStartedAt = Date.now()
+    const deps = repositorySearchSchema.parse(location.search)
     const projectSlug = params.projectSlug.trim()
     const pageSize = normalizeRepositoryPageSize(deps.pageSize)
 
@@ -171,6 +189,7 @@ export const Route = createFileRoute('/project_/$projectSlug/repository')({
         status: deps.status,
         priority: deps.priority,
         caseType: deps.type,
+        tag: deps.tag,
         page: deps.page,
         pageSize,
       },
@@ -278,6 +297,8 @@ function CsvUploadDropzone({
   file: File | null
   onFileChange: (file: File | null) => void
 }) {
+  const t = useT()
+
   const [isDropActive, setIsDropActive] = useState(false)
 
   return (
@@ -315,17 +336,15 @@ function CsvUploadDropzone({
             onFileChange(event.currentTarget.files?.[0] ?? null)
           }
         />
-        <span className="repository-import-dropzone__icon" aria-hidden="true">
-          CSV
-        </span>
+        <span className="repository-import-dropzone__icon" aria-hidden="true">{t('CSV')}</span>
         <span className="repository-import-dropzone__copy">
           <span className="repository-import-dropzone__title">
-            {file ? file.name : 'Choose CSV file'}
+            {file ? file.name : t('Choose CSV file')}
           </span>
           <span className="repository-import-dropzone__meta">
             {file
-              ? `${formatImportFileSize(file.size)} selected`
-              : 'Drop a TMS, Testmo, or generic CSV here. Click anywhere in this box to browse.'}
+              ? t('{v1} selected', { v1: formatImportFileSize(file.size) })
+              : t('Drop a TMS, Testmo, or generic CSV here. Click anywhere in this box to browse.')}
           </span>
         </span>
       </label>
@@ -336,9 +355,7 @@ function CsvUploadDropzone({
           size="sm"
           className="repository-import-upload__remove"
           onClick={() => onFileChange(null)}
-        >
-          Remove
-        </Button>
+        >{t('Remove')}</Button>
       ) : null}
     </div>
   )
@@ -563,6 +580,8 @@ function writeRepositoryPreviewCache(
 }
 
 function ProjectRepositoryPage() {
+  const t = useT()
+
   const loaderData = Route.useLoaderData()
   const search = Route.useSearch()
   const { project, dashboard: loaderDashboard } = loaderData
@@ -623,11 +642,17 @@ function ProjectRepositoryPage() {
   const [openSuiteMenuId, setOpenSuiteMenuId] = useState<number | null>(null)
   const [activeComposer, setActiveComposer] = useState<ComposerKind>(null)
   const [searchValue, setSearchValue] = useState(search.q ?? '')
+  const [isRefreshingList, setIsRefreshingList] = useState(false)
+  const isRouterReloading = useRouterState({
+    select: (state) => state.isLoading,
+  })
+  const isRepositoryReloading = isRefreshingList || isRouterReloading
   const [visibleColumns, setVisibleColumns] =
     useState<RepositoryVisibleColumns>(DEFAULT_REPOSITORY_VISIBLE_COLUMNS)
   const caseFilter = search.status ?? 'All'
   const priorityFilter = search.priority ?? 'All'
   const caseTypeFilter = search.type ?? 'All'
+  const activeTag = search.tag ?? null
   const suiteFilterId = search.suiteId?.toString() ?? ALL_SUITES_FILTER
   const selectedPageSize = normalizeRepositoryPageSize(search.pageSize)
   const searchPreviewId = search.previewId ?? null
@@ -635,6 +660,8 @@ function ProjectRepositoryPage() {
   const [isApplyingBulkAction, setIsApplyingBulkAction] = useState(false)
   const [isExportingCsv, setIsExportingCsv] = useState(false)
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
+  const [isPreviewActionsMenuOpen, setIsPreviewActionsMenuOpen] =
+    useState(false)
   const [isCreatingShortcutStory, setIsCreatingShortcutStory] = useState(false)
   const [shortcutStoryResult, setShortcutStoryResult] = useState<{
     name: string
@@ -669,6 +696,8 @@ function ProjectRepositoryPage() {
     string | null
   >(null)
   const [isEditingPreviewContent, setIsEditingPreviewContent] = useState(false)
+  const [previewPreconditionsValue, setPreviewPreconditionsValue] =
+    useState('')
   const [previewDescriptionValue, setPreviewDescriptionValue] = useState('')
   const [previewStepsValue, setPreviewStepsValue] = useState<CaseStep[]>([])
   const [isSavingPreviewContent, setIsSavingPreviewContent] = useState(false)
@@ -685,13 +714,104 @@ function ProjectRepositoryPage() {
     testId: number
     position: 'before' | 'after'
   } | null>(null)
+  const [pendingCrossSuiteMove, setPendingCrossSuiteMove] = useState<{
+    testIds: number[]
+    orderedIds: number[]
+    targetSuiteId: number
+    targetSuiteName: string
+    sourceSuiteNames: string[]
+  } | null>(null)
+
+  // Identifies which search / filter / page combination the list on screen
+  // was loaded for. The loader result matches the URL the page was entered
+  // (or invalidated) with; in-page changes are fetched below.
+  const listQueryKey = JSON.stringify([
+    projectSlug,
+    search.q ?? '',
+    search.suiteId ?? null,
+    search.status ?? 'All',
+    search.priority ?? 'All',
+    search.type ?? 'All',
+    search.tag ?? null,
+    search.page ?? 1,
+    selectedPageSize,
+  ])
+  const loadedListKeyRef = useRef(listQueryKey)
+  const listRequestIdRef = useRef(0)
+  const latestListQueryKeyRef = useRef(listQueryKey)
+  latestListQueryKeyRef.current = listQueryKey
+  // Bumped every time a fresh list replaces the one on screen, so the
+  // exact-count effect re-runs for that list.
+  const [listVersion, setListVersion] = useState(0)
 
   useEffect(() => {
+    // Loader data (page entry or router.invalidate()) wins over any
+    // in-flight in-page fetch.
+    listRequestIdRef.current += 1
+    loadedListKeyRef.current = latestListQueryKeyRef.current
+    setIsRefreshingList(false)
     setDashboard(loaderDashboard)
+    setListVersion((version) => version + 1)
   }, [loaderDashboard])
 
   useEffect(() => {
+    if (loadedListKeyRef.current === listQueryKey) {
+      return
+    }
+
+    const requestId = ++listRequestIdRef.current
+    setIsRefreshingList(true)
+
+    getRepositoryState({
+      data: {
+        projectSlug,
+        search: search.q,
+        suiteId: search.suiteId,
+        status: search.status,
+        priority: search.priority,
+        caseType: search.type,
+        tag: search.tag,
+        page: search.page,
+        pageSize: selectedPageSize,
+      },
+    })
+      .then((nextDashboard) => {
+        if (requestId !== listRequestIdRef.current) {
+          return
+        }
+
+        loadedListKeyRef.current = listQueryKey
+        setDashboard(nextDashboard)
+        setListVersion((version) => version + 1)
+      })
+      .catch(() => {
+        if (requestId !== listRequestIdRef.current) {
+          return
+        }
+
+        setCaseActionErrorMessage(
+          'Could not load test cases. Check your connection and try again.',
+        )
+      })
+      .finally(() => {
+        if (requestId === listRequestIdRef.current) {
+          setIsRefreshingList(false)
+        }
+      })
+    // listQueryKey covers every value used in the request.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listQueryKey])
+
+  useEffect(() => {
     let isCancelled = false
+
+    // The loader already gives an exact count for the fully-unfiltered
+    // view (it reuses the suite-sidebar aggregate), so there's nothing to
+    // correct here — skip the extra round-trip and the transient mismatch
+    // it would otherwise cause between the sidebar and this header.
+    if (listVersion === 0 || !dashboard.pagination.isEstimated) {
+      return
+    }
 
     getRepositoryCount({
       data: {
@@ -726,16 +846,10 @@ function ProjectRepositoryPage() {
     return () => {
       isCancelled = true
     }
-  }, [
-    projectSlug,
-    search.q,
-    search.suiteId,
-    search.status,
-    search.priority,
-    search.type,
-    search.page,
-    selectedPageSize,
-  ])
+    // Runs once per freshly loaded list; the search values read above are
+    // the ones that list was loaded for.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listVersion])
 
   useEffect(() => {
     let isCancelled = false
@@ -791,6 +905,8 @@ function ProjectRepositoryPage() {
   }, [searchPreviewId])
 
   useEffect(() => {
+    // Keep the input in sync when the URL changes from outside
+    // (back/forward, reset, link). Typing alone never changes the URL.
     setSearchValue(search.q ?? '')
   }, [search.q])
 
@@ -817,21 +933,20 @@ function ProjectRepositoryPage() {
     )
   }, [visibleColumns])
 
-  useEffect(() => {
-    const nextSearch = searchValue.trim()
+  // Search runs on Enter (or when the box is cleared), not on every
+  // keystroke, so typing never reloads the list.
+  function submitRepositorySearch(value: string = searchValue): void {
+    const nextSearch = value.trim()
 
     if (nextSearch === (search.q ?? '')) {
       return
     }
 
-    const timeoutId = window.setTimeout(() => {
-      updateRepositorySearch({
-        q: nextSearch || undefined,
-      })
-    }, 300)
-
-    return () => window.clearTimeout(timeoutId)
-  }, [search.q, searchValue])
+    clearBulkConfirmations()
+    updateRepositorySearch({
+      q: nextSearch || undefined,
+    })
+  }
 
   function updateRepositorySearch(
     nextSearch: Partial<{
@@ -840,6 +955,7 @@ function ProjectRepositoryPage() {
       status: CaseFilter
       priority: PriorityFilter
       type: CaseTypeFilter
+      tag: string | undefined
       page: number
       pageSize: number
       previewId: number | undefined
@@ -1327,27 +1443,27 @@ function ProjectRepositoryPage() {
   const importConfirmSummary = importPreview
     ? [
         {
-          label: 'Cases to create',
+          label: t('Cases to create'),
           value: importPreview.validRows,
           tone: 'ready',
         },
         {
-          label: 'Blocked rows',
+          label: t('Blocked rows'),
           value: importPreview.errorRows,
           tone: importPreview.errorRows > 0 ? 'danger' : 'muted',
         },
         {
-          label: 'Warnings',
+          label: t('Warnings'),
           value: importPreview.warningRows,
           tone: importPreview.warningRows > 0 ? 'warning' : 'muted',
         },
         {
-          label: 'Duplicate warnings',
+          label: t('Duplicate warnings'),
           value: importPreview.duplicateRows,
           tone: importPreview.duplicateRows > 0 ? 'warning' : 'muted',
         },
         {
-          label: 'Suites to create',
+          label: t('Suites to create'),
           value: createMissingImportSuites ? importPreview.missingSuites.length : 0,
           tone:
             createMissingImportSuites && importPreview.missingSuites.length > 0
@@ -1493,9 +1609,7 @@ function ProjectRepositoryPage() {
         }
 
         setPreviewDetailErrorMessage(
-          error instanceof Error
-            ? error.message
-            : 'Failed to load test case content.',
+          getErrorMessage(error, 'Failed to load test case content.'),
         )
       })
       .finally(() => {
@@ -1512,6 +1626,7 @@ function ProjectRepositoryPage() {
   useEffect(() => {
     if (!previewTestDetail) {
       setIsEditingPreviewContent(false)
+      setPreviewPreconditionsValue('')
       setPreviewDescriptionValue('')
       setPreviewStepsValue([])
       return
@@ -1522,6 +1637,7 @@ function ProjectRepositoryPage() {
         previewTestDetail.steps,
         previewTestDetail.expected,
       )
+      setPreviewPreconditionsValue(previewTestDetail.preconditions ?? '')
       setPreviewDescriptionValue(content.description)
       setPreviewStepsValue(content.steps)
     }
@@ -1619,7 +1735,7 @@ function ProjectRepositoryPage() {
       }, 1800)
     } catch (error) {
       setCaseActionErrorMessage(
-        error instanceof Error ? error.message : 'Failed to copy test case link.',
+        getErrorMessage(error, 'Failed to copy test case link.'),
       )
     }
   }
@@ -1652,6 +1768,7 @@ function ProjectRepositoryPage() {
       previewTestDetail.steps,
       previewTestDetail.expected,
     )
+    setPreviewPreconditionsValue(previewTestDetail.preconditions ?? '')
     setPreviewDescriptionValue(content.description)
     setPreviewStepsValue(content.steps)
     setIsEditingPreviewContent(true)
@@ -1663,6 +1780,7 @@ function ProjectRepositoryPage() {
       previewTestDetail?.steps,
       previewTestDetail?.expected,
     )
+    setPreviewPreconditionsValue(previewTestDetail?.preconditions ?? '')
     setPreviewDescriptionValue(content.description)
     setPreviewStepsValue(content.steps)
   }
@@ -1703,6 +1821,7 @@ function ProjectRepositoryPage() {
           id: previewTestDetail.id,
           steps: serializedSteps,
           expected: '',
+          preconditions: previewPreconditionsValue,
         },
       })
 
@@ -1712,6 +1831,7 @@ function ProjectRepositoryPage() {
         ...previewTestDetail,
         steps: serializedSteps,
         expected: '',
+        preconditions: previewPreconditionsValue,
         updatedAt,
       })
       updateRepositoryTests([previewTestDetail.id], (test) => ({
@@ -1721,7 +1841,7 @@ function ProjectRepositoryPage() {
       setIsEditingPreviewContent(false)
     } catch (error) {
       setCaseActionErrorMessage(
-        error instanceof Error ? error.message : 'Failed to update test content.',
+        getErrorMessage(error, 'Failed to update test content.'),
       )
     } finally {
       setIsSavingPreviewContent(false)
@@ -1793,9 +1913,7 @@ function ProjectRepositoryPage() {
       setIsBulkDeleteConfirming(false)
     } catch (error) {
       setBulkActionErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Failed to update selected test cases.',
+        getErrorMessage(error, 'Failed to update selected test cases.'),
       )
     } finally {
       setIsApplyingBulkAction(false)
@@ -1839,9 +1957,7 @@ function ProjectRepositoryPage() {
       setSelectedTestIds([])
     } catch (error) {
       setBulkActionErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Failed to update selected test case metadata.',
+        getErrorMessage(error, 'Failed to update selected test case metadata.'),
       )
     } finally {
       setIsApplyingBulkAction(false)
@@ -1881,9 +1997,7 @@ function ProjectRepositoryPage() {
       }))
     } catch (error) {
       setCaseActionErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Failed to update test case metadata.',
+        getErrorMessage(error, 'Failed to update test case metadata.'),
       )
     } finally {
       setPendingCaseActionId(null)
@@ -1934,9 +2048,7 @@ function ProjectRepositoryPage() {
       pruneTestFromViewIfFiltered(testId)
     } catch (error) {
       setCaseActionErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Failed to update test case status.',
+        getErrorMessage(error, 'Failed to update test case status.'),
       )
     } finally {
       setPendingCaseActionId(null)
@@ -1982,7 +2094,7 @@ function ProjectRepositoryPage() {
       cancelCaseTitleEdit()
     } catch (error) {
       setCaseActionErrorMessage(
-        error instanceof Error ? error.message : 'Failed to update test case title.',
+        getErrorMessage(error, 'Failed to update test case title.'),
       )
     } finally {
       setPendingCaseActionId(null)
@@ -2038,9 +2150,7 @@ function ProjectRepositoryPage() {
       setIsBulkDeleteConfirming(false)
     } catch (error) {
       setBulkActionErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Failed to restore selected test cases.',
+        getErrorMessage(error, 'Failed to restore selected test cases.'),
       )
     } finally {
       setIsApplyingBulkAction(false)
@@ -2072,9 +2182,7 @@ function ProjectRepositoryPage() {
       setIsBulkDeleteConfirming(false)
     } catch (error) {
       setBulkActionErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Failed to delete selected test cases permanently.',
+        getErrorMessage(error, 'Failed to delete selected test cases permanently.'),
       )
     } finally {
       setIsApplyingBulkAction(false)
@@ -2132,7 +2240,7 @@ function ProjectRepositoryPage() {
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
-        error instanceof Error ? error.message : 'Failed to move test cases.',
+        getErrorMessage(error, 'Failed to move test cases.'),
       )
     } finally {
       setIsApplyingBulkAction(false)
@@ -2186,9 +2294,7 @@ function ProjectRepositoryPage() {
       await router.invalidate()
     } catch (error) {
       setBulkActionErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Failed to move and reorder test cases.',
+        getErrorMessage(error, 'Failed to move and reorder test cases.'),
       )
     } finally {
       setIsApplyingBulkAction(false)
@@ -2249,7 +2355,7 @@ function ProjectRepositoryPage() {
       downloadCsvFile(result.filename, result.csv)
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to export test cases.'
+        getErrorMessage(error, 'Failed to export test cases.')
 
       if (scope === 'selected') {
         setBulkActionErrorMessage(message)
@@ -2307,7 +2413,7 @@ function ProjectRepositoryPage() {
       setIsImportMappingDirty(false)
     } catch (error) {
       setImportErrorMessage(
-        error instanceof Error ? error.message : 'Failed to preview CSV import.',
+        getErrorMessage(error, 'Failed to preview CSV import.'),
       )
     } finally {
       setIsParsingImport(false)
@@ -2371,7 +2477,7 @@ function ProjectRepositoryPage() {
       await router.invalidate()
     } catch (error) {
       setImportErrorMessage(
-        error instanceof Error ? error.message : 'Failed to import CSV.',
+        getErrorMessage(error, 'Failed to import CSV.'),
       )
     } finally {
       setIsImportingCsv(false)
@@ -2523,6 +2629,40 @@ function ProjectRepositoryPage() {
             afterId: targetTestId,
           })
 
+    const draggedTests = dashboard.tests.filter((test) => ids.includes(test.id))
+    const isCrossSuiteMove = draggedTests.some(
+      (test) => (test.sectionId ?? 0) !== suiteId,
+    )
+
+    if (isCrossSuiteMove) {
+      const targetSuiteName =
+        dashboard.sections.find((section) => section.id === suiteId)?.name ??
+        'this suite'
+      const sourceSuiteNames = Array.from(
+        new Set(
+          draggedTests
+            .filter((test) => (test.sectionId ?? 0) !== suiteId)
+            .map(
+              (test) =>
+                dashboard.sections.find(
+                  (section) => section.id === test.sectionId,
+                )?.name ?? 'Unknown suite',
+            ),
+        ),
+      )
+
+      setDraggedTestIds([])
+      setDragOverTestDrop(null)
+      setPendingCrossSuiteMove({
+        testIds: ids,
+        orderedIds,
+        targetSuiteId: suiteId,
+        targetSuiteName,
+        sourceSuiteNames,
+      })
+      return
+    }
+
     await handleMoveAndReorderTestCases({
       testIds: ids,
       targetSuiteId: suiteId,
@@ -2567,7 +2707,7 @@ function ProjectRepositoryPage() {
       pruneTestFromViewIfFiltered(testId)
     } catch (error) {
       setCaseActionErrorMessage(
-        error instanceof Error ? error.message : 'Failed to archive test case.',
+        getErrorMessage(error, 'Failed to archive test case.'),
       )
     } finally {
       setPendingCaseActionId(null)
@@ -2607,7 +2747,7 @@ function ProjectRepositoryPage() {
       pruneTestFromViewIfFiltered(testId)
     } catch (error) {
       setCaseActionErrorMessage(
-        error instanceof Error ? error.message : 'Failed to restore test case.',
+        getErrorMessage(error, 'Failed to restore test case.'),
       )
     } finally {
       setPendingCaseActionId(null)
@@ -2631,9 +2771,7 @@ function ProjectRepositoryPage() {
       removePreviewDetails([testId])
     } catch (error) {
       setCaseActionErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Failed to delete test case permanently.',
+        getErrorMessage(error, 'Failed to delete test case permanently.'),
       )
     } finally {
       setPendingCaseActionId(null)
@@ -2656,7 +2794,7 @@ function ProjectRepositoryPage() {
       await router.invalidate()
     } catch (error) {
       setCaseActionErrorMessage(
-        error instanceof Error ? error.message : 'Failed to duplicate test case.',
+        getErrorMessage(error, 'Failed to duplicate test case.'),
       )
     } finally {
       setPendingCaseActionId(null)
@@ -2740,7 +2878,7 @@ function ProjectRepositoryPage() {
       }))
     } catch (error) {
       setSuiteActionErrorMessage(
-        error instanceof Error ? error.message : 'Failed to rename suite.',
+        getErrorMessage(error, 'Failed to rename suite.'),
       )
     } finally {
       setPendingSuiteActionById((current) => {
@@ -2788,7 +2926,7 @@ function ProjectRepositoryPage() {
       }
     } catch (error) {
       setSuiteActionErrorMessage(
-        error instanceof Error ? error.message : 'Failed to delete suite.',
+        getErrorMessage(error, 'Failed to delete suite.'),
       )
     } finally {
       setPendingSuiteActionById((current) => {
@@ -2818,9 +2956,7 @@ function ProjectRepositoryPage() {
       window.open(result.url, '_blank', 'noopener,noreferrer')
     } catch (error) {
       setShortcutStoryErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Failed to create Shortcut story.',
+        getErrorMessage(error, 'Failed to create Shortcut story.'),
       )
     } finally {
       setIsCreatingShortcutStory(false)
@@ -2841,9 +2977,7 @@ function ProjectRepositoryPage() {
                     setActiveComposer((current) => (current === 'suite' ? null : 'suite'))
                   }
                   variant="secondary"
-                >
-                  + Suite
-                </Button>
+                >{t('+ Suite')}</Button>
                 <PopoverMenu
                   isOpen={isMoreMenuOpen}
                   onClose={() => setIsMoreMenuOpen(false)}
@@ -2854,11 +2988,21 @@ function ProjectRepositoryPage() {
                       type="button"
                       variant="secondary"
                       aria-expanded={isMoreMenuOpen}
-                    >
-                      More
-                    </Button>
+                    >{t('More')}</Button>
                   }
                 >
+                  <PopoverMenuItem
+                    disabled={isCreatingShortcutStory}
+                    onClick={() => {
+                      setIsMoreMenuOpen(false)
+                      void handleCreateShortcutStory()
+                    }}
+                  >
+                    {isCreatingShortcutStory
+                      ? t('Creating story...')
+                      : t('Create Shortcut story')}
+                  </PopoverMenuItem>
+                  <PopoverMenuSeparator />
                   <PopoverMenuItem
                     onClick={() => {
                       setIsMoreMenuOpen(false)
@@ -2867,9 +3011,7 @@ function ProjectRepositoryPage() {
                       setImportResult(null)
                       setIsImportConfirming(false)
                     }}
-                  >
-                    Import CSV
-                  </PopoverMenuItem>
+                  >{t('Import CSV')}</PopoverMenuItem>
                   <PopoverMenuItem
                     disabled={
                       isExportingCsv || dashboard.pagination.totalCases === 0
@@ -2879,27 +3021,14 @@ function ProjectRepositoryPage() {
                       void handleExportCsv('filtered')
                     }}
                   >
-                    {isExportingCsv ? 'Exporting...' : 'Export CSV'}
-                  </PopoverMenuItem>
-                  <PopoverMenuItem
-                    disabled={isCreatingShortcutStory}
-                    onClick={() => {
-                      setIsMoreMenuOpen(false)
-                      void handleCreateShortcutStory()
-                    }}
-                  >
-                    {isCreatingShortcutStory
-                      ? 'Creating story...'
-                      : 'Create Shortcut story'}
+                    {isExportingCsv ? t('Exporting...') : t('Export CSV')}
                   </PopoverMenuItem>
                 </PopoverMenu>
                 <LinkButton
                   to="/create-test"
                   search={{ projectId: project.id }}
                   variant="primary"
-                >
-                  + Test case
-                </LinkButton>
+                >{t('+ Test case')}</LinkButton>
               </>
             }
           />
@@ -2915,13 +3044,9 @@ function ProjectRepositoryPage() {
                   target="_blank"
                   rel="noreferrer"
                   className="tms-button tms-button-secondary no-underline"
-                >
-                  Open ticket
-                </a>
+                >{t('Open ticket')}</a>
               }
-            >
-              Created Shortcut story: {shortcutStoryResult.name}
-            </Alert>
+            >{t('Created Shortcut story: {name}', { name: shortcutStoryResult.name })}</Alert>
           ) : null}
 
           {shortcutStoryErrorMessage ? (
@@ -2932,7 +3057,7 @@ function ProjectRepositoryPage() {
 
           <Modal
             open={activeComposer === 'suite'}
-            title="Create suite"
+            title={t('Create suite')}
             onClose={() => {
               setActiveComposer(null)
               setSuiteName('')
@@ -2941,18 +3066,14 @@ function ProjectRepositoryPage() {
           >
             <form className="grid gap-4" onSubmit={handleCreateSuite}>
               <label className="grid gap-1.5">
-                <span className="text-sm font-medium text-[var(--tms-text)]">
-                  Suite name
-                </span>
+                <span className="text-sm font-medium text-[var(--tms-text)]">{t('Suite name')}</span>
                 <Input
                   autoFocus
                   value={suiteName}
                   onChange={(event) => setSuiteName(event.target.value)}
-                  placeholder="e.g. Checkout smoke"
+                  placeholder={t('e.g. Checkout smoke')}
                 />
-                <span className="text-xs text-[var(--tms-text-muted)]">
-                  A suite is a folder that groups related test cases.
-                </span>
+                <span className="text-xs text-[var(--tms-text-muted)]">{t('A suite is a folder that groups related test cases.')}</span>
               </label>
 
               {suiteErrorMessage ? (
@@ -2969,9 +3090,7 @@ function ProjectRepositoryPage() {
                     setSuiteName('')
                     setSuiteErrorMessage(null)
                   }}
-                >
-                  Cancel
-                </Button>
+                >{t('Cancel')}</Button>
                 <Button
                   type="submit"
                   variant="primary"
@@ -2981,7 +3100,7 @@ function ProjectRepositoryPage() {
                     !suiteName.trim()
                   }
                 >
-                  {isSubmittingSuite ? 'Creating...' : 'Create suite'}
+                  {isSubmittingSuite ? t('Creating...') : t('Create suite')}
                 </Button>
               </div>
             </form>
@@ -2997,13 +3116,8 @@ function ProjectRepositoryPage() {
               >
                 <div className="repository-import-form__header">
                   <div>
-                    <div className="text-base font-semibold text-[var(--tms-text)]">
-                      Import CSV
-                    </div>
-                    <div className="mt-1 text-sm text-[var(--tms-text-muted)]">
-                      Upload, preview, validate, then confirm before anything is
-                      written to the repository.
-                    </div>
+                    <div className="text-base font-semibold text-[var(--tms-text)]">{t('Import CSV')}</div>
+                    <div className="mt-1 text-sm text-[var(--tms-text-muted)]">{t('Upload, preview, validate, then confirm before anything is written to the repository.')}</div>
                   </div>
                   {importFile ? (
                     <span className="tms-chip">
@@ -3014,13 +3128,13 @@ function ProjectRepositoryPage() {
 
                 <div
                   className="repository-import-steps"
-                  aria-label="CSV import progress"
+                  aria-label={t('CSV import progress')}
                 >
                   {[
-                    { step: 1, label: 'Upload' },
-                    { step: 2, label: 'Preview' },
-                    { step: 3, label: 'Confirm' },
-                    { step: 4, label: 'Done' },
+                    { step: 1, label: t('Upload') },
+                    { step: 2, label: t('Preview') },
+                    { step: 3, label: t('Confirm') },
+                    { step: 4, label: t('Done') },
                   ].map((item) => (
                     <span
                       key={item.step}
@@ -3046,9 +3160,7 @@ function ProjectRepositoryPage() {
                 </div>
 
                 <div className="repository-import-form__settings">
-                  <label className="grid gap-1.5 text-sm font-semibold text-[var(--tms-text)]">
-                    Source
-                    <SelectMenu
+                  <label className="grid gap-1.5 text-sm font-semibold text-[var(--tms-text)]">{t('Source')}<SelectMenu
                       value={importSource}
                       onValueChange={(value) => {
                         setImportSource(value as RepositoryImportPanelSource)
@@ -3060,11 +3172,11 @@ function ProjectRepositoryPage() {
                         setImportPreviewFilter('all')
                       }}
                       options={[
-                        { value: 'auto', label: 'Auto detect' },
-                        { value: 'native', label: 'TMS CSV' },
-                        { value: 'testmo', label: 'Testmo CSV' },
+                        { value: 'auto', label: t('Auto detect') },
+                        { value: 'native', label: t('TMS CSV') },
+                        { value: 'testmo', label: t('Testmo CSV') },
                       ]}
-                      aria-label="Import source"
+                      aria-label={t('Import source')}
                     />
                   </label>
                   <label className="repository-import-form__checkbox">
@@ -3079,9 +3191,7 @@ function ProjectRepositoryPage() {
                         setIsImportConfirming(false)
                       }}
                     />
-                    <span>
-                      Create missing suites
-                      <small>Required for importing Testmo folder trees.</small>
+                    <span>{t('Create missing suites')}<small>{t('Required for importing Testmo folder trees.')}</small>
                     </span>
                   </label>
                   <Button
@@ -3089,7 +3199,7 @@ function ProjectRepositoryPage() {
                     disabled={isParsingImport || !importFile}
                     variant="primary"
                   >
-                    {isParsingImport ? 'Parsing...' : 'Preview import'}
+                    {isParsingImport ? t('Parsing...') : t('Preview import')}
                   </Button>
                 </div>
               </form>
@@ -3104,18 +3214,13 @@ function ProjectRepositoryPage() {
                 <div className="repository-import-result">
                   <div className="repository-import-result__header">
                     <div>
-                      <span className="repository-import-result__eyebrow">
-                        Import complete
-                      </span>
+                      <span className="repository-import-result__eyebrow">{t('Import complete')}</span>
                       <strong>
                         {importResult.failedRows.length > 0
-                          ? 'Import finished with row-level issues'
-                          : 'CSV import finished successfully'}
+                          ? t('Import finished with row-level issues')
+                          : t('CSV import finished successfully')}
                       </strong>
-                      <p>
-                        Review what was created before continuing work in the
-                        repository.
-                      </p>
+                      <p>{t('Review what was created before continuing work in the repository.')}</p>
                     </div>
                     <div className="repository-import-result__actions">
                       <Button
@@ -3131,9 +3236,7 @@ function ProjectRepositoryPage() {
                           setImportPreviewFilter('all')
                           setImportErrorMessage(null)
                         }}
-                      >
-                        Start new import
-                      </Button>
+                      >{t('Start new import')}</Button>
                       <Button
                         type="button"
                         variant="primary"
@@ -3141,18 +3244,16 @@ function ProjectRepositoryPage() {
                           setIsImportPanelOpen(false)
                           setImportResult(null)
                         }}
-                      >
-                        Back to repository
-                      </Button>
+                      >{t('Back to repository')}</Button>
                     </div>
                   </div>
                   <div className="repository-import-result__metrics">
                     <div className="repository-import-result__metric is-ready">
-                      <span>Created cases</span>
+                      <span>{t('Created cases')}</span>
                       <strong>{importResult.importedCases}</strong>
                     </div>
                     <div className="repository-import-result__metric">
-                      <span>Created suites</span>
+                      <span>{t('Created suites')}</span>
                       <strong>{importResult.createdSuites}</strong>
                     </div>
                     <div
@@ -3160,7 +3261,7 @@ function ProjectRepositoryPage() {
                         importResult.warningRows > 0 ? 'is-warning' : ''
                       }`}
                     >
-                      <span>Warnings</span>
+                      <span>{t('Warnings')}</span>
                       <strong>{importResult.warningRows}</strong>
                     </div>
                     <div
@@ -3168,7 +3269,7 @@ function ProjectRepositoryPage() {
                         importResult.duplicateRows > 0 ? 'is-warning' : ''
                       }`}
                     >
-                      <span>Duplicate warnings</span>
+                      <span>{t('Duplicate warnings')}</span>
                       <strong>{importResult.duplicateRows}</strong>
                     </div>
                     <div
@@ -3176,13 +3277,13 @@ function ProjectRepositoryPage() {
                         importResult.failedRows.length > 0 ? 'is-danger' : ''
                       }`}
                     >
-                      <span>Failed rows</span>
+                      <span>{t('Failed rows')}</span>
                       <strong>{importResult.failedRows.length}</strong>
                     </div>
                   </div>
                   {importResult.createdSuitesList.length > 0 ? (
                     <div className="repository-import-result__section">
-                      <strong>Suites created</strong>
+                      <strong>{t('Suites created')}</strong>
                       <div className="repository-import-result__chips">
                         {importResult.createdSuitesList.slice(0, 12).map((suite) => (
                           <span key={suite} className="tms-chip">
@@ -3190,23 +3291,21 @@ function ProjectRepositoryPage() {
                           </span>
                         ))}
                         {importResult.createdSuitesList.length > 12 ? (
-                          <span className="tms-chip">
-                            +{importResult.createdSuitesList.length - 12} more
-                          </span>
+                          <span className="tms-chip">{t('+{v1} more', { v1: importResult.createdSuitesList.length - 12 })}</span>
                         ) : null}
                       </div>
                     </div>
                   ) : null}
                   {importResult.createdCases.length > 0 ? (
                     <div className="repository-import-result__section">
-                      <strong>Created cases</strong>
+                      <strong>{t('Created cases')}</strong>
                       <div className="repository-import-result-table">
                         <div className="repository-import-result-row repository-import-result-row--head">
-                          <span>ID</span>
-                          <span>Title</span>
-                          <span>Suite</span>
-                          <span>Status</span>
-                          <span>Open</span>
+                          <span>{t('ID')}</span>
+                          <span>{t('Title')}</span>
+                          <span>{t('Suite')}</span>
+                          <span>{t('Status')}</span>
+                          <span>{t('Open')}</span>
                         </div>
                         {importResult.createdCases.map((test) => (
                           <div
@@ -3218,34 +3317,29 @@ function ProjectRepositoryPage() {
                               {test.title}
                             </span>
                             <span className="min-w-0 truncate">{test.suite}</span>
-                            <span>{test.status}</span>
+                            <span>{t(test.status)}</span>
                             <LinkButton
                               to="/test/$testId"
                               params={{ testId: test.id.toString() }}
                               variant="secondary"
                               size="sm"
-                            >
-                              Open
-                            </LinkButton>
+                            >{t('Open')}</LinkButton>
                           </div>
                         ))}
                       </div>
                       {importResult.importedCases > importResult.createdCases.length ? (
-                        <p className="repository-import-result__note">
-                          Showing first {importResult.createdCases.length} created
-                          cases.
-                        </p>
+                        <p className="repository-import-result__note">{t('Showing first {length} created cases.', { length: importResult.createdCases.length })}</p>
                       ) : null}
                     </div>
                   ) : null}
                   {importResult.failedRows.length > 0 ? (
                     <div className="repository-import-result__section">
-                      <strong>Rows needing attention</strong>
+                      <strong>{t('Rows needing attention')}</strong>
                       <div className="repository-import-result-table">
                         <div className="repository-import-result-row repository-import-result-row--head repository-import-result-row--failed">
-                          <span>Row</span>
-                          <span>Title</span>
-                          <span>Reason</span>
+                          <span>{t('Row')}</span>
+                          <span>{t('Title')}</span>
+                          <span>{t('Reason')}</span>
                         </div>
                         {importResult.failedRows.map((row) => (
                           <div
@@ -3269,49 +3363,47 @@ function ProjectRepositoryPage() {
                 <div className="mt-4 grid gap-3">
                   <div className="repository-import-summary">
                     <div className="repository-import-summary__item">
-                      <span>Rows</span>
+                      <span>{t('Rows')}</span>
                       <strong>{importPreview.totalRows}</strong>
                     </div>
                     <div className="repository-import-summary__item is-ready">
-                      <span>Valid</span>
+                      <span>{t('Valid')}</span>
                       <strong>{importPreview.validRows}</strong>
                     </div>
                     <div className="repository-import-summary__item is-warning">
-                      <span>Warnings</span>
+                      <span>{t('Warnings')}</span>
                       <strong>{importPreview.warningRows}</strong>
                     </div>
                     <div className="repository-import-summary__item is-danger">
-                      <span>Errors</span>
+                      <span>{t('Errors')}</span>
                       <strong>{importPreview.errorRows}</strong>
                     </div>
                     <div className="repository-import-summary__item">
-                      <span>Duplicates</span>
+                      <span>{t('Duplicates')}</span>
                       <strong>{importPreview.duplicateRows}</strong>
                     </div>
                     <div className="repository-import-summary__item">
-                      <span>Detected</span>
+                      <span>{t('Detected')}</span>
                       <strong>
                         {importPreview.detectedSource === 'testmo'
-                          ? 'Testmo'
-                          : 'TMS'}
+                          ? t('Testmo')
+                          : t('TMS')}
                       </strong>
                     </div>
                   </div>
                   <div className="repository-import-mapping">
                     <div className="repository-import-mapping__header">
                       <div>
-                        <strong>Column mapping</strong>
-                        <span>
-                          Match CSV columns to TMS fields before confirmation.
-                        </span>
+                        <strong>{t('Column mapping')}</strong>
+                        <span>{t('Match CSV columns to TMS fields before confirmation.')}</span>
                       </div>
                       <div className="repository-import-mapping__actions">
                         <Badge variant={isImportMappingDirty ? 'warning' : 'default'}>
                           {isImportMappingDirty
-                            ? 'Mapping changed'
+                            ? t('Mapping changed')
                             : importPreview.detectedSource === 'testmo'
-                              ? 'Testmo mapping'
-                              : 'TMS mapping'}
+                              ? t('Testmo mapping')
+                              : t('TMS mapping')}
                         </Badge>
                         <Button
                           type="button"
@@ -3322,7 +3414,7 @@ function ProjectRepositoryPage() {
                             void previewImportWithMapping(importColumnMappings)
                           }}
                         >
-                          {isParsingImport ? 'Applying...' : 'Apply mapping'}
+                          {isParsingImport ? t('Applying...') : t('Apply mapping')}
                         </Button>
                       </div>
                     </div>
@@ -3338,7 +3430,7 @@ function ProjectRepositoryPage() {
                         >
                           <div>
                             <span>{mapping.field}</span>
-                            {mapping.required ? <small>Required</small> : null}
+                            {mapping.required ? <small>{t('Required')}</small> : null}
                           </div>
                           <SelectMenu
                             value={mapping.sourceColumn ?? '__none__'}
@@ -3353,26 +3445,22 @@ function ProjectRepositoryPage() {
                                 value: '__none__',
                                 label: mapping.fallback
                                   ? `Use default: ${mapping.fallback}`
-                                  : 'Do not map',
+                                  : t('Do not map'),
                               },
                               ...importPreview.availableColumns.map((column) => ({
                                 value: column,
                                 label: column,
                               })),
                             ]}
-                            aria-label={`${mapping.field} CSV column`}
+                            aria-label={t('{field} CSV column', { field: mapping.field })}
                           />
                         </div>
                       ))}
                     </div>
                   </div>
                   <div className="repository-import-preview-toolbar">
-                    <div className="repository-import-preview-toolbar__title">
-                      Preview rows
-                      <span>
-                        Showing {importVisiblePreviewRows.length} of{' '}
-                        {importPreview.previewRows.length} previewed rows
-                      </span>
+                    <div className="repository-import-preview-toolbar__title">{t('Preview rows')}<span>{t('Showing')}{' '}{importVisiblePreviewRows.length}{' '}{t('of')}{' '}
+                        {importPreview.previewRows.length}{' '}{t('previewed rows')}</span>
                     </div>
                     <div className="repository-import-preview-filters">
                       {IMPORT_PREVIEW_FILTERS.map((filter) => (
@@ -3384,7 +3472,7 @@ function ProjectRepositoryPage() {
                           }`}
                           onClick={() => setImportPreviewFilter(filter.value)}
                         >
-                          {filter.label}
+                          {t(filter.label)}
                           <span>{importPreviewFilterCounts[filter.value]}</span>
                         </button>
                       ))}
@@ -3393,7 +3481,7 @@ function ProjectRepositoryPage() {
                   <Alert variant={importReadyToCreate ? 'info' : 'warning'}>
                     {importReviewMessage}
                     {importPreview.duplicateRows > 0
-                      ? ' Duplicate rows are warnings and will still create new cases if confirmed.'
+                      ? t(' Duplicate rows are warnings and will still create new cases if confirmed.')
                       : ''}
                   </Alert>
                   {importPreview.missingSuites.length > 0 ? (
@@ -3403,22 +3491,21 @@ function ProjectRepositoryPage() {
                           ? 'info'
                           : 'warning'
                       }
-                    >
-                      Missing suites: {importMissingSuitesSummary}.
+                    >{t('Missing suites:')}{' '}{importMissingSuitesSummary}.
                       {createMissingImportSuites
-                        ? ' They will be created during import.'
-                        : ' Enable suite creation or create them manually before import.'}
+                        ? t(' They will be created during import.')
+                        : t(' Enable suite creation or create them manually before import.')}
                     </Alert>
                   ) : null}
                   <div className="overflow-x-auto rounded-[var(--tms-radius-md)] border border-[var(--tms-border-subtle)]">
                     <div className="repository-import-preview-row repository-import-preview-row--head">
-                      <span>Row</span>
-                      <span>Title</span>
-                      <span>Suite</span>
-                      <span>Status</span>
-                      <span>Priority</span>
-                      <span>Type</span>
-                      <span>Notes</span>
+                      <span>{t('Row')}</span>
+                      <span>{t('Title')}</span>
+                      <span>{t('Suite')}</span>
+                      <span>{t('Status')}</span>
+                      <span>{t('Priority')}</span>
+                      <span>{t('Type')}</span>
+                      <span>{t('Notes')}</span>
                     </div>
                     {importVisiblePreviewRows.map((row) => (
                       <div
@@ -3438,16 +3525,16 @@ function ProjectRepositoryPage() {
                           {row.title || '-'}
                         </span>
                         <span className="min-w-0 truncate">{row.suite || '-'}</span>
-                        <span>{row.status}</span>
-                        <span>{row.priority}</span>
-                        <span>{row.caseType}</span>
+                        <span>{t(row.status)}</span>
+                        <span>{t(row.priority)}</span>
+                        <span>{t(row.caseType)}</span>
                         <span className="repository-import-preview-row__notes">
                           {row.errors.length > 0 ? (
-                            <span className="tms-chip tms-chip-danger">Error</span>
+                            <span className="tms-chip tms-chip-danger">{t('Error')}</span>
                           ) : row.warnings.length > 0 ? (
-                            <span className="tms-chip tms-chip-warning">Warning</span>
+                            <span className="tms-chip tms-chip-warning">{t('Warning')}</span>
                           ) : (
-                            <span className="tms-chip tms-chip-success">OK</span>
+                            <span className="tms-chip tms-chip-success">{t('OK')}</span>
                           )}
                           <span className="min-w-0 truncate">
                             {[
@@ -3458,35 +3545,31 @@ function ProjectRepositoryPage() {
                                 : '',
                             ]
                               .filter(Boolean)
-                              .join(' ') || 'Ready'}
+                              .join(' ') || t('Ready')}
                           </span>
                         </span>
                       </div>
                     ))}
                   </div>
                   {importVisiblePreviewRows.length === 0 ? (
-                    <div className="repository-import-empty-preview">
-                      No rows match this preview filter.
-                    </div>
+                    <div className="repository-import-empty-preview">{t('No rows match this preview filter.')}</div>
                   ) : null}
                   {importPreview.totalRows > importPreview.previewRows.length ? (
-                    <div className="text-xs text-[var(--tms-text-muted)]">
-                      Showing first {importPreview.previewRows.length} rows only.
-                    </div>
+                    <div className="text-xs text-[var(--tms-text-muted)]">{t('Showing first {length} rows only.', { length: importPreview.previewRows.length })}</div>
                   ) : null}
                   <div className="repository-import-confirm">
                     <div>
                       <div className="repository-import-confirm__title">
-                        {isImportConfirming ? 'Confirm import' : 'Ready for review'}
+                        {isImportConfirming ? t('Confirm import') : t('Ready for review')}
                       </div>
                       <div className="repository-import-confirm__copy">
                         {importPreview.errorRows > 0
-                          ? 'Import is blocked until CSV errors are resolved.'
+                          ? t('Import is blocked until CSV errors are resolved.')
                           : isImportConfirming
-                            ? 'This action will create new repository cases from the reviewed rows.'
+                            ? t('This action will create new repository cases from the reviewed rows.')
                             : isImportMappingDirty
-                              ? 'Apply the updated column mapping to refresh validation.'
-                              : 'Review mapping, warnings, and duplicates before creating test cases.'}
+                              ? t('Apply the updated column mapping to refresh validation.')
+                              : t('Review mapping, warnings, and duplicates before creating test cases.')}
                       </div>
                       <div className="repository-import-confirm__metrics">
                         {importConfirmSummary.map((item) => (
@@ -3508,9 +3591,7 @@ function ProjectRepositoryPage() {
                             variant="secondary"
                             disabled={isImportingCsv}
                             onClick={() => setIsImportConfirming(false)}
-                          >
-                            Cancel
-                          </Button>
+                          >{t('Cancel')}</Button>
                           <Button
                             type="button"
                             variant="primary"
@@ -3519,7 +3600,7 @@ function ProjectRepositoryPage() {
                               void handleImportConfirm()
                             }}
                           >
-                            {isImportingCsv ? 'Importing...' : 'Confirm import'}
+                            {isImportingCsv ? t('Importing...') : t('Confirm import')}
                           </Button>
                         </>
                       ) : (
@@ -3528,9 +3609,7 @@ function ProjectRepositoryPage() {
                           variant="primary"
                           disabled={!importReadyToContinue || isImportingCsv}
                           onClick={() => setIsImportConfirming(true)}
-                        >
-                          Continue to import
-                        </Button>
+                        >{t('Continue to import')}</Button>
                       )}
                     </div>
                   </div>
@@ -3539,7 +3618,11 @@ function ProjectRepositoryPage() {
             </section>
           ) : null}
 
-          <RepositoryPanel className="repository-workspace-panel">
+          <RepositoryPanel
+            className={`repository-workspace-panel transition-opacity${
+              isRepositoryReloading ? ' opacity-60' : ''
+            }`}
+          >
             <RepositoryToolbar
               searchValue={searchValue}
               priorityFilter={priorityFilter}
@@ -3549,9 +3632,13 @@ function ProjectRepositoryPage() {
               caseTypeOptions={CASE_TYPE_OPTIONS}
               visibleColumns={visibleColumns}
               onSearchChange={(value) => {
-                clearBulkConfirmations()
                 setSearchValue(value)
+
+                if (value === '' && search.q) {
+                  submitRepositorySearch('')
+                }
               }}
+              onSearchSubmit={() => submitRepositorySearch()}
               onToggleColumn={toggleRepositoryColumn}
               onPriorityFilterChange={(value) => {
                 clearBulkConfirmations()
@@ -3572,6 +3659,26 @@ function ProjectRepositoryPage() {
                 })
               }}
             />
+
+            {activeTag ? (
+              <div className="mt-3 flex items-center gap-2 text-sm">
+                <span className="text-[var(--tms-text-muted)]">{t('Filtered by tag:')}</span>
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-[var(--tms-primary-soft)] px-2 py-0.5 text-xs font-semibold text-[var(--tms-primary)]">
+                  {activeTag}
+                  <button
+                    type="button"
+                    aria-label={t('Clear tag filter')}
+                    className="leading-none hover:opacity-70"
+                    onClick={() => {
+                      clearBulkConfirmations()
+                      updateRepositorySearch({ tag: undefined })
+                    }}
+                  >
+                    ✕
+                  </button>
+                </span>
+              </div>
+            ) : null}
 
             {selectedTestIds.length > 0 ? (
               <BulkCaseBar
@@ -3705,10 +3812,10 @@ function ProjectRepositoryPage() {
                 <div className="repository-browser-table__header">
                   <div>
                     <div className="tms-kicker">
-                      {selectedSuite ? 'Suite' : 'Repository'}
+                      {selectedSuite ? t('Suite') : t('Repository')}
                     </div>
                     <div className="repository-browser-table__title">
-                      <span>{selectedSuite?.name ?? 'All test cases'}</span>
+                      <span>{selectedSuite?.name ?? t('All test cases')}</span>
                       <span className="repository-browser-table__title-count">
                         {tableScopeCountLabel}
                       </span>
@@ -3721,14 +3828,14 @@ function ProjectRepositoryPage() {
                     style={repositoryGridStyle}
                   >
                     <span />
-                    <span>ID</span>
-                    <span>Title</span>
-                    {visibleColumns.priority ? <span>Priority</span> : null}
-                    {visibleColumns.type ? <span>Type</span> : null}
-                    {visibleColumns.created ? <span>Created</span> : null}
-                    {visibleColumns.updated ? <span>Updated</span> : null}
-                    {visibleColumns.status ? <span>Status</span> : null}
-                    <span>Actions</span>
+                    <span>{t('ID')}</span>
+                    <span>{t('Title')}</span>
+                    {visibleColumns.priority ? <span>{t('Priority')}</span> : null}
+                    {visibleColumns.type ? <span>{t('Type')}</span> : null}
+                    {visibleColumns.created ? <span>{t('Created')}</span> : null}
+                    {visibleColumns.updated ? <span>{t('Updated')}</span> : null}
+                    {visibleColumns.status ? <span>{t('Status')}</span> : null}
+                    <span>{t('Actions')}</span>
                   </div>
 
                   {dashboard.sections.length === 0 ? (
@@ -3863,7 +3970,7 @@ function ProjectRepositoryPage() {
                         {paginationPageSummary}
                       </span>
                       <label className="repository-browser-table__page-size">
-                        <span>Rows</span>
+                        <span>{t('Rows')}</span>
                         <SelectMenu
                           value={String(selectedPageSize)}
                           onValueChange={(value) =>
@@ -3877,7 +3984,7 @@ function ProjectRepositoryPage() {
                             label: `${size} per page`,
                           }))}
                           className="repository-browser-table__page-size-select"
-                          aria-label="Rows per page"
+                          aria-label={t('Rows per page')}
                         />
                       </label>
                       {dashboard.pagination.totalPages > 1 ? (
@@ -3890,9 +3997,7 @@ function ProjectRepositoryPage() {
                               page: Math.max(1, dashboard.pagination.page - 1),
                             })
                           }
-                        >
-                          Previous
-                        </Button>
+                        >{t('Previous')}</Button>
                         <Button
                           variant="secondary"
                           disabled={
@@ -3907,9 +4012,7 @@ function ProjectRepositoryPage() {
                               ),
                             })
                           }
-                        >
-                          Next
-                        </Button>
+                        >{t('Next')}</Button>
                       </div>
                       ) : null}
                     </div>
@@ -3920,159 +4023,97 @@ function ProjectRepositoryPage() {
               {splitPreviewTest ? (
                 <aside
                   className="repository-preview-panel"
-                  aria-label="Test case preview"
+                  aria-label={t('Test case preview')}
                 >
                   <div className="repository-preview-panel__header">
                     <div className="repository-preview-panel__copy">
-                      <p className="tms-kicker m-0">
-                        Case #{splitPreviewTest.id}
-                      </p>
+                      <p className="tms-kicker m-0">{t('Case #{id}', { id: splitPreviewTest.id })}</p>
                       <h2 className="repository-preview-panel__title">
                         {splitPreviewTest.title}
                       </h2>
-                      <p className="repository-preview-panel__subtitle">
-                        {previewSuite?.name ?? 'No suite'} /{' '}
+                      <p className="repository-preview-panel__subtitle">{t('Updated')}{' '}
                         {formatRepositoryDateTime(
                           splitPreviewTest.updatedAt ?? splitPreviewTest.createdAt,
                         )}
                       </p>
+                      <div className="mt-2">
+                        <CaseTags
+                          tags={splitPreviewTest.tags}
+                          onSelect={(tag) => {
+                            clearBulkConfirmations()
+                            updateRepositorySearch({ tag, page: 1 })
+                          }}
+                        />
+                      </div>
                     </div>
                     <div className="repository-preview-panel__header-actions">
-                      <Button
+                      <div className="repository-preview-panel__nav">
+                        <button
+                          type="button"
+                          className="case-actions-trigger"
+                          disabled={!previousPreviewTest}
+                          onClick={() => openAdjacentPreview('previous')}
+                          aria-label={t('Preview previous test case')}
+                          title={t('Previous case')}
+                        >
+                          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          className="case-actions-trigger"
+                          disabled={!nextPreviewTest}
+                          onClick={() => openAdjacentPreview('next')}
+                          aria-label={t('Preview next test case')}
+                          title={t('Next case')}
+                        >
+                          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                      <span className="repository-preview-panel__nav-divider" />
+                      <button
                         type="button"
-                        variant="secondary"
-                        disabled={!previousPreviewTest}
-                        onClick={() => openAdjacentPreview('previous')}
-                        aria-label="Preview previous test case"
-                      >
-                        Prev
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        disabled={!nextPreviewTest}
-                        onClick={() => openAdjacentPreview('next')}
-                        aria-label="Preview next test case"
-                      >
-                        Next
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
+                        className="case-actions-trigger"
                         onClick={closeCasePreview}
+                        aria-label={t('Close preview')}
+                        title={t('Close')}
                       >
-                        Close
-                      </Button>
+                        <X className="h-4 w-4" aria-hidden="true" />
+                      </button>
                     </div>
                   </div>
 
                   <div className="repository-preview-panel__metadata">
-                    <div className="repository-preview-panel__metadata-item">
-                      <span>Suite</span>
-                      <Badge variant="primary">
-                        {previewSuite?.name ?? 'No suite'}
-                      </Badge>
-                    </div>
-                    <label className="repository-preview-panel__metadata-item">
-                      <span>Status</span>
-                      <SelectMenu
-                        value={(splitPreviewTest.status ?? 'Draft') as CaseStatusValue}
-                        onValueChange={(value) => {
-                          if (value === (splitPreviewTest.status ?? 'Draft')) {
-                            return
-                          }
-
-                          void handleCaseStatusChange(
-                            splitPreviewTest.id,
-                            value as CaseStatusValue,
-                          )
-                        }}
-                        options={CASE_STATUS_OPTIONS.map((option) => ({
-                          value: option,
-                          label: option,
-                        }))}
-                        disabled={pendingCaseActionId === splitPreviewTest.id}
-                        className="repository-preview-panel__select"
-                        aria-label="Change preview status"
-                      />
-                    </label>
-                    <label className="repository-preview-panel__metadata-item">
-                      <span>Priority</span>
-                      <SelectMenu
-                        value={
-                          (splitPreviewTest.priority ?? 'Medium') as PriorityValue
-                        }
-                        onValueChange={(value) => {
-                          if (value === (splitPreviewTest.priority ?? 'Medium')) {
-                            return
-                          }
-
-                          void handleCaseMetadataChange(splitPreviewTest.id, {
-                            priority: value as PriorityValue,
-                          })
-                        }}
-                        options={PRIORITY_OPTIONS.map((option) => ({
-                          value: option,
-                          label: option,
-                        }))}
-                        disabled={pendingCaseActionId === splitPreviewTest.id}
-                        className="repository-preview-panel__select"
-                        aria-label="Change preview priority"
-                      />
-                    </label>
-                    <label className="repository-preview-panel__metadata-item">
-                      <span>Type</span>
-                      <SelectMenu
-                        value={
-                          (splitPreviewTest.caseType ?? 'Functional') as CaseTypeValue
-                        }
-                        onValueChange={(value) => {
-                          if (value === (splitPreviewTest.caseType ?? 'Functional')) {
-                            return
-                          }
-
-                          void handleCaseMetadataChange(splitPreviewTest.id, {
-                            caseType: value as CaseTypeValue,
-                          })
-                        }}
-                        options={CASE_TYPE_OPTIONS.map((option) => ({
-                          value: option,
-                          label: option,
-                        }))}
-                        disabled={pendingCaseActionId === splitPreviewTest.id}
-                        className="repository-preview-panel__select"
-                        aria-label="Change preview type"
-                      />
-                    </label>
+                    <Badge variant="primary">
+                      {previewSuite?.name ?? t('No suite')}
+                    </Badge>
+                    <Badge
+                      variant={
+                        (splitPreviewTest.status ?? 'Draft') === 'Ready'
+                          ? 'statusReady'
+                          : (splitPreviewTest.status ?? 'Draft') === 'Archived'
+                            ? 'statusArchived'
+                            : 'statusDraft'
+                      }
+                    >
+                      {splitPreviewTest.status ?? t('Draft')}
+                    </Badge>
+                    <Badge
+                      variant={
+                        (splitPreviewTest.priority ?? 'Medium') === 'Critical'
+                          ? 'priorityCritical'
+                          : (splitPreviewTest.priority ?? 'Medium') === 'High'
+                            ? 'priorityHigh'
+                            : (splitPreviewTest.priority ?? 'Medium') === 'Low'
+                              ? 'priorityLow'
+                              : 'priorityMedium'
+                      }
+                    >
+                      {splitPreviewTest.priority ?? t('Medium')}
+                    </Badge>
+                    <Badge>{splitPreviewTest.caseType ?? t('Functional')}</Badge>
                   </div>
 
                   <div className="repository-preview-panel__actions">
-                    <LinkButton
-                      to="/test/$testId"
-                      params={{ testId: splitPreviewTest.id.toString() }}
-                      variant="secondary"
-                    >
-                      Open
-                    </LinkButton>
-                    <LinkButton
-                      to="/edit-test/$testId"
-                      params={{ testId: splitPreviewTest.id.toString() }}
-                      variant="secondary"
-                    >
-                      Full editor
-                    </LinkButton>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled={pendingCaseActionId === splitPreviewTest.id}
-                      onClick={() => {
-                        void copyPreviewLink(splitPreviewTest.id)
-                      }}
-                    >
-                      {copiedPreviewLinkId === splitPreviewTest.id
-                        ? 'Copied'
-                        : 'Copy link'}
-                    </Button>
                     {isEditingPreviewContent ? (
                       <>
                         <Button
@@ -4085,16 +4126,14 @@ function ProjectRepositoryPage() {
                           }}
                           variant="primary"
                         >
-                          {isSavingPreviewContent ? 'Saving...' : 'Save'}
+                          {isSavingPreviewContent ? t('Saving...') : t('Save')}
                         </Button>
                         <Button
                           type="button"
                           disabled={isSavingPreviewContent}
                           onClick={cancelPreviewContentEdit}
                           variant="secondary"
-                        >
-                          Cancel
-                        </Button>
+                        >{t('Cancel')}</Button>
                       </>
                     ) : (
                       <>
@@ -4106,42 +4145,93 @@ function ProjectRepositoryPage() {
                           }
                           onClick={startPreviewContentEdit}
                           variant="primary"
-                        >
-                          Edit content
-                        </Button>
-                        <Button
-                          type="button"
+                        >{t('Edit content')}</Button>
+                        <LinkButton
+                          to="/test/$testId"
+                          params={{ testId: splitPreviewTest.id.toString() }}
                           variant="secondary"
+                        >{t('Open')}</LinkButton>
+                        <button
+                          type="button"
+                          className="case-actions-trigger"
                           disabled={pendingCaseActionId === splitPreviewTest.id}
                           onClick={() => {
-                            void handleCaseDuplicate(splitPreviewTest.id)
+                            void copyPreviewLink(splitPreviewTest.id)
                           }}
+                          aria-label={t('Copy link to this case')}
+                          title={
+                            copiedPreviewLinkId === splitPreviewTest.id
+                              ? t('Copied')
+                              : t('Copy link')
+                          }
                         >
-                          Duplicate
-                        </Button>
-                        {(splitPreviewTest.status ?? 'Draft') === 'Archived' ? (
-                          <Button
-                            type="button"
-                            variant="success"
+                          {copiedPreviewLinkId === splitPreviewTest.id ? (
+                            <Check
+                              className="h-4 w-4 text-[var(--tms-success)]"
+                              aria-hidden="true"
+                            />
+                          ) : (
+                            <Link2 className="h-4 w-4" aria-hidden="true" />
+                          )}
+                        </button>
+                        <PopoverMenu
+                          isOpen={isPreviewActionsMenuOpen}
+                          onClose={() => setIsPreviewActionsMenuOpen(false)}
+                          onOpenChange={setIsPreviewActionsMenuOpen}
+                          align="right"
+                          className="min-w-[184px] text-left"
+                          trigger={
+                            <button
+                              type="button"
+                              className="case-actions-trigger"
+                              aria-label={t('More case actions')}
+                              aria-haspopup="menu"
+                              aria-expanded={isPreviewActionsMenuOpen}
+                            >
+                              <MoreHorizontal
+                                className="h-4 w-4"
+                                aria-hidden="true"
+                              />
+                            </button>
+                          }
+                        >
+                          <Link
+                            to="/edit-test/$testId"
+                            params={{ testId: splitPreviewTest.id.toString() }}
+                            className="tms-menu-item no-underline"
+                          >{t('Full editor')}</Link>
+                          <PopoverMenuItem
                             disabled={pendingCaseActionId === splitPreviewTest.id}
                             onClick={() => {
-                              void handleCaseRestore(splitPreviewTest.id)
+                              setIsPreviewActionsMenuOpen(false)
+                              void handleCaseDuplicate(splitPreviewTest.id)
                             }}
-                          >
-                            Restore
-                          </Button>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="warning"
-                            disabled={pendingCaseActionId === splitPreviewTest.id}
-                            onClick={() => {
-                              void handleCaseArchive(splitPreviewTest.id)
-                            }}
-                          >
-                            Archive
-                          </Button>
-                        )}
+                          >{t('Duplicate')}</PopoverMenuItem>
+                          <PopoverMenuSeparator />
+                          {(splitPreviewTest.status ?? 'Draft') === 'Archived' ? (
+                            <PopoverMenuItem
+                              tone="success"
+                              disabled={
+                                pendingCaseActionId === splitPreviewTest.id
+                              }
+                              onClick={() => {
+                                setIsPreviewActionsMenuOpen(false)
+                                void handleCaseRestore(splitPreviewTest.id)
+                              }}
+                            >{t('Restore')}</PopoverMenuItem>
+                          ) : (
+                            <PopoverMenuItem
+                              tone="warning"
+                              disabled={
+                                pendingCaseActionId === splitPreviewTest.id
+                              }
+                              onClick={() => {
+                                setIsPreviewActionsMenuOpen(false)
+                                void handleCaseArchive(splitPreviewTest.id)
+                              }}
+                            >{t('Archive')}</PopoverMenuItem>
+                          )}
+                        </PopoverMenu>
                       </>
                     )}
                   </div>
@@ -4149,6 +4239,8 @@ function ProjectRepositoryPage() {
                   <div className="repository-preview-panel__body">
                     {isEditingPreviewContent ? (
                       <StepsEditor
+                        preconditions={previewPreconditionsValue}
+                        onPreconditionsChange={setPreviewPreconditionsValue}
                         description={previewDescriptionValue}
                         steps={previewStepsValue}
                         onDescriptionChange={setPreviewDescriptionValue}
@@ -4158,7 +4250,7 @@ function ProjectRepositoryPage() {
                       />
                     ) : isLoadingPreviewDetail ? (
                       <div className="repository-preview-panel__skeleton">
-                        <strong>Loading preview</strong>
+                        <strong>{t('Loading preview')}</strong>
                         <span />
                         <span />
                         <span />
@@ -4166,7 +4258,7 @@ function ProjectRepositoryPage() {
                       </div>
                     ) : previewDetailErrorMessage ? (
                       <div className="repository-preview-panel__state repository-preview-panel__state--danger">
-                        <strong>Preview could not load</strong>
+                        <strong>{t('Preview could not load')}</strong>
                         <span>{previewDetailErrorMessage}</span>
                         <Button
                           type="button"
@@ -4175,25 +4267,36 @@ function ProjectRepositoryPage() {
                             removePreviewDetails([splitPreviewTest.id])
                             setPreviewTestId(splitPreviewTest.id)
                           }}
-                        >
-                          Retry
-                        </Button>
+                        >{t('Retry')}</Button>
                       </div>
                     ) : (
                       <>
                         <section className="repository-preview-panel__section">
+                          <PreconditionsBlock
+                            html={
+                              'preconditions' in splitPreviewTest
+                                ? splitPreviewTest.preconditions
+                                : null
+                            }
+                            onMediaClick={handleRichContentClick}
+                          />
                           <StepsView
                             steps={splitPreviewTest.steps ?? null}
                             expected={splitPreviewTest.expected ?? null}
                             onMediaClick={handleRichContentClick}
                           />
+                          <CaseRefsList
+                            refs={
+                              'refs' in splitPreviewTest
+                                ? splitPreviewTest.refs
+                                : null
+                            }
+                          />
                         </section>
                         <section className="repository-preview-panel__section">
-                          <h3>Activity</h3>
+                          <h3>{t('Activity')}</h3>
                           {previewActivities.length === 0 ? (
-                            <p className="repository-preview-panel__muted">
-                              No activity recorded yet.
-                            </p>
+                            <p className="repository-preview-panel__muted">{t('No activity recorded yet.')}</p>
                           ) : (
                             <div className="repository-preview-panel__activity">
                               {previewActivities.map((activity) => (
@@ -4226,6 +4329,7 @@ function ProjectRepositoryPage() {
               isLoadingContent={isLoadingPreviewDetail}
               errorMessage={previewDetailErrorMessage}
               isEditingContent={isEditingPreviewContent}
+              preconditionsValue={previewPreconditionsValue}
               descriptionValue={previewDescriptionValue}
               stepsValue={previewStepsValue}
               isSavingContent={isSavingPreviewContent}
@@ -4237,6 +4341,7 @@ function ProjectRepositoryPage() {
               onSaveContent={() => {
                 void savePreviewContent()
               }}
+              onPreconditionsChange={setPreviewPreconditionsValue}
               onDescriptionChange={setPreviewDescriptionValue}
               onStepsChange={setPreviewStepsValue}
               onUploadMedia={uploadPreviewMedia}
@@ -4247,9 +4352,52 @@ function ProjectRepositoryPage() {
               onArchive={() => {
                 void handleCaseArchive(previewDrawerTest.id)
               }}
+              onSelectTag={(tag) => {
+                clearBulkConfirmations()
+                updateRepositorySearch({ tag, page: 1 })
+              }}
               formatDateTime={formatRepositoryDateTime}
             />
           ) : null}
+
+          <ConfirmDialog
+            open={pendingCrossSuiteMove !== null}
+            title={t('Move to a different suite?')}
+            description={
+              pendingCrossSuiteMove ? (
+                <>
+                  {pendingCrossSuiteMove.testIds.length === 1
+                    ? t('This test case is')
+                    : t('These {length} test cases are', { length: pendingCrossSuiteMove.testIds.length })}{' '}{t('currently in')}{' '}
+                  <strong className="text-[var(--tms-text)]">
+                    {pendingCrossSuiteMove.sourceSuiteNames.join(', ')}
+                  </strong>{t('. Dropping here will move')}{' '}
+                  {pendingCrossSuiteMove.testIds.length === 1 ? 'it' : 'them'}{' '}{t('into')}{' '}
+                  <strong className="text-[var(--tms-text)]">
+                    {pendingCrossSuiteMove.targetSuiteName}
+                  </strong>{' '}{t('instead of just reordering.')}</>
+              ) : null
+            }
+            confirmLabel={t('Move test case(s)')}
+            confirmVariant="primary"
+            isPending={isApplyingBulkAction}
+            pendingLabel={t('Moving...')}
+            onConfirm={() => {
+              if (!pendingCrossSuiteMove) {
+                return
+              }
+
+              const { testIds, targetSuiteId, orderedIds } =
+                pendingCrossSuiteMove
+
+              void handleMoveAndReorderTestCases({
+                testIds,
+                targetSuiteId,
+                orderedIds,
+              }).then(() => setPendingCrossSuiteMove(null))
+            }}
+            onCancel={() => setPendingCrossSuiteMove(null)}
+          />
         </div>
       </div>
     </main>

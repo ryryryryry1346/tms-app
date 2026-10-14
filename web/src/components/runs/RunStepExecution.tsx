@@ -5,6 +5,7 @@ import {
   type StepResult,
   type StepRunStatus,
 } from '../../lib/stepRun'
+import { useT } from '../../lib/i18n'
 
 type RunStepExecutionProps = {
   steps: CaseStep[]
@@ -30,6 +31,8 @@ function StepStatusButtons({
   disabled: boolean
   onChange: (status: StepRunStatus | null) => void
 }) {
+  const t = useT()
+
   return (
     <div className="flex flex-wrap gap-1">
       {STEP_RUN_STATUSES.map((status) => {
@@ -48,7 +51,7 @@ function StepStatusButtons({
                 : 'border-[var(--tms-border)] bg-[var(--tms-surface)] text-[var(--tms-text-muted)] hover:border-[var(--tms-text-muted)]'
             }`}
           >
-            {status}
+            {t(status)}
           </button>
         )
       })}
@@ -71,6 +74,8 @@ function StepRow({
   onStepStatus: (stepIndex: number, status: StepRunStatus | null) => void
   onStepCommentSave: (stepIndex: number, comment: string) => void
 }) {
+  const t = useT()
+
   const [comment, setComment] = useState(result.comment)
 
   return (
@@ -88,17 +93,13 @@ function StepRow({
 
       <div className="grid gap-3 md:grid-cols-2">
         <div>
-          <div className="mb-1 text-xs font-semibold uppercase tracking-[0.06em] text-[var(--tms-text-muted)]">
-            Action
-          </div>
+          <div className="mb-1 text-xs font-semibold uppercase tracking-[0.06em] text-[var(--tms-text-muted)]">{t('Action')}</div>
           <div className="whitespace-pre-wrap text-sm text-[var(--tms-text)]">
             {step.action || '-'}
           </div>
         </div>
         <div>
-          <div className="mb-1 text-xs font-semibold uppercase tracking-[0.06em] text-[var(--tms-text-muted)]">
-            Expected
-          </div>
+          <div className="mb-1 text-xs font-semibold uppercase tracking-[0.06em] text-[var(--tms-text-muted)]">{t('Expected')}</div>
           <div className="whitespace-pre-wrap text-sm text-[var(--tms-text-muted)]">
             {step.expected || '-'}
           </div>
@@ -108,7 +109,7 @@ function StepRow({
       <textarea
         className="tms-textarea min-h-[2.5rem] px-3 py-2 text-sm"
         rows={1}
-        placeholder="Add a note for this step (optional)"
+        placeholder={t('Add a note for this step (optional)')}
         value={comment}
         disabled={disabled}
         onChange={(event) => setComment(event.target.value)}
@@ -129,11 +130,11 @@ export function RunStepExecution({
   onStepStatus,
   onStepCommentSave,
 }: RunStepExecutionProps) {
+  const t = useT()
+
   if (steps.length === 0) {
     return (
-      <p className="run-execution-preview-panel__empty">
-        This case has no structured steps.
-      </p>
+      <p className="run-execution-preview-panel__empty">{t('This case has no structured steps.')}</p>
     )
   }
 

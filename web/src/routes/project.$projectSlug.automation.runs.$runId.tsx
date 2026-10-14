@@ -19,6 +19,7 @@ import {
   type AutomationRunResultItem,
 } from '../features/automation/server'
 import { getDashboardState } from '../features/tests/server'
+import { getErrorMessage } from '../lib/errors'
 
 export const Route = createFileRoute(
   '/project/$projectSlug/automation/runs/$runId',
@@ -526,9 +527,7 @@ function AutomationRunDetailPage() {
     } catch (error) {
       setCaseLinkStatus(null)
       setCaseLinkError(
-        error instanceof Error
-          ? error.message
-          : 'Could not search manual cases.',
+        getErrorMessage(error, 'Could not search manual cases.'),
       )
     }
   }
@@ -564,7 +563,7 @@ function AutomationRunDetailPage() {
     } catch (error) {
       setCaseLinkStatus(null)
       setCaseLinkError(
-        error instanceof Error ? error.message : 'Could not link manual case.',
+        getErrorMessage(error, 'Could not link manual case.'),
       )
     }
   }
@@ -594,9 +593,7 @@ function AutomationRunDetailPage() {
     } catch (error) {
       setCaseLinkStatus(null)
       setCaseLinkError(
-        error instanceof Error
-          ? error.message
-          : 'Could not unlink manual case.',
+        getErrorMessage(error, 'Could not unlink manual case.'),
       )
     }
   }

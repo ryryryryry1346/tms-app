@@ -1,7 +1,8 @@
-import { Link, createRouter as createTanStackRouter } from '@tanstack/react-router'
+import { Link, createRouter as createTanStackRouter, useLocation } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 import { Button, buttonVariants } from './components/ui/Button'
 import { cx } from './components/ui/utils'
+import { logger, serializeError } from './lib/logger'
 
 export function getRouter() {
   const router = createTanStackRouter({
@@ -31,11 +32,26 @@ function CenteredCard({ children }: { children: React.ReactNode }) {
 
 function RouteErrorState({
   error,
+  info,
   reset,
 }: {
   error: Error
+  info?: { componentStack: string }
   reset: () => void
 }) {
+  const location = useLocation()
+
+  // Logged directly in the render body (not useEffect) so this also fires
+  // during SSR, which is when Render's log stream actually captures it -
+  // this is the single choke point every uncaught route/loader/server-fn
+  // error passes through, so logging here (once) beats trying to add
+  // logger.error() calls to every individual server function.
+  logger.error('Route error boundary triggered', {
+    pathname: location.pathname,
+    componentStack: info?.componentStack,
+    ...serializeError(error),
+  })
+
   return (
     <CenteredCard>
       <h1 className="m-0 text-xl font-semibold text-[var(--tms-text)]">

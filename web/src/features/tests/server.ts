@@ -8,6 +8,12 @@ import {
   flattenCaseContentToText,
   parseCaseContent,
 } from '../../lib/caseContent'
+import {
+  parseRefs,
+  parseTags,
+  serializeRefs,
+  serializeTags,
+} from '../../lib/caseFields'
 
 let and: typeof import('drizzle-orm')['and']
 let asc: typeof import('drizzle-orm')['asc']
@@ -90,6 +96,7 @@ const dashboardInput = z.object({
   caseType: z
     .enum(['All', 'Functional', 'Regression', 'Smoke', 'E2E', 'UI', 'API'])
     .optional(),
+  tag: z.string().trim().min(1).optional(),
   page: z.number().int().positive().optional(),
   pageSize: z.number().int().min(25).max(100).optional(),
 })
@@ -203,6 +210,8 @@ const updateTestContentInput = z.object({
   id: z.number().int().positive(),
   steps: z.string(),
   expected: z.string(),
+  // Optional: omit to leave the stored preconditions untouched.
+  preconditions: z.string().max(50_000).optional(),
 })
 
 const bulkUpdateTestStatusInput = z.object({
@@ -259,6 +268,9 @@ const createTestInput = z.object({
     .default('Functional'),
   steps: z.string(),
   expected: z.string(),
+  preconditions: z.string().max(50_000).optional().default(''),
+  tags: z.string().max(10_000).optional().default(''),
+  refs: z.string().max(20_000).optional().default(''),
 })
 
 const updateTestInput = z.object({
@@ -272,6 +284,9 @@ const updateTestInput = z.object({
     .default('Functional'),
   steps: z.string(),
   expected: z.string(),
+  preconditions: z.string().max(50_000).optional().default(''),
+  tags: z.string().max(10_000).optional().default(''),
+  refs: z.string().max(20_000).optional().default(''),
 })
 
 export type DashboardTest = {
@@ -280,6 +295,7 @@ export type DashboardTest = {
   status: string | null
   priority: string | null
   caseType: string | null
+  tags?: string | null
   archivedFromStatus: string | null
   sectionId: number | null
   projectId: number | null
@@ -444,6 +460,9 @@ export type EditTestFormState = {
     status: 'Draft' | 'Ready' | 'Archived'
     priority: 'Low' | 'Medium' | 'High' | 'Critical'
     caseType: 'Functional' | 'Regression' | 'Smoke' | 'E2E' | 'UI' | 'API'
+    preconditions: string
+    tags: string
+    refs: string
     sectionId: number
     projectId: number | null
   }
@@ -454,6 +473,9 @@ export type TestDetail = {
   title: string
   steps: string | null
   expected: string | null
+  preconditions: string | null
+  tags: string | null
+  refs: string | null
   status: string | null
   priority: string | null
   caseType: string | null
@@ -683,6 +705,13 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
         ? or(like(tests.title, searchPattern), eq(tests.id, numericSearchId))
         : like(tests.title, searchPattern)
       : undefined
+    const isUnfilteredView =
+      statusFilter === 'All' &&
+      priorityFilter === 'All' &&
+      caseTypeFilter === 'All' &&
+      !data.suiteId &&
+      !data.tag &&
+      !search
     const filteredTestConditions = [
       eq(tests.projectId, project.id),
       statusFilter === 'All'
@@ -691,6 +720,9 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
       data.suiteId ? eq(tests.sectionId, data.suiteId) : undefined,
       priorityFilter !== 'All' ? eq(tests.priority, priorityFilter) : undefined,
       caseTypeFilter !== 'All' ? eq(tests.caseType, caseTypeFilter) : undefined,
+      data.tag
+        ? like(tests.tags, `%${JSON.stringify(data.tag)}%`)
+        : undefined,
       searchCondition,
     ].filter(
       (
@@ -719,6 +751,7 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
             status: tests.status,
             priority: tests.priority,
             caseType: tests.caseType,
+            tags: tests.tags,
             archivedFromStatus: tests.archivedFromStatus,
             sectionId: tests.sectionId,
             projectId: tests.projectId,
@@ -761,6 +794,18 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
       { totalCases: 0, activeCases: 0, readyCases: 0, archivedCases: 0 },
     )
 
+    // The fully-unfiltered view ("All test cases", no search/suite/priority/
+    // type/status narrowing) matches exactly the active-case aggregate we
+    // already computed above for the suite sidebar. Use that exact number
+    // instead of the pageSize+1 "is there another page" estimate, so the
+    // sidebar and the table header never disagree, and the client doesn't
+    // need a follow-up request just to learn a total we already have.
+    const totalCases = isUnfilteredView ? stats.activeCases : totalFilteredCases
+    const isCasesCountEstimated = isUnfilteredView ? false : hasMoreCases
+    const totalPages = isUnfilteredView
+      ? Math.max(1, Math.ceil(stats.activeCases / pageSize))
+      : page + (hasMoreCases ? 1 : 0)
+
     logRepositoryTiming(timing, 'complete', {
       projectFound: true,
       suiteCount: sectionRows.length,
@@ -768,7 +813,7 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
       suiteStatsCount: suiteStatsRows.length,
       totalFilteredCases,
       totalCases: stats.totalCases,
-      totalCasesEstimated: hasMoreCases,
+      totalCasesEstimated: isCasesCountEstimated,
     })
 
     return {
@@ -781,9 +826,9 @@ export const getRepositoryState = createServerFn({ method: 'POST' })
       pagination: {
         page,
         pageSize,
-        totalCases: totalFilteredCases,
-        totalPages: page + (hasMoreCases ? 1 : 0),
-        isEstimated: hasMoreCases,
+        totalCases,
+        totalPages,
+        isEstimated: isCasesCountEstimated,
       },
       suiteStats: suiteStatsRows
         .filter((row) => row.sectionId !== null)
@@ -980,6 +1025,9 @@ export const getRepositoryCount = createServerFn({ method: 'POST' })
       data.suiteId ? eq(tests.sectionId, data.suiteId) : undefined,
       priorityFilter !== 'All' ? eq(tests.priority, priorityFilter) : undefined,
       caseTypeFilter !== 'All' ? eq(tests.caseType, caseTypeFilter) : undefined,
+      data.tag
+        ? like(tests.tags, `%${JSON.stringify(data.tag)}%`)
+        : undefined,
       searchCondition,
     ].filter(
       (
@@ -1154,6 +1202,9 @@ export const exportRepositoryCasesCsv = createServerFn({ method: 'POST' })
           status: tests.status,
           priority: tests.priority,
           caseType: tests.caseType,
+          preconditions: tests.preconditions,
+          tags: tests.tags,
+          refs: tests.refs,
           sectionId: tests.sectionId,
           sortOrder: tests.sortOrder,
           steps: tests.steps,
@@ -1176,6 +1227,9 @@ export const exportRepositoryCasesCsv = createServerFn({ method: 'POST' })
         'status',
         'priority',
         'type',
+        'preconditions',
+        'tags',
+        'refs',
         'steps',
         'expected',
         'created_at',
@@ -1185,6 +1239,14 @@ export const exportRepositoryCasesCsv = createServerFn({ method: 'POST' })
         const flat = flattenCaseContentToText(
           parseCaseContent(test.steps, test.expected),
         )
+        const preconditionsText = (test.preconditions ?? '')
+          .replace(/<[^>]*>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+        const tagsText = parseTags(test.tags).join(', ')
+        const refsText = parseRefs(test.refs)
+          .map((ref) => `${ref.label} <${ref.url}>`)
+          .join(', ')
 
         return csvRow([
           test.id,
@@ -1193,6 +1255,9 @@ export const exportRepositoryCasesCsv = createServerFn({ method: 'POST' })
           test.status ?? 'Draft',
           test.priority ?? 'Medium',
           test.caseType ?? 'Functional',
+          preconditionsText,
+          tagsText,
+          refsText,
           flat.steps,
           flat.expected,
           test.createdAt ?? '',
@@ -2215,6 +2280,9 @@ export const updateTestContent = createServerFn({ method: 'POST' })
       .set({
         steps: data.steps,
         expected: data.expected,
+        ...(data.preconditions !== undefined
+          ? { preconditions: data.preconditions }
+          : {}),
         updatedAt: new Date().toISOString(),
       })
       .where(eq(tests.id, data.id))
@@ -2914,6 +2982,9 @@ export const createTestCase = createServerFn({ method: 'POST' })
       title: data.title,
       steps: data.steps,
       expected: data.expected,
+      preconditions: data.preconditions,
+      tags: serializeTags(parseTags(data.tags)),
+      refs: serializeRefs(parseRefs(data.refs)),
       status: data.status,
       priority: data.priority,
       caseType: data.caseType,
@@ -2955,6 +3026,9 @@ export const duplicateTestCase = createServerFn({ method: 'POST' })
         title: tests.title,
         steps: tests.steps,
         expected: tests.expected,
+        preconditions: tests.preconditions,
+        tags: tests.tags,
+        refs: tests.refs,
         status: tests.status,
         priority: tests.priority,
         caseType: tests.caseType,
@@ -2989,6 +3063,9 @@ export const duplicateTestCase = createServerFn({ method: 'POST' })
       title: `Copy of ${source.title}`,
       steps: source.steps,
       expected: source.expected,
+      preconditions: source.preconditions,
+      tags: source.tags,
+      refs: source.refs,
       status:
         source.status === 'Ready' || source.status === 'Draft'
           ? source.status
@@ -3054,6 +3131,9 @@ export const getEditTestFormState = createServerFn({ method: 'POST' })
         title: tests.title,
         steps: tests.steps,
         expected: tests.expected,
+        preconditions: tests.preconditions,
+        tags: tests.tags,
+        refs: tests.refs,
         status: tests.status,
         priority: tests.priority,
         caseType: tests.caseType,
@@ -3141,6 +3221,9 @@ export const getEditTestFormState = createServerFn({ method: 'POST' })
                   : test.caseType === 'API'
                     ? 'API'
                     : 'Functional',
+        preconditions: test.preconditions ?? '',
+        tags: test.tags ?? '',
+        refs: test.refs ?? '',
         sectionId: test.sectionId,
         projectId: test.projectId,
       },
@@ -3194,6 +3277,9 @@ export const updateTestCase = createServerFn({ method: 'POST' })
         title: data.title,
         steps: data.steps,
         expected: data.expected,
+        preconditions: data.preconditions,
+        tags: serializeTags(parseTags(data.tags)),
+        refs: serializeRefs(parseRefs(data.refs)),
         status: data.status,
         priority: data.priority,
         caseType: data.caseType,
@@ -3243,6 +3329,9 @@ export const getTestDetail = createServerFn({ method: 'POST' })
         title: tests.title,
         steps: tests.steps,
         expected: tests.expected,
+        preconditions: tests.preconditions,
+        tags: tests.tags,
+        refs: tests.refs,
         status: tests.status,
         priority: tests.priority,
         caseType: tests.caseType,

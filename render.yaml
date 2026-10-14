@@ -15,7 +15,13 @@ services:
         value: production
       - key: MYSQL_DATABASE_URL
         sync: false
-      - key: SESSION_SECRET
+      - key: BETTER_AUTH_SECRET
+        sync: false
+      - key: BETTER_AUTH_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
         sync: false
       - key: CLOUDINARY_URL
         sync: false

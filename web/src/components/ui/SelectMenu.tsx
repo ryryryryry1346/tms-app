@@ -94,9 +94,14 @@ export function SelectMenu({
         <Select.Positioner
           className="tms-transient-layer"
           sideOffset={6}
+          side="bottom"
           align="start"
+          alignItemWithTrigger={false}
         >
-          <Select.Popup className={cx('tms-popover p-1', popupClassName)}>
+          <Select.Popup
+            className={cx('tms-popover p-1', popupClassName)}
+            style={{ minWidth: 'var(--anchor-width)' }}
+          >
             <Select.List className="grid gap-1">
               {options.map((option) => (
                 <Select.Item

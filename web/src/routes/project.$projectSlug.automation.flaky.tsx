@@ -8,7 +8,7 @@ import { Input } from '../components/ui/Input'
 import { LinkButton } from '../components/ui/LinkButton'
 import { MetricCard } from '../components/ui/MetricCard'
 import { Panel } from '../components/ui/Panel'
-import { Select } from '../components/ui/Select'
+import { SelectMenu } from '../components/ui/SelectMenu'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import {
   getAutomationFlakyTests,
@@ -299,26 +299,28 @@ function AutomationFlakyTestsPage() {
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search by test, suite, or failure..."
                 />
-                <Select
+                <SelectMenu
                   value={recommendationFilter}
-                  onChange={(event) => setRecommendationFilter(event.target.value)}
-                >
-                  <option value="All">All recommendations</option>
-                  <option value="quarantine">Quarantine</option>
-                  <option value="review">Review</option>
-                  <option value="stable">Stable watch</option>
-                </Select>
-                <Select
+                  onValueChange={setRecommendationFilter}
+                  options={[
+                    { value: 'All', label: 'All recommendations' },
+                    { value: 'quarantine', label: 'Quarantine' },
+                    { value: 'review', label: 'Review' },
+                    { value: 'stable', label: 'Stable watch' },
+                  ]}
+                />
+                <SelectMenu
                   value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value)}
-                >
-                  <option value="All">All latest statuses</option>
-                  <option value="failed">Failed</option>
-                  <option value="blocked">Blocked</option>
-                  <option value="passed">Passed</option>
-                  <option value="skipped">Skipped</option>
-                  <option value="unknown">Unknown</option>
-                </Select>
+                  onValueChange={setStatusFilter}
+                  options={[
+                    { value: 'All', label: 'All latest statuses' },
+                    { value: 'failed', label: 'Failed' },
+                    { value: 'blocked', label: 'Blocked' },
+                    { value: 'passed', label: 'Passed' },
+                    { value: 'skipped', label: 'Skipped' },
+                    { value: 'unknown', label: 'Unknown' },
+                  ]}
+                />
               </div>
             </div>
 

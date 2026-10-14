@@ -5,6 +5,21 @@ import {
   redirect,
   useRouter,
 } from '@tanstack/react-router'
+import {
+  ArrowUpRight,
+  Ban,
+  ChevronDown,
+  CircleCheck,
+  CircleDashed,
+  CirclePlay,
+  Clock,
+  ListChecks,
+  MoreHorizontal,
+  Pencil,
+  Search,
+  TriangleAlert,
+  type LucideIcon,
+} from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Alert } from '../components/ui/Alert'
@@ -18,6 +33,7 @@ import {
   PopoverMenu,
   PopoverMenuItem,
 } from '../components/ui/PopoverMenu'
+import { SelectMenu } from '../components/ui/SelectMenu'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import { getDashboardState } from '../features/tests/server'
 import {
@@ -25,6 +41,8 @@ import {
   getRunsForProject,
   updateRunName,
 } from '../features/runs/server'
+import { getErrorMessage } from '../lib/errors'
+import { useT } from '../lib/i18n'
 
 type RunStateLabel =
   | 'Passed'
@@ -35,13 +53,28 @@ type RunStateLabel =
   | 'Empty'
 
 type RunListFilter = 'all' | 'active' | 'review' | 'finished'
+type RunSortMode = 'number' | 'attention' | 'progress'
+type RunTone = 'red' | 'blue' | 'green' | 'amber' | 'grey'
 
-const RUN_FILTERS: Array<{ value: RunListFilter; label: string }> = [
-  { value: 'all', label: 'All' },
-  { value: 'active', label: 'Active' },
-  { value: 'review', label: 'Needs review' },
-  { value: 'finished', label: 'Finished' },
+const RUN_STATE_META: Record<RunStateLabel, { tone: RunTone; Icon: LucideIcon }> =
+  {
+    Passed: { tone: 'green', Icon: CircleCheck },
+    'Needs review': { tone: 'red', Icon: TriangleAlert },
+    Blocked: { tone: 'amber', Icon: Ban },
+    'In progress': { tone: 'blue', Icon: CirclePlay },
+    'Not started': { tone: 'grey', Icon: Clock },
+    Empty: { tone: 'grey', Icon: Clock },
+  }
+
+const RUN_SORT_OPTIONS: Array<{ value: RunSortMode; label: string }> = [
+  { value: 'number', label: 'Sort: by number' },
+  { value: 'attention', label: 'Needs attention first' },
+  { value: 'progress', label: 'By progress' },
 ]
+
+const RUN_TABLE_COLUMNS =
+  'minmax(260px,1.5fr) 132px 172px minmax(190px,1fr) 150px 44px'
+const RUN_TABLE_MIN_WIDTH = '1010px'
 
 export const Route = createFileRoute('/project/$projectSlug/runs')({
   loader: async ({ params }) => {
@@ -109,28 +142,6 @@ export const Route = createFileRoute('/project/$projectSlug/runs')({
   component: ProjectRunsPage,
 })
 
-function getRunStateBadgeVariant(
-  stateLabel: RunStateLabel,
-): 'runPassed' | 'runFailed' | 'runBlocked' | 'runNotRun' | 'primary' {
-  if (stateLabel === 'Passed') {
-    return 'runPassed'
-  }
-
-  if (stateLabel === 'Needs review') {
-    return 'runFailed'
-  }
-
-  if (stateLabel === 'Blocked') {
-    return 'runBlocked'
-  }
-
-  if (stateLabel === 'Empty' || stateLabel === 'Not started') {
-    return 'runNotRun'
-  }
-
-  return 'primary'
-}
-
 function getRunStateLabel(run: {
   total: number
   passed: number
@@ -172,6 +183,8 @@ function formatProgressLabel(progress: number, executed: number): string {
 }
 
 function ProjectRunsPage() {
+  const t = useT()
+
   const { project, dashboard, runs } = Route.useLoaderData()
   const router = useRouter()
   const [showCreateRunForm, setShowCreateRunForm] = useState(false)
@@ -191,8 +204,13 @@ function ProjectRunsPage() {
   )
   const [runQuery, setRunQuery] = useState('')
   const [activeRunFilter, setActiveRunFilter] = useState<RunListFilter>('all')
+  const [releaseFilter, setReleaseFilter] = useState('all')
+  const [sortMode, setSortMode] = useState<RunSortMode>('number')
+  const [groupByRelease, setGroupByRelease] = useState(false)
+  const [collapsedGroups, setCollapsedGroups] = useState<string[]>([])
   const [openRunActionsId, setOpenRunActionsId] = useState<number | null>(null)
   const [createRunScopeQuery, setCreateRunScopeQuery] = useState('')
+  const [releaseName, setReleaseName] = useState('')
 
   const activeTests = dashboard.tests.filter((test) => test.status !== 'Archived')
   const selectedRunTestIds = useMemo(() => {
@@ -292,6 +310,16 @@ function ProjectRunsPage() {
         return false
       }
 
+      if (releaseFilter === '__none__') {
+        if (viewModel.run.releaseName) {
+          return false
+        }
+      } else if (releaseFilter !== 'all') {
+        if (viewModel.run.releaseName !== releaseFilter) {
+          return false
+        }
+      }
+
       if (!normalizedQuery) {
         return true
       }
@@ -302,7 +330,107 @@ function ProjectRunsPage() {
         viewModel.stateLabel.toLowerCase().includes(normalizedQuery)
       )
     })
-  }, [activeRunFilter, runQuery, runViewModels])
+  }, [activeRunFilter, releaseFilter, runQuery, runViewModels])
+
+  const sortedRunViewModels = useMemo(() => {
+    const items = [...filteredRunViewModels]
+
+    if (sortMode === 'attention') {
+      const score = (viewModel: (typeof items)[number]): number =>
+        viewModel.needsReview
+          ? 0
+          : viewModel.stateLabel === 'In progress'
+            ? 1
+            : viewModel.isFinished
+              ? 3
+              : 2
+
+      items.sort(
+        (a, b) =>
+          score(a) - score(b) ||
+          b.run.failed - a.run.failed ||
+          a.run.id - b.run.id,
+      )
+    } else if (sortMode === 'progress') {
+      items.sort((a, b) => a.progress - b.progress || a.run.id - b.run.id)
+    } else {
+      items.sort((a, b) => a.run.id - b.run.id)
+    }
+
+    return items
+  }, [filteredRunViewModels, sortMode])
+  const runGroups = useMemo(() => {
+    if (!groupByRelease) {
+      return null
+    }
+
+    const groups = new Map<string, typeof sortedRunViewModels>()
+
+    for (const viewModel of sortedRunViewModels) {
+      const key = viewModel.run.releaseName || ''
+      const items = groups.get(key)
+
+      if (items) {
+        items.push(viewModel)
+      } else {
+        groups.set(key, [viewModel])
+      }
+    }
+
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => (a === '' ? 1 : b === '' ? -1 : a.localeCompare(b)))
+      .map(([key, items]) => {
+        const total = items.reduce((sum, item) => sum + item.run.total, 0)
+        const sumOf = (pick: (item: (typeof items)[number]) => number) =>
+          total === 0
+            ? 0
+            : (items.reduce((sum, item) => sum + pick(item), 0) / total) * 100
+
+        return {
+          key,
+          items,
+          progress: sumOf((item) => item.executed),
+          passedProgress: sumOf((item) => item.run.passed),
+          failedProgress: sumOf((item) => item.run.failed),
+          blockedProgress: sumOf((item) => item.run.blocked),
+        }
+      })
+  }, [groupByRelease, sortedRunViewModels])
+
+  const existingReleaseNames = useMemo(
+    () =>
+      Array.from(
+        new Set<string>(
+          runs
+            .map((run) => run.releaseName)
+            .filter((name): name is string => Boolean(name)),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [runs],
+  )
+
+  const releaseFilterOptions = useMemo(() => {
+    const names = new Set<string>()
+    let hasNoRelease = false
+
+    for (const run of runs) {
+      if (run.releaseName) {
+        names.add(run.releaseName)
+      } else {
+        hasNoRelease = true
+      }
+    }
+
+    return [
+      { value: 'all', label: 'All releases' },
+      ...Array.from(names)
+        .sort((a, b) => a.localeCompare(b))
+        .map((name) => ({ value: name, label: name })),
+      ...(hasNoRelease
+        ? [{ value: '__none__', label: 'No release' }]
+        : []),
+    ]
+  }, [runs])
   const totalRunCases = useMemo(
     () => runs.reduce((total, run) => total + run.total, 0),
     [runs],
@@ -344,6 +472,7 @@ function ProjectRunsPage() {
     setSelectedRunSuiteIds([])
     setSelectedRunCaseIds([])
     setCreateRunScopeQuery('')
+    setReleaseName('')
     setCreateRunErrorMessage(null)
   }
 
@@ -371,6 +500,13 @@ function ProjectRunsPage() {
     event.preventDefault()
     setCreateRunErrorMessage(null)
 
+    const trimmedRunName = runName.trim()
+
+    if (!trimmedRunName) {
+      setCreateRunErrorMessage('Enter a run name.')
+      return
+    }
+
     if (selectedRunTestIds.length === 0) {
       setCreateRunErrorMessage('Choose at least one active test case for this run.')
       return
@@ -382,8 +518,9 @@ function ProjectRunsPage() {
       const result = await createRun({
         data: {
           projectId: project.id,
-          name: runName,
+          name: trimmedRunName,
           testIds: selectedRunTestIds,
+          releaseName: releaseName.trim() || undefined,
         },
       })
 
@@ -392,7 +529,7 @@ function ProjectRunsPage() {
       window.location.href = `/run/${result.id}`
     } catch (error) {
       setCreateRunErrorMessage(
-        error instanceof Error ? error.message : 'Failed to create run.',
+        getErrorMessage(error, 'Failed to create run.'),
       )
     } finally {
       setIsCreatingRun(false)
@@ -426,7 +563,7 @@ function ProjectRunsPage() {
       await router.invalidate()
     } catch (error) {
       setRunActionErrorMessage(
-        error instanceof Error ? error.message : 'Failed to rename run.',
+        getErrorMessage(error, 'Failed to rename run.'),
       )
     } finally {
       setPendingRunId(null)
@@ -437,6 +574,214 @@ function ProjectRunsPage() {
     window.location.href = `/run/${runId}`
   }
 
+  const isFiltering =
+    activeRunFilter !== 'all' ||
+    releaseFilter !== 'all' ||
+    runQuery.trim().length > 0
+
+  function resetRunFilters(): void {
+    setActiveRunFilter('all')
+    setReleaseFilter('all')
+    setRunQuery('')
+  }
+
+  function renderProgressBar(
+    passed: number,
+    failed: number,
+    blocked: number,
+    className = '',
+  ) {
+    return (
+      <div className={`runs-bar ${className}`.trim()}>
+        <i className="runs-bar__passed" style={{ width: `${passed}%` }} />
+        <i className="runs-bar__failed" style={{ width: `${failed}%` }} />
+        <i className="runs-bar__blocked" style={{ width: `${blocked}%` }} />
+      </div>
+    )
+  }
+
+  function renderRunRow(viewModel: (typeof sortedRunViewModels)[number]) {
+    const { run } = viewModel
+    const isEditing = editingRunId === run.id
+    const isPending = pendingRunId === run.id
+    const { tone, Icon } = RUN_STATE_META[viewModel.stateLabel]
+    const metaLabel =
+      viewModel.executed === 0
+        ? `${run.total} ${run.total === 1 ? 'case' : 'cases'} · not started`
+        : `${run.total} ${run.total === 1 ? 'case' : 'cases'} · ${viewModel.executed} executed`
+    const results: Array<{ key: string; value: number; label: string }> = [
+      { key: 'passed', value: run.passed, label: t('Passed') },
+      { key: 'failed', value: run.failed, label: t('Failed') },
+      { key: 'blocked', value: run.blocked, label: t('Blocked') },
+      { key: 'notRun', value: run.notRun, label: t('Not run') },
+    ].filter((item) => item.value > 0)
+
+    return (
+      <TableRow
+        key={run.id}
+        columns={RUN_TABLE_COLUMNS}
+        minWidth={RUN_TABLE_MIN_WIDTH}
+        padding="sm"
+        className={`runs-table-row${
+          isEditing ? '' : ' runs-table-row--interactive'
+        }${viewModel.needsReview ? ' runs-row--attention' : ''}`}
+        role={isEditing ? undefined : 'link'}
+        tabIndex={isEditing ? undefined : 0}
+        aria-label={isEditing ? undefined : t('Open run {name}', { name: run.name })}
+        onClick={isEditing ? undefined : () => openRun(run.id)}
+        onKeyDown={
+          isEditing
+            ? undefined
+            : (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  openRun(run.id)
+                }
+              }
+        }
+      >
+        <div className="runs-run-cell">
+          <span className="runs-state-icon" data-tone={tone}>
+            <Icon size={17} strokeWidth={2} aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            {isEditing ? (
+              <form
+                className="grid gap-2 xl:grid-cols-[minmax(160px,1fr)_auto_auto]"
+                onSubmit={(event) => handleRenameRun(event, run.id)}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <Input
+                  value={editingRunName}
+                  onChange={(event) => setEditingRunName(event.target.value)}
+                  size="sm"
+                  className="min-w-0"
+                />
+                <Button
+                  type="submit"
+                  disabled={isPending}
+                  variant="primary"
+                  size="sm"
+                >
+                  {isPending ? t('Saving...') : t('Save')}
+                </Button>
+                <Button
+                  onClick={() => {
+                    setEditingRunId(null)
+                    setEditingRunName('')
+                    setRunActionErrorMessage(null)
+                  }}
+                  size="sm"
+                >{t('Cancel')}</Button>
+              </form>
+            ) : (
+              <>
+                <div className="runs-run-title">{run.name}</div>
+                <div className="runs-run-meta">
+                  #{run.id} · {metaLabel}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+        <div>
+          <span className="runs-badge" data-tone={tone}>
+            {viewModel.stateLabel}
+          </span>
+        </div>
+        <div className="min-w-0">
+          {run.releaseName ? (
+            <span
+              className="runs-release-tag"
+              title={t('Release: {releaseName}', { releaseName: run.releaseName })}
+            >
+              {run.releaseName}
+            </span>
+          ) : (
+            <span className="runs-muted">—</span>
+          )}
+        </div>
+        <div>
+          <div className="runs-progress-top">
+            <strong>{viewModel.progressLabel}</strong>
+            <span>
+              {viewModel.executed}/{run.total}
+            </span>
+          </div>
+          <div
+            aria-label={t('{passed} passed, {failed} failed, {blocked} blocked, {notRun} not run', { passed: run.passed, failed: run.failed, blocked: run.blocked, notRun: run.notRun })}
+          >
+            {renderProgressBar(
+              viewModel.passedProgress,
+              viewModel.failedProgress,
+              viewModel.blockedProgress,
+            )}
+          </div>
+        </div>
+        <div className="runs-results">
+          {results.length === 0 ? (
+            <span className="runs-muted">{t('no results')}</span>
+          ) : (
+            results.map((item) => (
+              <span
+                key={item.key}
+                className={`runs-result runs-result--${item.key}`}
+                title={item.label}
+              >
+                {item.value}
+              </span>
+            ))
+          )}
+        </div>
+        <div
+          className="flex justify-end whitespace-nowrap"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {!isEditing ? (
+            <PopoverMenu
+              isOpen={openRunActionsId === run.id}
+              onClose={() => {
+                setOpenRunActionsId((current) =>
+                  current === run.id ? null : current,
+                )
+              }}
+              onOpenChange={(nextOpen) => {
+                setOpenRunActionsId(nextOpen ? run.id : null)
+              }}
+              className="min-w-[150px] text-left"
+              trigger={
+                <button
+                  type="button"
+                  className="case-actions-trigger"
+                  aria-label={t('Open actions for {name}', { name: run.name })}
+                  aria-haspopup="menu"
+                  aria-expanded={openRunActionsId === run.id}
+                >
+                  <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                </button>
+              }
+            >
+              <Link
+                to="/run/$runId"
+                params={{ runId: run.id.toString() }}
+                className="tms-menu-item tms-menu-item--icon no-underline"
+              >
+                <ArrowUpRight className="h-4 w-4 shrink-0" aria-hidden="true" />{t('Open')}</Link>
+              <PopoverMenuItem
+                className="tms-menu-item--icon"
+                onClick={() => {
+                  setOpenRunActionsId(null)
+                  startRenameRun(run.id, run.name)
+                }}
+              >
+                <Pencil className="h-4 w-4 shrink-0" aria-hidden="true" />{t('Rename')}</PopoverMenuItem>
+            </PopoverMenu>
+          ) : null}
+        </div>
+      </TableRow>
+    )
+  }
+
   return (
     <main className="workspace-view">
       <div className="workspace-view__inner">
@@ -445,12 +790,23 @@ function ProjectRunsPage() {
             <div className="runs-cockpit-header">
               <WorkspaceSectionHeader
                 dense
-                title="Runs"
-                description={`${project.name} execution cockpit for readiness, progress, and review.`}
+                title={t('Runs')}
+                description={t('Test runs: readiness, progress and review.')}
                 meta={
-                  <Badge>
-                    {runs.length} run{runs.length === 1 ? '' : 's'}
-                  </Badge>
+                  <>
+                    <Badge>
+                      {isFiltering
+                        ? t('{length} of {v1} runs', { length: sortedRunViewModels.length, v1: runs.length })
+                        : `${runs.length} run${runs.length === 1 ? '' : 's'}`}
+                    </Badge>
+                    {isFiltering ? (
+                      <button
+                        type="button"
+                        className="runs-reset-filters"
+                        onClick={resetRunFilters}
+                      >{t('Reset')}</button>
+                    ) : null}
+                  </>
                 }
               />
               <Button
@@ -466,62 +822,99 @@ function ProjectRunsPage() {
                 }}
                 variant="primary"
                 size="sm"
-              >
-                + Run
-              </Button>
+              >{t('+ Run')}</Button>
             </div>
 
-            <div className="runs-summary-strip" aria-label="Run summary">
-              <div className="runs-summary-item">
-                <span>Active</span>
-                <strong>{runFilterCounts.active}</strong>
-              </div>
-              <div className="runs-summary-item">
-                <span>Needs review</span>
-                <strong>{runFilterCounts.review}</strong>
-              </div>
-              <div className="runs-summary-item">
-                <span>Finished</span>
-                <strong>{runFilterCounts.finished}</strong>
-              </div>
-              <div className="runs-summary-item">
-                <span>Total cases</span>
-                <strong>{totalRunCases}</strong>
+            <div className="runs-stats" aria-label={t('Run summary')}>
+              {(
+                [
+                  {
+                    filter: 'active',
+                    tone: 'blue',
+                    label: t('Unfinished'),
+                    Icon: CircleDashed,
+                  },
+                  {
+                    filter: 'review',
+                    tone: 'red',
+                    label: t('Needs review'),
+                    Icon: TriangleAlert,
+                  },
+                  {
+                    filter: 'finished',
+                    tone: 'green',
+                    label: t('Finished'),
+                    Icon: CircleCheck,
+                  },
+                ] as const
+              ).map((card) => {
+                const isActive = activeRunFilter === card.filter
+
+                return (
+                  <button
+                    key={card.filter}
+                    type="button"
+                    className={`runs-stat${isActive ? ' is-active' : ''}`}
+                    data-tone={card.tone}
+                    aria-pressed={isActive}
+                    onClick={() =>
+                      setActiveRunFilter(isActive ? 'all' : card.filter)
+                    }
+                  >
+                    <span className="runs-stat__icon">
+                      <card.Icon size={19} strokeWidth={2} aria-hidden="true" />
+                    </span>
+                    <span className="runs-stat__label">{card.label}</span>
+                    <span className="runs-stat__value">
+                      {runFilterCounts[card.filter]}
+                    </span>
+                  </button>
+                )
+              })}
+              <div className="runs-stat runs-stat--static" data-tone="grey">
+                <span className="runs-stat__icon">
+                  <ListChecks size={19} strokeWidth={2} aria-hidden="true" />
+                </span>
+                <span className="runs-stat__label">{t('Total cases')}</span>
+                <span className="runs-stat__value">{totalRunCases}</span>
               </div>
             </div>
 
-            <div className="runs-cockpit-toolbar">
-              <div
-                className="runs-filter-list"
-                role="group"
-                aria-label="Filter runs"
-              >
-                {RUN_FILTERS.map((filter) => {
-                  const isActive = activeRunFilter === filter.value
-
-                  return (
-                    <button
-                      key={filter.value}
-                      type="button"
-                      aria-pressed={isActive}
-                      className={`runs-filter-button${
-                        isActive ? ' is-active' : ''
-                      }`}
-                      onClick={() => setActiveRunFilter(filter.value)}
-                    >
-                      {filter.label}
-                      <strong>{runFilterCounts[filter.value]}</strong>
-                    </button>
-                  )
-                })}
+            <div className="runs-toolbar">
+              <div className="runs-search">
+                <Search size={16} strokeWidth={2} aria-hidden="true" />
+                <Input
+                  value={runQuery}
+                  onChange={(event) => setRunQuery(event.target.value)}
+                  placeholder={t('Search by title, number or release')}
+                  size="sm"
+                  aria-label={t('Search runs')}
+                />
               </div>
-              <Input
-                value={runQuery}
-                onChange={(event) => setRunQuery(event.target.value)}
-                placeholder="Search runs"
-                size="sm"
-                aria-label="Search runs"
+              {releaseFilterOptions.length > 1 ? (
+                <SelectMenu
+                  value={releaseFilter}
+                  onValueChange={setReleaseFilter}
+                  options={releaseFilterOptions}
+                  className="runs-toolbar__select"
+                  aria-label={t('Filter by release')}
+                />
+              ) : null}
+              <SelectMenu
+                value={sortMode}
+                onValueChange={(value) => setSortMode(value as RunSortMode)}
+                options={RUN_SORT_OPTIONS}
+                className="runs-toolbar__select"
+                aria-label={t('Sort runs')}
               />
+              <button
+                type="button"
+                role="switch"
+                aria-checked={groupByRelease}
+                className={`runs-switch${groupByRelease ? ' is-on' : ''}`}
+                onClick={() => setGroupByRelease((current) => !current)}
+              >
+                <span className="runs-switch__track" aria-hidden="true" />{t('Group by release')}</button>
             </div>
 
             {showCreateRunForm ? (
@@ -529,7 +922,7 @@ function ProjectRunsPage() {
                 <button
                   type="button"
                   className="runs-create-backdrop"
-                  aria-label="Close create run"
+                  aria-label={t('Close create run')}
                   onClick={() => {
                     setShowCreateRunForm(false)
                     resetCreateRunForm()
@@ -544,23 +937,19 @@ function ProjectRunsPage() {
                 >
                   <div className="runs-create-drawer__header">
                     <div className="min-w-0">
-                      <div className="runs-create-drawer__eyebrow">
-                        Execution
-                      </div>
-                      <h2 id="runs-create-title">New run</h2>
-                      <p>Choose scope and create a focused execution batch.</p>
+                      <div className="runs-create-drawer__eyebrow">{t('Execution')}</div>
+                      <h2 id="runs-create-title">{t('New run')}</h2>
+                      <p>{t('Choose scope and create a focused execution batch.')}</p>
                     </div>
                     <Button
                       type="button"
                       size="sm"
-                      aria-label="Close create run"
+                      aria-label={t('Close create run')}
                       onClick={() => {
                         setShowCreateRunForm(false)
                         resetCreateRunForm()
                       }}
-                    >
-                      Close
-                    </Button>
+                    >{t('Close')}</Button>
                   </div>
 
                   <div className="runs-create-drawer__body">
@@ -568,24 +957,38 @@ function ProjectRunsPage() {
                       <Alert variant="danger">{createRunErrorMessage}</Alert>
                     ) : null}
 
-                    <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">
-                      Run name
-                      <Input
+                    <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">{t('Run name')}<Input
                         value={runName}
                         onChange={(event) => setRunName(event.target.value)}
-                        placeholder="Week 13. Regression"
+                        placeholder={t('Week 13. Regression')}
                         size="md"
                         className="min-w-0"
                       />
                     </label>
 
+                    <label className="grid gap-2 text-sm font-semibold text-[var(--tms-text)]">{t('Release')}<Input
+                        value={releaseName}
+                        onChange={(event) => setReleaseName(event.target.value)}
+                        placeholder={t('Optional, e.g. 2.4.0')}
+                        size="md"
+                        className="min-w-0"
+                        maxLength={255}
+                        list="runs-release-suggestions"
+                      />
+                      <datalist id="runs-release-suggestions">
+                        {existingReleaseNames.map((name) => (
+                          <option key={name} value={name} />
+                        ))}
+                      </datalist>
+                    </label>
+
                     <div>
-                      <div className="runs-create-label">Scope</div>
+                      <div className="runs-create-label">{t('Scope')}</div>
                       <div className="runs-scope-segmented">
                         {[
-                          { value: 'all', label: 'All' },
-                          { value: 'suites', label: 'Suites' },
-                          { value: 'cases', label: 'Cases' },
+                          { value: 'all', label: t('All') },
+                          { value: 'suites', label: t('Suites') },
+                          { value: 'cases', label: t('Cases') },
                         ].map((option) => (
                           <button
                             key={option.value}
@@ -616,28 +1019,24 @@ function ProjectRunsPage() {
                         }
                         placeholder={
                           runScope === 'suites'
-                            ? 'Search suites'
-                            : 'Search cases'
+                            ? t('Search suites')
+                            : t('Search cases')
                         }
                         size="sm"
                         aria-label={
                           runScope === 'suites'
-                            ? 'Search suites'
-                            : 'Search cases'
+                            ? t('Search suites')
+                            : t('Search cases')
                         }
                       />
                     ) : (
-                      <div className="runs-create-note">
-                        All active repository cases will be included.
-                      </div>
+                      <div className="runs-create-note">{t('All active repository cases will be included.')}</div>
                     )}
 
                     {runScope === 'suites' ? (
                       <div className="runs-create-pick-list">
                         {filteredRunSuites.length === 0 ? (
-                          <div className="runs-create-empty">
-                            No suites found.
-                          </div>
+                          <div className="runs-create-empty">{t('No suites found.')}</div>
                         ) : (
                           filteredRunSuites.map((section) => {
                             const sectionCaseCount = activeTests.filter(
@@ -657,8 +1056,7 @@ function ProjectRunsPage() {
                                 <span className="min-w-0">
                                   <span>{section.name}</span>
                                   <small>
-                                    {sectionCaseCount} case
-                                    {sectionCaseCount === 1 ? '' : 's'}
+                                    {sectionCaseCount}{' '}{t('case')}{sectionCaseCount === 1 ? '' : 's'}
                                   </small>
                                 </span>
                                 <Checkbox
@@ -677,13 +1075,9 @@ function ProjectRunsPage() {
                     {runScope === 'cases' ? (
                       <div className="runs-create-pick-list">
                         {activeTests.length === 0 ? (
-                          <div className="runs-create-empty">
-                            No active cases are available.
-                          </div>
+                          <div className="runs-create-empty">{t('No active cases are available.')}</div>
                         ) : filteredRunCases.length === 0 ? (
-                          <div className="runs-create-empty">
-                            No cases found.
-                          </div>
+                          <div className="runs-create-empty">{t('No cases found.')}</div>
                         ) : (
                           filteredRunCases.map((test) => {
                             const section = dashboard.sections.find(
@@ -704,9 +1098,9 @@ function ProjectRunsPage() {
                                     #{test.id} {test.title}
                                   </span>
                                   <small>
-                                    {section?.name ?? 'No suite'} /{' '}
-                                    {test.priority ?? 'Medium'} /{' '}
-                                    {test.caseType ?? 'Functional'}
+                                    {section?.name ?? t('No suite')} /{' '}
+                                    {test.priority ?? t('Medium')} /{' '}
+                                    {test.caseType ?? t('Functional')}
                                   </small>
                                 </span>
                                 <Checkbox
@@ -725,9 +1119,7 @@ function ProjectRunsPage() {
 
                   <div className="runs-create-drawer__footer">
                     <Badge>
-                      {selectedRunTestIds.length} case
-                      {selectedRunTestIds.length === 1 ? '' : 's'} selected
-                    </Badge>
+                      {selectedRunTestIds.length}{' '}{t('case')}{selectedRunTestIds.length === 1 ? '' : 's'}{' '}{t('selected')}</Badge>
                     <div className="flex items-center gap-2">
                       <Button
                         type="button"
@@ -736,9 +1128,7 @@ function ProjectRunsPage() {
                           setShowCreateRunForm(false)
                           resetCreateRunForm()
                         }}
-                      >
-                        Cancel
-                      </Button>
+                      >{t('Cancel')}</Button>
                       <Button
                         type="submit"
                         disabled={
@@ -747,7 +1137,7 @@ function ProjectRunsPage() {
                         variant="primary"
                         size="sm"
                       >
-                        {isCreatingRun ? 'Creating...' : 'Create run'}
+                        {isCreatingRun ? t('Creating...') : t('Create run')}
                       </Button>
                     </div>
                   </div>
@@ -761,208 +1151,79 @@ function ProjectRunsPage() {
             </Alert>
           ) : null}
 
-          {filteredRunViewModels.length === 0 ? (
+          {sortedRunViewModels.length === 0 ? (
             <EmptyState
-              title={runs.length === 0 ? 'No runs yet' : 'No runs found'}
+              title={runs.length === 0 ? t('No runs yet') : t('No runs found')}
               description={
                 runs.length === 0
-                  ? 'Create the first run when you are ready to execute test cases.'
-                  : 'Try another search query or run filter.'
+                  ? t('Create the first run when you are ready to execute test cases.')
+                  : t('Try another search query or run filter.')
               }
             />
           ) : (
-            <TableShell>
+            <TableShell className="runs-table">
               <TableHead
-                columns="minmax(340px,1fr) 180px 72px 72px 78px 78px 56px"
-                minWidth="928px"
+                columns={RUN_TABLE_COLUMNS}
+                minWidth={RUN_TABLE_MIN_WIDTH}
                 padding="sm"
               >
-                <div>Run</div>
-                <div>Progress</div>
-                <div>Passed</div>
-                <div>Failed</div>
-                <div>Blocked</div>
-                <div>Not run</div>
-                <div className="runs-actions-head" aria-label="Actions">
-                  ...
-                </div>
+                <div>{t('Run')}</div>
+                <div>{t('Status')}</div>
+                <div>{t('Release')}</div>
+                <div>{t('Progress')}</div>
+                <div>{t('Results')}</div>
+                <div className="runs-actions-head" aria-label={t('Actions')} />
               </TableHead>
-              {filteredRunViewModels.map((viewModel) => {
-                const { run } = viewModel
-                const isEditing = editingRunId === run.id
-                const isPending = pendingRunId === run.id
+              {runGroups
+                ? runGroups.map((group) => {
+                    const isCollapsed = collapsedGroups.includes(group.key)
 
-                return (
-                  <TableRow
-                    key={run.id}
-                    columns="minmax(340px,1fr) 180px 72px 72px 78px 78px 56px"
-                    minWidth="928px"
-                    padding="sm"
-                    className={`runs-table-row${
-                      isEditing ? '' : ' runs-table-row--interactive'
-                    }`}
-                    role={isEditing ? undefined : 'link'}
-                    tabIndex={isEditing ? undefined : 0}
-                    aria-label={
-                      isEditing ? undefined : `Open run ${run.name}`
-                    }
-                    onClick={isEditing ? undefined : () => openRun(run.id)}
-                    onKeyDown={
-                      isEditing
-                        ? undefined
-                        : (event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault()
-                              openRun(run.id)
-                            }
-                          }
-                    }
-                  >
-                    <div className="min-w-0 pr-3">
-                      {isEditing ? (
-                          <form
-                            className="grid gap-2 xl:grid-cols-[minmax(220px,1fr)_auto_auto]"
-                            onSubmit={(event) => handleRenameRun(event, run.id)}
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            <Input
-                              value={editingRunName}
-                              onChange={(event) =>
-                                setEditingRunName(event.target.value)
-                              }
-                              size="sm"
-                              className="min-w-0"
-                            />
-                            <Button
-                              type="submit"
-                              disabled={isPending}
-                              variant="primary"
-                              size="sm"
-                            >
-                              {isPending ? 'Saving...' : 'Save'}
-                            </Button>
-                            <Button
-                              onClick={() => {
-                                setEditingRunId(null)
-                                setEditingRunName('')
-                                setRunActionErrorMessage(null)
-                              }}
-                              size="sm"
-                            >
-                              Cancel
-                            </Button>
-                          </form>
-                        ) : (
-                          <>
-                            <div className="runs-run-title truncate">
-                              {run.name}
-                            </div>
-                            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--tms-text-muted)]">
-                              <span>
-                                #{run.id} / {run.total} cases /{' '}
-                                {viewModel.executed} executed
-                              </span>
-                              <Badge
-                                className="px-2 py-0.5"
-                                variant={getRunStateBadgeVariant(
-                                  viewModel.stateLabel,
-                                )}
-                              >
-                                {viewModel.stateLabel}
-                              </Badge>
-                              <span className="runs-outcome">
-                                {viewModel.outcomeLabel}
-                              </span>
-                            </div>
-                          </>
-                        )}
-                    </div>
-                    <div className="pr-4">
-                      <div className="flex items-center justify-between gap-3 text-xs font-semibold text-[var(--tms-text)]">
-                        <span>{viewModel.progressLabel}</span>
-                        <span className="text-xs text-[var(--tms-text-soft)]">
-                          {viewModel.executed}/{run.total}
-                        </span>
-                      </div>
-                      <div
-                        className="tms-run-progress-track mt-1 flex h-1.5 overflow-hidden rounded-full"
-                        aria-label={`${run.passed} passed, ${run.failed} failed, ${run.blocked} blocked, ${run.notRun} not run`}
-                      >
-                        <div
-                          className="tms-run-progress-segment tms-run-progress-segment--passed"
-                          style={{ width: `${viewModel.passedProgress}%` }}
-                        />
-                        <div
-                          className="tms-run-progress-segment tms-run-progress-segment--failed"
-                          style={{ width: `${viewModel.failedProgress}%` }}
-                        />
-                        <div
-                          className="tms-run-progress-segment tms-run-progress-segment--blocked"
-                          style={{ width: `${viewModel.blockedProgress}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div className="text-xs font-semibold text-[var(--run-passed-text)]">
-                      {run.passed}
-                    </div>
-                    <div className="text-xs font-semibold text-[var(--run-failed-text)]">
-                      {run.failed}
-                    </div>
-                    <div className="text-xs font-semibold text-[var(--run-blocked-text)]">
-                      {run.blocked}
-                    </div>
-                    <div className="text-xs font-semibold text-[var(--run-not-run-text)]">
-                      {run.notRun}
-                    </div>
-                    <div
-                      className="flex justify-end whitespace-nowrap"
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      {!isEditing ? (
-                        <PopoverMenu
-                          isOpen={openRunActionsId === run.id}
-                          onClose={() => {
-                            setOpenRunActionsId((current) =>
-                              current === run.id ? null : current,
+                    return (
+                      <div key={group.key || '__none__'}>
+                        <button
+                          type="button"
+                          className="runs-group"
+                          style={{ minWidth: RUN_TABLE_MIN_WIDTH }}
+                          aria-expanded={!isCollapsed}
+                          onClick={() =>
+                            setCollapsedGroups((current) =>
+                              current.includes(group.key)
+                                ? current.filter((key) => key !== group.key)
+                                : [...current, group.key],
                             )
-                          }}
-                          onOpenChange={(nextOpen) => {
-                            setOpenRunActionsId(nextOpen ? run.id : null)
-                          }}
-                          className="min-w-[150px] text-left"
-                          trigger={
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              aria-label={`Open actions for ${run.name}`}
-                              aria-haspopup="menu"
-                              aria-expanded={openRunActionsId === run.id}
-                            >
-                              ...
-                            </Button>
                           }
                         >
-                          <Link
-                            to="/run/$runId"
-                            params={{ runId: run.id.toString() }}
-                            className="tms-menu-item"
-                          >
-                            Open
-                          </Link>
-                          <PopoverMenuItem
-                            onClick={() => {
-                              setOpenRunActionsId(null)
-                              startRenameRun(run.id, run.name)
-                            }}
-                          >
-                            Rename
-                          </PopoverMenuItem>
-                        </PopoverMenu>
-                      ) : null}
-                    </div>
-                  </TableRow>
-                )
-              })}
+                          <ChevronDown
+                            className={`runs-group__chevron${
+                              isCollapsed ? ' is-collapsed' : ''
+                            }`}
+                            size={14}
+                            aria-hidden="true"
+                          />
+                          {group.key ? (
+                            <span className="runs-release-tag">{group.key}</span>
+                          ) : (
+                            <span className="runs-group__title">{t('No release')}</span>
+                          )}
+                          <span className="runs-group__count">
+                            {group.items.length}{' '}
+                            {group.items.length === 1 ? 'run' : 'runs'}
+                          </span>
+                          <span className="runs-group__progress">
+                            <span>{Math.round(group.progress)}%</span>
+                            {renderProgressBar(
+                              group.passedProgress,
+                              group.failedProgress,
+                              group.blockedProgress,
+                              'runs-bar--thin',
+                            )}
+                          </span>
+                        </button>
+                        {isCollapsed ? null : group.items.map(renderRunRow)}
+                      </div>
+                    )
+                  })
+                : sortedRunViewModels.map(renderRunRow)}
             </TableShell>
           )}
           </Panel>

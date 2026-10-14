@@ -1,20 +1,17 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
+import { ChevronRight, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
-import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Input } from '../components/ui/Input'
-import { Panel } from '../components/ui/Panel'
-import {
-  archiveProject,
-  createProject,
-  deleteProject,
-  restoreProject,
-} from '../features/projects/server'
+import { MetricCard } from '../components/ui/MetricCard'
+import { Modal } from '../components/ui/Modal'
+import { createProject } from '../features/projects/server'
 import { getDashboardState } from '../features/tests/server'
 import { getErrorMessage } from '../lib/errors'
+import { useT } from '../lib/i18n'
 
 export const Route = createFileRoute('/')({
   loader: async () =>
@@ -25,25 +22,30 @@ export const Route = createFileRoute('/')({
 })
 
 function WorkspacePage() {
+  const t = useT()
+
   const dashboard = Route.useLoaderData()
   const router = useRouter()
   const [name, setName] = useState('')
   const [isSubmittingProject, setIsSubmittingProject] = useState(false)
-  const [deletingProjectId, setDeletingProjectId] = useState<number | null>(null)
-  const [archivingProjectId, setArchivingProjectId] = useState<number | null>(null)
-  const [restoringProjectId, setRestoringProjectId] = useState<number | null>(null)
-  const [deleteConfirmProjectId, setDeleteConfirmProjectId] = useState<number | null>(
-    null,
-  )
-  const [archiveConfirmProjectId, setArchiveConfirmProjectId] = useState<
-    number | null
-  >(null)
   const [projectFilter, setProjectFilter] = useState<'Active' | 'Archived'>(
     'Active',
   )
   const [projectErrorMessage, setProjectErrorMessage] = useState<string | null>(
     null,
   )
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+
+  function openCreateModal(): void {
+    setProjectErrorMessage(null)
+    setName('')
+    setIsCreateModalOpen(true)
+  }
+
+  function closeCreateModal(): void {
+    setIsCreateModalOpen(false)
+    setProjectErrorMessage(null)
+  }
 
   async function handleProjectSubmit(
     event: React.FormEvent<HTMLFormElement>,
@@ -68,74 +70,12 @@ function WorkspacePage() {
       })
 
       setName('')
+      setIsCreateModalOpen(false)
       await router.invalidate()
     } catch (error) {
       setProjectErrorMessage(getErrorMessage(error, 'Failed to create project.'))
     } finally {
       setIsSubmittingProject(false)
-    }
-  }
-
-  async function handleProjectDelete(projectId: number): Promise<void> {
-    setProjectErrorMessage(null)
-    setDeletingProjectId(projectId)
-
-    try {
-      await deleteProject({
-        data: {
-          projectId,
-        },
-      })
-
-      await router.invalidate()
-    } catch (error) {
-      setProjectErrorMessage(getErrorMessage(error, 'Failed to delete project.'))
-    } finally {
-      setDeleteConfirmProjectId((current) =>
-        current === projectId ? null : current,
-      )
-      setDeletingProjectId(null)
-    }
-  }
-
-  async function handleProjectArchive(projectId: number): Promise<void> {
-    setProjectErrorMessage(null)
-    setArchivingProjectId(projectId)
-
-    try {
-      await archiveProject({
-        data: {
-          projectId,
-        },
-      })
-
-      await router.invalidate()
-    } catch (error) {
-      setProjectErrorMessage(getErrorMessage(error, 'Failed to archive project.'))
-    } finally {
-      setArchiveConfirmProjectId((current) =>
-        current === projectId ? null : current,
-      )
-      setArchivingProjectId(null)
-    }
-  }
-
-  async function handleProjectRestore(projectId: number): Promise<void> {
-    setProjectErrorMessage(null)
-    setRestoringProjectId(projectId)
-
-    try {
-      await restoreProject({
-        data: {
-          projectId,
-        },
-      })
-
-      await router.invalidate()
-    } catch (error) {
-      setProjectErrorMessage(getErrorMessage(error, 'Failed to restore project.'))
-    } finally {
-      setRestoringProjectId(null)
     }
   }
 
@@ -151,247 +91,171 @@ function WorkspacePage() {
           <header className="workspace-page-header">
             <div className="workspace-page-header__body">
               <div className="workspace-page-header__copy">
-                <p className="workspace-page-header__eyebrow">Workspace</p>
-                <h1 className="workspace-page-header__title">Projects</h1>
-                <p className="workspace-page-header__description">
-                  Create a project and open its workspace — test cases, runs,
-                  automation, and docs.
-                </p>
+                <h1 className="workspace-page-header__title">{t('Projects')}</h1>
+                <p className="workspace-page-header__description">{t('Open a project to manage its test cases, runs, automation, and docs.')}</p>
+              </div>
+              <div className="workspace-page-header__actions">
+                <Button
+                  type="button"
+                  variant="primary"
+                  disabled={!dashboard.databaseConfigured}
+                  onClick={openCreateModal}
+                >
+                  <Plus size={16} strokeWidth={2} aria-hidden="true" />{t('New project')}</Button>
               </div>
             </div>
           </header>
 
-          <Panel className="workspace-home__panel">
-            <div className="workspace-home__panel-header">
-              <div className="workspace-home__panel-copy">
-                <p className="workspace-section-header__eyebrow">Projects</p>
-                <h2 className="workspace-home__panel-title">Your projects</h2>
-                <p className="workspace-home__panel-description">
-                  Open a project to work on it. Switch to Archived to see projects
-                  you&apos;ve set aside.
-                </p>
-              </div>
-              <div className="workspace-home__panel-meta">
-                <Badge>
-                  {visibleProjects.length} project
-                  {visibleProjects.length === 1 ? '' : 's'}
-                </Badge>
-                <div className="workspace-home__filter-switch">
-                  {(['Active', 'Archived'] as const).map((filterValue) => (
-                    <Button
-                      key={filterValue}
-                      type="button"
-                      size="sm"
-                      variant={
-                        projectFilter === filterValue
-                          ? filterValue === 'Archived'
-                            ? 'warning'
-                            : 'primary'
-                          : 'secondary'
-                      }
-                      className={`workspace-home__filter-button ${
-                        filterValue === 'Archived'
-                          ? 'workspace-home__filter-button--archived'
-                          : ''
-                      }`}
-                      onClick={() => setProjectFilter(filterValue)}
-                    >
-                      {filterValue}
-                    </Button>
-                  ))}
-                </div>
-              </div>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
+            <MetricCard density="compact" label={t('Active')} value={dashboard.projects.filter((project) => project.status !== 'Archived').length} />
+            <MetricCard
+              density="compact"
+              label={t('Archived')}
+              value={dashboard.projects.filter((project) => project.status === 'Archived').length}
+              tone="muted"
+            />
+            <MetricCard
+              density="compact"
+              label={t('Total')}
+              value={dashboard.projects.length}
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="workspace-home__filter-switch">
+              {(['Active', 'Archived'] as const).map((filterValue) => (
+                <Button
+                  key={filterValue}
+                  type="button"
+                  size="sm"
+                  variant={
+                    projectFilter === filterValue
+                      ? filterValue === 'Archived'
+                        ? 'warning'
+                        : 'primary'
+                      : 'secondary'
+                  }
+                  className={`workspace-home__filter-button ${
+                    filterValue === 'Archived'
+                      ? 'workspace-home__filter-button--archived'
+                      : ''
+                  }`}
+                  onClick={() => setProjectFilter(filterValue)}
+                >
+                  {filterValue}
+                </Button>
+              ))}
             </div>
+          </div>
 
-            <form className="workspace-home__create-row" onSubmit={handleProjectSubmit}>
-              <Input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                size="lg"
-                className="min-w-0 flex-1"
-                placeholder="New project"
-              />
-              <Button
-                type="submit"
-                disabled={
-                  isSubmittingProject ||
-                  !dashboard.databaseConfigured ||
-                  !name.trim()
+          {projectErrorMessage ? (
+            <Alert variant="danger" className="workspace-home__alert">
+              {projectErrorMessage}
+            </Alert>
+          ) : null}
+
+          {!dashboard.databaseConfigured ? (
+            <Alert variant="warning" className="workspace-home__alert">
+              <strong>{t('Database is not configured yet.')}</strong>{' '}{t('Set')}<code>{' '}{t('MYSQL_DATABASE_URL')}{' '}</code>{t('and run the Drizzle migration before using the workspace against MySQL.')}</Alert>
+          ) : visibleProjects.length === 0 ? (
+            <div className="workspace-home__empty">
+              <EmptyState
+                title={
+                  projectFilter === 'Archived'
+                    ? t('No archived projects yet')
+                    : t('No active projects yet')
                 }
-                variant="primary"
-                className="workspace-home__create-button"
-              >
-                {isSubmittingProject ? 'Creating...' : 'Create project'}
-              </Button>
-            </form>
+                description={
+                  projectFilter === 'Archived'
+                    ? t('Archived projects will appear here.')
+                    : t('Create the first one to start structuring suites, cases, and runs.')
+                }
+              />
+            </div>
+          ) : (
+            <div className="workspace-home__project-list">
+              {visibleProjects.map((project) => {
+                const projectSlug =
+                  project.slug && project.slug.trim().length > 0
+                    ? project.slug
+                    : project.id.toString()
 
-            {projectErrorMessage ? (
-              <Alert variant="danger" className="workspace-home__alert">
-                {projectErrorMessage}
-              </Alert>
-            ) : null}
-
-            {!dashboard.databaseConfigured ? (
-              <Alert variant="warning" className="workspace-home__alert">
-                <strong>Database is not configured yet.</strong> Set
-                <code> MYSQL_DATABASE_URL </code>
-                and run the Drizzle migration before using the workspace against
-                MySQL.
-              </Alert>
-            ) : visibleProjects.length === 0 ? (
-              <div className="workspace-home__empty">
-                <EmptyState
-                  title={
-                    projectFilter === 'Archived'
-                      ? 'No archived projects yet'
-                      : 'No active projects yet'
-                  }
-                  description={
-                    projectFilter === 'Archived'
-                      ? 'Archived projects will appear here.'
-                      : 'Create the first one to start structuring suites, cases, and runs.'
-                  }
-                />
-              </div>
-            ) : (
-              <div className="workspace-home__project-list">
-                {visibleProjects.map((project) => {
-                  const projectSlug =
-                    project.slug && project.slug.trim().length > 0
-                      ? project.slug
-                      : project.id.toString()
-
-                  return (
-                    <div key={project.id} className="workspace-home__project-row">
-                      <Link
-                        to="/project/$projectSlug"
-                        params={{ projectSlug }}
-                        className="workspace-home__project-main workspace-home__project-main--clickable"
-                        aria-label={`Open ${project.name} workspace`}
-                      >
-                        <div className="workspace-home__project-copy">
-                          <div className="workspace-home__project-topline">
-                            <span className="workspace-home__project-name">
-                              {project.name}
-                            </span>
-                            <Badge
-                              variant={
-                                project.status === 'Archived'
-                                  ? 'warning'
-                                  : 'statusReady'
-                              }
-                            >
-                              {project.status === 'Archived' ? 'Archived' : 'Active'}
-                            </Badge>
-                          </div>
-                          <p className="workspace-home__project-subtitle">
-                            Open to manage test cases, runs, automation, and docs.
-                          </p>
-                        </div>
-                      </Link>
-                      <div className="workspace-home__project-actions">
-                        {project.status === 'Archived' ? (
-                          <>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="secondary"
-                              disabled={restoringProjectId === project.id}
-                              onClick={() => handleProjectRestore(project.id)}
-                            >
-                              {restoringProjectId === project.id
-                                ? 'Restoring...'
-                                : 'Restore'}
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="danger"
-                              disabled={deletingProjectId === project.id}
-                              onClick={() => setDeleteConfirmProjectId(project.id)}
-                            >
-                              Delete
-                            </Button>
-                          </>
-                        ) : (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            disabled={archivingProjectId === project.id}
-                            onClick={() => setArchiveConfirmProjectId(project.id)}
+                return (
+                  <div key={project.id} className="workspace-home__project-row">
+                    <Link
+                      to="/project/$projectSlug"
+                      params={{ projectSlug }}
+                      className="workspace-home__project-main workspace-home__project-main--clickable"
+                      aria-label={t('Open {name} workspace', { name: project.name })}
+                    >
+                      <div className="workspace-home__project-copy">
+                        <div className="workspace-home__project-topline">
+                          <span className="workspace-home__project-name">
+                            {project.name}
+                          </span>
+                          <Badge
+                            variant={
+                              project.status === 'Archived'
+                                ? 'warning'
+                                : 'statusReady'
+                            }
                           >
-                            {archivingProjectId === project.id
-                              ? 'Archiving...'
-                              : 'Archive'}
-                          </Button>
-                        )}
+                            {project.status === 'Archived' ? t('Archived') : t('Active')}
+                          </Badge>
+                        </div>
+                        <p className="workspace-home__project-subtitle">{t('Open to manage test cases, runs, automation, and docs.')}</p>
                       </div>
+                    </Link>
+                    <div className="workspace-home__project-actions">
+                      <ChevronRight
+                        size={18}
+                        strokeWidth={2}
+                        aria-hidden="true"
+                        className="text-[var(--tms-text-muted)]"
+                      />
                     </div>
-                  )
-                })}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          <Modal
+            open={isCreateModalOpen}
+            title={t('New project')}
+            onClose={closeCreateModal}
+          >
+            <form className="grid gap-4" onSubmit={handleProjectSubmit}>
+              <p className="m-0 text-sm text-[var(--tms-text-muted)]">{t('Creates an empty workspace for test cases, runs, automation, and docs.')}</p>
+              <label className="grid gap-1.5">
+                <span className="text-sm font-semibold text-[var(--tms-text)]">{t('Project name')}</span>
+                <Input
+                  autoFocus
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  size="lg"
+                  placeholder={t('e.g. Payments API')}
+                />
+              </label>
+              {projectErrorMessage ? (
+                <Alert variant="danger">{projectErrorMessage}</Alert>
+              ) : null}
+              <div className="flex justify-end gap-3">
+                <Button type="button" variant="secondary" onClick={closeCreateModal}>{t('Cancel')}</Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={
+                    isSubmittingProject ||
+                    !dashboard.databaseConfigured ||
+                    !name.trim()
+                  }
+                >
+                  {isSubmittingProject ? t('Creating...') : t('Create project')}
+                </Button>
               </div>
-            )}
-          </Panel>
-
-          <ConfirmDialog
-            open={deleteConfirmProjectId !== null}
-            title="Delete project permanently?"
-            description={
-              <>
-                Deleting{' '}
-                <strong className="text-[var(--tms-text)]">
-                  {dashboard.projects.find(
-                    (project) => project.id === deleteConfirmProjectId,
-                  )?.name ?? 'this project'}
-                </strong>{' '}
-                also removes its suites, test cases, and runs. This cannot be
-                undone.
-              </>
-            }
-            confirmLabel="Delete permanently"
-            confirmVariant="danger"
-            isPending={
-              deletingProjectId !== null &&
-              deletingProjectId === deleteConfirmProjectId
-            }
-            pendingLabel="Deleting..."
-            onConfirm={() => {
-              if (deleteConfirmProjectId !== null) {
-                void handleProjectDelete(deleteConfirmProjectId)
-              }
-            }}
-            onCancel={() => setDeleteConfirmProjectId(null)}
-          />
-
-          <ConfirmDialog
-            open={archiveConfirmProjectId !== null}
-            title="Archive this project?"
-            description={
-              <>
-                <strong className="text-[var(--tms-text)]">
-                  {dashboard.projects.find(
-                    (project) => project.id === archiveConfirmProjectId,
-                  )?.name ?? 'This project'}
-                </strong>{' '}
-                will be hidden from the active list. You can restore it anytime
-                from the Archived tab.
-              </>
-            }
-            confirmLabel="Archive"
-            confirmVariant="primary"
-            isPending={
-              archivingProjectId !== null &&
-              archivingProjectId === archiveConfirmProjectId
-            }
-            pendingLabel="Archiving..."
-            onConfirm={() => {
-              if (archiveConfirmProjectId !== null) {
-                void handleProjectArchive(archiveConfirmProjectId)
-              }
-            }}
-            onCancel={() => setArchiveConfirmProjectId(null)}
-          />
+            </form>
+          </Modal>
         </div>
       </div>
     </main>

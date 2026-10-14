@@ -40,6 +40,8 @@ import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import { Textarea } from '../components/ui/Textarea'
 import { StepsView } from '../components/repository/StepsView'
 import { sanitizeHtml } from '../lib/sanitize-html'
+import { getErrorMessage } from '../lib/errors'
+import { useT } from '../lib/i18n'
 
 export const Route = createFileRoute('/run/$runId')({
   loader: async ({ params }) => {
@@ -127,6 +129,8 @@ function formatExecutedAt(value: string | null | undefined): string | null {
 }
 
 function RunDetailPage() {
+  const t = useT()
+
   const data = Route.useLoaderData()
   const [tests, setTests] = useState(data.tests)
   const [runStatus, setRunStatus] = useState<RunStatus>(data.run.status)
@@ -475,6 +479,21 @@ function RunDetailPage() {
 
       if (key === 'p' || key === 'f' || key === 'b') {
         event.preventDefault()
+        const focusedTest = filteredTests.find(
+          (test) => test.id === focusedTestId,
+        )
+        const focusedContent = focusedTest
+          ? parseCaseContent(
+              focusedTest.stepsSnapshot ?? focusedTest.steps,
+              '',
+            )
+          : null
+
+        // Structured cases are graded per-step; ignore the overall hotkey.
+        if (focusedContent?.isStructured && focusedContent.steps.length > 0) {
+          return
+        }
+
         const nextStatus =
           key === 'p' ? 'Passed' : key === 'f' ? 'Failed' : 'Blocked'
         void handleRunTest(focusedTestId, nextStatus)
@@ -585,7 +604,7 @@ function RunDetailPage() {
     } catch (error) {
       setTests(previousTests)
       setErrorMessage(
-        error instanceof Error ? error.message : 'Failed to save run result.',
+        getErrorMessage(error, 'Failed to save run result.'),
       )
     } finally {
       setPendingStatusByTestId((current) => {
@@ -635,9 +654,7 @@ function RunDetailPage() {
     } catch (error) {
       setTests(previousTests)
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Failed to update selected run items.',
+        getErrorMessage(error, 'Failed to update selected run items.'),
       )
     } finally {
       setIsBulkUpdating(false)
@@ -680,7 +697,7 @@ function RunDetailPage() {
     } catch (error) {
       setTests(previousTests)
       setErrorMessage(
-        error instanceof Error ? error.message : 'Failed to save run comment.',
+        getErrorMessage(error, 'Failed to save run comment.'),
       )
     } finally {
       setPendingCommentByTestId((current) => {
@@ -756,7 +773,7 @@ function RunDetailPage() {
     } catch (error) {
       setTests(previousTests)
       setErrorMessage(
-        error instanceof Error ? error.message : 'Failed to save step result.',
+        getErrorMessage(error, 'Failed to save step result.'),
       )
     } finally {
       setPendingStatusByTestId((currentPending) => {
@@ -787,7 +804,7 @@ function RunDetailPage() {
     } catch (error) {
       setRunStatus(previousStatus)
       setErrorMessage(
-        error instanceof Error ? error.message : 'Failed to update run status.',
+        getErrorMessage(error, 'Failed to update run status.'),
       )
     } finally {
       setIsRunStatusPending(false)
@@ -812,7 +829,7 @@ function RunDetailPage() {
       setCaseAttachments((current) => [result.attachment, ...(current ?? [])])
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : 'Failed to upload attachment.',
+        getErrorMessage(error, 'Failed to upload attachment.'),
       )
     } finally {
       setIsUploadingAttachment(false)
@@ -835,7 +852,7 @@ function RunDetailPage() {
     } catch (error) {
       setCaseAttachments(previousAttachments)
       setErrorMessage(
-        error instanceof Error ? error.message : 'Failed to remove attachment.',
+        getErrorMessage(error, 'Failed to remove attachment.'),
       )
     }
   }
@@ -846,9 +863,7 @@ function RunDetailPage() {
         <section className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--tms-text-muted)]">
-              <Link to="/" className="no-underline text-[var(--tms-primary)]">
-                Workspace
-              </Link>
+              <Link to="/" className="no-underline text-[var(--tms-primary)]">{t('Workspace')}</Link>
               <span>/</span>
               {data.run.projectSlug ? (
                 <Link
@@ -856,13 +871,13 @@ function RunDetailPage() {
                   params={{ projectSlug: data.run.projectSlug }}
                   className="no-underline text-[var(--tms-primary)]"
                 >
-                  {data.run.projectName ?? 'Project'}
+                  {data.run.projectName ?? t('Project')}
                 </Link>
               ) : (
-                <span>{data.run.projectName ?? 'Project'}</span>
+                <span>{data.run.projectName ?? t('Project')}</span>
               )}
               <span>/</span>
-              <span>Run #{data.run.id}</span>
+              <span>{t('Run #{id}', { id: data.run.id })}</span>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="m-0 text-3xl font-semibold tracking-tight text-[var(--tms-text)]">
@@ -873,8 +888,14 @@ function RunDetailPage() {
                   .toLowerCase()
                   .replace(/\s+/g, '-')}`}
               >
-                {runStatus}
+                {t(runStatus)}
               </span>
+              {data.run.releaseName ? (
+                <span className="run-release-chip">
+                  <span className="run-release-chip__label">{t('Release')}</span>
+                  {data.run.releaseName}
+                </span>
+              ) : null}
             </div>
           </div>
 
@@ -885,9 +906,7 @@ function RunDetailPage() {
                 size="sm"
                 disabled={isRunStatusPending}
                 onClick={() => void handleRunStatusChange('Completed')}
-              >
-                Complete run
-              </Button>
+              >{t('Complete run')}</Button>
             ) : (
               <>
                 <Button
@@ -895,18 +914,14 @@ function RunDetailPage() {
                   size="sm"
                   disabled={isRunStatusPending}
                   onClick={() => void handleRunStatusChange('In progress')}
-                >
-                  Reopen
-                </Button>
+                >{t('Reopen')}</Button>
                 {runStatus === 'Completed' ? (
                   <Button
                     variant="secondary"
                     size="sm"
                     disabled={isRunStatusPending}
                     onClick={() => void handleRunStatusChange('Closed')}
-                  >
-                    Close run
-                  </Button>
+                  >{t('Close run')}</Button>
                 ) : null}
               </>
             )}
@@ -915,9 +930,7 @@ function RunDetailPage() {
                 to="/project/$projectSlug/runs"
                 params={{ projectSlug: data.run.projectSlug }}
                 className="tms-button no-underline hover:text-[var(--tms-primary)]"
-              >
-                Back to runs
-              </Link>
+              >{t('Back to runs')}</Link>
             ) : null}
           </div>
         </section>
@@ -927,9 +940,7 @@ function RunDetailPage() {
             <div className="run-detail-progress">
               <div className="flex items-end justify-between gap-3">
                 <div>
-                  <div className="tms-kicker">
-                    Progress
-                  </div>
+                  <div className="tms-kicker">{t('Progress')}</div>
                   <div className="mt-1 text-2xl font-semibold text-[var(--tms-text)]">
                     {progress}%
                   </div>
@@ -940,7 +951,7 @@ function RunDetailPage() {
               </div>
               <div
                 className="tms-run-progress-track mt-2 flex h-1.5 overflow-hidden rounded-full"
-                aria-label={`${passedCount} passed, ${failedCount} failed, ${blockedCount} blocked, ${notRunCount} not run`}
+                aria-label={t('{passedCount} passed, {failedCount} failed, {blockedCount} blocked, {notRunCount} not run', { passedCount, failedCount, blockedCount, notRunCount })}
               >
                 <div
                   className="tms-run-progress-segment tms-run-progress-segment--passed"
@@ -957,19 +968,19 @@ function RunDetailPage() {
               </div>
               <div className="mt-1.5 text-[0.7rem] font-semibold text-[var(--tms-text-muted)]">
                 {tests.length === 0
-                  ? 'No test cases in this run'
+                  ? t('No test cases in this run')
                   : notRunCount > 0
-                    ? `${notRunCount} not run remaining`
-                    : 'All cases executed'}
+                    ? t('{notRunCount} not run remaining', { notRunCount })
+                    : t('All cases executed')}
               </div>
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
               {[
-                { label: 'Passed', value: passedCount, className: 'text-[var(--run-passed-text)]' },
-                { label: 'Failed', value: failedCount, className: 'text-[var(--run-failed-text)]' },
-                { label: 'Blocked', value: blockedCount, className: 'text-[var(--run-blocked-text)]' },
-                { label: 'Not run', value: notRunCount, className: 'text-[var(--run-not-run-text)]' },
+                { label: t('Passed'), value: passedCount, className: 'text-[var(--run-passed-text)]' },
+                { label: t('Failed'), value: failedCount, className: 'text-[var(--run-failed-text)]' },
+                { label: t('Blocked'), value: blockedCount, className: 'text-[var(--run-blocked-text)]' },
+                { label: t('Not run'), value: notRunCount, className: 'text-[var(--run-not-run-text)]' },
               ].map((item) => (
                 <Panel
                   key={item.label}
@@ -1016,9 +1027,7 @@ function RunDetailPage() {
                   }
                   variant="primary"
                   size="sm"
-                >
-                  Next not run
-                </Button>
+                >{t('Next not run')}</Button>
               ) : null}
             </div>
           </div>
@@ -1031,23 +1040,21 @@ function RunDetailPage() {
         ) : null}
 
         {isRunLocked ? (
-          <Alert variant="info" className="mb-4">
-            This run is {runStatus.toLowerCase()}. Reopen it to record results.
-          </Alert>
+          <Alert variant="info" className="mb-4">{t('This run is {v1}. Reopen it to record results.', { v1: runStatus.toLowerCase() })}</Alert>
         ) : null}
 
         {tests.length === 0 ? (
           <EmptyState
-            title="No linked test cases"
-            description="This test run currently has no linked test cases."
+            title={t('No linked test cases')}
+            description={t('This test run currently has no linked test cases.')}
           />
         ) : (
           <>
             <div className="workspace-dense-table-header">
               <WorkspaceSectionHeader
                 dense
-                title="Execution table"
-                description="Use J/K to move between cases and P/F/B to set the result."
+                title={t('Execution table')}
+                description={t('Use J/K to move between cases and P/F/B to set the result (cases with structured steps are graded per step).')}
                 meta={`${filteredTests.length} visible`}
               />
             </div>
@@ -1056,18 +1063,18 @@ function RunDetailPage() {
               <Input
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search by title…"
+                placeholder={t('Search by title…')}
                 size="sm"
                 className="run-execution-toolbar__search"
-                aria-label="Search cases by title"
+                aria-label={t('Search cases by title')}
               />
               <Select
                 value={suiteFilter}
                 onChange={(event) => setSuiteFilter(event.target.value)}
                 size="sm"
-                aria-label="Filter by suite"
+                aria-label={t('Filter by suite')}
               >
-                <option value="All">All suites</option>
+                <option value="All">{t('All suites')}</option>
                 {suiteOptions.map((suite) => (
                   <option key={suite} value={suite}>
                     {suite}
@@ -1078,12 +1085,12 @@ function RunDetailPage() {
                 value={priorityFilter}
                 onChange={(event) => setPriorityFilter(event.target.value)}
                 size="sm"
-                aria-label="Filter by priority"
+                aria-label={t('Filter by priority')}
               >
-                <option value="All">All priorities</option>
+                <option value="All">{t('All priorities')}</option>
                 {priorityOptions.map((priority) => (
                   <option key={priority} value={priority}>
-                    {priority}
+                    {t(priority)}
                   </option>
                 ))}
               </Select>
@@ -1096,16 +1103,14 @@ function RunDetailPage() {
                     setSuiteFilter('All')
                     setPriorityFilter('All')
                   }}
-                >
-                  Clear filters
-                </Button>
+                >{t('Clear filters')}</Button>
               ) : null}
             </div>
 
             {filteredTests.length === 0 ? (
               <EmptyState
-                title="No matching test cases"
-                description="No test cases match the current search and filters."
+                title={t('No matching test cases')}
+                description={t('No test cases match the current search and filters.')}
               />
             ) : (
             <div className="run-execution-workspace">
@@ -1120,13 +1125,13 @@ function RunDetailPage() {
                       <Checkbox
                         checked={allVisibleSelected}
                         onChange={toggleVisibleSelection}
-                        aria-label="Select visible tests"
+                        aria-label={t('Select visible tests')}
                       />
                     </div>
-                    <div>ID</div>
-                    <div>Title</div>
-                    <div>Result</div>
-                    <div className="text-center">Comment</div>
+                    <div>{t('ID')}</div>
+                    <div>{t('Title')}</div>
+                    <div>{t('Result')}</div>
+                    <div className="text-center">{t('Comment')}</div>
                   </TableHead>
 
                   {filteredTests.map((test) => {
@@ -1169,7 +1174,7 @@ function RunDetailPage() {
                           <Checkbox
                             checked={selectedTestIdSet.has(test.id)}
                             onChange={() => toggleTestSelection(test.id)}
-                            aria-label={`Select test ${test.id}`}
+                            aria-label={t('Select test {id}', { id: test.id })}
                           />
                         </div>
                         <Link
@@ -1185,15 +1190,14 @@ function RunDetailPage() {
                             {test.title}
                           </div>
                           {test.executedBy ? (
-                            <div className="truncate text-[0.7rem] text-[var(--tms-text-muted)]">
-                              by {test.executedBy}
+                            <div className="truncate text-[0.7rem] text-[var(--tms-text-muted)]">{t('by')}{' '}{test.executedBy}
                             </div>
                           ) : null}
                         </div>
                         <div
                           className="run-result-segmented"
                           role="group"
-                          aria-label={`Set execution result for test ${test.id}`}
+                          aria-label={t('Set execution result for test {id}', { id: test.id })}
                           onClick={(event) => event.stopPropagation()}
                         >
                           {STATUS_ACTIONS.map((status) => {
@@ -1232,7 +1236,7 @@ function RunDetailPage() {
                                 className="h-4 w-4"
                                 aria-hidden="true"
                               />
-                              <span className="sr-only">Has comment</span>
+                              <span className="sr-only">{t('Has comment')}</span>
                             </span>
                           ) : (
                             <span
@@ -1262,13 +1266,11 @@ function RunDetailPage() {
                   className="run-execution-preview-panel"
                   role="dialog"
                   aria-modal="true"
-                  aria-label="Case execution preview"
+                  aria-label={t('Case execution preview')}
                 >
                   <div className="run-execution-preview-panel__header">
                     <div className="run-execution-preview-panel__copy">
-                      <div className="run-execution-preview-panel__kicker">
-                        Execution preview
-                      </div>
+                      <div className="run-execution-preview-panel__kicker">{t('Execution preview')}</div>
                       <h2 className="run-execution-preview-panel__title">
                         #{previewTest.id} {previewTest.title}
                       </h2>
@@ -1278,30 +1280,31 @@ function RunDetailPage() {
                         {formatRunPreviewMeta(previewTest.caseType)}
                       </p>
                       {previewTest.executedBy ? (
-                        <p className="run-execution-preview-panel__executor">
-                          Executed by {previewTest.executedBy}
+                        <p className="run-execution-preview-panel__executor">{t('Executed by')}{' '}{previewTest.executedBy}
                           {formatExecutedAt(previewTest.executedAt)
                             ? ` · ${formatExecutedAt(previewTest.executedAt)}`
                             : ''}
                         </p>
                       ) : null}
                     </div>
-                    <Button
-                      variant="secondary"
-                      size="sm"
+                    <button
+                      type="button"
+                      className="case-actions-trigger shrink-0"
+                      aria-label={t('Close preview')}
+                      title={t('Close')}
                       onClick={() => setPreviewTestId(null)}
                     >
-                      Close
-                    </Button>
+                      <X className="h-4 w-4" aria-hidden="true" />
+                    </button>
                   </div>
 
                   <div className="run-execution-preview-panel__quick">
                     <div className="run-execution-preview-panel__section-header">
                       <h3>
-                        {previewIsStructured ? 'Result (from steps)' : 'Quick result'}
+                        {previewIsStructured ? t('Result (from steps)') : t('Quick result')}
                       </h3>
                       <span className="run-execution-preview-panel__current-status">
-                        {previewTest.status ?? 'Not run'}
+                        {previewTest.status ?? t('Not run')}
                       </span>
                     </div>
                     {previewIsStructured ? (
@@ -1336,7 +1339,7 @@ function RunDetailPage() {
                                 void handleRunTest(previewTest.id, nextStatus)
                               }
                             >
-                              {status}
+                              {t(status)}
                             </Button>
                           )
                         })}
@@ -1384,19 +1387,13 @@ function RunDetailPage() {
                       )}
                     </section>
                     <section className="run-execution-preview-panel__content-block">
-                      <h3>Execution history</h3>
+                      <h3>{t('Execution history')}</h3>
                       {caseHistoryLoading ? (
-                        <p className="run-execution-preview-panel__empty">
-                          Loading history…
-                        </p>
+                        <p className="run-execution-preview-panel__empty">{t('Loading history…')}</p>
                       ) : caseHistoryError ? (
-                        <p className="run-execution-preview-panel__empty">
-                          Could not load history.
-                        </p>
+                        <p className="run-execution-preview-panel__empty">{t('Could not load history.')}</p>
                       ) : !caseHistory || caseHistory.length === 0 ? (
-                        <p className="run-execution-preview-panel__empty">
-                          No execution history yet.
-                        </p>
+                        <p className="run-execution-preview-panel__empty">{t('No execution history yet.')}</p>
                       ) : (
                         <ul className="run-history">
                           {caseHistory.map((entry, index) => (
@@ -1409,14 +1406,14 @@ function RunDetailPage() {
                                   entry.status,
                                 )}`}
                               >
-                                {entry.status}
+                                {t(entry.status)}
                               </span>
                               <div className="run-history__meta">
                                 <span className="run-history__run">
                                   {entry.runName}
                                 </span>
                                 <span className="run-history__sub">
-                                  {entry.executedBy ?? 'Unknown'}
+                                  {entry.executedBy ?? t('Unknown')}
                                   {formatExecutedAt(entry.executedAt)
                                     ? ` · ${formatExecutedAt(entry.executedAt)}`
                                     : ''}
@@ -1429,10 +1426,10 @@ function RunDetailPage() {
                     </section>
                     <section className="run-execution-preview-panel__content-block">
                       <div className="run-execution-preview-panel__section-header">
-                        <h3>Attachments</h3>
+                        <h3>{t('Attachments')}</h3>
                         {!isRunLocked ? (
                           <label className="run-attachment-upload">
-                            {isUploadingAttachment ? 'Uploading…' : 'Add file'}
+                            {isUploadingAttachment ? t('Uploading…') : t('Add file')}
                             <input
                               type="file"
                               className="sr-only"
@@ -1449,17 +1446,11 @@ function RunDetailPage() {
                         ) : null}
                       </div>
                       {attachmentsLoading ? (
-                        <p className="run-execution-preview-panel__empty">
-                          Loading attachments…
-                        </p>
+                        <p className="run-execution-preview-panel__empty">{t('Loading attachments…')}</p>
                       ) : attachmentsError ? (
-                        <p className="run-execution-preview-panel__empty">
-                          Could not load attachments.
-                        </p>
+                        <p className="run-execution-preview-panel__empty">{t('Could not load attachments.')}</p>
                       ) : !caseAttachments || caseAttachments.length === 0 ? (
-                        <p className="run-execution-preview-panel__empty">
-                          No attachments yet.
-                        </p>
+                        <p className="run-execution-preview-panel__empty">{t('No attachments yet.')}</p>
                       ) : (
                         <ul className="run-attachments">
                           {caseAttachments.map((attachment) => (
@@ -1498,7 +1489,7 @@ function RunDetailPage() {
                                   onClick={() =>
                                     void handleDeleteAttachment(attachment.id)
                                   }
-                                  aria-label={`Remove ${attachment.name}`}
+                                  aria-label={t('Remove {name}', { name: attachment.name })}
                                 >
                                   <X className="h-3.5 w-3.5" aria-hidden="true" />
                                 </button>
@@ -1508,9 +1499,10 @@ function RunDetailPage() {
                         </ul>
                       )}
                     </section>
+                    {!previewIsStructured ? (
                     <section className="run-execution-preview-panel__content-block run-execution-preview-panel__content-block--note">
                       <div className="run-execution-preview-panel__section-header">
-                        <h3>Comment</h3>
+                        <h3>{t('Comment')}</h3>
                         <span
                           className={`run-comment-state${
                             (commentByTestId[previewTest.id] ?? '') !==
@@ -1520,17 +1512,17 @@ function RunDetailPage() {
                           }`}
                         >
                           {pendingCommentByTestId[previewTest.id]
-                            ? 'Saving'
+                            ? t('Saving')
                             : (commentByTestId[previewTest.id] ?? '') !==
                                 (previewTest.comment ?? '')
-                              ? 'Unsaved'
-                              : 'Saved'}
+                              ? t('Unsaved')
+                              : t('Saved')}
                         </span>
                       </div>
                       <Textarea
                         className="run-execution-preview-panel__textarea"
                         value={commentByTestId[previewTest.id] ?? ''}
-                        placeholder="Add a comment…"
+                        placeholder={t('Add a comment…')}
                         disabled={
                           Boolean(pendingCommentByTestId[previewTest.id]) ||
                           isRunLocked
@@ -1551,6 +1543,7 @@ function RunDetailPage() {
                         }}
                       />
                     </section>
+                    ) : null}
                   </div>
 
                   <div className="run-execution-preview-panel__footer">
@@ -1559,27 +1552,25 @@ function RunDetailPage() {
                         to="/test/$testId"
                         params={{ testId: previewTest.id.toString() }}
                         className="run-execution-preview-panel__link-button no-underline"
-                      >
-                        Open full case
-                      </Link>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        disabled={
-                          pendingCommentByTestId[previewTest.id] ||
-                          isRunLocked ||
-                          (commentByTestId[previewTest.id] ?? '') ===
-                            (previewTest.comment ?? '')
-                        }
-                        onClick={() =>
-                          void handleSaveComment(
-                            previewTest.id,
-                            commentByTestId[previewTest.id] ?? '',
-                          )
-                        }
-                      >
-                        Save comment
-                      </Button>
+                      >{t('Open full case')}</Link>
+                      {!previewIsStructured ? (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          disabled={
+                            pendingCommentByTestId[previewTest.id] ||
+                            isRunLocked ||
+                            (commentByTestId[previewTest.id] ?? '') ===
+                              (previewTest.comment ?? '')
+                          }
+                          onClick={() =>
+                            void handleSaveComment(
+                              previewTest.id,
+                              commentByTestId[previewTest.id] ?? '',
+                            )
+                          }
+                        >{t('Save comment')}</Button>
+                      ) : null}
                     </div>
                   </div>
                 </aside>
@@ -1592,11 +1583,9 @@ function RunDetailPage() {
           <div
             className="run-bulk-bar"
             role="region"
-            aria-label="Bulk actions for selected cases"
+            aria-label={t('Bulk actions for selected cases')}
           >
-            <span className="run-bulk-bar__count">
-              {selectedTestIds.length} selected
-            </span>
+            <span className="run-bulk-bar__count">{t('{length} selected', { length: selectedTestIds.length })}</span>
             <div className="run-bulk-bar__actions">
               {STATUS_ACTIONS.map((status) => (
                 <Button
@@ -1609,7 +1598,7 @@ function RunDetailPage() {
                   size="sm"
                   className={getRunResultChipClass(status)}
                 >
-                  {status}
+                  {t(status)}
                 </Button>
               ))}
               <Button
@@ -1619,19 +1608,16 @@ function RunDetailPage() {
                 disabled={isBulkUpdating || isRunLocked}
                 variant="secondary"
                 size="sm"
-              >
-                Reset to Not run
-              </Button>
+              >{t('Reset to Not run')}</Button>
             </div>
             <button
               type="button"
               className="run-bulk-bar__deselect"
               onClick={() => setSelectedTestIds([])}
-            >
-              Deselect
-            </button>
+            >{t('Deselect')}</button>
           </div>
         ) : null}
+
       </div>
     </main>
   )

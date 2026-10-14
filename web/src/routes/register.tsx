@@ -7,6 +7,7 @@ import { PasswordInput } from '../components/ui/PasswordInput'
 import { Panel } from '../components/ui/Panel'
 import { getCurrentUser } from '../features/auth/server'
 import { signUp } from '../lib/auth-client'
+import { useT } from '../lib/i18n'
 
 export const Route = createFileRoute('/register')({
   loader: async () => {
@@ -24,6 +25,8 @@ export const Route = createFileRoute('/register')({
 })
 
 function RegisterPage() {
+  const t = useT()
+
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -76,45 +79,36 @@ function RegisterPage() {
       <Panel className="auth-card rise-in mx-auto flex min-h-[35rem] w-full max-w-[35rem] flex-col p-8 sm:p-10">
         <div className="mb-8 text-center">
           <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--tms-text)]">
-            {submittedEmail ? 'Check your email' : 'Register'}
+            {submittedEmail ? t('Check your email') : t('Register')}
           </h1>
         </div>
 
         {submittedEmail ? (
           <div className="grid flex-1 content-start gap-5 text-center">
-            <Alert variant="success" className="px-5 py-4 text-left">
-              We sent a verification link to{' '}
-              <span className="font-semibold">{submittedEmail}</span>. Open it
-              to confirm your email before logging in.
-            </Alert>
+            <Alert variant="success" className="px-5 py-4 text-left">{t('We sent a verification link to')}{' '}
+              <span className="font-semibold">{submittedEmail}</span>{t('. Open it to confirm your email before logging in.')}</Alert>
             <Link
               to="/login"
               className="tms-button tms-button-primary justify-center rounded-2xl px-5 py-4 text-lg font-bold no-underline shadow-[var(--tms-shadow-subtle)]"
-            >
-              Go to login
-            </Link>
+            >{t('Go to login')}</Link>
           </div>
         ) : (
           <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
             <label className="grid gap-2 text-left">
-              <span className="text-lg font-medium text-[var(--tms-text-muted)]">
-                Name
-              </span>
+              <span className="text-lg font-medium text-[var(--tms-text-muted)]">{t('Name')}</span>
               <Input
                 name="name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 size="lg"
                 className="auth-input rounded-2xl px-5 py-4 text-lg"
-                placeholder="Your name"
+                placeholder={t('Your name')}
                 autoComplete="name"
               />
             </label>
 
             <label className="grid gap-2 text-left">
-              <span className="text-lg font-medium text-[var(--tms-text-muted)]">
-                Email
-              </span>
+              <span className="text-lg font-medium text-[var(--tms-text-muted)]">{t('Email')}</span>
               <Input
                 name="email"
                 value={email}
@@ -122,27 +116,23 @@ function RegisterPage() {
                 type="email"
                 size="lg"
                 className="auth-input rounded-2xl px-5 py-4 text-lg"
-                placeholder="you@example.com"
+                placeholder={t('you@example.com')}
                 autoComplete="email"
               />
             </label>
 
             <label className="grid gap-2 text-left">
-              <span className="text-lg font-medium text-[var(--tms-text-muted)]">
-                Password
-              </span>
+              <span className="text-lg font-medium text-[var(--tms-text-muted)]">{t('Password')}</span>
               <PasswordInput
                 name="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 size="lg"
                 className="auth-input rounded-2xl px-5 py-4 text-lg"
-                placeholder="Create a password"
+                placeholder={t('Create a password')}
                 autoComplete="new-password"
               />
-              <span className="text-sm text-[var(--tms-text-muted)]">
-                At least 8 characters.
-              </span>
+              <span className="text-sm text-[var(--tms-text-muted)]">{t('At least 8 characters.')}</span>
             </label>
 
             {errorMessage ? (
@@ -158,17 +148,14 @@ function RegisterPage() {
               size="lg"
               className="mt-auto rounded-2xl px-5 py-4 text-lg font-bold shadow-[var(--tms-shadow-subtle)]"
             >
-              {isSubmitting ? 'Sending verification...' : 'Create account'}
+              {isSubmitting ? t('Sending verification...') : t('Create account')}
             </Button>
 
-            <p className="pt-2 text-center text-lg text-[var(--tms-text-muted)]">
-              Already have an account?{' '}
+            <p className="pt-2 text-center text-lg text-[var(--tms-text-muted)]">{t('Already have an account?')}{' '}
               <Link
                 to="/login"
                 className="font-semibold text-[var(--tms-primary)] no-underline"
-              >
-                Log in
-              </Link>
+              >{t('Log in')}</Link>
               .
             </p>
           </form>

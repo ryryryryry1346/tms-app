@@ -1,4 +1,5 @@
 import { EmptyState } from '../ui/EmptyState'
+import { useT } from '../../lib/i18n'
 
 type RepositoryEmptyReason = 'no-suites' | 'no-matching-cases'
 type RepositoryCaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
@@ -28,10 +29,12 @@ function getEmptyMessage({
 }
 
 export function RepositoryEmptyState(props: RepositoryEmptyStateProps) {
+  const t = useT()
+
   return (
     <EmptyState
       className="m-5"
-      title="No cases to show"
+      title={t('No cases to show')}
       description={getEmptyMessage(props)}
     />
   )

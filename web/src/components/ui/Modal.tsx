@@ -5,9 +5,15 @@ type ModalProps = {
   title: string
   onClose: () => void
   children: ReactNode
+  size?: 'md' | 'lg'
 }
 
-export function Modal({ open, title, onClose, children }: ModalProps) {
+const MODAL_MAX_WIDTH: Record<'md' | 'lg', string> = {
+  md: 'max-w-md',
+  lg: 'max-w-xl',
+}
+
+export function Modal({ open, title, onClose, children, size = 'md' }: ModalProps) {
   useEffect(() => {
     if (!open) {
       return
@@ -29,7 +35,7 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -40,7 +46,7 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
         className="absolute inset-0 cursor-default border-0 bg-black/40"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-[var(--tms-border)] bg-[var(--tms-surface)] p-6 shadow-[var(--tms-shadow-panel)]">
+      <div className={`relative z-10 w-full ${MODAL_MAX_WIDTH[size]} max-h-[85vh] overflow-y-auto rounded-2xl border border-[var(--tms-border)] bg-[var(--tms-surface)] p-6 shadow-[var(--tms-shadow-panel)]`}>
         <h2 className="m-0 mb-4 text-lg font-semibold text-[var(--tms-text)]">
           {title}
         </h2>

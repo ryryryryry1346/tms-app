@@ -11,6 +11,7 @@ import type {
   RepositoryVisibleColumns,
 } from './CaseRow'
 import { REPOSITORY_COLUMN_LABELS } from './CaseRow'
+import { useT } from '../../lib/i18n'
 
 export type RepositoryCaseFilter = 'All' | 'Ready' | 'Draft' | 'Archived'
 export type RepositoryPriorityFilter =
@@ -19,6 +20,30 @@ export type RepositoryPriorityFilter =
   | 'Medium'
   | 'High'
   | 'Critical'
+
+const PRIORITY_FILTER_COLOR: Record<
+  Exclude<RepositoryPriorityFilter, 'All'>,
+  string
+> = {
+  Low: 'var(--priority-low-text)',
+  Medium: 'var(--priority-medium-text)',
+  High: 'var(--priority-high-text)',
+  Critical: 'var(--priority-critical-text)',
+}
+
+function PriorityOptionLabel({
+  priority,
+}: {
+  priority: Exclude<RepositoryPriorityFilter, 'All'>
+}) {
+  const t = useT()
+
+  return (
+    <span style={{ color: PRIORITY_FILTER_COLOR[priority], fontWeight: 600 }}>
+      {t(priority)}
+    </span>
+  )
+}
 export type RepositoryCaseTypeFilter =
   | 'All'
   | 'Functional'
@@ -37,6 +62,7 @@ type RepositoryToolbarProps = {
   caseTypeOptions: Exclude<RepositoryCaseTypeFilter, 'All'>[]
   visibleColumns: RepositoryVisibleColumns
   onSearchChange: (value: string) => void
+  onSearchSubmit: () => void
   onToggleColumn: (column: RepositoryColumnKey) => void
   onPriorityFilterChange: (value: RepositoryPriorityFilter) => void
   onCaseTypeFilterChange: (value: RepositoryCaseTypeFilter) => void
@@ -98,63 +124,75 @@ export function RepositoryToolbar({
   caseTypeOptions,
   visibleColumns,
   onSearchChange,
+  onSearchSubmit,
   onToggleColumn,
   onPriorityFilterChange,
   onCaseTypeFilterChange,
   onCaseFilterChange,
 }: RepositoryToolbarProps) {
+  const t = useT()
+
   const [isTableSettingsOpen, setIsTableSettingsOpen] = useState(false)
   const visibleColumnCount = Object.values(visibleColumns).filter(Boolean).length
 
   return (
     <div className="repository-toolbar">
-      <div className="repository-toolbar__search-wrap">
+      <form
+        role="search"
+        className="repository-toolbar__search-wrap"
+        onSubmit={(event) => {
+          event.preventDefault()
+          onSearchSubmit()
+        }}
+      >
         <SearchIcon />
         <Input
+          enterKeyHint="search"
           value={searchValue}
           onChange={(event) => onSearchChange(event.target.value)}
           className="repository-toolbar__search-input"
-          placeholder="Search test suites or cases..."
-          aria-label="Search test suites or cases"
+          placeholder={t('Search test suites or cases... (Enter)')}
+          aria-label={t('Search test suites or cases')}
+          title={t('Press Enter to search')}
         />
-      </div>
+      </form>
 
       <div className="repository-toolbar__filter-wrap">
         <label className="repository-toolbar__filter">
-          <span>Priority</span>
+          <span>{t('Priority')}</span>
           <SelectMenu
             value={priorityFilter}
             onValueChange={(value) =>
               onPriorityFilterChange(value as RepositoryPriorityFilter)
             }
             options={[
-              { value: 'All', label: 'All' },
+              { value: 'All', label: t('All') },
               ...priorityOptions.map((priority) => ({
                 value: priority,
-                label: priority,
+                label: <PriorityOptionLabel priority={priority} />,
               })),
             ]}
             className="repository-toolbar__select"
-            aria-label="Filter by priority"
+            aria-label={t('Filter by priority')}
           />
         </label>
 
         <label className="repository-toolbar__filter">
-          <span>Type</span>
+          <span>{t('Type')}</span>
           <SelectMenu
             value={caseTypeFilter}
             onValueChange={(value) =>
               onCaseTypeFilterChange(value as RepositoryCaseTypeFilter)
             }
             options={[
-              { value: 'All', label: 'All' },
+              { value: 'All', label: t('All') },
               ...caseTypeOptions.map((caseType) => ({
                 value: caseType,
-                label: caseType,
+                label: t(caseType),
               })),
             ]}
             className="repository-toolbar__select"
-            aria-label="Filter by type"
+            aria-label={t('Filter by type')}
           />
         </label>
       </div>
@@ -162,7 +200,7 @@ export function RepositoryToolbar({
       <div
         className="repository-toolbar__status-segmented"
         role="group"
-        aria-label="Filter by case status"
+        aria-label={t('Filter by case status')}
       >
         {CASE_FILTER_OPTIONS.map((filter) => (
           <button
@@ -170,8 +208,10 @@ export function RepositoryToolbar({
             type="button"
             onClick={() => onCaseFilterChange(filter)}
             className={`repository-toolbar__status-button ${
-              caseFilter === filter ? 'is-active' : ''
-            }`}
+              filter !== 'All'
+                ? `repository-toolbar__status-button--${filter.toLowerCase()}`
+                : ''
+            } ${caseFilter === filter ? 'is-active' : ''}`}
           >
             {filter}
           </button>
@@ -189,12 +229,10 @@ export function RepositoryToolbar({
           <Button
             type="button"
             variant="secondary"
-            aria-label="Configure repository table"
+            aria-label={t('Configure repository table')}
             className="repository-toolbar__columns-button"
           >
-            <ColumnsIcon />
-            Columns
-          </Button>
+            <ColumnsIcon />{t('Columns')}</Button>
         }
       >
         {(Object.keys(REPOSITORY_COLUMN_LABELS) as RepositoryColumnKey[]).map(

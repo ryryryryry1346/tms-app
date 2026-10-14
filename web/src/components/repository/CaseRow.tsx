@@ -4,6 +4,7 @@ import { Checkbox } from '../ui/Checkbox'
 import { Input } from '../ui/Input'
 import { SelectMenu } from '../ui/SelectMenu'
 import { CaseActionsMenu } from './CaseActionsMenu'
+import { useT } from '../../lib/i18n'
 
 export type RepositoryCaseStatus = 'Draft' | 'Ready' | 'Archived'
 export type RepositoryCasePriority = 'Low' | 'Medium' | 'High' | 'Critical'
@@ -190,6 +191,8 @@ export function CaseRow({
   onDeletePermanently,
   onArchive,
 }: CaseRowProps) {
+  const t = useT()
+
   const status = (test.status ?? 'Draft') as RepositoryCaseStatus
   const priority = (test.priority ?? 'Medium') as RepositoryCasePriority
   const caseType = (test.caseType ?? 'Functional') as RepositoryCaseType
@@ -250,7 +253,7 @@ export function CaseRow({
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
           className="repository-case-row__drag-handle"
-          aria-label={`Drag test case ${test.id}`}
+          aria-label={t('Drag test case {id}', { id: test.id })}
         >
           <DragHandleIcon />
         </button>
@@ -284,7 +287,7 @@ export function CaseRow({
           autoFocus
           size="sm"
           className="min-w-0 rounded-lg"
-          aria-label={`Edit title for ${test.title}`}
+          aria-label={t('Edit title for {title}', { title: test.title })}
         />
       ) : (
         <button
@@ -299,7 +302,7 @@ export function CaseRow({
             onStartTitleEdit()
           }}
           className="repository-case-row__title"
-          aria-label={`Preview test case ${test.title}`}
+          aria-label={t('Preview test case {title}', { title: test.title })}
           aria-current={isPreviewActive ? 'true' : undefined}
         >
           {test.title}
@@ -313,12 +316,12 @@ export function CaseRow({
           }
           options={priorityOptions.map((option) => ({
             value: option,
-            label: option,
+            label: t(option),
           }))}
           onPointerDown={(event) => event.stopPropagation()}
           disabled={isPending}
           className={`tms-inline-select w-fit border-0 outline-none ${getPriorityChipClass(priority)}`}
-          aria-label={`Change priority for ${test.title}`}
+          aria-label={t('Change priority for {title}', { title: test.title })}
         />
       ) : null}
       {visibleColumns.type ? (
@@ -327,12 +330,12 @@ export function CaseRow({
           onValueChange={(value) => onCaseTypeChange(value as RepositoryCaseType)}
           options={caseTypeOptions.map((option) => ({
             value: option,
-            label: option,
+            label: t(option),
           }))}
           onPointerDown={(event) => event.stopPropagation()}
           disabled={isPending}
           className="tms-inline-select tms-inline-select-neutral w-fit border-0 outline-none"
-          aria-label={`Change type for ${test.title}`}
+          aria-label={t('Change type for {title}', { title: test.title })}
         />
       ) : null}
       {visibleColumns.created ? (
@@ -351,12 +354,12 @@ export function CaseRow({
           onValueChange={(value) => onStatusChange(value as RepositoryCaseStatus)}
           options={statusOptions.map((option) => ({
             value: option,
-            label: option,
+            label: t(option),
           }))}
           onPointerDown={(event) => event.stopPropagation()}
           disabled={isPending}
           className={`tms-inline-select w-fit border-0 outline-none ${getStatusChipClass(status)}`}
-          aria-label={`Change status for ${test.title}`}
+          aria-label={t('Change status for {title}', { title: test.title })}
         />
       ) : null}
       <div onClick={(event) => event.stopPropagation()}>

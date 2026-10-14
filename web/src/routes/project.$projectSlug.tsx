@@ -13,6 +13,7 @@ import { LinkButton } from '../components/ui/LinkButton'
 import { Panel } from '../components/ui/Panel'
 import { getRunsForProject } from '../features/runs/server'
 import { getDashboardState } from '../features/tests/server'
+import { useT } from '../lib/i18n'
 
 export const Route = createFileRoute('/project/$projectSlug')({
   loader: async ({ params }) => {
@@ -122,6 +123,17 @@ function runToneChipClass(tone: RunStatusTone): string {
   return 'tms-chip-run-not-run'
 }
 
+type KpiTone = 'good' | 'caution' | 'risk'
+
+const KPI_GOOD_THRESHOLD = 80
+const KPI_CAUTION_THRESHOLD = 40
+
+function kpiTone(percent: number): KpiTone {
+  if (percent >= KPI_GOOD_THRESHOLD) return 'good'
+  if (percent >= KPI_CAUTION_THRESHOLD) return 'caution'
+  return 'risk'
+}
+
 function OnboardingStep({
   step,
   title,
@@ -149,6 +161,8 @@ function OnboardingStep({
 }
 
 function ProjectOverviewPage() {
+  const t = useT()
+
   const { project, dashboard, runs } = Route.useLoaderData()
   const { projectSlug: routeProjectSlug } = Route.useParams()
   const location = useLocation()
@@ -176,6 +190,8 @@ function ProjectOverviewPage() {
   const passRate =
     executedTotal > 0 ? Math.round((passedTotal / executedTotal) * 100) : 0
   const isEmptyProject = dashboard.tests.length === 0 && runs.length === 0
+  const readinessTone = kpiTone(readiness)
+  const passRateTone = kpiTone(passRate)
 
   return (
     <main className="workspace-view">
@@ -183,23 +199,20 @@ function ProjectOverviewPage() {
         <div className="workspace-view__stack">
           <ProjectPageHeader
             projectName={project.name}
-            description="At-a-glance readiness and recent execution health."
+            eyebrow={null}
+            description={t('At-a-glance readiness and recent execution health.')}
             actions={
               <>
                 <LinkButton
                   to="/project/$projectSlug/repository"
                   params={{ projectSlug }}
                   variant="secondary"
-                >
-                  Open repository
-                </LinkButton>
+                >{t('Open repository')}</LinkButton>
                 <LinkButton
                   to="/project/$projectSlug/runs"
                   params={{ projectSlug }}
                   variant="primary"
-                >
-                  Open runs
-                </LinkButton>
+                >{t('Open runs')}</LinkButton>
               </>
             }
           />
@@ -207,29 +220,24 @@ function ProjectOverviewPage() {
           {isEmptyProject ? (
             <Panel className="overview-panel px-6 py-8">
               <div className="mx-auto max-w-2xl text-center">
-                <h2 className="m-0 text-lg font-semibold text-[var(--tms-text)]">
-                  Let&apos;s set up {project.name}
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-[var(--tms-text-muted)]">
-                  This project is empty. Follow these steps to start tracking
-                  your testing.
-                </p>
+                <h2 className="m-0 text-lg font-semibold text-[var(--tms-text)]">{t('Let\'s set up {name}', { name: project.name })}</h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--tms-text-muted)]">{t('This project is empty. Follow these steps to start tracking your testing.')}</p>
               </div>
               <div className="mx-auto mt-6 grid max-w-2xl gap-3">
                 <OnboardingStep
                   step="1"
-                  title="Create a suite"
-                  description="Group related test cases into a suite in the repository."
+                  title={t('Create a suite')}
+                  description={t('Group related test cases into a suite in the repository.')}
                 />
                 <OnboardingStep
                   step="2"
-                  title="Add test cases"
-                  description="Write manual cases with clear steps and expected results."
+                  title={t('Add test cases')}
+                  description={t('Write manual cases with clear steps and expected results.')}
                 />
                 <OnboardingStep
                   step="3"
-                  title="Run and track"
-                  description="Create a run to execute cases and watch the pass rate."
+                  title={t('Run and track')}
+                  description={t('Create a run to execute cases and watch the pass rate.')}
                 />
               </div>
               <div className="mx-auto mt-6 flex max-w-2xl justify-center">
@@ -237,49 +245,47 @@ function ProjectOverviewPage() {
                   to="/project/$projectSlug/repository"
                   params={{ projectSlug }}
                   variant="primary"
-                >
-                  Open repository to start
-                </LinkButton>
+                >{t('Open repository to start')}</LinkButton>
               </div>
             </Panel>
           ) : (
             <>
           <section className="overview-kpis">
-            <article className="overview-kpi overview-kpi--accent">
-              <span className="overview-kpi__label">Readiness</span>
-              <span className="overview-kpi__value">{readiness}%</span>
-              <span className="overview-kpi__sub">
-                {readyCases} of {totalActive} ready
+            <article className={`overview-kpi overview-kpi--${readinessTone}`}>
+              <span className="overview-kpi__label">{t('Readiness')}</span>
+              <span className={`overview-kpi__value overview-kpi__value--${readinessTone}`}>
+                {readiness}%
               </span>
+              <span className="overview-kpi__sub">{t('{readyCases} of {totalActive} ready', { readyCases, totalActive })}</span>
               <span className="overview-kpi__bar">
                 <span
-                  className="overview-kpi__bar-fill overview-kpi__bar-fill--passed"
+                  className={`overview-kpi__bar-fill overview-kpi__bar-fill--${readinessTone}`}
                   style={{ width: `${readiness}%` }}
                 />
               </span>
             </article>
 
             <article className="overview-kpi">
-              <span className="overview-kpi__label">Test cases</span>
+              <span className="overview-kpi__label">{t('Test cases')}</span>
               <span className="overview-kpi__value">{totalActive}</span>
-              <span className="overview-kpi__sub">
-                across {dashboard.sections.length} suites
-              </span>
+              <span className="overview-kpi__sub">{t('across {length} suites', { length: dashboard.sections.length })}</span>
             </article>
 
             <article className="overview-kpi">
-              <span className="overview-kpi__label">Runs</span>
+              <span className="overview-kpi__label">{t('Runs')}</span>
               <span className="overview-kpi__value">{runs.length}</span>
-              <span className="overview-kpi__sub">{activeRuns} in progress</span>
+              <span className="overview-kpi__sub">{t('{activeRuns} in progress', { activeRuns })}</span>
             </article>
 
-            <article className="overview-kpi overview-kpi--accent">
-              <span className="overview-kpi__label">Pass rate</span>
-              <span className="overview-kpi__value">{passRate}%</span>
-              <span className="overview-kpi__sub">{executedTotal} executed</span>
+            <article className={`overview-kpi overview-kpi--${passRateTone}`}>
+              <span className="overview-kpi__label">{t('Pass rate')}</span>
+              <span className={`overview-kpi__value overview-kpi__value--${passRateTone}`}>
+                {passRate}%
+              </span>
+              <span className="overview-kpi__sub">{t('{executedTotal} executed', { executedTotal })}</span>
               <span className="overview-kpi__bar">
                 <span
-                  className="overview-kpi__bar-fill overview-kpi__bar-fill--passed"
+                  className={`overview-kpi__bar-fill overview-kpi__bar-fill--${passRateTone}`}
                   style={{ width: `${passRate}%` }}
                 />
               </span>
@@ -289,24 +295,22 @@ function ProjectOverviewPage() {
           <Panel className="overview-panel px-4 py-4">
             <WorkspaceSectionHeader
               dense
-              title="Recent runs"
-              description="Latest execution activity and pass health."
+              title={t('Recent runs')}
+              description={t('Latest execution activity and pass health.')}
               actions={
                 <Link
                   to="/project/$projectSlug/runs"
                   params={{ projectSlug }}
                   className="tms-button min-h-0 px-2.5 py-1 text-xs no-underline"
-                >
-                  View all runs
-                </Link>
+                >{t('View all runs')}</Link>
               }
               className="mb-3"
             />
 
             {recentRuns.length === 0 ? (
               <EmptyState
-                title="No runs yet"
-                description="Execution runs will appear here once created."
+                title={t('No runs yet')}
+                description={t('Execution runs will appear here once created.')}
               />
             ) : (
               <div className="overview-runs">
@@ -332,7 +336,7 @@ function ProjectOverviewPage() {
                             status.tone,
                           )}`}
                         >
-                          {status.label}
+                          {t(status.label)}
                         </span>
                       </div>
                       <div className="overview-run-row__progress">
@@ -355,19 +359,11 @@ function ProjectOverviewPage() {
                         </span>
                       </div>
                       <div className="overview-run-row__meta">
-                        <span>{run.total} cases</span>
-                        <span className="overview-run-row__dot overview-run-row__dot--passed">
-                          {run.passed} passed
-                        </span>
-                        <span className="overview-run-row__dot overview-run-row__dot--failed">
-                          {run.failed} failed
-                        </span>
-                        <span className="overview-run-row__dot overview-run-row__dot--blocked">
-                          {run.blocked} blocked
-                        </span>
-                        <span className="overview-run-row__dot">
-                          {run.notRun} not run
-                        </span>
+                        <span>{t('{total} cases', { total: run.total })}</span>
+                        <span className="overview-run-row__dot overview-run-row__dot--passed">{t('{passed} passed', { passed: run.passed })}</span>
+                        <span className="overview-run-row__dot overview-run-row__dot--failed">{t('{failed} failed', { failed: run.failed })}</span>
+                        <span className="overview-run-row__dot overview-run-row__dot--blocked">{t('{blocked} blocked', { blocked: run.blocked })}</span>
+                        <span className="overview-run-row__dot">{t('{notRun} not run', { notRun: run.notRun })}</span>
                       </div>
                     </Link>
                   )

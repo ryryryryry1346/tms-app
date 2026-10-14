@@ -4,6 +4,7 @@ import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { ConfirmActionAlert } from '../ui/ConfirmActionAlert'
 import { PopoverMenu, PopoverMenuItem } from '../ui/PopoverMenu'
+import { useT } from '../../lib/i18n'
 
 export type RepositoryBulkStatus = 'Draft' | 'Ready' | 'Archived'
 export type RepositoryBulkPriority = 'Low' | 'Medium' | 'High' | 'Critical'
@@ -81,6 +82,8 @@ export function BulkCaseBar({
   onConfirmDeleteArchived,
   onClearSelection,
 }: BulkCaseBarProps) {
+  const t = useT()
+
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null)
 
   function closeMenu(): void {
@@ -91,7 +94,7 @@ export function BulkCaseBar({
     <div className="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center px-4">
       <div className="pointer-events-auto w-full max-w-3xl rounded-[var(--tms-radius-overlay)] border-2 border-[var(--tms-primary-border)] bg-[var(--tms-surface)] px-4 py-3 shadow-[0_16px_40px_-12px_rgba(2,6,23,0.45)]">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Badge variant="primary">{selectedCount} selected</Badge>
+        <Badge variant="primary">{t('{selectedCount} selected', { selectedCount })}</Badge>
         <div className="repository-suite-header__actions">
           <PopoverMenu
             isOpen={openMenu === 'move'}
@@ -106,9 +109,7 @@ export function BulkCaseBar({
                 className={menuButtonClass(openMenu === 'move')}
                 aria-haspopup="menu"
                 aria-expanded={openMenu === 'move'}
-              >
-                Move to...
-              </Button>
+              >{t('Move to...')}</Button>
             }
           >
             {suites.map((suite) => (
@@ -138,9 +139,7 @@ export function BulkCaseBar({
                 className={menuButtonClass(openMenu === 'status')}
                 aria-haspopup="menu"
                 aria-expanded={openMenu === 'status'}
-              >
-                Status...
-              </Button>
+              >{t('Status...')}</Button>
             }
           >
             <PopoverMenuItem
@@ -150,18 +149,14 @@ export function BulkCaseBar({
                 onStatusChange('Ready')
               }}
               tone="success"
-            >
-              Mark Ready
-            </PopoverMenuItem>
+            >{t('Mark Ready')}</PopoverMenuItem>
             <PopoverMenuItem
               disabled={isApplying}
               onClick={() => {
                 closeMenu()
                 onStatusChange('Draft')
               }}
-            >
-              Mark Draft
-            </PopoverMenuItem>
+            >{t('Mark Draft')}</PopoverMenuItem>
             <PopoverMenuItem
               disabled={isApplying || selectedArchivableCount === 0}
               onClick={() => {
@@ -169,9 +164,7 @@ export function BulkCaseBar({
                 onRequestArchive()
               }}
               tone="warning"
-            >
-              Archive
-            </PopoverMenuItem>
+            >{t('Archive')}</PopoverMenuItem>
           </PopoverMenu>
 
           <PopoverMenu
@@ -186,14 +179,10 @@ export function BulkCaseBar({
                 className={menuButtonClass(openMenu === 'more')}
                 aria-haspopup="menu"
                 aria-expanded={openMenu === 'more'}
-              >
-                More...
-              </Button>
+              >{t('More...')}</Button>
             }
           >
-            <div className="tms-kicker px-3 pb-1 pt-2">
-              Priority
-            </div>
+            <div className="tms-kicker px-3 pb-1 pt-2">{t('Priority')}</div>
             {priorities.map((priority) => (
               <PopoverMenuItem
                 key={priority}
@@ -203,12 +192,10 @@ export function BulkCaseBar({
                   onPriorityChange(priority)
                 }}
               >
-                {priority}
+                {t(priority)}
               </PopoverMenuItem>
             ))}
-            <div className="tms-kicker mt-2 border-t border-[var(--tms-border-subtle)] px-3 pb-1 pt-3">
-              Type
-            </div>
+            <div className="tms-kicker mt-2 border-t border-[var(--tms-border-subtle)] px-3 pb-1 pt-3">{t('Type')}</div>
             {caseTypes.map((caseType) => (
               <PopoverMenuItem
                 key={caseType}
@@ -218,14 +205,12 @@ export function BulkCaseBar({
                   onCaseTypeChange(caseType)
                 }}
               >
-                {caseType}
+                {t(caseType)}
               </PopoverMenuItem>
             ))}
             {isArchivedView ? (
               <>
-                <div className="tms-kicker mt-2 border-t border-[var(--tms-border-subtle)] px-3 pb-1 pt-3">
-                  Archived
-                </div>
+                <div className="tms-kicker mt-2 border-t border-[var(--tms-border-subtle)] px-3 pb-1 pt-3">{t('Archived')}</div>
                 <PopoverMenuItem
                   disabled={isApplying}
                   onClick={() => {
@@ -233,9 +218,7 @@ export function BulkCaseBar({
                     onRestoreArchived()
                   }}
                   tone="success"
-                >
-                  Restore
-                </PopoverMenuItem>
+                >{t('Restore')}</PopoverMenuItem>
                 <PopoverMenuItem
                   disabled={isApplying || selectedArchivedCount === 0}
                   onClick={() => {
@@ -243,9 +226,7 @@ export function BulkCaseBar({
                     onRequestDeleteArchived()
                   }}
                   tone="danger"
-                >
-                  Delete permanently
-                </PopoverMenuItem>
+                >{t('Delete permanently')}</PopoverMenuItem>
               </>
             ) : null}
           </PopoverMenu>
@@ -258,7 +239,7 @@ export function BulkCaseBar({
             disabled={isApplying || isExporting}
             variant="secondary"
           >
-            {isExporting ? 'Exporting...' : 'Export CSV'}
+            {isExporting ? t('Exporting...') : t('Export CSV')}
           </Button>
 
           <Button
@@ -268,9 +249,7 @@ export function BulkCaseBar({
             }}
             disabled={isApplying}
             variant="secondary"
-          >
-            Clear selection
-          </Button>
+          >{t('Clear selection')}</Button>
         </div>
       </div>
 
@@ -280,9 +259,9 @@ export function BulkCaseBar({
           title={`Archive ${selectedArchivableCount} selected case${
             selectedArchivableCount === 1 ? '' : 's'
           }?`}
-          description="Archived cases leave the active repository and can be restored from the Archived filter."
-          confirmLabel="Archive selected"
-          pendingLabel="Archiving..."
+          description={t('Archived cases leave the active repository and can be restored from the Archived filter.')}
+          confirmLabel={t('Archive selected')}
+          pendingLabel={t('Archiving...')}
           confirmVariant="primary"
           isPending={isApplying}
           onCancel={onCancelArchive}
@@ -296,9 +275,9 @@ export function BulkCaseBar({
           title={`Permanently delete ${selectedArchivedCount} archived case${
             selectedArchivedCount === 1 ? '' : 's'
           }?`}
-          description="This action cannot be undone. Deleted test cases will be removed from the repository."
-          confirmLabel="Delete permanently"
-          pendingLabel="Deleting..."
+          description={t('This action cannot be undone. Deleted test cases will be removed from the repository.')}
+          confirmLabel={t('Delete permanently')}
+          pendingLabel={t('Deleting...')}
           confirmVariant="danger"
           isPending={isApplying}
           onCancel={onCancelDeleteArchived}

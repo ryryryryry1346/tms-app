@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { Button } from './Button'
+import { useT } from '../../lib/i18n'
 
 type ConfirmDialogProps = {
   open: boolean
@@ -26,6 +27,8 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const t = useT()
+
   useEffect(() => {
     if (!open) {
       return
@@ -54,7 +57,7 @@ export function ConfirmDialog({
     >
       <button
         type="button"
-        aria-label="Close dialog"
+        aria-label={t('Close dialog')}
         className="absolute inset-0 cursor-default border-0 bg-black/40"
         onClick={isPending ? undefined : onCancel}
       />

@@ -2,6 +2,7 @@ import type { MouseEventHandler } from 'react'
 import { WorkspaceSectionHeader } from '../layout/WorkspaceSectionHeader'
 import { parseCaseContent } from '../../lib/caseContent'
 import { sanitizeHtml } from '../../lib/sanitize-html'
+import { useT } from '../../lib/i18n'
 
 type StepsViewProps = {
   steps: string | null
@@ -35,18 +36,20 @@ function RichBlock({
 }
 
 export function StepsView({ steps, expected, onMediaClick }: StepsViewProps) {
+  const t = useT()
+
   const content = parseCaseContent(steps, expected)
 
   if (!content.isStructured) {
     return (
       <>
         <RichBlock
-          title="Steps"
+          title={t('Steps')}
           html={content.description}
           onMediaClick={onMediaClick}
         />
         <RichBlock
-          title="Expected result"
+          title={t('Expected result')}
           html={content.legacyExpected}
           onMediaClick={onMediaClick}
         />
@@ -58,7 +61,7 @@ export function StepsView({ steps, expected, onMediaClick }: StepsViewProps) {
     <>
       {content.description.trim() ? (
         <RichBlock
-          title="Description"
+          title={t('Description')}
           html={content.description}
           onMediaClick={onMediaClick}
         />
@@ -67,19 +70,17 @@ export function StepsView({ steps, expected, onMediaClick }: StepsViewProps) {
       <section className="test-detail-rich-block">
         <WorkspaceSectionHeader
           dense
-          title="Steps"
+          title={t('Steps')}
           className="test-detail-rich-block__header"
         />
         {content.steps.length === 0 ? (
-          <p className="m-0 text-sm text-[var(--tms-text-muted)]">
-            No steps yet.
-          </p>
+          <p className="m-0 text-sm text-[var(--tms-text-muted)]">{t('No steps yet.')}</p>
         ) : (
           <div className="grid gap-2">
             <div className="grid grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)] gap-3 px-3 text-xs font-semibold uppercase tracking-[0.06em] text-[var(--tms-text-muted)]">
               <span>#</span>
-              <span>Action</span>
-              <span>Expected</span>
+              <span>{t('Action')}</span>
+              <span>{t('Expected')}</span>
             </div>
             <ol className="m-0 grid list-none gap-2 p-0">
               {content.steps.map((step, index) => (

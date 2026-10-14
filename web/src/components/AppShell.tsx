@@ -2,28 +2,27 @@ import {
   Link,
   useLocation,
   useNavigate,
-  useRouter,
 } from '@tanstack/react-router'
 import {
+  ArrowLeft,
   BarChart3,
   BookOpenText,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   CircleDot,
   FolderKanban,
   LayoutGrid,
   LogOut,
   Menu,
   MoonStar,
-  PanelsTopLeft,
+  PanelLeftClose,
+  PanelLeftOpen,
   PlayCircle,
   Settings,
   SunMedium,
   Users,
   X,
 } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useState, type ReactNode } from 'react'
 import { logoutUser, type SessionUser } from '../features/auth/server'
 import { Button } from './ui/Button'
 import {
@@ -32,6 +31,7 @@ import {
 } from './ui/PopoverMenu'
 import { useTheme } from './ThemeProvider'
 import { useRouterState } from '@tanstack/react-router'
+import { useT } from '../lib/i18n'
 
 type AppShellProps = {
   user: SessionUser | null
@@ -50,6 +50,7 @@ type NavItem = {
     | '/project/$projectSlug/docs'
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/members'
+    | '/project/$projectSlug/settings'
   params?: {
     projectSlug: string
   }
@@ -57,6 +58,7 @@ type NavItem = {
   additionalMatchPaths?: string[]
   icon: ReactNode
   exact?: boolean
+  startsGroup?: boolean
 }
 
 const SIDEBAR_COLLAPSE_STORAGE_KEY = 'tms-sidebar-collapsed'
@@ -124,6 +126,10 @@ function getHeaderCopy(
 
   if (pathname.startsWith('/project/') && pathname.endsWith('/members')) {
     return { label: projectLabel, title: 'Members' }
+  }
+
+  if (pathname.startsWith('/project/') && pathname.endsWith('/settings')) {
+    return { label: projectLabel, title: 'Settings' }
   }
 
   if (pathname === '/account') {
@@ -334,9 +340,10 @@ function ShellNavLink({
 }
 
 export default function AppShell({ user, children }: AppShellProps) {
+  const t = useT()
+
   const location = useLocation()
   const navigate = useNavigate()
-  const router = useRouter()
   const { preference, setPreference } = useTheme()
   const matches = useRouterState({
     select: (state) =>
@@ -358,6 +365,44 @@ export default function AppShell({ user, children }: AppShellProps) {
     setIsMobileSidebarOpen(false)
   }, [pathname])
 
+  // Copy button on highlighted code blocks rendered in read mode
+  // (see highlightCodeInHtml). One delegated listener covers every page.
+  useEffect(() => {
+    function handleCodeCopy(event: MouseEvent): void {
+      const target = event.target
+
+      if (!(target instanceof Element)) {
+        return
+      }
+
+      const button = target.closest<HTMLButtonElement>('[data-code-copy]')
+
+      if (!button) {
+        return
+      }
+
+      const code = button.closest('pre')?.querySelector('code')?.textContent ?? ''
+
+      void navigator.clipboard
+        .writeText(code)
+        .then(() => {
+          button.textContent = 'Copied'
+          window.setTimeout(() => {
+            button.textContent = 'Copy'
+          }, 1500)
+        })
+        .catch(() => {
+          button.textContent = 'Copy failed'
+          window.setTimeout(() => {
+            button.textContent = 'Copy'
+          }, 1500)
+        })
+    }
+
+    document.addEventListener('click', handleCodeCopy)
+    return () => document.removeEventListener('click', handleCodeCopy)
+  }, [])
+
   useEffect(() => {
     if (typeof window === 'undefined') {
       return
@@ -372,19 +417,10 @@ export default function AppShell({ user, children }: AppShellProps) {
     return <>{children}</>
   }
 
-  const workspaceItems: NavItem[] = [
-    {
-      label: 'Projects',
-      to: '/',
-      icon: <PanelsTopLeft size={16} strokeWidth={2} />,
-      exact: true,
-    },
-  ]
-
   const projectItems: NavItem[] = projectSlug
     ? [
         {
-          label: 'Overview',
+          label: t('Overview'),
           to: '/project/$projectSlug',
           params: { projectSlug },
           matchPath: `/project/${projectSlug}`,
@@ -392,7 +428,7 @@ export default function AppShell({ user, children }: AppShellProps) {
           exact: true,
         },
         {
-          label: 'Repository',
+          label: t('Repository'),
           to: '/project/$projectSlug/repository',
           params: { projectSlug },
           matchPath: `/project/${projectSlug}/repository`,
@@ -400,7 +436,7 @@ export default function AppShell({ user, children }: AppShellProps) {
           icon: <FolderKanban size={16} strokeWidth={2} />,
         },
         {
-          label: 'Runs',
+          label: t('Runs'),
           to: '/project/$projectSlug/runs',
           params: { projectSlug },
           matchPath: `/project/${projectSlug}/runs`,
@@ -408,32 +444,40 @@ export default function AppShell({ user, children }: AppShellProps) {
           icon: <PlayCircle size={16} strokeWidth={2} />,
         },
         {
-          label: 'Automation',
+          label: t('Automation'),
           to: '/project/$projectSlug/automation/runs',
           params: { projectSlug },
           matchPath: `/project/${projectSlug}/automation`,
           icon: <CircleDot size={16} strokeWidth={2} />,
         },
         {
-          label: 'Docs',
-          to: '/project/$projectSlug/docs',
-          params: { projectSlug },
-          matchPath: `/project/${projectSlug}/docs`,
-          icon: <BookOpenText size={16} strokeWidth={2} />,
-        },
-        {
-          label: 'Reports',
+          label: t('Reports'),
           to: '/project/$projectSlug/reports',
           params: { projectSlug },
           matchPath: `/project/${projectSlug}/reports`,
           icon: <BarChart3 size={16} strokeWidth={2} />,
         },
         {
-          label: 'Members',
+          label: t('Docs'),
+          to: '/project/$projectSlug/docs',
+          params: { projectSlug },
+          matchPath: `/project/${projectSlug}/docs`,
+          icon: <BookOpenText size={16} strokeWidth={2} />,
+        },
+        {
+          label: t('Members'),
           to: '/project/$projectSlug/members',
           params: { projectSlug },
           matchPath: `/project/${projectSlug}/members`,
           icon: <Users size={16} strokeWidth={2} />,
+          startsGroup: true,
+        },
+        {
+          label: t('Settings'),
+          to: '/project/$projectSlug/settings',
+          params: { projectSlug },
+          matchPath: `/project/${projectSlug}/settings`,
+          icon: <Settings size={16} strokeWidth={2} />,
         },
       ]
     : []
@@ -444,13 +488,13 @@ export default function AppShell({ user, children }: AppShellProps) {
     try {
       setIsAccountMenuOpen(false)
       await logoutUser()
-      await router.invalidate()
-      await navigate({
-        to: '/login',
-        replace: true,
-      })
-    } finally {
+      // Full page load: invalidate() + navigate() raced with the auth redirect
+      // from the dashboard loader and left a blank page. A hard navigation
+      // resets all client state and renders /login from a fresh SSR response.
+      window.location.replace('/login')
+    } catch (error) {
       setIsLoggingOut(false)
+      throw error
     }
   }
 
@@ -489,10 +533,9 @@ export default function AppShell({ user, children }: AppShellProps) {
           className={`app-shell__sidebar ${isMobileSidebarOpen ? 'is-open' : ''}`}
         >
           <div className="app-shell__brand">
-            <div className="app-shell__brand-mark">T</div>
+            <div className="app-shell__brand-mark">{t('T')}</div>
             <div className="app-shell__brand-copy">
-              <span className="app-shell__eyebrow">Workspace</span>
-              <strong>TMS</strong>
+              <strong>{t('TMS')}</strong>
             </div>
             {!isSidebarCollapsed ? (
               <Button
@@ -501,10 +544,10 @@ export default function AppShell({ user, children }: AppShellProps) {
                 variant="secondary"
                 className="app-shell__collapse-button"
                 onClick={toggleSidebarCollapsed}
-                aria-label="Collapse sidebar"
-                title="Collapse sidebar"
+                aria-label={t('Collapse sidebar')}
+                title={t('Collapse sidebar')}
               >
-                <ChevronLeft size={16} strokeWidth={2} />
+                <PanelLeftClose size={16} strokeWidth={2} />
               </Button>
             ) : null}
             <Button
@@ -512,46 +555,42 @@ export default function AppShell({ user, children }: AppShellProps) {
               size="sm"
               className="app-shell__close-button md:hidden"
               onClick={closeSidebar}
-              aria-label="Close navigation"
+              aria-label={t('Close navigation')}
             >
               <X size={16} strokeWidth={2} />
             </Button>
           </div>
 
           <div className="app-shell__scroll">
-            <nav className="app-shell__compact-nav" aria-label="Workspace navigation">
-              {!isDeepFlow ? (
-                workspaceItems.map((item) => (
-                  <ShellNavLink
-                    key={item.to}
-                    item={item}
-                    pathname={pathname}
-                    onNavigate={closeSidebar}
-                  />
-                ))
-              ) : (
-                <Link
-                  to="/"
-                  onClick={closeSidebar}
-                  className="app-shell__utility-link"
-                >
-                  Back to projects
-                </Link>
-              )}
+            <nav className="app-shell__compact-nav" aria-label={t('Workspace navigation')}>
+              <Link
+                to="/"
+                onClick={closeSidebar}
+                className="app-shell__utility-link"
+              >
+                <span className="app-shell__nav-icon">
+                  <ArrowLeft size={14} strokeWidth={2} />
+                </span>
+                <span>{isDeepFlow ? t('Back to projects') : t('Projects')}</span>
+              </Link>
 
               {projectItems.length > 0 ? (
                 <>
                   <div className="app-shell__nav-divider" />
                   <div className="app-shell__project-label">
-                    {shellContext?.projectName ?? 'Current project'}
+                    {shellContext?.projectName ?? t('Current project')}
                   </div>
                   {projectItems.map((item) => (
-                    <ShellNavLink
-                      key={item.to}
-                      item={item}
-                      pathname={pathname}
-                      onNavigate={closeSidebar}
-                    />
+                    <Fragment key={item.to}>
+                      {item.startsGroup ? (
+                        <div className="app-shell__nav-divider" />
+                      ) : null}
+                      <ShellNavLink
+                        item={item}
+                        pathname={pathname}
+                        onNavigate={closeSidebar}
+                      />
+                    </Fragment>
                   ))}
                 </>
               ) : null}
@@ -573,10 +612,10 @@ export default function AppShell({ user, children }: AppShellProps) {
                     variant="secondary"
                     className="app-shell__desktop-expand-button"
                     onClick={toggleSidebarCollapsed}
-                    aria-label="Expand sidebar"
-                    title="Expand sidebar"
+                    aria-label={t('Expand sidebar')}
+                    title={t('Expand sidebar')}
                   >
-                    <ChevronRight size={16} strokeWidth={2} />
+                    <PanelLeftOpen size={16} strokeWidth={2} />
                   </Button>
                 ) : null}
                 <Button
@@ -584,28 +623,44 @@ export default function AppShell({ user, children }: AppShellProps) {
                   size="sm"
                   className="app-shell__menu-button md:hidden"
                   onClick={() => setIsMobileSidebarOpen(true)}
-                  aria-label="Open navigation"
+                  aria-label={t('Open navigation')}
                 >
                   <Menu size={16} strokeWidth={2} />
                 </Button>
                 <div>
-                  <div className="app-shell__eyebrow">{headerCopy.label}</div>
-                  <div className="app-shell__topbar-title">{headerCopy.title}</div>
+                  <div className="app-shell__eyebrow">{t(headerCopy.label)}</div>
+                  <div className="app-shell__topbar-title">{t(headerCopy.title)}</div>
                 </div>
               </>
             ) : (
               <Link to="/" className="app-shell__topbar-brand">
-                <span className="app-shell__brand-mark app-shell__brand-mark--small">T</span>
-                <span className="app-shell__topbar-brand-copy">
-                  <span className="app-shell__eyebrow">Workspace</span>
-                  <span className="app-shell__topbar-title">TMS</span>
-                </span>
+                <span className="app-shell__brand-mark app-shell__brand-mark--small">{t('T')}</span>
+                <span className="app-shell__topbar-title">{t('TMS')}</span>
               </Link>
             )}
           </div>
 
           {user ? (
             <div className="app-shell__topbar-right app-shell__topbar-right--user">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="app-shell__theme-toggle"
+                aria-label={
+                  preference === 'light' ? t('Switch to dark theme') : t('Switch to light theme')
+                }
+                title={
+                  preference === 'light' ? t('Switch to dark theme') : t('Switch to light theme')
+                }
+                onClick={() => setPreference(preference === 'light' ? 'dark' : 'light')}
+              >
+                {preference === 'light' ? (
+                  <SunMedium size={16} strokeWidth={2} aria-hidden="true" />
+                ) : (
+                  <MoonStar size={16} strokeWidth={2} aria-hidden="true" />
+                )}
+              </Button>
               <PopoverMenu
                 isOpen={isAccountMenuOpen}
                 onClose={() => setIsAccountMenuOpen(false)}
@@ -619,7 +674,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                     size="sm"
                     variant="secondary"
                     className="app-shell__account-trigger"
-                    aria-label="Open account menu"
+                    aria-label={t('Open account menu')}
                     aria-expanded={isAccountMenuOpen}
                   >
                     <span className="app-shell__account-avatar" aria-hidden="true">
@@ -648,36 +703,6 @@ export default function AppShell({ user, children }: AppShellProps) {
                   </div>
                 </div>
 
-                <div
-                  className="app-shell__account-theme"
-                  role="group"
-                  aria-label="Theme preference"
-                >
-                  <span className="app-shell__account-theme-label">Theme</span>
-                  <button
-                    type="button"
-                    className={`app-shell__account-theme-button ${
-                      preference === 'light' ? 'is-active' : ''
-                    }`}
-                    aria-pressed={preference === 'light'}
-                    onClick={() => setPreference('light')}
-                  >
-                    <SunMedium size={14} strokeWidth={2} aria-hidden="true" />
-                    Light
-                  </button>
-                  <button
-                    type="button"
-                    className={`app-shell__account-theme-button ${
-                      preference === 'dark' ? 'is-active' : ''
-                    }`}
-                    aria-pressed={preference === 'dark'}
-                    onClick={() => setPreference('dark')}
-                  >
-                    <MoonStar size={14} strokeWidth={2} aria-hidden="true" />
-                    Dark
-                  </button>
-                </div>
-
                 <div className="app-shell__account-actions">
                   <PopoverMenuItem
                     style={{
@@ -691,7 +716,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                     }}
                   >
                     <Settings size={13} strokeWidth={2} aria-hidden="true" />
-                    <span>Account settings</span>
+                    <span>{t('Account settings')}</span>
                   </PopoverMenuItem>
                   <PopoverMenuItem
                     tone="danger"
@@ -700,7 +725,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                     disabled={isLoggingOut}
                   >
                     <LogOut size={13} strokeWidth={2} aria-hidden="true" />
-                    <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
+                    <span>{isLoggingOut ? t('Logging out...') : t('Logout')}</span>
                   </PopoverMenuItem>
                 </div>
               </PopoverMenu>

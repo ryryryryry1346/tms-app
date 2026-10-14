@@ -68,6 +68,11 @@ const deleteProjectInput = z.object({
   projectId: z.number().int().positive(),
 })
 
+const renameProjectInput = z.object({
+  projectId: z.number().int().positive(),
+  name: z.string().trim().min(1),
+})
+
 const updateProjectStatusInput = z.object({
   projectId: z.number().int().positive(),
 })
@@ -190,6 +195,28 @@ export const createProject = createServerFn({ method: 'POST' })
 
     return {
       id: projectId,
+    }
+  })
+
+export const renameProject = createServerFn({ method: 'POST' })
+  .inputValidator(renameProjectInput)
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const { requireProjectAccess } = await import(
+      '../auth/project-access.server'
+    )
+    await ensureProjectServerDeps()
+    await requireProjectAccess(data.projectId, 'owner')
+
+    const db = getDb()
+    await db
+      .update(projects)
+      .set({
+        name: data.name,
+      })
+      .where(eq(projects.id, data.projectId))
+
+    return {
+      ok: true,
     }
   })
 
@@ -391,15 +418,14 @@ export const listProjectMembers = createServerFn({ method: 'POST' })
     }): Promise<{
       members: ProjectMemberSummary[]
       currentUserRole: 'owner' | 'editor' | 'viewer'
+      currentUserId: string
     }> => {
     const { requireProjectAccess } = await import(
       '../auth/project-access.server'
     )
     await ensureProjectServerDeps()
-    const { role: currentUserRole } = await requireProjectAccess(
-      data.projectId,
-      'viewer',
-    )
+    const { user: currentUser, role: currentUserRole } =
+      await requireProjectAccess(data.projectId, 'viewer')
 
     const db = getDb()
     const rows = await db
@@ -417,6 +443,7 @@ export const listProjectMembers = createServerFn({ method: 'POST' })
 
     return {
       currentUserRole,
+      currentUserId: currentUser.id,
       members: rows.map((row) => ({
         userId: row.userId,
         name: row.name,

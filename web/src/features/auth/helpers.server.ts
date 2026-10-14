@@ -87,7 +87,8 @@ function toLocalRedirectPath(url: URL): string | null {
     path.startsWith('/register') ||
     path.startsWith('/forgot-password') ||
     path.startsWith('/reset-password') ||
-    path.startsWith('/api/auth')
+    path.startsWith('/api/auth') ||
+    path.startsWith('/_serverFn')
   ) {
     return null
   }

@@ -23,12 +23,14 @@ import { Route as ProjectProjectSlugRouteImport } from './routes/project.$projec
 import { Route as EditTestTestIdRouteImport } from './routes/edit-test.$testId'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ProjectProjectSlugRepositoryRouteImport } from './routes/project_.$projectSlug.repository'
+import { Route as ProjectProjectSlugSettingsRouteImport } from './routes/project.$projectSlug.settings'
 import { Route as ProjectProjectSlugRunsRouteImport } from './routes/project.$projectSlug.runs'
 import { Route as ProjectProjectSlugReportsRouteImport } from './routes/project.$projectSlug.reports'
 import { Route as ProjectProjectSlugMembersRouteImport } from './routes/project.$projectSlug.members'
 import { Route as ProjectProjectSlugDocsRouteImport } from './routes/project.$projectSlug.docs'
 import { Route as ProjectProjectSlugAutomationRouteImport } from './routes/project.$projectSlug.automation'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiMediaSplatRouteImport } from './routes/api/media/$'
 import { Route as ProjectProjectSlugDocsDocIdRouteImport } from './routes/project_.$projectSlug.docs_.$docId'
 import { Route as ProjectProjectSlugAutomationRunsRouteImport } from './routes/project.$projectSlug.automation.runs'
 import { Route as ProjectProjectSlugAutomationFlakyRouteImport } from './routes/project.$projectSlug.automation.flaky'
@@ -107,6 +109,12 @@ const ProjectProjectSlugRepositoryRoute =
     path: '/project/$projectSlug/repository',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ProjectProjectSlugSettingsRoute =
+  ProjectProjectSlugSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => ProjectProjectSlugRoute,
+  } as any)
 const ProjectProjectSlugRunsRoute = ProjectProjectSlugRunsRouteImport.update({
   id: '/runs',
   path: '/runs',
@@ -138,6 +146,11 @@ const ProjectProjectSlugAutomationRoute =
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMediaSplatRoute = ApiMediaSplatRouteImport.update({
+  id: '/api/media/$',
+  path: '/api/media/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectProjectSlugDocsDocIdRoute =
@@ -192,11 +205,13 @@ export interface FileRoutesByFullPath {
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/media/$': typeof ApiMediaSplatRoute
   '/project/$projectSlug/automation': typeof ProjectProjectSlugAutomationRouteWithChildren
   '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRoute
   '/project/$projectSlug/members': typeof ProjectProjectSlugMembersRoute
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
+  '/project/$projectSlug/settings': typeof ProjectProjectSlugSettingsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/api/projects/$projectId/automation-runs': typeof ApiProjectsProjectIdAutomationRunsRouteWithChildren
   '/project/$projectSlug/automation/flaky': typeof ProjectProjectSlugAutomationFlakyRoute
@@ -220,11 +235,13 @@ export interface FileRoutesByTo {
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/media/$': typeof ApiMediaSplatRoute
   '/project/$projectSlug/automation': typeof ProjectProjectSlugAutomationRouteWithChildren
   '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRoute
   '/project/$projectSlug/members': typeof ProjectProjectSlugMembersRoute
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
+  '/project/$projectSlug/settings': typeof ProjectProjectSlugSettingsRoute
   '/project/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/api/projects/$projectId/automation-runs': typeof ApiProjectsProjectIdAutomationRunsRouteWithChildren
   '/project/$projectSlug/automation/flaky': typeof ProjectProjectSlugAutomationFlakyRoute
@@ -249,11 +266,13 @@ export interface FileRoutesById {
   '/run/$runId': typeof RunRunIdRoute
   '/test/$testId': typeof TestTestIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/media/$': typeof ApiMediaSplatRoute
   '/project/$projectSlug/automation': typeof ProjectProjectSlugAutomationRouteWithChildren
   '/project/$projectSlug/docs': typeof ProjectProjectSlugDocsRoute
   '/project/$projectSlug/members': typeof ProjectProjectSlugMembersRoute
   '/project/$projectSlug/reports': typeof ProjectProjectSlugReportsRoute
   '/project/$projectSlug/runs': typeof ProjectProjectSlugRunsRoute
+  '/project/$projectSlug/settings': typeof ProjectProjectSlugSettingsRoute
   '/project_/$projectSlug/repository': typeof ProjectProjectSlugRepositoryRoute
   '/api/projects/$projectId/automation-runs': typeof ApiProjectsProjectIdAutomationRunsRouteWithChildren
   '/project/$projectSlug/automation/flaky': typeof ProjectProjectSlugAutomationFlakyRoute
@@ -279,11 +298,13 @@ export interface FileRouteTypes {
     | '/run/$runId'
     | '/test/$testId'
     | '/api/auth/$'
+    | '/api/media/$'
     | '/project/$projectSlug/automation'
     | '/project/$projectSlug/docs'
     | '/project/$projectSlug/members'
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/runs'
+    | '/project/$projectSlug/settings'
     | '/project/$projectSlug/repository'
     | '/api/projects/$projectId/automation-runs'
     | '/project/$projectSlug/automation/flaky'
@@ -307,11 +328,13 @@ export interface FileRouteTypes {
     | '/run/$runId'
     | '/test/$testId'
     | '/api/auth/$'
+    | '/api/media/$'
     | '/project/$projectSlug/automation'
     | '/project/$projectSlug/docs'
     | '/project/$projectSlug/members'
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/runs'
+    | '/project/$projectSlug/settings'
     | '/project/$projectSlug/repository'
     | '/api/projects/$projectId/automation-runs'
     | '/project/$projectSlug/automation/flaky'
@@ -335,11 +358,13 @@ export interface FileRouteTypes {
     | '/run/$runId'
     | '/test/$testId'
     | '/api/auth/$'
+    | '/api/media/$'
     | '/project/$projectSlug/automation'
     | '/project/$projectSlug/docs'
     | '/project/$projectSlug/members'
     | '/project/$projectSlug/reports'
     | '/project/$projectSlug/runs'
+    | '/project/$projectSlug/settings'
     | '/project_/$projectSlug/repository'
     | '/api/projects/$projectId/automation-runs'
     | '/project/$projectSlug/automation/flaky'
@@ -364,6 +389,7 @@ export interface RootRouteChildren {
   RunRunIdRoute: typeof RunRunIdRoute
   TestTestIdRoute: typeof TestTestIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiMediaSplatRoute: typeof ApiMediaSplatRoute
   ProjectProjectSlugRepositoryRoute: typeof ProjectProjectSlugRepositoryRoute
   ApiProjectsProjectIdAutomationRunsRoute: typeof ApiProjectsProjectIdAutomationRunsRouteWithChildren
   ProjectProjectSlugDocsDocIdRoute: typeof ProjectProjectSlugDocsDocIdRoute
@@ -469,6 +495,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectProjectSlugRepositoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/project/$projectSlug/settings': {
+      id: '/project/$projectSlug/settings'
+      path: '/settings'
+      fullPath: '/project/$projectSlug/settings'
+      preLoaderRoute: typeof ProjectProjectSlugSettingsRouteImport
+      parentRoute: typeof ProjectProjectSlugRoute
+    }
     '/project/$projectSlug/runs': {
       id: '/project/$projectSlug/runs'
       path: '/runs'
@@ -509,6 +542,13 @@ declare module '@tanstack/react-router' {
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/media/$': {
+      id: '/api/media/$'
+      path: '/api/media/$'
+      fullPath: '/api/media/$'
+      preLoaderRoute: typeof ApiMediaSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/project_/$projectSlug/docs_/$docId': {
@@ -595,6 +635,7 @@ interface ProjectProjectSlugRouteChildren {
   ProjectProjectSlugMembersRoute: typeof ProjectProjectSlugMembersRoute
   ProjectProjectSlugReportsRoute: typeof ProjectProjectSlugReportsRoute
   ProjectProjectSlugRunsRoute: typeof ProjectProjectSlugRunsRoute
+  ProjectProjectSlugSettingsRoute: typeof ProjectProjectSlugSettingsRoute
 }
 
 const ProjectProjectSlugRouteChildren: ProjectProjectSlugRouteChildren = {
@@ -604,6 +645,7 @@ const ProjectProjectSlugRouteChildren: ProjectProjectSlugRouteChildren = {
   ProjectProjectSlugMembersRoute: ProjectProjectSlugMembersRoute,
   ProjectProjectSlugReportsRoute: ProjectProjectSlugReportsRoute,
   ProjectProjectSlugRunsRoute: ProjectProjectSlugRunsRoute,
+  ProjectProjectSlugSettingsRoute: ProjectProjectSlugSettingsRoute,
 }
 
 const ProjectProjectSlugRouteWithChildren =
@@ -639,6 +681,7 @@ const rootRouteChildren: RootRouteChildren = {
   RunRunIdRoute: RunRunIdRoute,
   TestTestIdRoute: TestTestIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiMediaSplatRoute: ApiMediaSplatRoute,
   ProjectProjectSlugRepositoryRoute: ProjectProjectSlugRepositoryRoute,
   ApiProjectsProjectIdAutomationRunsRoute:
     ApiProjectsProjectIdAutomationRunsRouteWithChildren,

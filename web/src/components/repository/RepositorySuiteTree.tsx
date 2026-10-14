@@ -8,6 +8,7 @@ import {
   PopoverMenuItem,
   PopoverMenuSeparator,
 } from '../ui/PopoverMenu'
+import { useT } from '../../lib/i18n'
 
 type RepositorySuiteTreeSection = {
   id: number
@@ -115,6 +116,8 @@ export function RepositorySuiteTree({
   onToggleSuiteMenu,
   onCloseSuiteMenu,
 }: RepositorySuiteTreeProps) {
+  const t = useT()
+
   const [suiteSearchValue, setSuiteSearchValue] = useState('')
   const statsBySectionId = new Map(
     suiteStats.map((stats) => [stats.sectionId, stats]),
@@ -157,17 +160,17 @@ export function RepositorySuiteTree({
   }, [normalizedSuiteSearch, sections])
 
   return (
-    <aside className="repository-browser-tree" aria-label="Repository suites">
+    <aside className="repository-browser-tree" aria-label={t('Repository suites')}>
       <div className="repository-browser-tree__header">
         <div>
-          <div className="repository-browser-tree__title">Suites</div>
+          <div className="repository-browser-tree__title">{t('Suites')}</div>
         </div>
         <Button
           type="button"
           variant="secondary"
           className="repository-browser-tree__add"
           onClick={onCreateSuite}
-          aria-label="Create suite"
+          aria-label={t('Create suite')}
         >
           +
         </Button>
@@ -176,8 +179,8 @@ export function RepositorySuiteTree({
         value={suiteSearchValue}
         onChange={(event) => setSuiteSearchValue(event.currentTarget.value)}
         className="repository-browser-tree__search"
-        placeholder="Search suites"
-        aria-label="Search suites"
+        placeholder={t('Search suites')}
+        aria-label={t('Search suites')}
       />
 
       <button
@@ -191,7 +194,7 @@ export function RepositorySuiteTree({
       >
         <span className="repository-browser-tree__item-main">
           <AllCasesIcon />
-          <span>All test cases</span>
+          <span>{t('All test cases')}</span>
         </span>
         <span className="repository-browser-tree__count">
           {isLoadingCounts ? '...' : displayedTotal}
@@ -226,11 +229,9 @@ export function RepositorySuiteTree({
                   />
                   <div className="repository-browser-tree__rename-actions">
                     <Button type="submit" size="sm" variant="primary" disabled={isPending}>
-                      {isPending ? 'Saving' : 'Save'}
+                      {isPending ? t('Saving') : t('Save')}
                     </Button>
-                    <Button type="button" size="sm" onClick={onCancelRenameSuite}>
-                      Cancel
-                    </Button>
+                    <Button type="button" size="sm" onClick={onCancelRenameSuite}>{t('Cancel')}</Button>
                   </div>
                 </form>
               ) : (
@@ -269,27 +270,21 @@ export function RepositorySuiteTree({
                         size="sm"
                         disabled={isPending}
                         className="repository-browser-tree__menu-trigger"
-                        aria-label={`Open actions for ${section.name}`}
+                        aria-label={t('Open actions for {name}', { name: section.name })}
                       >
                         ...
                       </Button>
                     }
                   >
-                    <PopoverMenuItem onClick={() => onCreateCase(section.id)}>
-                      Create case
-                    </PopoverMenuItem>
+                    <PopoverMenuItem onClick={() => onCreateCase(section.id)}>{t('Create case')}</PopoverMenuItem>
                     <PopoverMenuItem
                       onClick={() => onStartRenameSuite(section.id, section.name)}
-                    >
-                      Rename
-                    </PopoverMenuItem>
+                    >{t('Rename')}</PopoverMenuItem>
                     <PopoverMenuSeparator />
                     <PopoverMenuItem
                       tone="danger"
                       onClick={() => onRequestDeleteSuite(section.id)}
-                    >
-                      Delete empty suite
-                    </PopoverMenuItem>
+                    >{t('Delete empty suite')}</PopoverMenuItem>
                   </PopoverMenu>
                 </div>
               )}
@@ -297,10 +292,10 @@ export function RepositorySuiteTree({
               {isDeleteConfirming ? (
                 <div className="repository-browser-tree__confirm">
                   <ConfirmActionAlert
-                    title="Delete empty suite?"
-                    description="Only suites without test cases can be deleted."
-                    confirmLabel="Delete"
-                    pendingLabel="Deleting"
+                    title={t('Delete empty suite?')}
+                    description={t('Only suites without test cases can be deleted.')}
+                    confirmLabel={t('Delete')}
+                    pendingLabel={t('Deleting')}
                     confirmVariant="danger"
                     isPending={isPending}
                     onCancel={onCancelDeleteSuite}
@@ -320,8 +315,8 @@ export function RepositorySuiteTree({
         {filteredSections.length === 0 ? (
           <div className="repository-browser-tree__empty">
             {sections.length === 0
-              ? 'No suites yet. Use + to create one.'
-              : 'No suites match your search.'}
+              ? t('No suites yet. Use + to create one.')
+              : t('No suites match your search.')}
           </div>
         ) : null}
       </div>

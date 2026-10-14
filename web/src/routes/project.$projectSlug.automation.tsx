@@ -22,6 +22,7 @@ import {
   type ProjectApiTokenSummary,
 } from '../features/automation/server'
 import { getDashboardState } from '../features/tests/server'
+import { getErrorMessage } from '../lib/errors'
 
 export const Route = createFileRoute('/project/$projectSlug/automation')({
   loader: async ({ params }) => {
@@ -375,6 +376,72 @@ curl -X POST "${junitEndpoint}" \\
       }
     ]
   }'`
+  const seleniumConftestExample = `# conftest.py
+import os
+
+import pytest
+from selenium import webdriver
+
+
+@pytest.fixture
+def driver():
+    driver = webdriver.Chrome()
+    yield driver
+    driver.quit()
+
+
+@pytest.fixture(autouse=True)
+def attach_screenshot_on_failure(request, driver, record_property):
+    yield
+    outcome = getattr(request.node, "rep_call", None)
+    if outcome and outcome.failed:
+        filename = f"{request.node.name}.png"
+        os.makedirs("reports/screenshots", exist_ok=True)
+        driver.save_screenshot(f"reports/screenshots/{filename}")
+
+        # Jenkins serves archived artifacts at \${BUILD_URL}artifact/<path>.
+        build_url = os.environ.get("BUILD_URL")
+        if build_url:
+            record_property(
+                "screenshot",
+                f"{build_url}artifact/reports/screenshots/{filename}",
+            )`
+  const seleniumTestExample = `def test_login_with_valid_credentials(driver, record_property):
+    """Selenium regression test, linked to an existing TMS case."""
+    # TMS matches this property against "TMS-<id>" and links the result
+    # to that case automatically on import - no setup needed in the UI.
+    record_property("tms_case", "TMS-142")
+
+    driver.get("https://staging.example.com/login")
+    driver.find_element("id", "email").send_keys("qa@example.com")
+    driver.find_element("id", "password").send_keys("Sup3rSecret!")
+    driver.find_element("id", "submit").click()
+
+    assert "Dashboard" in driver.title`
+  const seleniumJenkinsExample = `stage('Selenium regression (pytest)') {
+  steps {
+    withCredentials([string(credentialsId: 'tms-project-token', variable: 'TMS_PROJECT_TOKEN')]) {
+      sh '''
+        pytest --junitxml=reports/junit.xml
+
+        curl -X POST "${junitEndpoint}" \\
+          -H "Authorization: Bearer $TMS_PROJECT_TOKEN" \\
+          -F "file=@reports/junit.xml" \\
+          -F "name=Selenium regression" \\
+          -F "environment=staging" \\
+          -F "branch=$BRANCH_NAME" \\
+          -F "commit=$GIT_COMMIT" \\
+          -F "ciBuildUrl=$BUILD_URL" \\
+          -F "triggerSource=ci"
+      '''
+    }
+  }
+  post {
+    always {
+      archiveArtifacts artifacts: 'reports/screenshots/**', allowEmptyArchive: true
+    }
+  }
+}`
 
   useEffect(() => {
     setOrigin(window.location.origin)
@@ -401,7 +468,7 @@ curl -X POST "${junitEndpoint}" \\
       setTokenName('')
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : 'Could not create API token.',
+        getErrorMessage(error, 'Could not create API token.'),
       )
     } finally {
       setIsCreating(false)
@@ -427,7 +494,7 @@ curl -X POST "${junitEndpoint}" \\
       )
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : 'Could not revoke API token.',
+        getErrorMessage(error, 'Could not revoke API token.'),
       )
     } finally {
       setRevokingTokenId(null)
@@ -440,6 +507,7 @@ curl -X POST "${junitEndpoint}" \\
         <div className="workspace-view__stack">
           <ProjectPageHeader
             projectName={project.name}
+            eyebrow={null}
             description="Connect CI/CD pipelines and upload automation test results into this project."
             actions={
               <div className="flex flex-wrap items-center gap-2">
@@ -602,6 +670,57 @@ curl -X POST "${junitEndpoint}" \\
                 title="Review failures in TMS"
                 description="Open Automation Runs to inspect failures and link results to manual cases."
               />
+            </div>
+
+            <div className="mb-5 rounded-xl border border-[var(--tms-primary)] bg-[var(--tms-surface-soft)] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="m-0 text-sm font-semibold text-[var(--tms-text)]">
+                  Ready-made example: Selenium + pytest + Jenkins
+                </h3>
+                <Badge variant="primary">Your stack</Badge>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-[var(--tms-text-muted)]">
+                A complete pattern for Selenium WebDriver tests running under pytest
+                and Jenkins: link results to TMS cases and attach failure
+                screenshots automatically, with no extra plugins.
+              </p>
+
+              <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                <CodeBlock
+                  label="conftest.py"
+                  value={seleniumConftestExample}
+                  onCopy={copyText}
+                  description="Captures a screenshot on failure and attaches it via record_property."
+                />
+                <CodeBlock
+                  label="test_login.py"
+                  value={seleniumTestExample}
+                  onCopy={copyText}
+                  description="record_property('tms_case', ...) links the test to an existing TMS case."
+                />
+              </div>
+
+              <div className="mt-4">
+                <CodeBlock
+                  label="Jenkinsfile stage"
+                  value={seleniumJenkinsExample}
+                  onCopy={copyText}
+                  description="Runs the suite, archives screenshots as build artifacts, then uploads reports/junit.xml to TMS."
+                />
+              </div>
+
+              <p className="mt-4 text-sm leading-6 text-[var(--tms-text-muted)]">
+                Both conventions work through the JUnit{' '}
+                <code>&lt;properties&gt;</code> block, so no TMS-specific library
+                is required: <code>request.record_property(name, value)</code> is
+                a built-in pytest fixture that writes a property into{' '}
+                <code>reports/junit.xml</code>, and TMS reads it back on import. A
+                property named like <code>screenshot</code>, <code>trace</code>,
+                or <code>artifact</code> becomes a clickable attachment (the value
+                must be a reachable URL, e.g. a Jenkins archived-artifact link); a
+                property value containing <code>TMS-&lt;id&gt;</code> links the
+                result to that case.
+              </p>
             </div>
 
             <div className="grid gap-4 xl:grid-cols-2">

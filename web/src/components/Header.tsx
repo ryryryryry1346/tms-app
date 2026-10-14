@@ -1,21 +1,20 @@
 import {
   Link,
-  useNavigate,
-  useRouter,
   useRouterState,
 } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Badge } from './ui/Badge'
 import { Button } from './ui/Button'
 import { logoutUser, type SessionUser } from '../features/auth/server'
+import { useT } from '../lib/i18n'
 
 type HeaderProps = {
   user: SessionUser | null
 }
 
 export default function Header({ user }: HeaderProps) {
-  const navigate = useNavigate()
-  const router = useRouter()
+  const t = useT()
+
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
@@ -27,13 +26,13 @@ export default function Header({ user }: HeaderProps) {
 
     try {
       await logoutUser()
-      await router.invalidate()
-      await navigate({
-        to: '/login',
-        replace: true,
-      })
-    } finally {
+      // Full page load: invalidate() + navigate() raced with the auth redirect
+      // from the dashboard loader and left a blank page. A hard navigation
+      // resets all client state and renders /login from a fresh SSR response.
+      window.location.replace('/login')
+    } catch (error) {
       setIsLoggingOut(false)
+      throw error
     }
   }
 
@@ -52,9 +51,7 @@ export default function Header({ user }: HeaderProps) {
                 to="/"
                 className="nav-link"
                 activeProps={{ className: 'nav-link is-active' }}
-              >
-                Workspace
-              </Link>
+              >{t('Workspace')}</Link>
               <Button
                 type="button"
                 onClick={handleLogout}
@@ -62,7 +59,7 @@ export default function Header({ user }: HeaderProps) {
                 size="sm"
                 className="nav-link min-h-0 cursor-pointer border-0 bg-transparent p-0 shadow-none disabled:opacity-60"
               >
-                {isLoggingOut ? 'Logging out...' : 'Logout'}
+                {isLoggingOut ? t('Logging out...') : t('Logout')}
               </Button>
             </>
           ) : (
@@ -71,16 +68,12 @@ export default function Header({ user }: HeaderProps) {
                 to="/login"
                 className="nav-link"
                 activeProps={{ className: 'nav-link is-active' }}
-              >
-                Login
-              </Link>
+              >{t('Login')}</Link>
               <Link
                 to="/register"
                 className="nav-link"
                 activeProps={{ className: 'nav-link is-active' }}
-              >
-                Register
-              </Link>
+              >{t('Register')}</Link>
             </>
           )}
         </div>

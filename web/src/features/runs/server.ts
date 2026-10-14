@@ -109,6 +109,7 @@ const createRunInput = z.object({
   projectId: z.number().int().positive(),
   name: z.string().trim().min(1),
   testIds: z.array(z.number().int().positive()).optional(),
+  releaseName: z.string().trim().min(1).max(255).optional(),
 })
 
 const updateRunNameInput = z.object({
@@ -174,6 +175,7 @@ export type ProjectRun = {
   projectId: number | null
   name: string
   projectSlug?: string | null
+  releaseName: string | null
   total: number
   passed: number
   failed: number
@@ -245,6 +247,7 @@ export const getRunsForProject = createServerFn({ method: 'POST' })
         projectId: testRuns.projectId,
         name: testRuns.name,
         projectSlug: projects.slug,
+        releaseName: testRuns.releaseName,
       })
       .from(testRuns)
       .leftJoin(projects, eq(projects.id, testRuns.projectId))
@@ -316,6 +319,175 @@ export const getRunsForProject = createServerFn({ method: 'POST' })
     }
   })
 
+const projectTrendsInput = z.object({
+  projectId: z.number().int().positive(),
+})
+
+const TRENDS_WEEKS_WINDOW = 8
+
+export type QualityTrendWeek = {
+  weekStart: string
+  executed: number
+  passed: number
+  failed: number
+  blocked: number
+  passRate: number
+}
+
+export type RepositoryGrowthWeek = {
+  weekStart: string
+  created: number
+  cumulative: number
+}
+
+function utcWeekStart(value: string | null | undefined): string | null {
+  if (!value) {
+    return null
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+
+  const mondayOffset = (date.getUTCDay() + 6) % 7
+  const monday = new Date(
+    Date.UTC(
+      date.getUTCFullYear(),
+      date.getUTCMonth(),
+      date.getUTCDate() - mondayOffset,
+    ),
+  )
+
+  return monday.toISOString().slice(0, 10)
+}
+
+function lastWeekStarts(count: number): string[] {
+  const now = new Date()
+  const mondayOffset = (now.getUTCDay() + 6) % 7
+  const thisMonday = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() - mondayOffset,
+  )
+
+  const weeks: string[] = []
+  for (let i = count - 1; i >= 0; i -= 1) {
+    weeks.push(new Date(thisMonday - i * 7 * 86_400_000).toISOString().slice(0, 10))
+  }
+
+  return weeks
+}
+
+export const getProjectQualityTrends = createServerFn({ method: 'POST' })
+  .inputValidator(projectTrendsInput)
+  .handler(
+    async ({
+      data,
+    }): Promise<{
+      execution: QualityTrendWeek[]
+      repository: RepositoryGrowthWeek[]
+    }> => {
+      await ensureRunServerDeps()
+
+      if (!isDatabaseConfigured() || !data.projectId) {
+        return { execution: [], repository: [] }
+      }
+
+      await requireProjectAccessById(data.projectId, 'viewer')
+
+      const db = getDb()
+
+      const runRows = await db
+        .select({ id: testRuns.id })
+        .from(testRuns)
+        .where(eq(testRuns.projectId, data.projectId))
+      const runIds = runRows.map((row) => row.id)
+
+      const itemRows =
+        runIds.length === 0
+          ? []
+          : await db
+              .select({
+                executedAt: testRunItems.executedAt,
+                status: testRunItems.status,
+              })
+              .from(testRunItems)
+              .where(inArray(testRunItems.runId, runIds))
+
+      const caseRows = await db
+        .select({ createdAt: tests.createdAt })
+        .from(tests)
+        .where(eq(tests.projectId, data.projectId))
+
+      const weeks = lastWeekStarts(TRENDS_WEEKS_WINDOW)
+      const windowStart = weeks[0]
+
+      const execMap = new Map<string, QualityTrendWeek>()
+      for (const week of weeks) {
+        execMap.set(week, {
+          weekStart: week,
+          executed: 0,
+          passed: 0,
+          failed: 0,
+          blocked: 0,
+          passRate: 0,
+        })
+      }
+
+      for (const item of itemRows) {
+        if (!item.executedAt || !item.status) {
+          continue
+        }
+        const week = utcWeekStart(item.executedAt)
+        const bucket = week ? execMap.get(week) : undefined
+        if (!bucket) {
+          continue
+        }
+        bucket.executed += 1
+        if (item.status === 'Passed') {
+          bucket.passed += 1
+        } else if (item.status === 'Failed') {
+          bucket.failed += 1
+        } else if (item.status === 'Blocked') {
+          bucket.blocked += 1
+        }
+      }
+
+      const execution = weeks.map((week) => {
+        const bucket = execMap.get(week) as QualityTrendWeek
+        return {
+          ...bucket,
+          passRate:
+            bucket.executed > 0
+              ? Math.round((bucket.passed / bucket.executed) * 100)
+              : 0,
+        }
+      })
+
+      const createdPerWeek = new Map<string, number>()
+      let baseline = 0
+      for (const row of caseRows) {
+        const week = utcWeekStart(row.createdAt)
+        if (!week || week < windowStart) {
+          baseline += 1
+          continue
+        }
+        createdPerWeek.set(week, (createdPerWeek.get(week) ?? 0) + 1)
+      }
+
+      let running = baseline
+      const repository = weeks.map((week) => {
+        const created = createdPerWeek.get(week) ?? 0
+        running += created
+        return { weekStart: week, created, cumulative: running }
+      })
+
+      return { execution, repository }
+    },
+  )
+
 export const createRun = createServerFn({ method: 'POST' })
   .inputValidator(createRunInput)
   .handler(async ({ data }): Promise<{ id: number }> => {
@@ -327,6 +499,7 @@ export const createRun = createServerFn({ method: 'POST' })
       const insertedRun = await tx.insert(testRuns).values({
         projectId: data.projectId,
         name: data.name,
+        releaseName: data.releaseName ?? null,
       })
 
       const runId = insertedRun[0].insertId
@@ -368,8 +541,10 @@ export const createRun = createServerFn({ method: 'POST' })
       return insertedRun
     })
 
+    const runId = result[0].insertId
+
     return {
-      id: result[0].insertId,
+      id: runId,
     }
   })
 
@@ -386,6 +561,7 @@ export const getRunDetail = createServerFn({ method: 'POST' })
         projectId: testRuns.projectId,
         name: testRuns.name,
         status: testRuns.status,
+        releaseName: testRuns.releaseName,
       })
       .from(testRuns)
       .where(eq(testRuns.id, data.runId))
@@ -625,7 +801,7 @@ export const addRunItemAttachment = createServerFn({ method: 'POST' })
   .inputValidator((data: FormData) => data)
   .handler(
   async ({ data }): Promise<{ attachment: RunItemAttachment }> => {
-    const { uploadMediaToCloudinary } = await import('../media/helpers.server')
+    const { uploadMedia } = await import('../media/helpers.server')
     await ensureRunServerDeps()
 
     const form = data as unknown as FormData
@@ -659,7 +835,7 @@ export const addRunItemAttachment = createServerFn({ method: 'POST' })
       'editor',
     )
 
-    const url = await uploadMediaToCloudinary(file)
+    const url = await uploadMedia(file)
     const createdAt = new Date().toISOString()
 
     const db = getDb()
@@ -741,15 +917,14 @@ export const updateRunStatus = createServerFn({ method: 'POST' })
   .inputValidator(updateRunStatusInput)
   .handler(async ({ data }): Promise<{ ok: true }> => {
     await ensureRunServerDeps()
-    await requireProjectAccessById(
-      await resolveRunProjectId(data.runId),
-      'editor',
-    )
+    const projectId = await resolveRunProjectId(data.runId)
+    await requireProjectAccessById(projectId, 'editor')
 
     const db = getDb()
     const existingRun = await db
       .select({
         id: testRuns.id,
+        name: testRuns.name,
       })
       .from(testRuns)
       .where(eq(testRuns.id, data.runId))

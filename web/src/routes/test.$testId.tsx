@@ -4,10 +4,15 @@ import {
   notFound,
   useRouter,
 } from '@tanstack/react-router'
-import { MoreHorizontal } from 'lucide-react'
-import { useState } from 'react'
+import { ChevronDown, MoreHorizontal } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { StepsEditor } from '../components/repository/StepsEditor'
 import { StepsView } from '../components/repository/StepsView'
+import {
+  CaseRefsList,
+  CaseTags,
+  PreconditionsBlock,
+} from '../components/repository/CaseFieldsView'
 import { EditingFieldGroup, EditingSurfaceSection } from '../components/layout/EditingSurface'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Alert } from '../components/ui/Alert'
@@ -27,6 +32,7 @@ import {
   type AutomationTestCaseHistory,
 } from '../features/automation/server'
 import { uploadTestMedia } from '../features/media/server'
+import { parseRefs } from '../lib/caseFields'
 import { markRepositoryPreviewDetailStale } from '../lib/repositoryPreviewCache'
 import {
   caseContentForEditing,
@@ -45,6 +51,8 @@ import {
   updateTestStatus,
   updateTestTitle,
 } from '../features/tests/server'
+import { getErrorMessage } from '../lib/errors'
+import { useT } from '../lib/i18n'
 
 export const Route = createFileRoute('/test/$testId')({
   loader: async ({ params }) => {
@@ -137,42 +145,6 @@ function formatCompactDetailDate(value: string | null | undefined): string {
   }).format(date)
 }
 
-function getStatusVariant(
-  status: string | null,
-): 'statusReady' | 'statusArchived' | 'statusDraft' {
-  if (status === 'Ready') {
-    return 'statusReady'
-  }
-
-  if (status === 'Archived') {
-    return 'statusArchived'
-  }
-
-  return 'statusDraft'
-}
-
-function getPriorityVariant(
-  priority: string | null,
-):
-  | 'priorityLow'
-  | 'priorityMedium'
-  | 'priorityHigh'
-  | 'priorityCritical' {
-  if (priority === 'Critical') {
-    return 'priorityCritical'
-  }
-
-  if (priority === 'High') {
-    return 'priorityHigh'
-  }
-
-  if (priority === 'Low') {
-    return 'priorityLow'
-  }
-
-  return 'priorityMedium'
-}
-
 function getAutomationStatusVariant(
   status: string | null,
 ): 'runPassed' | 'runFailed' | 'runBlocked' | 'runNotRun' | 'primary' {
@@ -228,10 +200,14 @@ function formatAutomationDuration(durationMs: number): string {
 function AutomationHistoryBlock({
   history,
   projectSlug,
+  flush = false,
 }: {
   history: AutomationTestCaseHistory | null
   projectSlug: string | null
+  flush?: boolean
 }) {
+  const t = useT()
+
   const recentResults = history?.results.slice(
     0,
     TEST_DETAIL_VISIBLE_AUTOMATION_LIMIT,
@@ -242,11 +218,17 @@ function AutomationHistoryBlock({
   )
 
   return (
-    <section className="mt-6 border-t border-[var(--tms-border-subtle)] pt-5">
+    <section
+      className={
+        flush
+          ? ''
+          : 'mt-6 border-t border-[var(--tms-border-subtle)] pt-5'
+      }
+    >
       <div className="test-detail-section-heading">
         <WorkspaceSectionHeader
           dense
-          title="Automation"
+          title={t('Automation')}
           className="mb-0"
         />
         {projectSlug && history && history.totalResults > 0 ? (
@@ -254,32 +236,28 @@ function AutomationHistoryBlock({
             to="/project/$projectSlug/automation/runs"
             params={{ projectSlug }}
             className="test-detail-section-link"
-          >
-            Runs
-          </Link>
+          >{t('Runs')}</Link>
         ) : null}
       </div>
       {!history || history.totalResults === 0 ? (
-        <p className="m-0 text-sm text-[var(--tms-text-muted)]">
-          No automation results linked yet.
-        </p>
+        <p className="m-0 text-sm text-[var(--tms-text-muted)]">{t('No automation results linked yet.')}</p>
       ) : (
         <div className="test-detail-automation">
           <div className="test-detail-automation-summary">
             <div className="test-detail-automation-summary__latest">
-              <span>Latest</span>
+              <span>{t('Latest')}</span>
               <Badge variant={getAutomationStatusVariant(history.latestStatus)}>
-                {formatAutomationStatus(history.latestStatus)}
+                {t(formatAutomationStatus(history.latestStatus))}
               </Badge>
             </div>
             <div className="test-detail-automation-summary__metric">
-              <span>Pass rate</span>
+              <span>{t('Pass rate')}</span>
               <strong>
                 {history.passRate}%
               </strong>
             </div>
             <div className="test-detail-automation-summary__metric">
-              <span>Results</span>
+              <span>{t('Results')}</span>
               <strong>
                 {history.totalResults}
               </strong>
@@ -310,7 +288,7 @@ function AutomationHistoryBlock({
                     </div>
                   )}
                   <Badge variant={getAutomationStatusVariant(result.status)}>
-                    {formatAutomationStatus(result.status)}
+                    {t(formatAutomationStatus(result.status))}
                   </Badge>
                 </div>
                 <div className="test-detail-automation-item__meta">
@@ -327,9 +305,7 @@ function AutomationHistoryBlock({
               </div>
             ))}
             {hiddenResultsCount > 0 ? (
-              <div className="test-detail-activity-muted">
-                {hiddenResultsCount} older automation results hidden.
-              </div>
+              <div className="test-detail-activity-muted">{t('{hiddenResultsCount} older automation results hidden.', { hiddenResultsCount })}</div>
             ) : null}
           </div>
         </div>
@@ -357,6 +333,8 @@ function handleRichContentClick(event: React.MouseEvent<HTMLElement>): void {
 }
 
 function TestDetailPage() {
+  const t = useT()
+
   const test = Route.useLoaderData()
   const router = useRouter()
   const [isArchiving, setIsArchiving] = useState(false)
@@ -370,6 +348,9 @@ function TestDetailPage() {
   const [stepsValue, setStepsValue] = useState<CaseStep[]>(
     initialEditContent.steps,
   )
+  const [preconditionsValue, setPreconditionsValue] = useState(
+    test.preconditions ?? '',
+  )
   const [isSavingContent, setIsSavingContent] = useState(false)
   const [isUploadingMedia, setIsUploadingMedia] = useState(false)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -382,6 +363,27 @@ function TestDetailPage() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false)
   const [isActivityExpanded, setIsActivityExpanded] = useState(false)
+  const [showSavedFlash, setShowSavedFlash] = useState(false)
+  const savedFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function flashSaved(): void {
+    if (savedFlashTimer.current) {
+      clearTimeout(savedFlashTimer.current)
+    }
+
+    setShowSavedFlash(true)
+    savedFlashTimer.current = setTimeout(() => {
+      setShowSavedFlash(false)
+    }, 1800)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (savedFlashTimer.current) {
+        clearTimeout(savedFlashTimer.current)
+      }
+    }
+  }, [])
 
   const repositoryLink = test.projectSlug
     ? {
@@ -412,7 +414,7 @@ function TestDetailPage() {
       await router.invalidate()
     } catch (error) {
       setActionError(
-        error instanceof Error ? error.message : 'Failed to archive test case.',
+        getErrorMessage(error, 'Failed to archive test case.'),
       )
     } finally {
       setIsArchiving(false)
@@ -434,7 +436,7 @@ function TestDetailPage() {
       await router.invalidate()
     } catch (error) {
       setActionError(
-        error instanceof Error ? error.message : 'Failed to restore test case.',
+        getErrorMessage(error, 'Failed to restore test case.'),
       )
     } finally {
       setIsArchiving(false)
@@ -452,10 +454,13 @@ function TestDetailPage() {
         },
       })
 
-      window.location.href = `/test/${result.id}`
+      await router.navigate({
+        to: '/test/$testId',
+        params: { testId: result.id.toString() },
+      })
     } catch (error) {
       setActionError(
-        error instanceof Error ? error.message : 'Failed to duplicate test case.',
+        getErrorMessage(error, 'Failed to duplicate test case.'),
       )
     } finally {
       setIsDuplicating(false)
@@ -467,6 +472,7 @@ function TestDetailPage() {
     const content = caseContentForEditing(test.steps, test.expected)
     setDescriptionValue(content.description)
     setStepsValue(content.steps)
+    setPreconditionsValue(test.preconditions ?? '')
     setIsEditingContent(true)
   }
 
@@ -474,6 +480,7 @@ function TestDetailPage() {
     const content = caseContentForEditing(test.steps, test.expected)
     setDescriptionValue(content.description)
     setStepsValue(content.steps)
+    setPreconditionsValue(test.preconditions ?? '')
     setIsEditingContent(false)
   }
 
@@ -504,15 +511,17 @@ function TestDetailPage() {
           id: test.id,
           steps: serializeCaseContent(descriptionValue, stepsValue),
           expected: '',
+          preconditions: preconditionsValue,
         },
       })
 
       markRepositoryPreviewDetailStale(test.id)
       setIsEditingContent(false)
+      flashSaved()
       await router.invalidate()
     } catch (error) {
       setActionError(
-        error instanceof Error ? error.message : 'Failed to update test content.',
+        getErrorMessage(error, 'Failed to update test content.'),
       )
     } finally {
       setIsSavingContent(false)
@@ -558,9 +567,10 @@ function TestDetailPage() {
       setCaseTitle(nextTitle)
       setTitleValue(nextTitle)
       setIsEditingTitle(false)
+      flashSaved()
     } catch (error) {
       setActionError(
-        error instanceof Error ? error.message : 'Failed to update test title.',
+        getErrorMessage(error, 'Failed to update test title.'),
       )
     } finally {
       setPendingMetadataField(null)
@@ -584,10 +594,11 @@ function TestDetailPage() {
       })
 
       markRepositoryPreviewDetailStale(test.id)
+      flashSaved()
       await router.invalidate()
     } catch (error) {
       setActionError(
-        error instanceof Error ? error.message : 'Failed to update status.',
+        getErrorMessage(error, 'Failed to update status.'),
       )
     } finally {
       setPendingMetadataField(null)
@@ -611,10 +622,11 @@ function TestDetailPage() {
       })
 
       markRepositoryPreviewDetailStale(test.id)
+      flashSaved()
       await router.invalidate()
     } catch (error) {
       setActionError(
-        error instanceof Error ? error.message : 'Failed to update priority.',
+        getErrorMessage(error, 'Failed to update priority.'),
       )
     } finally {
       setPendingMetadataField(null)
@@ -638,10 +650,11 @@ function TestDetailPage() {
       })
 
       markRepositoryPreviewDetailStale(test.id)
+      flashSaved()
       await router.invalidate()
     } catch (error) {
       setActionError(
-        error instanceof Error ? error.message : 'Failed to update type.',
+        getErrorMessage(error, 'Failed to update type.'),
       )
     } finally {
       setPendingMetadataField(null)
@@ -665,10 +678,11 @@ function TestDetailPage() {
       })
 
       markRepositoryPreviewDetailStale(test.id)
+      flashSaved()
       await router.invalidate()
     } catch (error) {
       setActionError(
-        error instanceof Error ? error.message : 'Failed to move test case.',
+        getErrorMessage(error, 'Failed to move test case.'),
       )
     } finally {
       setPendingMetadataField(null)
@@ -687,14 +701,18 @@ function TestDetailPage() {
       })
 
       markRepositoryPreviewDetailStale(test.id)
-      window.location.href = test.projectSlug
-        ? `/project/${test.projectSlug}/repository`
-        : '/'
+
+      if (test.projectSlug) {
+        await router.navigate({
+          to: '/project/$projectSlug/repository',
+          params: { projectSlug: test.projectSlug },
+        })
+      } else {
+        await router.navigate({ to: '/' })
+      }
     } catch (error) {
       setActionError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to delete archived test case.',
+        getErrorMessage(error, 'Failed to delete archived test case.'),
       )
     } finally {
       setIsDeleting(false)
@@ -706,9 +724,7 @@ function TestDetailPage() {
       <div className="mx-auto max-w-[1240px]">
         <div className="test-detail-top-nav">
           <div className="test-detail-breadcrumb">
-            <Link to="/" className="no-underline text-[var(--tms-primary)]">
-              Workspace
-            </Link>
+            <Link to="/" className="no-underline text-[var(--tms-primary)]">{t('Workspace')}</Link>
             <span>/</span>
             {test.projectSlug ? (
               <Link
@@ -716,13 +732,13 @@ function TestDetailPage() {
                 params={{ projectSlug: test.projectSlug }}
                 className="no-underline text-[var(--tms-primary)]"
               >
-                {test.projectName ?? 'Project'}
+                {test.projectName ?? t('Project')}
               </Link>
             ) : (
-              <span>{test.projectName ?? 'Project'}</span>
+              <span>{test.projectName ?? t('Project')}</span>
             )}
             <span>/</span>
-            <span>{test.sectionName ?? 'No suite'}</span>
+            <span>{test.sectionName ?? t('No suite')}</span>
           </div>
 
           {repositoryLink ? (
@@ -730,16 +746,12 @@ function TestDetailPage() {
               to={repositoryLink.to}
               params={repositoryLink.params}
               className="tms-button tms-button-secondary test-detail-back-link no-underline"
-            >
-              Back to repository
-            </Link>
+            >{t('Back to repository')}</Link>
           ) : (
             <Link
               to="/"
               className="tms-button tms-button-secondary test-detail-back-link no-underline"
-            >
-              Back to workspace
-            </Link>
+            >{t('Back to workspace')}</Link>
           )}
         </div>
 
@@ -749,9 +761,7 @@ function TestDetailPage() {
             <div className="test-detail-header-layout">
               <div className="test-detail-heading">
                 <div className="test-detail-meta-line">
-                  <span>Case #{test.id}</span>
-                  <span>{test.sectionName ?? 'No suite'}</span>
-                  <span>Updated {formatDetailDate(test.updatedAt ?? test.createdAt)}</span>
+                  <span>{t('Case #{id}', { id: test.id })}</span>
                 </div>
                 <div className="test-detail-title-row">
                   {isEditingTitle ? (
@@ -772,52 +782,42 @@ function TestDetailPage() {
                       disabled={pendingMetadataField === 'title'}
                       autoFocus
                       className="test-detail-title-input"
-                      aria-label="Edit test case title"
+                      aria-label={t('Edit test case title')}
                     />
                   ) : (
                     <h1 className="test-detail-title">
                       {caseTitle}
                     </h1>
                   )}
-                  <div className="test-detail-title-actions">
-                    {isEditingTitle ? (
-                      <>
-                      <Button
-                        type="button"
-                        onClick={() => {
-                          void saveTitleEdit()
-                        }}
-                        disabled={pendingMetadataField === 'title'}
-                        variant="primary"
-                      >
-                        Save title
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={cancelTitleEdit}
-                        disabled={pendingMetadataField === 'title'}
-                      >
-                        Cancel
-                      </Button>
-                      </>
-                    ) : null}
-                  </div>
                 </div>
-                <div className="test-detail-badges">
-                  <Badge variant={getStatusVariant(test.status)}>
-                    {test.status ?? 'Draft'}
-                  </Badge>
-                  <Badge variant={getPriorityVariant(test.priority)}>
-                    {test.priority ?? 'Medium'}
-                  </Badge>
-                  <Badge variant="draft">
-                    {test.caseType ?? 'Functional'}
-                  </Badge>
+                <div className="test-detail-tags">
+                  <CaseTags tags={test.tags} />
                 </div>
               </div>
 
               <div className="test-detail-main-actions">
-                {isEditingContent ? (
+                {isEditingTitle ? (
+                  <>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        void saveTitleEdit()
+                      }}
+                      disabled={pendingMetadataField === 'title'}
+                      variant="primary"
+                      size="sm"
+                    >
+                      {pendingMetadataField === 'title' ? t('Saving...') : t('Save')}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={cancelTitleEdit}
+                      disabled={pendingMetadataField === 'title'}
+                      variant="secondary"
+                      size="sm"
+                    >{t('Cancel')}</Button>
+                  </>
+                ) : isEditingContent ? (
                   <>
                     <Button
                       type="button"
@@ -828,7 +828,7 @@ function TestDetailPage() {
                       variant="primary"
                       size="sm"
                     >
-                      {isSavingContent ? 'Saving...' : 'Save content'}
+                      {isSavingContent ? t('Saving...') : t('Save content')}
                     </Button>
                     <Button
                       type="button"
@@ -836,20 +836,16 @@ function TestDetailPage() {
                       disabled={isSavingContent}
                       variant="secondary"
                       size="sm"
-                    >
-                      Cancel
-                    </Button>
+                    >{t('Cancel')}</Button>
                   </>
                 ) : (
+                  <>
                   <Button
                     type="button"
                     onClick={startContentEdit}
                     variant="primary"
                     size="sm"
-                  >
-                    Edit content
-                  </Button>
-                )}
+                  >{t('Edit content')}</Button>
                 <PopoverMenu
                   isOpen={isMoreActionsOpen}
                   onClose={() => setIsMoreActionsOpen(false)}
@@ -860,7 +856,7 @@ function TestDetailPage() {
                       type="button"
                       variant="secondary"
                       size="sm"
-                      aria-label="More test case actions"
+                      aria-label={t('More test case actions')}
                       aria-expanded={isMoreActionsOpen}
                     >
                       <MoreHorizontal
@@ -876,18 +872,14 @@ function TestDetailPage() {
                       setIsMoreActionsOpen(false)
                       startTitleEdit()
                     }}
-                  >
-                    Rename
-                  </PopoverMenuItem>
+                  >{t('Rename')}</PopoverMenuItem>
                   <PopoverMenuSeparator />
                   <Link
                     to="/edit-test/$testId"
                     params={{ testId: test.id.toString() }}
                     className="tms-menu-item no-underline"
                     onClick={() => setIsMoreActionsOpen(false)}
-                  >
-                    Full editor
-                  </Link>
+                  >{t('Full editor')}</Link>
                   <PopoverMenuSeparator />
                   <PopoverMenuItem
                     onClick={() => {
@@ -896,7 +888,7 @@ function TestDetailPage() {
                     }}
                     disabled={isDuplicating || isDeleting}
                   >
-                    {isDuplicating ? 'Duplicating...' : 'Duplicate'}
+                    {isDuplicating ? t('Duplicating...') : t('Duplicate')}
                   </PopoverMenuItem>
                   <PopoverMenuSeparator />
                   {test.status === 'Archived' ? (
@@ -908,7 +900,7 @@ function TestDetailPage() {
                       disabled={isArchiving || isDeleting}
                       tone="success"
                     >
-                      {isArchiving ? 'Restoring...' : 'Restore'}
+                      {isArchiving ? t('Restoring...') : t('Restore')}
                     </PopoverMenuItem>
                   ) : (
                     <PopoverMenuItem
@@ -918,21 +910,21 @@ function TestDetailPage() {
                       }}
                       disabled={isArchiving || isDeleting}
                       tone="warning"
-                    >
-                      Archive
-                    </PopoverMenuItem>
+                    >{t('Archive')}</PopoverMenuItem>
                   )}
                 </PopoverMenu>
+                  </>
+                )}
               </div>
             </div>
 
             {showArchiveConfirm ? (
               <ConfirmActionAlert
                 className="mt-4"
-                title="Archive this test case?"
-                description="The case will leave the active repository and can be restored later from the Archived filter."
-                confirmLabel="Archive test case"
-                pendingLabel="Archiving..."
+                title={t('Archive this test case?')}
+                description={t('The case will leave the active repository and can be restored later from the Archived filter.')}
+                confirmLabel={t('Archive test case')}
+                pendingLabel={t('Archiving...')}
                 confirmVariant="primary"
                 isPending={isArchiving}
                 onCancel={() => setShowArchiveConfirm(false)}
@@ -952,46 +944,8 @@ function TestDetailPage() {
             ) : null}
           </div>
 
-        </Panel>
-
-          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <Panel className="test-detail-content-panel">
-              <EditingSurfaceSection
-                title="Content"
-                bodyClassName="test-detail-content-stack"
-              >
-                {isEditingContent ? (
-                  <StepsEditor
-                    description={descriptionValue}
-                    steps={stepsValue}
-                    onDescriptionChange={setDescriptionValue}
-                    onStepsChange={setStepsValue}
-                    onUploadMedia={uploadInlineMedia}
-                    isUploadingMedia={isUploadingMedia}
-                  />
-                ) : (
-                  <StepsView
-                    steps={test.steps}
-                    expected={test.expected}
-                    onMediaClick={handleRichContentClick}
-                  />
-                )}
-              </EditingSurfaceSection>
-            </Panel>
-
-            <Panel className="test-detail-side-panel bg-[var(--tms-surface-soft)] px-4 py-5 sm:px-6 sm:py-6">
-              <EditingSurfaceSection
-                dense
-                title="Details"
-                bodyClassName="test-detail-meta-grid"
-              >
-                  <div className="test-detail-meta-item">
-                    <div className="test-detail-meta-item__label">Project</div>
-                    <div className="test-detail-meta-item__value">
-                      {test.projectName ?? '-'}
-                    </div>
-                  </div>
-                  <EditingFieldGroup label="Suite" className="test-detail-meta-item">
+          <div className="test-detail-props">
+                  <EditingFieldGroup label={t('Suite')} className="test-detail-meta-item">
                       <SelectMenu
                         value={test.sectionId?.toString() ?? ''}
                         onValueChange={(value) => {
@@ -1003,7 +957,7 @@ function TestDetailPage() {
                         }}
                         options={[
                           ...(test.sectionId === null
-                            ? [{ value: '', label: 'No suite' }]
+                            ? [{ value: '', label: t('No suite') }]
                             : []),
                           ...test.sections.map((section) => ({
                             value: section.id.toString(),
@@ -1015,11 +969,11 @@ function TestDetailPage() {
                           test.sections.length === 0
                         }
                         className="test-detail-meta-select"
-                        aria-label="Change suite"
+                        aria-label={t('Change suite')}
                       />
                   </EditingFieldGroup>
                   <div className="test-detail-meta-controls">
-                  <EditingFieldGroup label="Status" className="test-detail-meta-item">
+                  <EditingFieldGroup label={t('Status')} className="test-detail-meta-item">
                       <SelectMenu
                         value={test.status ?? 'Draft'}
                         onValueChange={(value) => {
@@ -1027,14 +981,14 @@ function TestDetailPage() {
                         }}
                         options={CASE_STATUS_OPTIONS.map((status) => ({
                           value: status,
-                          label: status,
+                          label: t(status),
                         }))}
                         disabled={pendingMetadataField !== null}
                         className="test-detail-meta-select"
-                        aria-label="Change status"
+                        aria-label={t('Change status')}
                       />
                   </EditingFieldGroup>
-                  <EditingFieldGroup label="Priority" className="test-detail-meta-item">
+                  <EditingFieldGroup label={t('Priority')} className="test-detail-meta-item">
                       <SelectMenu
                         value={test.priority ?? 'Medium'}
                         onValueChange={(value) => {
@@ -1042,14 +996,14 @@ function TestDetailPage() {
                         }}
                         options={PRIORITY_OPTIONS.map((priority) => ({
                           value: priority,
-                          label: priority,
+                          label: t(priority),
                         }))}
                         disabled={pendingMetadataField !== null}
                         className="test-detail-meta-select"
-                        aria-label="Change priority"
+                        aria-label={t('Change priority')}
                       />
                   </EditingFieldGroup>
-                  <EditingFieldGroup label="Type" className="test-detail-meta-item">
+                  <EditingFieldGroup label={t('Type')} className="test-detail-meta-item">
                       <SelectMenu
                         value={test.caseType ?? 'Functional'}
                         onValueChange={(value) => {
@@ -1057,23 +1011,23 @@ function TestDetailPage() {
                         }}
                         options={CASE_TYPE_OPTIONS.map((caseType) => ({
                           value: caseType,
-                          label: caseType,
+                          label: t(caseType),
                         }))}
                         disabled={pendingMetadataField !== null}
                         className="test-detail-meta-select"
-                        aria-label="Change type"
+                        aria-label={t('Change type')}
                       />
                   </EditingFieldGroup>
                   </div>
                   <div className="test-detail-meta-dates">
                     <div className="test-detail-meta-date">
-                      <span>Created</span>
+                      <span>{t('Created')}</span>
                       <strong title={formatDetailDate(test.createdAt)}>
                         {formatCompactDetailDate(test.createdAt)}
                       </strong>
                     </div>
                     <div className="test-detail-meta-date">
-                      <span>Updated</span>
+                      <span>{t('Updated')}</span>
                       <strong
                         title={formatDetailDate(test.updatedAt ?? test.createdAt)}
                       >
@@ -1083,37 +1037,64 @@ function TestDetailPage() {
                       </strong>
                     </div>
                   </div>
-              </EditingSurfaceSection>
+            {showSavedFlash ? (
+              <span className="test-detail-saved-flash">{t('Saved')}</span>
+            ) : null}
+          </div>
+        </Panel>
 
-              <AutomationHistoryBlock
-                history={test.automationHistory}
-                projectSlug={test.projectSlug}
-              />
-
-              <section className="mt-6 border-t border-[var(--tms-border-subtle)] pt-5">
-                <div className="test-detail-section-heading">
-                  <WorkspaceSectionHeader
-                    dense
-                    title="Activity"
-                    className="mb-0"
+          <div className="grid items-start gap-4">
+            <Panel className="test-detail-content-panel">
+              <EditingSurfaceSection
+                title={t('Content')}
+                bodyClassName="test-detail-content-stack"
+              >
+                {isEditingContent ? (
+                  <StepsEditor
+                    preconditions={preconditionsValue}
+                    onPreconditionsChange={setPreconditionsValue}
+                    description={descriptionValue}
+                    steps={stepsValue}
+                    onDescriptionChange={setDescriptionValue}
+                    onStepsChange={setStepsValue}
+                    onUploadMedia={uploadInlineMedia}
+                    isUploadingMedia={isUploadingMedia}
                   />
-                  {test.activities.length > TEST_DETAIL_VISIBLE_ACTIVITY_LIMIT ? (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setIsActivityExpanded((value) => !value)}
-                    >
-                      {isActivityExpanded
-                        ? 'Show recent'
-                        : `Show all ${test.activities.length}`}
-                    </Button>
-                  ) : null}
-                </div>
+                ) : (
+                  <>
+                    <PreconditionsBlock
+                      html={test.preconditions}
+                      onMediaClick={handleRichContentClick}
+                    />
+                    <StepsView
+                      steps={test.steps}
+                      expected={test.expected}
+                      onMediaClick={handleRichContentClick}
+                    />
+                  </>
+                )}
+              </EditingSurfaceSection>
+            </Panel>
+
+            <div className="test-detail-secondary grid gap-3">
+
+            <Panel className="test-detail-secondary-panel">
+              <details className="test-detail-collapsible">
+                <summary>
+                  <span>{t('Activity')}</span>
+                  <span className="test-detail-count-pill">
+                    {test.activities.length}
+                  </span>
+                  <ChevronDown
+                    className="test-detail-collapsible__chevron"
+                    size={16}
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  />
+                </summary>
+                <div className="test-detail-collapsible__body">
                 {test.activities.length === 0 ? (
-                  <p className="m-0 text-sm text-[var(--tms-text-muted)]">
-                    No activity recorded yet.
-                  </p>
+                  <p className="m-0 text-sm text-[var(--tms-text-muted)]">{t('No activity recorded yet.')}</p>
                 ) : (
                   <div
                     className={`test-detail-activity-list ${
@@ -1140,23 +1121,56 @@ function TestDetailPage() {
                       </div>
                     ))}
                     {hiddenActivityCount > 0 ? (
-                      <div className="test-detail-activity-muted">
-                        {hiddenActivityCount} older activities hidden.
-                      </div>
+                      <div className="test-detail-activity-muted">{t('{hiddenActivityCount} older activities hidden.', { hiddenActivityCount })}</div>
                     ) : null}
                   </div>
                 )}
-              </section>
+                  {test.activities.length > TEST_DETAIL_VISIBLE_ACTIVITY_LIMIT ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setIsActivityExpanded((value) => !value)}
+                    >
+                      {isActivityExpanded
+                        ? t('Show recent')
+                        : t('Show all {length}', { length: test.activities.length })}
+                    </Button>
+                  ) : null}
+                </div>
+              </details>
+            </Panel>
 
-              {test.status === 'Archived' ? (
-                <section className="mt-6 border-t border-[var(--tms-border-subtle)] pt-5">
+            {test.automationHistory && test.automationHistory.totalResults > 0 ? (
+              <Panel className="test-detail-secondary-panel test-detail-secondary-panel--padded">
+                <AutomationHistoryBlock
+                  history={test.automationHistory}
+                  projectSlug={test.projectSlug}
+                  flush
+                />
+              </Panel>
+            ) : (
+              <Panel className="test-detail-empty-line">
+                <strong>{t('Automation')}</strong>
+                <span>{t('No automation results linked yet.')}</span>
+              </Panel>
+            )}
+
+            {parseRefs(test.refs).length > 0 ? (
+              <Panel className="test-detail-secondary-panel test-detail-secondary-panel--padded">
+                <CaseRefsList refs={test.refs} />
+              </Panel>
+            ) : null}
+
+            {test.status === 'Archived' ? (
+              <Panel className="test-detail-secondary-panel test-detail-secondary-panel--padded">
                   {showDeleteConfirm ? (
                     <ConfirmActionAlert
                       className="p-3"
-                      title="Delete this archived test case permanently?"
-                      description="This action cannot be undone and will remove the test case from the repository."
-                      confirmLabel="Delete permanently"
-                      pendingLabel="Deleting..."
+                      title={t('Delete this archived test case permanently?')}
+                      description={t('This action cannot be undone and will remove the test case from the repository.')}
+                      confirmLabel={t('Delete permanently')}
+                      pendingLabel={t('Deleting...')}
                       confirmVariant="danger"
                       isPending={isDeleting}
                       onCancel={() => setShowDeleteConfirm(false)}
@@ -1171,13 +1185,11 @@ function TestDetailPage() {
                       disabled={isDeleting || isArchiving}
                       variant="secondary"
                       className="w-full"
-                    >
-                      Delete permanently
-                    </Button>
+                    >{t('Delete permanently')}</Button>
                   )}
-                </section>
-              ) : null}
-            </Panel>
+              </Panel>
+            ) : null}
+            </div>
           </div>
         </div>
       </div>

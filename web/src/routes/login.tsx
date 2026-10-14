@@ -14,6 +14,7 @@ import { PasswordInput } from '../components/ui/PasswordInput'
 import { Panel } from '../components/ui/Panel'
 import { getCurrentUser } from '../features/auth/server'
 import { sendVerificationEmail, signIn } from '../lib/auth-client'
+import { useT } from '../lib/i18n'
 
 export const Route = createFileRoute('/login')({
   validateSearch: z.object({
@@ -34,6 +35,8 @@ export const Route = createFileRoute('/login')({
 })
 
 function LoginPage() {
+  const t = useT()
+
   const navigate = useNavigate()
   const router = useRouter()
   const search = Route.useSearch()
@@ -130,16 +133,12 @@ function LoginPage() {
     <main className="auth-page page-wrap px-4 py-8 sm:py-12">
       <Panel className="auth-card rise-in mx-auto flex min-h-[35rem] w-full max-w-[35rem] flex-col p-8 sm:p-10">
         <div className="mb-8 text-center">
-          <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--tms-text)]">
-            Login
-          </h1>
+          <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--tms-text)]">{t('Login')}</h1>
         </div>
 
         <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
           <label className="grid gap-2 text-left">
-            <span className="text-lg font-medium text-[var(--tms-text-muted)]">
-              Email
-            </span>
+            <span className="text-lg font-medium text-[var(--tms-text-muted)]">{t('Email')}</span>
             <Input
               name="email"
               value={email}
@@ -147,22 +146,20 @@ function LoginPage() {
               type="email"
               size="lg"
               className="auth-input rounded-2xl px-5 py-4 text-lg"
-              placeholder="you@example.com"
+              placeholder={t('you@example.com')}
               autoComplete="email"
             />
           </label>
 
           <label className="grid gap-2 text-left">
-            <span className="text-lg font-medium text-[var(--tms-text-muted)]">
-              Password
-            </span>
+            <span className="text-lg font-medium text-[var(--tms-text-muted)]">{t('Password')}</span>
             <PasswordInput
               name="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               size="lg"
               className="auth-input rounded-2xl px-5 py-4 text-lg"
-              placeholder="Enter your password"
+              placeholder={t('Enter your password')}
               autoComplete="current-password"
             />
           </label>
@@ -176,12 +173,9 @@ function LoginPage() {
           {unverifiedEmail ? (
             <Alert variant="warning" className="grid gap-3 px-4 py-4">
               <div>
-                <p className="m-0 font-semibold">Verify your email to continue.</p>
-                <p className="m-0 mt-1">
-                  We sent a verification link to{' '}
-                  <span className="font-semibold">{unverifiedEmail}</span>. If it
-                  expired or did not arrive, send a new one.
-                </p>
+                <p className="m-0 font-semibold">{t('Verify your email to continue.')}</p>
+                <p className="m-0 mt-1">{t('We sent a verification link to')}{' '}
+                  <span className="font-semibold">{unverifiedEmail}</span>{t('. If it expired or did not arrive, send a new one.')}</p>
               </div>
               <Button
                 type="button"
@@ -189,7 +183,7 @@ function LoginPage() {
                 disabled={isResending}
                 className="w-fit rounded-xl px-4 py-2 font-semibold shadow-none"
               >
-                {isResending ? 'Sending...' : 'Send verification again'}
+                {isResending ? t('Sending...') : t('Send verification again')}
               </Button>
               {resendMessage ? (
                 <p className="m-0 text-[var(--tms-success)]">{resendMessage}</p>
@@ -204,26 +198,21 @@ function LoginPage() {
             size="lg"
             className="mt-auto rounded-2xl px-5 py-4 text-lg font-bold shadow-[var(--tms-shadow-subtle)]"
           >
-            {isSubmitting ? 'Logging in...' : 'Log in'}
+            {isSubmitting ? t('Logging in...') : t('Log in')}
           </Button>
 
           <p className="pt-2 text-center text-lg text-[var(--tms-text-muted)]">
             <Link
               to="/forgot-password"
               className="font-semibold text-[var(--tms-primary)] no-underline"
-            >
-              Forgot password?
-            </Link>
+            >{t('Forgot password?')}</Link>
           </p>
 
-          <p className="text-center text-lg text-[var(--tms-text-muted)]">
-            Don&apos;t have an account?{' '}
+          <p className="text-center text-lg text-[var(--tms-text-muted)]">{t('Don\'t have an account?')}{' '}
             <Link
               to="/register"
               className="font-semibold text-[var(--tms-primary)] no-underline"
-            >
-              Create one now
-            </Link>
+            >{t('Create one now')}</Link>
             .
           </p>
         </form>
@@ -247,7 +236,8 @@ function getSafeRedirectTo(value: string | undefined): string {
       !decoded.startsWith('/register') &&
       !decoded.startsWith('/forgot-password') &&
       !decoded.startsWith('/reset-password') &&
-      !decoded.startsWith('/api/auth')
+      !decoded.startsWith('/api/auth') &&
+      !decoded.startsWith('/_serverFn')
     ) {
       return decoded
     }

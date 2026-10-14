@@ -1,5 +1,5 @@
 import { Buffer } from 'node:buffer'
-import { v2 as cloudinary } from 'cloudinary'
+import type { v2 as CloudinaryV2 } from 'cloudinary'
 
 function sanitizeCloudinaryValue(value: string | undefined): string | undefined {
   if (!value) {
@@ -11,7 +11,38 @@ function sanitizeCloudinaryValue(value: string | undefined): string | undefined 
   return decodedValue.replace(/^<+/, '').replace(/>+$/, '')
 }
 
-function ensureCloudinaryConfigured(): void {
+function hasCloudinaryConfig(): boolean {
+  return Boolean(
+    process.env.CLOUDINARY_URL ||
+      (process.env.CLOUDINARY_CLOUD_NAME &&
+        process.env.CLOUDINARY_API_KEY &&
+        process.env.CLOUDINARY_API_SECRET),
+  )
+}
+
+/**
+ * Where uploaded images / videos are stored:
+ * - STORAGE_DRIVER=local      -> server disk (see local-storage.server.ts)
+ * - STORAGE_DRIVER=cloudinary -> Cloudinary
+ * - not set                   -> Cloudinary if it is configured, else local
+ */
+export function getStorageDriver(): 'local' | 'cloudinary' {
+  const configured = process.env.STORAGE_DRIVER?.trim().toLowerCase()
+
+  if (configured === 'local' || configured === 'cloudinary') {
+    return configured
+  }
+
+  if (configured) {
+    throw new Error(
+      `Unknown STORAGE_DRIVER "${configured}". Use "local" or "cloudinary".`,
+    )
+  }
+
+  return hasCloudinaryConfig() ? 'cloudinary' : 'local'
+}
+
+function ensureCloudinaryConfigured(cloudinary: typeof CloudinaryV2): void {
   const cloudName = sanitizeCloudinaryValue(process.env.CLOUDINARY_CLOUD_NAME)
   const apiKey = sanitizeCloudinaryValue(process.env.CLOUDINARY_API_KEY)
   const apiSecret = sanitizeCloudinaryValue(process.env.CLOUDINARY_API_SECRET)
@@ -55,9 +86,7 @@ function ensureCloudinaryConfigured(): void {
   })
 }
 
-export async function uploadMediaToCloudinary(file: File): Promise<string> {
-  ensureCloudinaryConfigured()
-
+export async function uploadMedia(file: File): Promise<string> {
   const isImage = file.type.startsWith('image/')
   const isVideo = file.type.startsWith('video/')
 
@@ -66,6 +95,19 @@ export async function uploadMediaToCloudinary(file: File): Promise<string> {
       'Only image, GIF, and video uploads are supported in the test case editor.',
     )
   }
+
+  if (getStorageDriver() === 'local') {
+    const { saveMediaToLocalStorage } = await import('./local-storage.server')
+
+    return saveMediaToLocalStorage(file)
+  }
+
+  return uploadMediaToCloudinary(file)
+}
+
+async function uploadMediaToCloudinary(file: File): Promise<string> {
+  const { v2: cloudinary } = await import('cloudinary')
+  ensureCloudinaryConfigured(cloudinary)
 
   const fileBuffer = Buffer.from(await file.arrayBuffer())
 

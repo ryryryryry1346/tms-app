@@ -1,14 +1,29 @@
 import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
-import { useState } from 'react'
+import {
+  Crown,
+  Eye,
+  Info,
+  Lock,
+  Pencil,
+  Plus,
+  Search,
+  UserMinus,
+  Users,
+  X,
+  type LucideIcon,
+} from 'lucide-react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { WorkspaceSectionHeader } from '../components/layout/WorkspaceSectionHeader'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
-import { EmptyState } from '../components/ui/EmptyState'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
-import { Select } from '../components/ui/Select'
+import { SelectMenu } from '../components/ui/SelectMenu'
+import { TableHead, TableRow } from '../components/ui/TableShell'
+import { cx } from '../components/ui/utils'
 import {
   addProjectMember,
   listProjectMembers,
@@ -17,19 +32,108 @@ import {
   type ProjectMemberSummary,
 } from '../features/projects/server'
 import { getDashboardState } from '../features/tests/server'
+import { getErrorMessage } from '../lib/errors'
+import { useT, type TranslateFn } from '../lib/i18n'
 
 type ProjectRole = 'owner' | 'editor' | 'viewer'
 
-const ROLE_OPTIONS: Array<{ value: ProjectRole; label: string }> = [
-  { value: 'owner', label: 'Owner' },
-  { value: 'editor', label: 'Editor' },
-  { value: 'viewer', label: 'Viewer' },
+const ROLE_ORDER: ProjectRole[] = ['owner', 'editor', 'viewer']
+
+const ROLE_META: Record<
+  ProjectRole,
+  { label: string; Icon: LucideIcon; description: string }
+> = {
+  owner: {
+    label: 'Owner',
+    Icon: Crown,
+    description:
+      'Manages members, settings and API tokens, and can delete the project.',
+  },
+  editor: {
+    label: 'Editor',
+    Icon: Pencil,
+    description:
+      'Creates and edits cases, runs, docs and automated-test links.',
+  },
+  viewer: {
+    label: 'Viewer',
+    Icon: Eye,
+    description: 'Can view everything in the project, read-only.',
+  },
+}
+
+function buildRoleOptions(t: TranslateFn) {
+  return ROLE_ORDER.map((value) => {
+  const { Icon, label } = ROLE_META[value]
+
+  return {
+    value,
+    label: (
+      <span className="members-role-option">
+        <Icon size={14} aria-hidden="true" />
+        {t(label)}
+      </span>
+    ),
+  }
+  })
+}
+
+const MEMBERS_TABLE_COLUMNS = 'minmax(240px, 1.6fr) 190px 72px'
+
+const AVATAR_COLORS = [
+  '#2563eb',
+  '#0f766e',
+  '#b45309',
+  '#7c3aed',
+  '#be185d',
+  '#0369a1',
+  '#4d7c0f',
+  '#9333ea',
 ]
 
-const ROLE_DESCRIPTION: Record<ProjectRole, string> = {
-  owner: 'Manage members, settings, API tokens, and delete the project.',
-  editor: 'Create and edit test cases, runs, docs, and automation links.',
-  viewer: 'Read-only access to everything in the project.',
+function memberInitial(name: string, email: string): string {
+  return (name.trim() || email.trim() || 'U').slice(0, 1).toUpperCase()
+}
+
+function avatarColor(seed: string): string {
+  let hash = 0
+
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = (hash * 31 + seed.charCodeAt(index)) >>> 0
+  }
+
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length]
+}
+
+function pluralizeMembers(count: number): string {
+  return `${count} member${count === 1 ? '' : 's'}`
+}
+
+function RolePill({
+  role,
+  locked = false,
+  title,
+}: {
+  role: ProjectRole
+  locked?: boolean
+  title?: string
+}) {
+  const t = useT()
+  const { Icon, label } = ROLE_META[role]
+
+  return (
+    <span
+      className={cx(
+        'members-role-pill',
+        `members-role--${role}`,
+        locked && 'is-locked',
+      )}
+      title={title}
+    >
+      <Icon size={14} aria-hidden="true" />
+      {t(label)}
+    </span>
+  )
 }
 
 export const Route = createFileRoute('/project/$projectSlug/members')({
@@ -84,26 +188,77 @@ export const Route = createFileRoute('/project/$projectSlug/members')({
       project: { ...project, id: selectedProjectId },
       members: membersState.members,
       currentUserRole: membersState.currentUserRole,
+      currentUserId: membersState.currentUserId,
     }
   },
   component: ProjectMembersPage,
 })
 
 function ProjectMembersPage() {
-  const { project, members: initialMembers, currentUserRole } =
-    Route.useLoaderData()
+  const t = useT()
+
+  const {
+    project,
+    members: initialMembers,
+    currentUserRole,
+    currentUserId,
+  } = Route.useLoaderData()
 
   const [members, setMembers] = useState<ProjectMemberSummary[]>(initialMembers)
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<ProjectRole>('editor')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isAdding, setIsAdding] = useState(false)
+  const [isInviteOpen, setIsInviteOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [roleFilter, setRoleFilter] = useState<ProjectRole | null>(null)
   const [pendingUserId, setPendingUserId] = useState<string | null>(null)
+  const [removeConfirmUserId, setRemoveConfirmUserId] = useState<string | null>(
+    null,
+  )
 
   const isOwner = currentUserRole === 'owner'
   const ownerCount = members.filter((member) => member.role === 'owner').length
 
-  async function handleAddMember(): Promise<void> {
+  const roleCounts = useMemo(() => {
+    const counts: Record<ProjectRole, number> = { owner: 0, editor: 0, viewer: 0 }
+
+    for (const member of members) {
+      counts[member.role] += 1
+    }
+
+    return counts
+  }, [members])
+
+  const visibleMembers = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+
+    return members.filter((member) => {
+      if (roleFilter && member.role !== roleFilter) {
+        return false
+      }
+
+      if (!needle) {
+        return true
+      }
+
+      return `${member.name} ${member.email}`.toLowerCase().includes(needle)
+    })
+  }, [members, query, roleFilter])
+
+  function toggleRoleFilter(next: ProjectRole): void {
+    setRoleFilter((current) => (current === next ? null : next))
+  }
+
+  async function handleAddMember(
+    event?: FormEvent<HTMLFormElement>,
+  ): Promise<void> {
+    event?.preventDefault()
+
+    if (email.trim().length === 0) {
+      return
+    }
+
     setErrorMessage(null)
     setIsAdding(true)
 
@@ -115,9 +270,10 @@ function ProjectMembersPage() {
       setMembers((current) => [...current, result.member])
       setEmail('')
       setRole('editor')
+      setIsInviteOpen(false)
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : 'Could not add member.',
+        getErrorMessage(error, 'Could not add the member.'),
       )
     } finally {
       setIsAdding(false)
@@ -143,7 +299,7 @@ function ProjectMembersPage() {
       )
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : 'Could not update role.',
+        getErrorMessage(error, 'Could not change the role.'),
       )
     } finally {
       setPendingUserId(null)
@@ -164,166 +320,343 @@ function ProjectMembersPage() {
       )
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : 'Could not remove member.',
+        getErrorMessage(error, 'Could not remove the member.'),
       )
     } finally {
       setPendingUserId(null)
+      setRemoveConfirmUserId((current) => (current === userId ? null : current))
     }
   }
 
+  const removeTarget =
+    members.find((member) => member.userId === removeConfirmUserId) ?? null
+
   return (
-    <main className="workspace-view">
+    <main className="workspace-view members-view">
       <div className="workspace-view__inner">
         <div className="workspace-view__stack">
           <ProjectPageHeader
             projectName={project.name}
-            description="Control who can access this project and what they can do."
+            eyebrow={null}
+            description={t('Who has access to the project and what they can do.')}
             actions={
-              <Badge variant="primary">
-                {members.length} member{members.length === 1 ? '' : 's'}
-              </Badge>
+              <>
+                <Badge variant="primary">{pluralizeMembers(members.length)}</Badge>
+                {isOwner ? (
+                  <Button
+                    variant="primary"
+                    onClick={() => setIsInviteOpen((current) => !current)}
+                    aria-expanded={isInviteOpen}
+                  >
+                    <Plus size={16} aria-hidden="true" />{t('Add member')}</Button>
+                ) : null}
+              </>
             }
           />
 
           {errorMessage ? (
-            <Alert variant="danger" title="Members">
+            <Alert variant="danger" title={t('Members')}>
               {errorMessage}
             </Alert>
           ) : null}
 
-          {isOwner ? (
-            <Panel className="px-5 py-5">
-              <WorkspaceSectionHeader
-                title="Add member"
-                description="Add an existing registered user by email and choose their role."
-                className="mb-4"
-              />
+          {isOwner && isInviteOpen ? (
+            <Panel className="members-invite">
+              <div className="members-invite__head">
+                <WorkspaceSectionHeader
+                  dense
+                  title={t('Add member')}
+                  description={t('Add an already registered user by email and choose their role.')}
+                />
+                <button
+                  type="button"
+                  className="members-icon-btn"
+                  aria-label={t('Close form')}
+                  onClick={() => setIsInviteOpen(false)}
+                >
+                  <X size={16} aria-hidden="true" />
+                </button>
+              </div>
 
-              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_auto]">
+              <form className="members-invite__row" onSubmit={handleAddMember}>
                 <Input
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="teammate@example.com"
+                  placeholder={t('teammate@example.com')}
+                  aria-label={t('User email')}
+                  autoFocus
                 />
-                <Select
-                  value={role}
-                  onChange={(event) =>
-                    setRole(event.target.value as ProjectRole)
-                  }
+                <div
+                  className="members-rolepick"
+                  role="radiogroup"
+                  aria-label={t('Role')}
                 >
-                  {ROLE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </Select>
+                  {ROLE_ORDER.map((value) => {
+                    const { Icon, label } = ROLE_META[value]
+
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={role === value}
+                        className={cx(
+                          'members-rolepick__item',
+                          `members-role--${value}`,
+                          role === value && 'is-active',
+                        )}
+                        onClick={() => setRole(value)}
+                      >
+                        <Icon size={14} aria-hidden="true" />
+                        {t(label)}
+                      </button>
+                    )
+                  })}
+                </div>
                 <Button
+                  type="submit"
                   variant="primary"
                   disabled={isAdding || email.trim().length === 0}
-                  onClick={handleAddMember}
                 >
-                  {isAdding ? 'Adding...' : 'Add member'}
+                  {isAdding ? t('Adding...') : t('Add')}
                 </Button>
-              </div>
+              </form>
 
-              <p className="m-0 mt-2 text-xs text-[var(--tms-text-muted)]">
-                {ROLE_DESCRIPTION[role]}
+              <p className="members-invite__hint">
+                <Info size={14} aria-hidden="true" />
+                <span>
+                  {t(ROLE_META[role].label)} — {t(ROLE_META[role].description)}
+                </span>
               </p>
             </Panel>
           ) : null}
 
-          <Panel className="px-5 py-5">
-            <WorkspaceSectionHeader
-              title="Members"
-              description={
-                isOwner
-                  ? 'Change roles or remove members. A project must keep at least one owner.'
-                  : 'People with access to this project.'
-              }
-              className="mb-4"
-            />
+          <div className="members-roles">
+            {ROLE_ORDER.map((value) => {
+              const { Icon, label, description } = ROLE_META[value]
+
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={roleFilter === value}
+                  className={cx(
+                    'members-role-card',
+                    `members-role--${value}`,
+                    roleFilter === value && 'is-active',
+                  )}
+                  onClick={() => toggleRoleFilter(value)}
+                >
+                  <span className="members-role-card__icon">
+                    <Icon size={19} aria-hidden="true" />
+                  </span>
+                  <span className="members-role-card__name">{t(label)}</span>
+                  <span className="members-role-card__count">
+                    {roleCounts[value]}
+                  </span>
+                  <span className="members-role-card__desc">{t(description)}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          <Panel className="members-panel">
+            <div className="members-panel__head">
+              <WorkspaceSectionHeader
+                dense
+                title={t('Members')}
+                description={
+                  isOwner
+                    ? t('Change roles or remove members. The project must keep at least one owner.')
+                    : t('People who have access to this project.')
+                }
+              />
+            </div>
+
+            <div className="members-toolbar">
+              <label className="members-search">
+                <Search size={16} aria-hidden="true" />
+                <Input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={t('Search by name or email')}
+                  aria-label={t('Search members')}
+                />
+              </label>
+              {roleFilter ? (
+                <span className="members-filter-note">{t('Showing:')}{' '}{t(ROLE_META[roleFilter].label)} ·{' '}
+                  {visibleMembers.length}
+                  <button
+                    type="button"
+                    className="members-link"
+                    onClick={() => setRoleFilter(null)}
+                  >{t('Reset')}</button>
+                </span>
+              ) : null}
+            </div>
 
             {members.length === 0 ? (
-              <EmptyState
-                title="No members yet"
-                description="Add a teammate to give them access to this project."
-              />
+              <div className="members-empty">{t('There are no members in this project yet.')}</div>
             ) : (
-              <div className="overflow-hidden rounded-xl border border-[var(--tms-border-subtle)]">
-                <div className="grid grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_150px_auto] gap-3 border-b border-[var(--tms-border-subtle)] bg-[var(--tms-surface-soft)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--tms-text-muted)]">
-                  <span>Name</span>
-                  <span>Email</span>
-                  <span>Role</span>
-                  <span className="text-right">Actions</span>
-                </div>
-                {members.map((member) => {
-                  const isLastOwner =
-                    member.role === 'owner' && ownerCount <= 1
-                  const isBusy = pendingUserId === member.userId
+              <div className="members-table">
+                <TableHead
+                  columns={MEMBERS_TABLE_COLUMNS}
+                  minWidth="38rem"
+                  padding="md"
+                >
+                  <span>{t('Member')}</span>
+                  <span>{t('Role')}</span>
+                  <span className="text-right">{t('Actions')}</span>
+                </TableHead>
 
-                  return (
-                    <div
-                      key={member.userId}
-                      className="grid grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_150px_auto] items-center gap-3 border-b border-[var(--tms-border-subtle)] px-4 py-3 last:border-b-0"
-                    >
-                      <span className="font-semibold text-[var(--tms-text)]">
-                        {member.name}
-                      </span>
-                      <span className="truncate text-sm text-[var(--tms-text-muted)]">
-                        {member.email}
-                      </span>
-                      <div>
-                        {isOwner ? (
-                          <Select
-                            size="sm"
-                            value={member.role}
-                            disabled={isBusy || isLastOwner}
-                            onChange={(event) =>
-                              handleRoleChange(
-                                member.userId,
-                                event.target.value as ProjectRole,
-                              )
-                            }
+                {visibleMembers.length === 0 ? (
+                  <div className="members-empty">{t('Nobody found.')}</div>
+                ) : (
+                  visibleMembers.map((member) => {
+                    const isLastOwner =
+                      member.role === 'owner' && ownerCount <= 1
+                    const isBusy = pendingUserId === member.userId
+                    const isYou = member.userId === currentUserId
+
+                    return (
+                      <TableRow
+                        key={member.userId}
+                        columns={MEMBERS_TABLE_COLUMNS}
+                        minWidth="38rem"
+                        padding="md"
+                      >
+                        <div className="members-person">
+                          <span
+                            className="members-avatar"
+                            style={{ background: avatarColor(member.userId) }}
+                            aria-hidden="true"
                           >
-                            {ROLE_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </Select>
-                        ) : (
-                          <Badge
-                            variant={
-                              member.role === 'owner' ? 'primary' : 'draft'
-                            }
-                          >
-                            {member.role}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-end">
-                        {isOwner ? (
-                          <Button
-                            size="sm"
-                            variant="danger"
-                            disabled={isBusy || isLastOwner}
-                            onClick={() => handleRemove(member.userId)}
-                          >
-                            {isBusy ? 'Working...' : 'Remove'}
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-[var(--tms-text-muted)]">
-                            —
+                            {memberInitial(member.name, member.email)}
                           </span>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
+                          <div className="members-person__copy">
+                            <div className="members-person__name">
+                              <span className="truncate">{member.name}</span>
+                              {isYou ? (
+                                <span className="members-you">{t('You')}</span>
+                              ) : null}
+                            </div>
+                            <div className="members-person__email">
+                              {member.email}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          {isOwner && !isLastOwner ? (
+                            <SelectMenu
+                              value={member.role}
+                              onValueChange={(value) =>
+                                handleRoleChange(
+                                  member.userId,
+                                  value as ProjectRole,
+                                )
+                              }
+                              options={buildRoleOptions(t)}
+                              disabled={isBusy}
+                              className={cx(
+                                'members-role-select',
+                                `members-role--${member.role}`,
+                              )}
+                              aria-label={t('Role: {name}', { name: member.name })}
+                            />
+                          ) : (
+                            <RolePill
+                              role={member.role}
+                              locked={isLastOwner}
+                              title={
+                                isLastOwner
+                                  ? t('The project must keep at least one owner')
+                                  : undefined
+                              }
+                            />
+                          )}
+                        </div>
+
+                        <div className="members-actions">
+                          {isOwner ? (
+                            isLastOwner ? (
+                              <span
+                                className="members-icon-btn is-locked"
+                                title={t('The last owner cannot be removed')}
+                              >
+                                <Lock size={16} aria-hidden="true" />
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                className="members-icon-btn is-danger"
+                                title={t('Remove from project')}
+                                aria-label={t('Remove: {name}', { name: member.name })}
+                                disabled={isBusy}
+                                onClick={() =>
+                                  setRemoveConfirmUserId(member.userId)
+                                }
+                              >
+                                <UserMinus size={16} aria-hidden="true" />
+                              </button>
+                            )
+                          ) : null}
+                        </div>
+                      </TableRow>
+                    )
+                  })
+                )}
               </div>
             )}
+
+            {isOwner && members.length === 1 ? (
+              <div className="members-alone">
+                <span className="members-alone__icon">
+                  <Users size={18} aria-hidden="true" />
+                </span>
+                <div>
+                  <strong>{t('You are the only member so far')}</strong>
+                  <span>{t('Add teammates by email so they can work with cases and runs.')}</span>
+                </div>
+                <Button
+                  variant="primary"
+                  onClick={() => setIsInviteOpen(true)}
+                >
+                  <Plus size={16} aria-hidden="true" />{t('Add')}</Button>
+              </div>
+            ) : null}
+
+            <div className="members-footnote">
+              <Lock size={14} aria-hidden="true" />{t('The last owner cannot be removed or demoted — assign another owner first.')}</div>
           </Panel>
+
+          <ConfirmDialog
+            open={removeConfirmUserId !== null}
+            title={t('Remove member?')}
+            description={
+              removeTarget ? (
+                <>{t('Delete')}{' '}
+                  <strong className="text-[var(--tms-text)]">
+                    {removeTarget.name}
+                  </strong>{' '}
+                  ({removeTarget.email}{t(') from the project? Access will be revoked immediately.')}</>
+              ) : null
+            }
+            confirmLabel={t('Delete')}
+            cancelLabel="Cancel"
+            confirmVariant="danger"
+            isPending={
+              pendingUserId !== null && pendingUserId === removeConfirmUserId
+            }
+            pendingLabel={t('Deleting...')}
+            onConfirm={() => {
+              if (removeConfirmUserId) {
+                void handleRemove(removeConfirmUserId)
+              }
+            }}
+            onCancel={() => setRemoveConfirmUserId(null)}
+          />
         </div>
       </div>
     </main>

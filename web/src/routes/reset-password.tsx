@@ -12,6 +12,7 @@ import { PasswordInput } from '../components/ui/PasswordInput'
 import { Panel } from '../components/ui/Panel'
 import { getCurrentUser } from '../features/auth/server'
 import { resetPassword } from '../lib/auth-client'
+import { useT } from '../lib/i18n'
 
 export const Route = createFileRoute('/reset-password')({
   validateSearch: z.object({
@@ -33,6 +34,8 @@ export const Route = createFileRoute('/reset-password')({
 })
 
 function ResetPasswordPage() {
+  const t = useT()
+
   const navigate = useNavigate()
   const search = Route.useSearch()
   const token = search.token ?? null
@@ -96,57 +99,45 @@ function ResetPasswordPage() {
     <main className="auth-page page-wrap px-4 py-8 sm:py-12">
       <Panel className="auth-card rise-in mx-auto flex min-h-[32rem] w-full max-w-[35rem] flex-col p-8 sm:p-10">
         <div className="mb-8 text-center">
-          <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--tms-text)]">
-            New password
-          </h1>
+          <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--tms-text)]">{t('New password')}</h1>
         </div>
 
         {isComplete ? (
           <div className="grid flex-1 content-start gap-5 text-center">
-            <Alert variant="success" className="px-5 py-4 text-left">
-              Your password has been reset. You can log in with the new password.
-            </Alert>
+            <Alert variant="success" className="px-5 py-4 text-left">{t('Your password has been reset. You can log in with the new password.')}</Alert>
             <Button
               type="button"
               onClick={goToLogin}
               variant="primary"
               size="lg"
               className="rounded-2xl px-5 py-4 text-lg font-bold shadow-[var(--tms-shadow-subtle)]"
-            >
-              Go to login
-            </Button>
+            >{t('Go to login')}</Button>
           </div>
         ) : (
           <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
             <label className="grid gap-2 text-left">
-              <span className="text-lg font-medium text-[var(--tms-text-muted)]">
-                New password
-              </span>
+              <span className="text-lg font-medium text-[var(--tms-text-muted)]">{t('New password')}</span>
               <PasswordInput
                 name="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 size="lg"
                 className="auth-input rounded-2xl px-5 py-4 text-lg"
-                placeholder="Create a new password"
+                placeholder={t('Create a new password')}
                 autoComplete="new-password"
               />
-              <span className="text-sm text-[var(--tms-text-muted)]">
-                At least 8 characters.
-              </span>
+              <span className="text-sm text-[var(--tms-text-muted)]">{t('At least 8 characters.')}</span>
             </label>
 
             <label className="grid gap-2 text-left">
-              <span className="text-lg font-medium text-[var(--tms-text-muted)]">
-                Confirm password
-              </span>
+              <span className="text-lg font-medium text-[var(--tms-text-muted)]">{t('Confirm password')}</span>
               <PasswordInput
                 name="confirmPassword"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 size="lg"
                 className="auth-input rounded-2xl px-5 py-4 text-lg"
-                placeholder="Repeat the new password"
+                placeholder={t('Repeat the new password')}
                 autoComplete="new-password"
               />
             </label>
@@ -164,17 +155,14 @@ function ResetPasswordPage() {
               size="lg"
               className="mt-auto rounded-2xl px-5 py-4 text-lg font-bold shadow-[var(--tms-shadow-subtle)]"
             >
-              {isSubmitting ? 'Saving password...' : 'Save new password'}
+              {isSubmitting ? t('Saving password...') : t('Save new password')}
             </Button>
 
-            <p className="pt-2 text-center text-lg text-[var(--tms-text-muted)]">
-              Need a new link?{' '}
+            <p className="pt-2 text-center text-lg text-[var(--tms-text-muted)]">{t('Need a new link?')}{' '}
               <Link
                 to="/forgot-password"
                 className="font-semibold text-[var(--tms-primary)] no-underline"
-              >
-                Request reset
-              </Link>
+              >{t('Request reset')}</Link>
               .
             </p>
           </form>

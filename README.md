@@ -1,38 +1,43 @@
-https://tms-app-web-staging.onrender.com
+# TMS — Test Management System
 
+Test management app: test case repository (suites, structured steps, tags,
+references), manual runs with per-step execution and releases, automation
+results imported from CI (JUnit / JSON), project docs with categories and
+comments, reports, and per-project roles (Owner / Editor / Viewer).
 
-# tms-app
+Staging: https://tms-app-web-staging.onrender.com
 
-This repository now uses the TypeScript application in [`web/`](C:/myapp/web) as the primary codebase.
+## Stack
 
-## Current app
-
-- Stack: TanStack Start, React, Vite, TypeScript, MySQL, Drizzle ORM
-- Main source: [`web/src`](C:/myapp/web/src)
-- Staging deploy config: [`render.yaml`](C:/myapp/render.yaml)
-- Migration notes and rollout docs: [`docs/`](C:/myapp/docs)
+TanStack Start, React 19, Vite, TypeScript, MySQL (Drizzle ORM), Better Auth,
+Tiptap, Tailwind CSS v4. Node.js 22.12 or newer.
 
 ## Repository layout
 
-- [`web/`](C:/myapp/web): active TypeScript application
-- [`docs/`](C:/myapp/docs): migration, staging, and production hardening notes
-- [`render.yaml`](C:/myapp/render.yaml): Render blueprint for the TypeScript app
+- `web/` — the application (`web/src` sources, `web/drizzle` migrations)
+- `docs/` — operational notes; `docs/archive/` keeps older migration-era docs
+- `render.yaml` — Render blueprint
 
 ## Local development
 
-Run the active app from [`web/`](C:/myapp/web):
-
 ```bash
+cd web
+cp .env.example .env      # fill in the values, see comments inside
 npm install
-npm run dev
+npm run db:migrate        # apply migrations to MYSQL_DATABASE_URL
+npm run dev               # http://localhost:3000
 ```
 
-Build for production:
+Other commands: `npm run build`, `npm run typecheck`, `npm test`.
 
-```bash
-npm run build
-```
+## External services
 
-## Notes
+| Service | Used for | Required |
+|---|---|---|
+| MySQL 8 | all data | yes |
+| Media storage | images and attachments: local disk (`STORAGE_DRIVER=local`) or Cloudinary | one of them |
+| Mail | verification and password reset: SMTP, Resend or log-only (`MAIL_DRIVER`) | yes with open sign-up |
+| Shortcut | "Create Shortcut story" in Repository | no |
 
-- The old Flask/Jinja implementation has been removed from the repository to keep ongoing product work focused on the TypeScript app.
+Secrets (`BETTER_AUTH_SECRET`, database URL, mail/storage credentials) never go
+into the repository: use `web/.env`, which is gitignored.
