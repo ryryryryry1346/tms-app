@@ -25,9 +25,9 @@ import {
   type ShortcutStoryType,
 } from '../../lib/shortcut'
 
-// Official Shortcut logo mark (https://www.shortcut.com/branding → Logo Mark).
-// The file is added by hand; until it exists the card shows a generic icon.
-const SHORTCUT_LOGO_SRC = '/integrations/shortcut-mark.svg'
+// Shortcut app icon (web/public/integrations). Falls back to a generic icon
+// if the file is missing.
+const SHORTCUT_LOGO_SRC = '/integrations/shortcut-mark.png'
 
 function ShortcutLogo() {
   const imageRef = useRef<HTMLImageElement>(null)
@@ -57,8 +57,8 @@ function ShortcutLogo() {
         ref={imageRef}
         src={SHORTCUT_LOGO_SRC}
         alt=""
-        width={26}
-        height={26}
+        width={42}
+        height={42}
         onError={() => setFailed(true)}
       />
     </span>

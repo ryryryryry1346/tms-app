@@ -9226,15 +9226,16 @@ button.doc-card__pin:hover {
 }
 
 .settings-integration-card__icon.settings-integration-card__icon--logo {
-  border: 1px solid var(--tms-border-subtle);
-  background: var(--tms-surface);
+  overflow: hidden;
+  background: transparent;
 }
 
+/* The app icon already has its own rounded tile, so it fills the slot. */
 .settings-integration-card__icon--logo img {
   display: block;
-  width: 1.625rem;
-  height: 1.625rem;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .settings-integration-card__top h3 {
