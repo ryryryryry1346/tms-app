@@ -1,6 +1,6 @@
 import { useRouter } from '@tanstack/react-router'
 import { FolderKanban } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Alert } from '../ui/Alert'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
@@ -24,6 +24,46 @@ import {
   type ShortcutStoryType,
 } from '../../lib/shortcut'
 
+// Official Shortcut logo mark (https://www.shortcut.com/branding → Logo Mark).
+// The file is added by hand; until it exists the card shows a generic icon.
+const SHORTCUT_LOGO_SRC = '/integrations/shortcut-mark.svg'
+
+function ShortcutLogo() {
+  const imageRef = useRef<HTMLImageElement>(null)
+  const [failed, setFailed] = useState(false)
+
+  // A server-rendered <img> can fail before React attaches onError, so
+  // check the already-finished load once after hydration as well.
+  useEffect(() => {
+    const image = imageRef.current
+
+    if (image && image.complete && image.naturalWidth === 0) {
+      setFailed(true)
+    }
+  }, [])
+
+  if (failed) {
+    return (
+      <span className="settings-integration-card__icon">
+        <FolderKanban size={21} aria-hidden="true" />
+      </span>
+    )
+  }
+
+  return (
+    <span className="settings-integration-card__icon settings-integration-card__icon--logo">
+      <img
+        ref={imageRef}
+        src={SHORTCUT_LOGO_SRC}
+        alt=""
+        width={26}
+        height={26}
+        onError={() => setFailed(true)}
+      />
+    </span>
+  )
+}
+
 const STORY_TYPE_LABELS: Record<ShortcutStoryType, string> = {
   bug: 'Bug',
   feature: 'Feature',
@@ -45,9 +85,7 @@ export function ShortcutIntegrationCard({
     <>
       <article className="settings-integration-card settings-integration--shortcut">
         <div className="settings-integration-card__top">
-          <span className="settings-integration-card__icon">
-            <FolderKanban size={21} aria-hidden="true" />
-          </span>
+          <ShortcutLogo />
           <h3>{t('Shortcut')}</h3>
           <span className={cx('settings-status', connected && 'is-ok')}>
             {connected ? t('Connected') : t('Not configured')}

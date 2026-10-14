@@ -9225,6 +9225,18 @@ button.doc-card__pin:hover {
   gap: 0.75rem;
 }
 
+.settings-integration-card__icon.settings-integration-card__icon--logo {
+  border: 1px solid var(--tms-border-subtle);
+  background: var(--tms-surface);
+}
+
+.settings-integration-card__icon--logo img {
+  display: block;
+  width: 1.625rem;
+  height: 1.625rem;
+  object-fit: contain;
+}
+
 .settings-integration-card__top h3 {
   margin: 0;
   font-size: 0.94rem;
