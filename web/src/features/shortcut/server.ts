@@ -4,9 +4,11 @@ import {
   SHORTCUT_STORY_TYPES,
   describeShortcutHttpError,
   isShortcutStoryType,
+  parseShortcutMember,
   parseShortcutGroups,
   parseShortcutWorkflowStates,
   type ShortcutGroupOption,
+  type ShortcutMember,
   type ShortcutStoryType,
   type ShortcutWorkflowStateOption,
 } from '../../lib/shortcut'
@@ -75,6 +77,7 @@ export type ShortcutSettings = {
 
 export type ShortcutOptions = {
   memberName: string | null
+  workspaceSlug: string | null
   workflowStates: ShortcutWorkflowStateOption[]
   groups: ShortcutGroupOption[]
 }
@@ -214,17 +217,8 @@ async function shortcutRequest(
   return body
 }
 
-async function fetchMemberName(apiToken: string): Promise<string | null> {
-  const member = (await shortcutRequest(apiToken, '/member')) as {
-    name?: unknown
-    mention_name?: unknown
-  } | null
-
-  if (typeof member?.name === 'string' && member.name) {
-    return member.name
-  }
-
-  return typeof member?.mention_name === 'string' ? member.mention_name : null
+async function fetchMember(apiToken: string): Promise<ShortcutMember> {
+  return parseShortcutMember(await shortcutRequest(apiToken, '/member'))
 }
 
 export async function createShortcutStoryForProject(
@@ -338,14 +332,15 @@ export async function loadShortcutOptionsHandler(
     throw new Error('Paste a Shortcut API token first.')
   }
 
-  const memberName = await fetchMemberName(apiToken)
+  const member = await fetchMember(apiToken)
   const [workflows, groups] = await Promise.all([
     shortcutRequest(apiToken, '/workflows'),
     shortcutRequest(apiToken, '/groups'),
   ])
 
   return {
-    memberName,
+    memberName: member.name,
+    workspaceSlug: member.workspaceSlug,
     workflowStates: parseShortcutWorkflowStates(workflows),
     groups: parseShortcutGroups(groups),
   }
@@ -446,7 +441,7 @@ export async function testShortcutConnectionHandler(
   }
 
   try {
-    const memberName = await fetchMemberName(config.apiToken)
+    const memberName = (await fetchMember(config.apiToken)).name
     const states = parseShortcutWorkflowStates(
       await shortcutRequest(config.apiToken, '/workflows'),
     )

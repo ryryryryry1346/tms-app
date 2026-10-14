@@ -103,6 +103,47 @@ export function parseShortcutGroups(body: unknown): ShortcutGroupOption[] {
     .sort((a, b) => a.name.localeCompare(b.name))
 }
 
+export type ShortcutMember = {
+  name: string | null
+  /** Workspace URL slug, e.g. `acme` in app.shortcut.com/acme/... */
+  workspaceSlug: string | null
+}
+
+/** Parses `GET /api/v3/member` (the token owner and their workspace). */
+export function parseShortcutMember(body: unknown): ShortcutMember {
+  const member = (body ?? {}) as {
+    name?: unknown
+    mention_name?: unknown
+    workspace2?: { url_slug?: unknown } | null
+  }
+  const name =
+    typeof member.name === 'string' && member.name
+      ? member.name
+      : typeof member.mention_name === 'string' && member.mention_name
+        ? member.mention_name
+        : null
+  const slug = member.workspace2?.url_slug
+
+  return {
+    name,
+    workspaceSlug:
+      typeof slug === 'string' && /^[a-z0-9][a-z0-9-]{0,62}$/i.test(slug)
+        ? slug
+        : null,
+  }
+}
+
+/**
+ * Link to the page where a Shortcut user creates API tokens. With a known
+ * workspace slug it opens that workspace directly; otherwise Shortcut's
+ * generic settings URL is used.
+ */
+export function shortcutApiTokensUrl(workspaceSlug?: string | null): string {
+  return workspaceSlug && /^[a-z0-9][a-z0-9-]{0,62}$/i.test(workspaceSlug)
+    ? `https://app.shortcut.com/${workspaceSlug}/settings/account/api-tokens`
+    : 'https://app.shortcut.com/settings/account/api-tokens'
+}
+
 export function formatWorkflowStateLabel(
   state: Pick<ShortcutWorkflowStateOption, 'name' | 'workflowName'>,
 ): string {

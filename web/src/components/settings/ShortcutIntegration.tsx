@@ -21,6 +21,7 @@ import {
   SHORTCUT_STORY_TYPES,
   formatWorkflowStateLabel,
   isShortcutStoryType,
+  shortcutApiTokensUrl,
   type ShortcutStoryType,
 } from '../../lib/shortcut'
 
@@ -467,7 +468,21 @@ function ShortcutSettingsModal({
 
       <div className="settings-integration-help">
         <p className="m-0 text-xs font-semibold text-[var(--tms-text)]">{t('How to get a token')}</p>
-        <p className="m-0 mt-1 text-xs text-[var(--tms-text-muted)]">{t('In Shortcut: Settings → Your account → API Tokens → Generate Token, then paste it above and press “Load workflows and teams”. Stories are created on behalf of the token owner.')}</p>
+        <ol className="m-0 mt-1 grid gap-0.5 pl-4 text-xs text-[var(--tms-text-muted)]">
+          <li>
+            {t('Open')}{' '}
+            <a
+              href={shortcutApiTokensUrl(options?.workspaceSlug)}
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-[var(--tms-primary)] underline"
+            >{t('Shortcut → Settings → API Tokens')}</a>{' '}
+            {t('and press “Create Token”.')}
+          </li>
+          <li>{t('Choose “Custom permissions”: Read and Create Stories are enough. Full access is not needed.')}</li>
+          <li>{t('Copy the token (Shortcut shows it only once), paste it above and press “Load workflows and teams”.')}</li>
+        </ol>
+        <p className="m-0 mt-1.5 text-xs text-[var(--tms-text-muted)]">{t('Stories are created on behalf of the token owner. If the label does not exist in Shortcut yet, create it there or leave the label empty.')}</p>
       </div>
     </Modal>
   )

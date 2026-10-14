@@ -5,7 +5,9 @@ import {
   formatWorkflowStateLabel,
   isShortcutStoryType,
   parseShortcutGroups,
+  parseShortcutMember,
   parseShortcutWorkflowStates,
+  shortcutApiTokensUrl,
 } from './shortcut'
 
 describe('parseShortcutWorkflowStates', () => {
@@ -101,5 +103,33 @@ describe('misc', () => {
     expect(describeShortcutHttpError(401)).toContain('API token')
     expect(describeShortcutHttpError(500, 'boom')).toBe('Shortcut returned 500: boom')
     expect(describeShortcutHttpError(502)).toBe('Shortcut returned 502.')
+  })
+})
+
+describe('member and token link', () => {
+  it('reads the member name and workspace slug', () => {
+    expect(
+      parseShortcutMember({ name: 'Ivan', workspace2: { url_slug: 'systeme' } }),
+    ).toEqual({ name: 'Ivan', workspaceSlug: 'systeme' })
+    expect(parseShortcutMember({ mention_name: 'ivan' })).toEqual({
+      name: 'ivan',
+      workspaceSlug: null,
+    })
+    expect(
+      parseShortcutMember({ workspace2: { url_slug: '../evil' } }).workspaceSlug,
+    ).toBe(null)
+    expect(parseShortcutMember(null)).toEqual({ name: null, workspaceSlug: null })
+  })
+
+  it('links to the workspace token page when the slug is known', () => {
+    expect(shortcutApiTokensUrl('systeme')).toBe(
+      'https://app.shortcut.com/systeme/settings/account/api-tokens',
+    )
+    expect(shortcutApiTokensUrl(null)).toBe(
+      'https://app.shortcut.com/settings/account/api-tokens',
+    )
+    expect(shortcutApiTokensUrl('bad/slug')).toBe(
+      'https://app.shortcut.com/settings/account/api-tokens',
+    )
   })
 })
