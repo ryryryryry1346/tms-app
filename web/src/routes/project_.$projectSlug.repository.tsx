@@ -62,6 +62,7 @@ import {
 import { SelectMenu } from '../components/ui/SelectMenu'
 import { uploadTestMedia } from '../features/media/server'
 import { createShortcutRepositoryStory } from '../features/shortcut/server'
+import { useShortcutConfigured } from '../components/shortcut/useShortcutConfigured'
 import { getRepositoryPreviewDetailStaleAt } from '../lib/repositoryPreviewCache'
 import {
   createSuite,
@@ -663,6 +664,7 @@ function ProjectRepositoryPage() {
   const [isPreviewActionsMenuOpen, setIsPreviewActionsMenuOpen] =
     useState(false)
   const [isCreatingShortcutStory, setIsCreatingShortcutStory] = useState(false)
+  const isShortcutConfigured = useShortcutConfigured(project.id)
   const [shortcutStoryResult, setShortcutStoryResult] = useState<{
     name: string
     url: string
@@ -2991,18 +2993,22 @@ function ProjectRepositoryPage() {
                     >{t('More')}</Button>
                   }
                 >
-                  <PopoverMenuItem
-                    disabled={isCreatingShortcutStory}
-                    onClick={() => {
-                      setIsMoreMenuOpen(false)
-                      void handleCreateShortcutStory()
-                    }}
-                  >
-                    {isCreatingShortcutStory
-                      ? t('Creating story...')
-                      : t('Create Shortcut story')}
-                  </PopoverMenuItem>
-                  <PopoverMenuSeparator />
+                  {isShortcutConfigured ? (
+                    <>
+                      <PopoverMenuItem
+                        disabled={isCreatingShortcutStory}
+                        onClick={() => {
+                          setIsMoreMenuOpen(false)
+                          void handleCreateShortcutStory()
+                        }}
+                      >
+                        {isCreatingShortcutStory
+                          ? t('Creating story...')
+                          : t('Create Shortcut story')}
+                      </PopoverMenuItem>
+                      <PopoverMenuSeparator />
+                    </>
+                  ) : null}
                   <PopoverMenuItem
                     onClick={() => {
                       setIsMoreMenuOpen(false)

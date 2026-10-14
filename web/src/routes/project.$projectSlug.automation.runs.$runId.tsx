@@ -9,6 +9,8 @@ import { Input } from '../components/ui/Input'
 import { LinkButton } from '../components/ui/LinkButton'
 import { Panel } from '../components/ui/Panel'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
+import { ShortcutBugModal } from '../components/shortcut/ShortcutBugModal'
+import { useShortcutConfigured } from '../components/shortcut/useShortcutConfigured'
 import {
   getAutomationRunDetail,
   linkAutomationResultToManualCase,
@@ -394,6 +396,9 @@ function AutomationArtifactsBlock({
 function AutomationRunDetailPage() {
   const { project, run } = Route.useLoaderData()
   const projectSlug = project.slug ?? project.id.toString()
+  const isShortcutConfigured = useShortcutConfigured(project.id)
+  const [bugReportResult, setBugReportResult] =
+    useState<AutomationRunResultItem | null>(null)
   const [activeFilter, setActiveFilter] = useState('All')
   const [linkFilter, setLinkFilter] =
     useState<(typeof RESULT_LINK_FILTERS)[number]>('All')
@@ -1018,6 +1023,15 @@ function AutomationRunDetailPage() {
                         >
                           Copy diagnostics
                         </Button>
+                        {isShortcutConfigured && isFailureResult(selectedResult) ? (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setBugReportResult(selectedResult)}
+                          >
+                            Report bug
+                          </Button>
+                        ) : null}
                         {selectedManualCase ? (
                           <LinkButton
                             size="sm"
@@ -1224,6 +1238,37 @@ function AutomationRunDetailPage() {
           </div>
         </div>
       </div>
+
+      {bugReportResult ? (
+        <ShortcutBugModal
+          open
+          onClose={() => setBugReportResult(null)}
+          projectId={project.id}
+          defaultSummary={`[Automation] ${bugReportResult.name}`}
+          defaultEnvironment={run.environment ?? ''}
+          contextLabel={`Failed automation result "${bugReportResult.name}" in ${run.name}`}
+          contextSections={[
+            {
+              heading: 'Build',
+              content: [
+                `Branch: ${run.branch ?? 'Not set'}`,
+                `Commit: ${run.commitSha ?? 'Not set'}`,
+                `CI build: ${run.ciBuildUrl ?? 'Not set'}`,
+              ].join('\n'),
+            },
+            {
+              heading: 'Failure diagnostics',
+              content: `\`\`\`\n${getFailureDiagnostics(bugReportResult).slice(0, 20_000)}\n\`\`\``,
+            },
+          ]}
+          links={[
+            {
+              label: `Automation run: ${run.name}`,
+              url: `${window.location.origin}/project/${projectSlug}/automation/runs/${run.id}`,
+            },
+          ]}
+        />
+      ) : null}
     </main>
   )
 }

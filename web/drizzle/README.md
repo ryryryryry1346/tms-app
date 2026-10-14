@@ -10,12 +10,19 @@ those files are applied/tracked by `npm run db:migrate`:
 - `0007_brown_plazm.sql` — `project_notification_channels` table
 - `0008_heavy_marvex.sql` — threaded `comments`
 - `0009_faulty_unus.sql` — doc categories, pinning and doc authors
+- `0010_shortcut_settings.sql` — per-project Shortcut settings (tms-app only)
 
 `project_integrations`, `project_notification_channels` and
 `test_runs.jira_version_id` come from the shared history with the company
 edition of this app. This edition does not use them, but the migrations stay
 in the journal so the chain is identical on every database and future
 migrations apply cleanly.
+
+From `0010` on, the journal of this app differs from the company edition, so
+the two apps must not share one database (Drizzle applies migrations by
+timestamp and would silently skip the other app's newer files). To move this
+app to its own database on the same server, use
+`node scripts/copy-database.mjs <new_db> --dry-run`, then without `--dry-run`.
 
 New schema changes: edit `src/db/schema.ts`, run `npm run db:generate`, and
 commit the generated `.sql` together with `meta/*` in the same commit.

@@ -584,6 +584,34 @@ export const projectIntegrations = mysqlTable(
   }),
 )
 
+export const projectShortcutSettings = mysqlTable(
+  'project_shortcut_settings',
+  {
+    id: int('id').autoincrement().primaryKey(),
+    projectId: int('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    // Encrypted with lib/secretCrypto (INTEGRATION_ENCRYPTION_KEY).
+    apiToken: text('api_token'),
+    workflowStateId: int('workflow_state_id'),
+    // Names are cached for display only; Shortcut is the source of truth.
+    workflowStateName: varchar('workflow_state_name', { length: 255 }),
+    groupId: varchar('group_id', { length: 64 }),
+    groupName: varchar('group_name', { length: 255 }),
+    // Story type for "Create Shortcut story" in Repository; bug reports from
+    // runs and automation results are always created as `bug`.
+    storyType: varchar('story_type', { length: 16 }).notNull().default('chore'),
+    labelName: varchar('label_name', { length: 64 }),
+    createdAt: varchar('created_at', { length: 32 }).notNull(),
+    updatedAt: varchar('updated_at', { length: 32 }).notNull(),
+  },
+  (table) => ({
+    projectIdUnique: uniqueIndex(
+      'project_shortcut_settings_project_id_unique',
+    ).on(table.projectId),
+  }),
+)
+
 export const projectNotificationChannels = mysqlTable(
   'project_notification_channels',
   {

@@ -71,6 +71,13 @@
       "when": 1791238320161,
       "tag": "0009_faulty_unus",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1792003309361,
+      "tag": "0010_shortcut_settings",
+      "breakpoints": true
     }
   ]
 }

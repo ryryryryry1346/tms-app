@@ -10,6 +10,7 @@ import {
   Archive,
   Check,
   Copy,
+  Plug,
   RotateCcw,
   SlidersHorizontal,
   Trash2,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
+import { ShortcutIntegrationCard } from '../components/settings/ShortcutIntegration'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
@@ -32,11 +34,12 @@ import {
   renameProject,
   restoreProject,
 } from '../features/projects/server'
+import { getShortcutSettings } from '../features/shortcut/server'
 import { getDashboardState } from '../features/tests/server'
 import { getErrorMessage } from '../lib/errors'
 import { useT } from '../lib/i18n'
 
-type SettingsSectionId = 'general' | 'danger'
+type SettingsSectionId = 'general' | 'integrations' | 'danger'
 
 const SETTINGS_SECTIONS: Array<{
   id: SettingsSectionId
@@ -45,6 +48,7 @@ const SETTINGS_SECTIONS: Array<{
   danger?: boolean
 }> = [
   { id: 'general', label: 'General', Icon: SlidersHorizontal },
+  { id: 'integrations', label: 'Integrations', Icon: Plug },
   { id: 'danger', label: 'Danger zone', Icon: TriangleAlert, danger: true },
 ]
 
@@ -95,13 +99,15 @@ export const Route = createFileRoute('/project/$projectSlug/settings')({
       throw notFound()
     }
 
-    const membersState = await listProjectMembers({
-      data: { projectId: selectedProjectId },
-    })
+    const [membersState, shortcutSettings] = await Promise.all([
+      listProjectMembers({ data: { projectId: selectedProjectId } }),
+      getShortcutSettings({ data: { projectId: selectedProjectId } }),
+    ])
 
     return {
       project,
       projectId: selectedProjectId,
+      shortcutSettings,
       memberCount: membersState.members.length,
       currentUserRole: membersState.currentUserRole,
     }
@@ -115,6 +121,7 @@ function ProjectSettingsPage() {
   const {
     project,
     projectId,
+    shortcutSettings,
     memberCount,
     currentUserRole,
   } = Route.useLoaderData()
@@ -261,7 +268,7 @@ function ProjectSettingsPage() {
           <ProjectPageHeader
             projectName={project.name}
             eyebrow={null}
-            description={t('General project settings and irreversible actions.')}
+            description={t('General project settings, integrations and irreversible actions.')}
             actions={
               <Badge variant={isProjectArchived ? 'warning' : 'statusReady'}>
                 {isProjectArchived ? t('Archived') : t('Active')}
@@ -385,6 +392,25 @@ function ProjectSettingsPage() {
                     </div>
                   </div>
                 </Panel>
+              </section>
+
+              <section id="settings-integrations" className="settings-section">
+                <div className="settings-section__head">
+                  <span className="settings-section__icon">
+                    <Plug size={16} aria-hidden="true" />
+                  </span>
+                  <div>
+                    <h2>{t('Integrations')}</h2>
+                    <p>{t('External services connected to this project.')}</p>
+                  </div>
+                </div>
+
+                <div className="settings-integrations-grid">
+                  <ShortcutIntegrationCard
+                    projectId={projectId}
+                    settings={shortcutSettings}
+                  />
+                </div>
               </section>
 
               <section id="settings-danger" className="settings-section">

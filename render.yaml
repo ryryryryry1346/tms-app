@@ -25,6 +25,8 @@ services:
         sync: false
       - key: CLOUDINARY_URL
         sync: false
+      - key: INTEGRATION_ENCRYPTION_KEY
+        sync: false
       - key: SHORTCUT_API_TOKEN
         sync: false
       - key: SHORTCUT_WORKFLOW_STATE_ID

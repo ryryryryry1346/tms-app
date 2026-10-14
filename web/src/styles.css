@@ -9187,6 +9187,132 @@ button.doc-card__pin:hover {
   color: var(--tms-text);
 }
 
+.settings-integrations-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem;
+}
+
+.settings-integration-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.1rem;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: 1rem;
+  background: var(--tms-surface);
+  box-shadow: var(--tms-shadow-subtle);
+  transition: border-color 0.12s ease;
+}
+
+.settings-integration-card:hover {
+  border-color: var(--si-color);
+}
+
+.settings-integration--shortcut {
+  --si-color: #7c3aed;
+  --si-bg: #f1eafe;
+}
+
+[data-theme='dark'] .settings-integration--shortcut {
+  --si-color: #b794ff;
+  --si-bg: rgba(183, 148, 255, 0.15);
+}
+
+.settings-integration-card__top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.settings-integration-card__top h3 {
+  margin: 0;
+  font-size: 0.94rem;
+  font-weight: 650;
+}
+
+.settings-integration-card__icon {
+  display: grid;
+  width: 2.625rem;
+  height: 2.625rem;
+  place-items: center;
+  border-radius: 0.75rem;
+  background: var(--si-bg);
+  color: var(--si-color);
+}
+
+.settings-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-left: auto;
+  padding: 0.1rem 0.65rem;
+  border-radius: 999px;
+  background: var(--tms-surface-muted);
+  color: var(--tms-text-muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.settings-status::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
+}
+
+.settings-status.is-ok {
+  background: color-mix(in srgb, #22a559 14%, transparent);
+  color: #15803d;
+}
+
+[data-theme='dark'] .settings-status.is-ok {
+  color: #4ade80;
+}
+
+.settings-integration-card > p {
+  margin: 0;
+  color: var(--tms-text-muted);
+  font-size: 0.8125rem;
+}
+
+.settings-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.settings-chips span {
+  padding: 1px 0.55rem;
+  border: 1px solid var(--tms-border-subtle);
+  border-radius: 0.4375rem;
+  background: var(--tms-surface-soft);
+  color: var(--tms-text-muted);
+  font-size: 0.75rem;
+}
+
+.settings-integration-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.625rem;
+  margin-top: auto;
+  padding-top: 0.25rem;
+}
+
+.settings-integration-card__foot small {
+  min-width: 0;
+  color: var(--tms-text-soft);
+  font-size: 0.75rem;
+}
+
+.settings-integration-help {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--tms-border-subtle);
+}
+
 .settings-view .settings-danger-zone {
   padding: 0;
   overflow: hidden;
@@ -9233,6 +9359,10 @@ button.doc-card__pin:hover {
 
 @media (max-width: 1100px) {
   .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-integrations-grid {
     grid-template-columns: 1fr;
   }
 

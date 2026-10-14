@@ -37,7 +37,9 @@ Other commands: `npm run build`, `npm run typecheck`, `npm test`.
 | MySQL 8 | all data | yes |
 | Media storage | images and attachments: local disk (`STORAGE_DRIVER=local`) or Cloudinary | one of them |
 | Mail | verification and password reset: SMTP, Resend or log-only (`MAIL_DRIVER`) | yes with open sign-up |
-| Shortcut | "Create Shortcut story" in Repository | no |
+| Shortcut | stories from Repository, bug reports from runs and automation results (Project → Settings → Integrations) | no |
 
-Secrets (`BETTER_AUTH_SECRET`, database URL, mail/storage credentials) never go
-into the repository: use `web/.env`, which is gitignored.
+Secrets (`BETTER_AUTH_SECRET`, `INTEGRATION_ENCRYPTION_KEY`, database URL,
+mail/storage credentials) never go into the repository: use `web/.env`, which is
+gitignored. Keep `INTEGRATION_ENCRYPTION_KEY` safe — saved integration tokens
+cannot be decrypted without it.

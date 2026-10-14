@@ -39,6 +39,8 @@ import { Panel } from '../components/ui/Panel'
 import { TableHead, TableRow, TableShell } from '../components/ui/TableShell'
 import { Textarea } from '../components/ui/Textarea'
 import { StepsView } from '../components/repository/StepsView'
+import { ShortcutBugModal } from '../components/shortcut/ShortcutBugModal'
+import { useShortcutConfigured } from '../components/shortcut/useShortcutConfigured'
 import { sanitizeHtml } from '../lib/sanitize-html'
 import { getErrorMessage } from '../lib/errors'
 import { useT } from '../lib/i18n'
@@ -148,6 +150,8 @@ function RunDetailPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [runFilter, setRunFilter] = useState<RunFilter>('All')
   const [previewTestId, setPreviewTestId] = useState<number | null>(null)
+  const [bugReportTestId, setBugReportTestId] = useState<number | null>(null)
+  const isShortcutConfigured = useShortcutConfigured(data.run.projectId)
   const [focusedTestId, setFocusedTestId] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [suiteFilter, setSuiteFilter] = useState('All')
@@ -248,6 +252,14 @@ function RunDetailPage() {
         ? null
         : tests.find((test) => test.id === previewTestId) ?? null,
     [tests, previewTestId],
+  )
+
+  const bugReportTest = useMemo(
+    () =>
+      bugReportTestId === null
+        ? null
+        : (tests.find((test) => test.id === bugReportTestId) ?? null),
+    [tests, bugReportTestId],
   )
 
   const previewContent = useMemo(
@@ -1548,6 +1560,13 @@ function RunDetailPage() {
 
                   <div className="run-execution-preview-panel__footer">
                     <div className="run-execution-preview-panel__actions">
+                      {isShortcutConfigured ? (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setBugReportTestId(previewTest.id)}
+                        >{t('Report bug')}</Button>
+                      ) : null}
                       <Link
                         to="/test/$testId"
                         params={{ testId: previewTest.id.toString() }}
@@ -1618,6 +1637,46 @@ function RunDetailPage() {
           </div>
         ) : null}
 
+        {bugReportTest && data.run.projectId ? (
+          <ShortcutBugModal
+            open
+            onClose={() => setBugReportTestId(null)}
+            projectId={data.run.projectId}
+            defaultSummary={`[TMS] #${bugReportTest.id} ${bugReportTest.title}`}
+            defaultNotes={(
+              commentByTestId[bugReportTest.id] ??
+              bugReportTest.comment ??
+              ''
+            ).trim()}
+            contextLabel={t('Test case #{id} {title} — linked to {runName}', {
+              id: bugReportTest.id,
+              title: bugReportTest.title,
+              runName: data.run.name,
+            })}
+            contextSections={[
+              {
+                heading: 'Test case',
+                content: [
+                  `#${bugReportTest.id} ${bugReportTest.title}`,
+                  bugReportTest.suiteName ? `Suite: ${bugReportTest.suiteName}` : '',
+                  `Result in run: ${bugReportTest.status ?? 'Not run'}`,
+                ]
+                  .filter(Boolean)
+                  .join('\n'),
+              },
+            ]}
+            links={[
+              {
+                label: `Run: ${data.run.name}`,
+                url: `${window.location.origin}/run/${data.run.id}`,
+              },
+              {
+                label: `Case #${bugReportTest.id}`,
+                url: `${window.location.origin}/test/${bugReportTest.id}`,
+              },
+            ]}
+          />
+        ) : null}
       </div>
     </main>
   )
