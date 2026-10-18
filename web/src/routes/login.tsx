@@ -12,24 +12,35 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { PasswordInput } from '../components/ui/PasswordInput'
 import { Panel } from '../components/ui/Panel'
-import { getCurrentUser } from '../features/auth/server'
+import { SlackSignInButton } from '../components/auth/SlackSignInButton'
+import { getAuthProviders, getCurrentUser } from '../features/auth/server'
 import { sendVerificationEmail, signIn } from '../lib/auth-client'
 import { useT } from '../lib/i18n'
+import { describeSlackSignInError } from '../lib/slackAuth'
 
 export const Route = createFileRoute('/login')({
   validateSearch: z.object({
     redirectTo: z.string().optional(),
+    // OAuth error code set by Better Auth (or our Slack workspace check).
+    error: z.string().max(100).optional(),
   }),
-  loader: async () => {
-    const user = await getCurrentUser()
+  loaderDeps: ({ search }) => ({ error: search.error }),
+  loader: async ({ deps }) => {
+    const [user, providers] = await Promise.all([
+      getCurrentUser(),
+      getAuthProviders(),
+    ])
 
     if (user) {
-      throw redirect({
-        to: '/',
-      })
+      // A signed-in user lands here only from "Connect Slack" in Account.
+      if (deps.error) {
+        throw redirect({ to: '/account', search: { slackError: deps.error } })
+      }
+
+      throw redirect({ to: '/' })
     }
 
-    return null
+    return { providers }
   },
   component: LoginPage,
 })
@@ -41,6 +52,10 @@ function LoginPage() {
   const router = useRouter()
   const search = Route.useSearch()
   const redirectTo = getSafeRedirectTo(search.redirectTo)
+  const { providers } = Route.useLoaderData()
+  const slackErrorMessage = search.error
+    ? t(describeSlackSignInError(search.error))
+    : null
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -135,6 +150,20 @@ function LoginPage() {
         <div className="mb-8 text-center">
           <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--tms-text)]">{t('Login')}</h1>
         </div>
+
+        {slackErrorMessage ? (
+          <Alert variant="danger" className="mb-5">
+            {slackErrorMessage}
+          </Alert>
+        ) : null}
+
+        {providers.slack ? (
+          <SlackSignInButton
+            callbackURL={redirectTo}
+            workspaceName={providers.slack.workspaceName}
+            label={slackErrorMessage ? t('Try again with Slack') : undefined}
+          />
+        ) : null}
 
         <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
           <label className="grid gap-2 text-left">

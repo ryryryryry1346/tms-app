@@ -10211,3 +10211,120 @@ button.doc-card__pin:hover {
   right: 1.5rem;
   z-index: 50;
 }
+
+/* Sign in with Slack (login / register) */
+.slack-sign-in {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.slack-sign-in__button {
+  width: 100%;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.slack-sign-in__logo {
+  width: 1.375rem;
+  height: 1.375rem;
+  object-fit: contain;
+}
+
+.slack-sign-in__hint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--tms-text-muted);
+}
+
+.slack-sign-in__error {
+  margin: 0;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--tms-danger);
+}
+
+.slack-sign-in__divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  color: var(--tms-text-muted);
+  font-size: 0.875rem;
+}
+
+.slack-sign-in__divider::before,
+.slack-sign-in__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--tms-border-subtle);
+}
+
+/* Account → Security → sign-in methods */
+.account-methods {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.375rem;
+  margin-bottom: 1rem;
+}
+
+.account-method {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.5rem 0;
+}
+
+.account-method + .account-method {
+  border-top: 1px solid var(--tms-border-subtle);
+  padding-top: 1rem;
+}
+
+.account-method__icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.625rem;
+  background: var(--tms-surface-soft);
+  color: var(--tms-text-muted);
+}
+
+.account-method__icon img {
+  width: 1.5rem;
+  height: 1.5rem;
+  object-fit: contain;
+}
+
+.account-method__body {
+  display: grid;
+  gap: 0.125rem;
+  flex: 1 1 15rem;
+  min-width: 0;
+}
+
+.account-method__body strong {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+}
+
+.account-method__body > span {
+  color: var(--tms-text-muted);
+  font-size: 0.8125rem;
+}
+
+.account-method__badge {
+  padding: 0.0625rem 0.5rem;
+  border: 1px solid var(--tms-success-border);
+  border-radius: 999px;
+  background: var(--tms-success-soft);
+  color: var(--tms-success);
+  font-size: 0.75rem;
+  font-weight: 600;
+}

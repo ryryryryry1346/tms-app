@@ -87,4 +87,36 @@ export const RU_TMS_APP: Record<string, string> = {
   // Errors
   'The request was blocked by a network filter. The text probably contains a fragment that looks like an attack, such as a bash command, SQL or XML. Remove it and try again.':
     'Запрос заблокирован сетевым фильтром. Вероятно, в тексте есть фрагмент, похожий на атаку: bash-команда, SQL или XML. Уберите его и попробуйте снова.',
+
+  // Sign in with Slack
+  'Continue with Slack': 'Войти через Slack',
+  'Try again with Slack': 'Попробовать снова через Slack',
+  'Redirecting to Slack...': 'Переходим в Slack...',
+  'Workspace: {name}': 'Workspace: {name}',
+  'or use email': 'или по email',
+  'Could not sign in with Slack. Try again.': 'Не удалось войти через Slack. Попробуйте ещё раз.',
+  'This Slack account is not in the allowed workspace. Switch to the right workspace in Slack and try again.':
+    'Этот Slack-аккаунт не из разрешённого workspace. Переключитесь в Slack на нужный workspace и попробуйте снова.',
+  'There is no TMS account for this email yet. Ask an administrator or create an account with email.':
+    'Аккаунта TMS с этим email ещё нет. Обратитесь к администратору или зарегистрируйтесь по email.',
+  'An account with this email already exists. Log in with your password and connect Slack in Account → Security.':
+    'Аккаунт с этим email уже есть. Войдите по паролю и подключите Slack в Account → Security.',
+  'Slack sign-in was cancelled.': 'Вход через Slack отменён.',
+  'Slack did not share an email address for this account.': 'Slack не передал email этого аккаунта.',
+  'This Slack account is already connected to another TMS account.':
+    'Этот Slack-аккаунт уже подключён к другому аккаунту TMS.',
+  'The Slack account uses a different email than your TMS account.':
+    'У Slack-аккаунта другой email, чем у вашего аккаунта TMS.',
+  'Sign-in methods and your password.': 'Способы входа и пароль.',
+  'Sign in with Slack': 'Вход через Slack',
+  'Sign in with Slack · {name}': 'Вход через Slack · {name}',
+  'Not connected. Connect it to sign in with one click.': 'Не подключён. Подключите, чтобы входить в один клик.',
+  'Set a password first: it is your only other way to sign in.':
+    'Сначала задайте пароль: другого способа входа у вас нет.',
+  'Email and password': 'Email и пароль',
+  'Not set. Set a password to be able to disconnect Slack.':
+    'Не задан. Задайте пароль, чтобы можно было отключить Slack.',
+  'Set a password': 'Задать пароль',
+  'We sent a link to set a password to {email}.': 'Мы отправили ссылку для установки пароля на {email}.',
+  'Could not disconnect Slack.': 'Не удалось отключить Slack.',
 }

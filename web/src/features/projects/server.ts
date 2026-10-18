@@ -474,7 +474,7 @@ export const addProjectMember = createServerFn({ method: 'POST' })
 
     if (!targetUser) {
       throw new Error(
-        'No registered user with that email. Ask them to sign up first.',
+        'No registered user with that email. Ask them to sign up first (or sign in with Slack, if it is enabled).',
       )
     }
 

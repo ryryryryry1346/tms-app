@@ -13,6 +13,11 @@ export type AccountOverview = {
   name: string
   email: string
   projects: AccountProjectRole[]
+  /** How this user can sign in today. */
+  signInMethods: { password: boolean; slack: boolean }
+  /** Slack sign-in is configured on the server (Connect is possible). */
+  slackAvailable: boolean
+  slackWorkspaceName: string | null
 }
 
 const updateNameInput = z.object({
@@ -37,9 +42,27 @@ export const getAccountOverview = createServerFn({ method: 'GET' }).handler(
       ],
     )
 
-    if (!isDatabaseConfigured()) {
-      return { name: sessionUser.name, email: sessionUser.email, projects: [] }
+    const { slackAuthConfig } = await import('../../lib/auth')
+    const slackInfo = {
+      slackAvailable: slackAuthConfig !== null,
+      slackWorkspaceName: slackAuthConfig?.workspaceName ?? null,
     }
+
+    if (!isDatabaseConfigured()) {
+      return {
+        name: sessionUser.name,
+        email: sessionUser.email,
+        projects: [],
+        signInMethods: { password: true, slack: false },
+        ...slackInfo,
+      }
+    }
+
+    const accountRows = await getDb()
+      .select({ providerId: schema.account.providerId })
+      .from(schema.account)
+      .where(drizzle.eq(schema.account.userId, sessionUser.id))
+    const providers = new Set(accountRows.map((row) => row.providerId))
 
     const rows = await getDb()
       .select({
@@ -67,6 +90,11 @@ export const getAccountOverview = createServerFn({ method: 'GET' }).handler(
         status: row.status,
         role: (row.role as AccountProjectRole['role']) ?? 'viewer',
       })),
+      signInMethods: {
+        password: providers.has('credential'),
+        slack: providers.has('slack'),
+      },
+      ...slackInfo,
     }
   },
 )
@@ -113,3 +141,27 @@ export const changeAccountPassword = createServerFn({ method: 'POST' })
 
     return { ok: true }
   })
+
+/**
+ * Removes the Slack sign-in from the current account. Better Auth refuses to
+ * unlink the last remaining sign-in method, so a Slack-only account must set
+ * a password first.
+ */
+export const disconnectSlack = createServerFn({ method: 'POST' }).handler(
+  async (): Promise<{ ok: true }> => {
+    const { requireSessionUser } = await import('../auth/helpers.server')
+    await requireSessionUser()
+
+    const [{ auth }, { getRequestHeaders }] = await Promise.all([
+      import('../../lib/auth'),
+      import('@tanstack/react-start/server'),
+    ])
+
+    await auth.api.unlinkAccount({
+      body: { providerId: 'slack' },
+      headers: getRequestHeaders(),
+    })
+
+    return { ok: true }
+  },
+)

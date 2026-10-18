@@ -5,13 +5,17 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { PasswordInput } from '../components/ui/PasswordInput'
 import { Panel } from '../components/ui/Panel'
-import { getCurrentUser } from '../features/auth/server'
+import { SlackSignInButton } from '../components/auth/SlackSignInButton'
+import { getAuthProviders, getCurrentUser } from '../features/auth/server'
 import { signUp } from '../lib/auth-client'
 import { useT } from '../lib/i18n'
 
 export const Route = createFileRoute('/register')({
   loader: async () => {
-    const user = await getCurrentUser()
+    const [user, providers] = await Promise.all([
+      getCurrentUser(),
+      getAuthProviders(),
+    ])
 
     if (user) {
       throw redirect({
@@ -19,13 +23,14 @@ export const Route = createFileRoute('/register')({
       })
     }
 
-    return null
+    return { providers }
   },
   component: RegisterPage,
 })
 
 function RegisterPage() {
   const t = useT()
+  const { providers } = Route.useLoaderData()
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -93,6 +98,13 @@ function RegisterPage() {
             >{t('Go to login')}</Link>
           </div>
         ) : (
+          <>
+          {providers.slack ? (
+            <SlackSignInButton
+              callbackURL="/"
+              workspaceName={providers.slack.workspaceName}
+            />
+          ) : null}
           <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
             <label className="grid gap-2 text-left">
               <span className="text-lg font-medium text-[var(--tms-text-muted)]">{t('Name')}</span>
@@ -159,6 +171,7 @@ function RegisterPage() {
               .
             </p>
           </form>
+          </>
         )}
       </Panel>
     </main>

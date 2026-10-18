@@ -1,9 +1,18 @@
 import { drizzleAdapter } from '@better-auth/drizzle-adapter'
 import { betterAuth } from 'better-auth'
+import { APIError } from 'better-auth/api'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { getDb } from '../db/client'
 import { account, session, user, verification } from '../db/schema'
 import { sendMail } from './mail.server'
+import {
+  SLACK_WRONG_WORKSPACE_ERROR,
+  isSlackTeamAllowed,
+  mapSlackProfileToUser,
+  readSlackAuthConfig,
+  type SlackAuthConfig,
+  type SlackProfile,
+} from './slackAuth'
 
 const localFallbackSecret =
   'local-development-only-better-auth-secret-change-before-production'
@@ -43,6 +52,68 @@ function getAuthBaseUrl(): string {
   }
 
   return 'http://localhost:3000'
+}
+
+/** Slack sign-in settings, or null when Slack is not configured. */
+export const slackAuthConfig: SlackAuthConfig | null = readSlackAuthConfig(
+  process.env,
+  isProduction(),
+)
+
+/**
+ * "Sign in with Slack" (OpenID Connect). The user info is fetched here instead
+ * of by Better Auth's default so the workspace can be checked on every
+ * sign-in: a Slack account from another workspace is sent back to the login
+ * page before it can be linked or create a TMS account.
+ */
+function buildSocialProviders(baseUrl: string) {
+  const config = slackAuthConfig
+
+  if (!config) {
+    return {}
+  }
+
+  return {
+    slack: {
+      clientId: config.clientId,
+      clientSecret: config.clientSecret,
+      disableSignUp: !config.allowSignUp,
+      async getUserInfo(token: { accessToken?: string }) {
+        if (!token.accessToken) {
+          return null
+        }
+
+        const response = await fetch(
+          'https://slack.com/api/openid.connect.userInfo',
+          { headers: { authorization: `Bearer ${token.accessToken}` } },
+        )
+
+        if (!response.ok) {
+          return null
+        }
+
+        const profile = (await response.json()) as SlackProfile
+
+        if (profile.ok !== true) {
+          return null
+        }
+
+        if (!isSlackTeamAllowed(profile, config.teamId)) {
+          // A FOUND APIError is Better Auth's redirect (same as c.redirect).
+          throw new APIError('FOUND', undefined, {
+            Location: new URL(
+              `/login?error=${SLACK_WRONG_WORKSPACE_ERROR}`,
+              baseUrl,
+            ).toString(),
+          })
+        }
+
+        const user = mapSlackProfileToUser(profile)
+
+        return user ? { user, data: profile } : null
+      },
+    },
+  }
 }
 
 async function sendVerificationEmail({
@@ -103,8 +174,10 @@ async function sendResetPasswordEmail({
   })
 }
 
+const authBaseUrl = getAuthBaseUrl()
+
 export const auth = betterAuth({
-  baseURL: getAuthBaseUrl(),
+  baseURL: authBaseUrl,
   secret: getAuthSecret(),
   database: drizzleAdapter(getDb(), {
     provider: 'mysql',
@@ -140,6 +213,11 @@ export const auth = betterAuth({
       })
     },
   },
+  socialProviders: buildSocialProviders(authBaseUrl),
+  account: {
+    // Slack tokens are not used after sign-in, but never store them in clear text.
+    encryptOAuthTokens: true,
+  },
   rateLimit: {
     enabled: true,
     window: 60,
@@ -149,6 +227,7 @@ export const auth = betterAuth({
       '/sign-up/email': { window: 60, max: 5 },
       '/forget-password': { window: 60, max: 5 },
       '/reset-password': { window: 60, max: 10 },
+      '/sign-in/social': { window: 60, max: 10 },
     },
   },
   plugins: [tanstackStartCookies()],

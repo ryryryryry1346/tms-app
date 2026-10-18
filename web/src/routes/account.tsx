@@ -7,6 +7,7 @@ import {
   Folder,
   Info,
   KeyRound,
+  LockKeyhole,
   Mail,
   Pencil,
   ShieldCheck,
@@ -14,6 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { z } from 'zod'
 import { ProjectPageHeader } from '../components/layout/ProjectPageHeader'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
@@ -23,14 +25,23 @@ import { PasswordInput } from '../components/ui/PasswordInput'
 import { cx } from '../components/ui/utils'
 import {
   changeAccountPassword,
+  disconnectSlack,
   getAccountOverview,
   updateAccountName,
   type AccountProjectRole,
 } from '../features/account/server'
+import { linkSocial, requestPasswordReset } from '../lib/auth-client'
 import { getErrorMessage } from '../lib/errors'
+import { canDisconnectSlack, describeSlackSignInError } from '../lib/slackAuth'
 import { pluralize, useLanguage, useT, type Language } from '../lib/i18n'
 
 export const Route = createFileRoute('/account')({
+  // Error code from a failed "Connect Slack" round trip.
+  validateSearch: z.object({
+    slackError: z.string().max(100).optional(),
+    // Set by Better Auth when linkSocial fails (errorCallbackURL).
+    error: z.string().max(100).optional(),
+  }),
   loader: async () => getAccountOverview(),
   component: AccountPage,
 })
@@ -126,7 +137,74 @@ function AccountPage() {
   const { language } = useLanguage()
 
   const overview = Route.useLoaderData()
+  const search = Route.useSearch()
   const router = useRouter()
+
+  const methods = overview.signInMethods
+  const [isSlackBusy, setIsSlackBusy] = useState(false)
+  const [slackError, setSlackError] = useState<string | null>(
+    search.slackError || search.error
+      ? t(describeSlackSignInError(search.slackError || search.error || ''))
+      : null,
+  )
+  const [isSendingPasswordLink, setIsSendingPasswordLink] = useState(false)
+  const [passwordLinkMessage, setPasswordLinkMessage] = useState<string | null>(
+    null,
+  )
+
+  async function handleConnectSlack(): Promise<void> {
+    setSlackError(null)
+    setIsSlackBusy(true)
+
+    try {
+      const result = await linkSocial({
+        provider: 'slack',
+        callbackURL: '/account',
+        errorCallbackURL: '/account',
+      })
+
+      if (result.error) {
+        setSlackError(t('Could not sign in with Slack. Try again.'))
+        setIsSlackBusy(false)
+      }
+    } catch {
+      setSlackError(t('Could not sign in with Slack. Try again.'))
+      setIsSlackBusy(false)
+    }
+  }
+
+  async function handleDisconnectSlack(): Promise<void> {
+    setSlackError(null)
+    setIsSlackBusy(true)
+
+    try {
+      await disconnectSlack()
+      await router.invalidate()
+    } catch (error) {
+      setSlackError(getErrorMessage(error, t('Could not disconnect Slack.')))
+    } finally {
+      setIsSlackBusy(false)
+    }
+  }
+
+  async function handleSendPasswordLink(): Promise<void> {
+    setPasswordLinkMessage(null)
+    setIsSendingPasswordLink(true)
+
+    try {
+      await requestPasswordReset({
+        email: overview.email,
+        redirectTo: '/reset-password',
+      })
+      setPasswordLinkMessage(
+        t('We sent a link to set a password to {email}.', {
+          email: overview.email,
+        }),
+      )
+    } finally {
+      setIsSendingPasswordLink(false)
+    }
+  }
 
   const [name, setName] = useState(overview.name)
   const [isSavingName, setIsSavingName] = useState(false)
@@ -383,10 +461,100 @@ function AccountPage() {
                   </span>
                   <div>
                     <h2>{t('Security')}</h2>
-                    <p>{t('Change your password.')}</p>
+                    <p>{t('Sign-in methods and your password.')}</p>
                   </div>
                 </div>
 
+                {overview.slackAvailable || methods.slack ? (
+                  <Panel className="account-methods">
+                    <div className="account-method">
+                      <span className="account-method__icon account-method__icon--slack">
+                        <img
+                          src="/integrations/slack.png"
+                          alt=""
+                          aria-hidden="true"
+                          onError={(event) => {
+                            event.currentTarget.style.display = 'none'
+                          }}
+                        />
+                      </span>
+                      <div className="account-method__body">
+                        <strong>
+                          Slack
+                          {methods.slack ? (
+                            <span className="account-method__badge">
+                              {t('Connected')}
+                            </span>
+                          ) : null}
+                        </strong>
+                        <span>
+                          {methods.slack
+                            ? overview.slackWorkspaceName
+                              ? t('Sign in with Slack · {name}', {
+                                  name: overview.slackWorkspaceName,
+                                })
+                              : t('Sign in with Slack')
+                            : t('Not connected. Connect it to sign in with one click.')}
+                        </span>
+                      </div>
+                      {methods.slack ? (
+                        <Button
+                          type="button"
+                          onClick={handleDisconnectSlack}
+                          disabled={isSlackBusy || !canDisconnectSlack(methods)}
+                          title={
+                            canDisconnectSlack(methods)
+                              ? undefined
+                              : t('Set a password first: it is your only other way to sign in.')
+                          }
+                        >
+                          {t('Disconnect')}
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          onClick={handleConnectSlack}
+                          disabled={isSlackBusy || !overview.slackAvailable}
+                        >
+                          {isSlackBusy ? t('Redirecting to Slack...') : t('Connect')}
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="account-method">
+                      <span className="account-method__icon">
+                        <LockKeyhole size={18} aria-hidden="true" />
+                      </span>
+                      <div className="account-method__body">
+                        <strong>{t('Email and password')}</strong>
+                        <span>
+                          {methods.password
+                            ? overview.email
+                            : t('Not set. Set a password to be able to disconnect Slack.')}
+                        </span>
+                      </div>
+                      {methods.password ? null : (
+                        <Button
+                          type="button"
+                          variant="primary"
+                          onClick={handleSendPasswordLink}
+                          disabled={isSendingPasswordLink}
+                        >
+                          {isSendingPasswordLink ? t('Sending...') : t('Set a password')}
+                        </Button>
+                      )}
+                    </div>
+
+                    {slackError ? (
+                      <Alert variant="danger">{slackError}</Alert>
+                    ) : null}
+                    {passwordLinkMessage ? (
+                      <Alert variant="success">{passwordLinkMessage}</Alert>
+                    ) : null}
+                  </Panel>
+                ) : null}
+
+                {methods.password ? (
                 <Panel className="account-password">
                   <form
                     className="account-form"
@@ -462,6 +630,7 @@ function AccountPage() {
                     ) : null}
                   </form>
                 </Panel>
+                ) : null}
               </section>
 
               <section id="account-projects" className="settings-section">

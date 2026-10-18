@@ -17,3 +17,20 @@ export const logoutUser = createServerFn({ method: 'POST' }).handler(
     return { ok: true }
   },
 )
+
+export type AuthProviders = {
+  slack: { workspaceName: string | null } | null
+}
+
+/** Which sign-in providers are configured (for the login and account pages). */
+export const getAuthProviders = createServerFn({ method: 'GET' }).handler(
+  async (): Promise<AuthProviders> => {
+    const { slackAuthConfig } = await import('../../lib/auth')
+
+    return {
+      slack: slackAuthConfig
+        ? { workspaceName: slackAuthConfig.workspaceName }
+        : null,
+    }
+  },
+)
