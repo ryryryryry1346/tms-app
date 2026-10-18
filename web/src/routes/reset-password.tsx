@@ -7,9 +7,8 @@ import {
 import { useState } from 'react'
 import { z } from 'zod'
 import { Alert } from '../components/ui/Alert'
-import { Button } from '../components/ui/Button'
 import { PasswordInput } from '../components/ui/PasswordInput'
-import { Panel } from '../components/ui/Panel'
+import { AuthShell } from '../components/auth/AuthShell'
 import { getCurrentUser } from '../features/auth/server'
 import { resetPassword } from '../lib/auth-client'
 import { useT } from '../lib/i18n'
@@ -96,78 +95,60 @@ function ResetPasswordPage() {
   }
 
   return (
-    <main className="auth-page page-wrap px-4 py-8 sm:py-12">
-      <Panel className="auth-card rise-in mx-auto flex min-h-[32rem] w-full max-w-[35rem] flex-col p-8 sm:p-10">
-        <div className="mb-8 text-center">
-          <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--tms-text)]">{t('New password')}</h1>
-        </div>
+    <AuthShell title={t('New password')}>
+      {isComplete ? (
+        <>
+          <Alert variant="success">{t('Your password has been reset. You can log in with the new password.')}</Alert>
+          <button
+            type="button"
+            onClick={goToLogin}
+            className="auth-min__button auth-min__button--primary"
+          >
+            {t('Go to login')}
+          </button>
+        </>
+      ) : (
+        <form className="auth-min__form" onSubmit={handleSubmit}>
+          <label className="sr-only" htmlFor="reset-password">
+            {t('New password')}
+          </label>
+          <PasswordInput
+            id="reset-password"
+            name="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder={t('New password, at least 8 characters')}
+            autoComplete="new-password"
+          />
 
-        {isComplete ? (
-          <div className="grid flex-1 content-start gap-5 text-center">
-            <Alert variant="success" className="px-5 py-4 text-left">{t('Your password has been reset. You can log in with the new password.')}</Alert>
-            <Button
-              type="button"
-              onClick={goToLogin}
-              variant="primary"
-              size="lg"
-              className="rounded-2xl px-5 py-4 text-lg font-bold shadow-[var(--tms-shadow-subtle)]"
-            >{t('Go to login')}</Button>
+          <label className="sr-only" htmlFor="reset-confirm">
+            {t('Confirm password')}
+          </label>
+          <PasswordInput
+            id="reset-confirm"
+            name="confirmPassword"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            placeholder={t('Repeat the new password')}
+            autoComplete="new-password"
+          />
+
+          {errorMessage ? <Alert variant="danger">{errorMessage}</Alert> : null}
+
+          <button
+            type="submit"
+            disabled={isSubmitting || !token}
+            className="auth-min__button auth-min__button--primary"
+          >
+            {isSubmitting ? t('Saving password...') : t('Save new password')}
+          </button>
+
+          <div className="auth-min__links auth-min__links--center">
+            <span>{t('Need a new link?')}</span>
+            <Link to="/forgot-password">{t('Request reset')}</Link>
           </div>
-        ) : (
-          <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
-            <label className="grid gap-2 text-left">
-              <span className="text-lg font-medium text-[var(--tms-text-muted)]">{t('New password')}</span>
-              <PasswordInput
-                name="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                size="lg"
-                className="auth-input rounded-2xl px-5 py-4 text-lg"
-                placeholder={t('Create a new password')}
-                autoComplete="new-password"
-              />
-              <span className="text-sm text-[var(--tms-text-muted)]">{t('At least 8 characters.')}</span>
-            </label>
-
-            <label className="grid gap-2 text-left">
-              <span className="text-lg font-medium text-[var(--tms-text-muted)]">{t('Confirm password')}</span>
-              <PasswordInput
-                name="confirmPassword"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                size="lg"
-                className="auth-input rounded-2xl px-5 py-4 text-lg"
-                placeholder={t('Repeat the new password')}
-                autoComplete="new-password"
-              />
-            </label>
-
-            {errorMessage ? (
-              <Alert variant="danger">
-                {errorMessage}
-              </Alert>
-            ) : null}
-
-            <Button
-              type="submit"
-              disabled={isSubmitting || !token}
-              variant="primary"
-              size="lg"
-              className="mt-auto rounded-2xl px-5 py-4 text-lg font-bold shadow-[var(--tms-shadow-subtle)]"
-            >
-              {isSubmitting ? t('Saving password...') : t('Save new password')}
-            </Button>
-
-            <p className="pt-2 text-center text-lg text-[var(--tms-text-muted)]">{t('Need a new link?')}{' '}
-              <Link
-                to="/forgot-password"
-                className="font-semibold text-[var(--tms-primary)] no-underline"
-              >{t('Request reset')}</Link>
-              .
-            </p>
-          </form>
-        )}
-      </Panel>
-    </main>
+        </form>
+      )}
+    </AuthShell>
   )
 }

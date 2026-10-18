@@ -1,10 +1,10 @@
 import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Alert } from '../components/ui/Alert'
-import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { PasswordInput } from '../components/ui/PasswordInput'
-import { Panel } from '../components/ui/Panel'
+import { cx } from '../components/ui/utils'
+import { AuthShell } from '../components/auth/AuthShell'
 import { SlackSignInButton } from '../components/auth/SlackSignInButton'
 import { getAuthProviders, getCurrentUser } from '../features/auth/server'
 import { signUp } from '../lib/auth-client'
@@ -80,100 +80,92 @@ function RegisterPage() {
   }
 
   return (
-    <main className="auth-page page-wrap px-4 py-8 sm:py-12">
-      <Panel className="auth-card rise-in mx-auto flex min-h-[35rem] w-full max-w-[35rem] flex-col p-8 sm:p-10">
-        <div className="mb-8 text-center">
-          <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--tms-text)]">
-            {submittedEmail ? t('Check your email') : t('Register')}
-          </h1>
-        </div>
+    <AuthShell
+      title={submittedEmail ? t('Check your email') : t('Create account')}
+      subtitle={
+        !submittedEmail && providers.slack?.workspaceName
+          ? t('{name} workspace', { name: providers.slack.workspaceName })
+          : undefined
+      }
+    >
+      {submittedEmail ? (
+        <>
+          <Alert variant="success">{t('We sent a verification link to')}{' '}
+            <span className="font-semibold">{submittedEmail}</span>{t('. Open it to confirm your email before logging in.')}</Alert>
+          <Link to="/login" className="auth-min__button auth-min__button--primary">
+            {t('Go to login')}
+          </Link>
+        </>
+      ) : (
+        <>
+          {providers.slack ? <SlackSignInButton callbackURL="/" /> : null}
 
-        {submittedEmail ? (
-          <div className="grid flex-1 content-start gap-5 text-center">
-            <Alert variant="success" className="px-5 py-4 text-left">{t('We sent a verification link to')}{' '}
-              <span className="font-semibold">{submittedEmail}</span>{t('. Open it to confirm your email before logging in.')}</Alert>
-            <Link
-              to="/login"
-              className="tms-button tms-button-primary justify-center rounded-2xl px-5 py-4 text-lg font-bold no-underline shadow-[var(--tms-shadow-subtle)]"
-            >{t('Go to login')}</Link>
-          </div>
-        ) : (
-          <>
-          {providers.slack ? (
-            <SlackSignInButton
-              callbackURL="/"
-              workspaceName={providers.slack.workspaceName}
+          <form
+            className={cx(
+              'auth-min__form',
+              providers.slack && 'auth-min__form--divided',
+            )}
+            onSubmit={handleSubmit}
+          >
+            <label className="sr-only" htmlFor="register-name">
+              {t('Name')}
+            </label>
+            <Input
+              id="register-name"
+              name="name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder={t('Name')}
+              autoComplete="name"
             />
-          ) : null}
-          <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
-            <label className="grid gap-2 text-left">
-              <span className="text-lg font-medium text-[var(--tms-text-muted)]">{t('Name')}</span>
-              <Input
-                name="name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                size="lg"
-                className="auth-input rounded-2xl px-5 py-4 text-lg"
-                placeholder={t('Your name')}
-                autoComplete="name"
-              />
+
+            <label className="sr-only" htmlFor="register-email">
+              {t('Email')}
             </label>
+            <Input
+              id="register-email"
+              name="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              type="email"
+              placeholder={t('Email')}
+              autoComplete="email"
+            />
 
-            <label className="grid gap-2 text-left">
-              <span className="text-lg font-medium text-[var(--tms-text-muted)]">{t('Email')}</span>
-              <Input
-                name="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                type="email"
-                size="lg"
-                className="auth-input rounded-2xl px-5 py-4 text-lg"
-                placeholder={t('you@example.com')}
-                autoComplete="email"
-              />
+            <label className="sr-only" htmlFor="register-password">
+              {t('Password')}
             </label>
+            <PasswordInput
+              id="register-password"
+              name="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder={t('Password, at least 8 characters')}
+              autoComplete="new-password"
+            />
 
-            <label className="grid gap-2 text-left">
-              <span className="text-lg font-medium text-[var(--tms-text-muted)]">{t('Password')}</span>
-              <PasswordInput
-                name="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                size="lg"
-                className="auth-input rounded-2xl px-5 py-4 text-lg"
-                placeholder={t('Create a password')}
-                autoComplete="new-password"
-              />
-              <span className="text-sm text-[var(--tms-text-muted)]">{t('At least 8 characters.')}</span>
-            </label>
+            {errorMessage ? <Alert variant="danger">{errorMessage}</Alert> : null}
 
-            {errorMessage ? (
-              <Alert variant="danger">
-                {errorMessage}
-              </Alert>
-            ) : null}
-
-            <Button
+            <button
               type="submit"
               disabled={isSubmitting}
-              variant="primary"
-              size="lg"
-              className="mt-auto rounded-2xl px-5 py-4 text-lg font-bold shadow-[var(--tms-shadow-subtle)]"
+              className={cx(
+                'auth-min__button',
+                providers.slack
+                  ? 'auth-min__button--secondary'
+                  : 'auth-min__button--primary',
+              )}
             >
               {isSubmitting ? t('Sending verification...') : t('Create account')}
-            </Button>
+            </button>
 
-            <p className="pt-2 text-center text-lg text-[var(--tms-text-muted)]">{t('Already have an account?')}{' '}
-              <Link
-                to="/login"
-                className="font-semibold text-[var(--tms-primary)] no-underline"
-              >{t('Log in')}</Link>
-              .
-            </p>
+            <div className="auth-min__links auth-min__links--center">
+              <span>{t('Already have an account?')}</span>
+              <Link to="/login">{t('Log in')}</Link>
+            </div>
           </form>
-          </>
-        )}
-      </Panel>
-    </main>
+        </>
+      )}
+    </AuthShell>
   )
 }

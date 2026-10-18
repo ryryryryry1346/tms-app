@@ -119,4 +119,13 @@ export const RU_TMS_APP: Record<string, string> = {
   'Set a password': 'Задать пароль',
   'We sent a link to set a password to {email}.': 'Мы отправили ссылку для установки пароля на {email}.',
   'Could not disconnect Slack.': 'Не удалось отключить Slack.',
+
+  // Minimal sign-in pages
+  'Sign in to TMS': 'Вход в TMS',
+  '{name} workspace': 'Workspace {name}',
+  'Use email and password instead': 'Войти по email и паролю',
+  'Forgot password': 'Забыли пароль',
+  'Password, at least 8 characters': 'Пароль, не меньше 8 символов',
+  'New password, at least 8 characters': 'Новый пароль, не меньше 8 символов',
+  'We will email you a link to set a new password.': 'Мы пришлём ссылку для установки нового пароля.',
 }

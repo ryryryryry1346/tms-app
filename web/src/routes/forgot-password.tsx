@@ -1,9 +1,8 @@
 import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Alert } from '../components/ui/Alert'
-import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
-import { Panel } from '../components/ui/Panel'
+import { AuthShell } from '../components/auth/AuthShell'
 import { getCurrentUser } from '../features/auth/server'
 import { requestPasswordReset } from '../lib/auth-client'
 import { useT } from '../lib/i18n'
@@ -68,63 +67,49 @@ function ForgotPasswordPage() {
   }
 
   return (
-    <main className="auth-page page-wrap px-4 py-8 sm:py-12">
-      <Panel className="auth-card rise-in mx-auto flex min-h-[30rem] w-full max-w-[35rem] flex-col p-8 sm:p-10">
-        <div className="mb-8 text-center">
-          <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--tms-text)]">{t('Reset password')}</h1>
-        </div>
+    <AuthShell
+      title={t('Reset password')}
+      subtitle={submittedEmail ? undefined : t('We will email you a link to set a new password.')}
+    >
+      {submittedEmail ? (
+        <>
+          <Alert variant="success">{t('If an account exists for')}{' '}
+            <span className="font-semibold">{submittedEmail}</span>{t(', we sent a password reset link.')}</Alert>
+          <Link to="/login" className="auth-min__button auth-min__button--primary">
+            {t('Back to login')}
+          </Link>
+        </>
+      ) : (
+        <form className="auth-min__form" onSubmit={handleSubmit}>
+          <label className="sr-only" htmlFor="forgot-email">
+            {t('Email')}
+          </label>
+          <Input
+            id="forgot-email"
+            name="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            type="email"
+            placeholder={t('Email')}
+            autoComplete="email"
+          />
 
-        {submittedEmail ? (
-          <div className="grid flex-1 content-start gap-5 text-center">
-            <Alert variant="success" className="px-5 py-4 text-left">{t('If an account exists for')}{' '}
-              <span className="font-semibold">{submittedEmail}</span>{t(', we sent a password reset link.')}</Alert>
-            <Link
-              to="/login"
-              className="tms-button tms-button-primary justify-center rounded-2xl px-5 py-4 text-lg font-bold no-underline shadow-[var(--tms-shadow-subtle)]"
-            >{t('Back to login')}</Link>
+          {errorMessage ? <Alert variant="danger">{errorMessage}</Alert> : null}
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="auth-min__button auth-min__button--primary"
+          >
+            {isSubmitting ? t('Sending reset link...') : t('Send reset link')}
+          </button>
+
+          <div className="auth-min__links auth-min__links--center">
+            <span>{t('Remembered it?')}</span>
+            <Link to="/login">{t('Log in')}</Link>
           </div>
-        ) : (
-          <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
-            <label className="grid gap-2 text-left">
-              <span className="text-lg font-medium text-[var(--tms-text-muted)]">{t('Email')}</span>
-              <Input
-                name="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                type="email"
-                size="lg"
-                className="auth-input rounded-2xl px-5 py-4 text-lg"
-                placeholder={t('you@example.com')}
-                autoComplete="email"
-              />
-            </label>
-
-            {errorMessage ? (
-              <Alert variant="danger">
-                {errorMessage}
-              </Alert>
-            ) : null}
-
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              variant="primary"
-              size="lg"
-              className="mt-auto rounded-2xl px-5 py-4 text-lg font-bold shadow-[var(--tms-shadow-subtle)]"
-            >
-              {isSubmitting ? t('Sending reset link...') : t('Send reset link')}
-            </Button>
-
-            <p className="pt-2 text-center text-lg text-[var(--tms-text-muted)]">{t('Remembered it?')}{' '}
-              <Link
-                to="/login"
-                className="font-semibold text-[var(--tms-primary)] no-underline"
-              >{t('Log in')}</Link>
-              .
-            </p>
-          </form>
-        )}
-      </Panel>
-    </main>
+        </form>
+      )}
+    </AuthShell>
   )
 }

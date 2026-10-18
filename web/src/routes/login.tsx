@@ -11,7 +11,8 @@ import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { PasswordInput } from '../components/ui/PasswordInput'
-import { Panel } from '../components/ui/Panel'
+import { cx } from '../components/ui/utils'
+import { AuthShell } from '../components/auth/AuthShell'
 import { SlackSignInButton } from '../components/auth/SlackSignInButton'
 import { getAuthProviders, getCurrentUser } from '../features/auth/server'
 import { sendVerificationEmail, signIn } from '../lib/auth-client'
@@ -63,6 +64,10 @@ function LoginPage() {
   const [resendMessage, setResendMessage] = useState<string | null>(null)
   const [isResending, setIsResending] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // With Slack configured the email form is one click away; without it, it
+  // is the only way in and is shown right away.
+  const [showEmailForm, setShowEmailForm] = useState(false)
+  const isEmailFormVisible = !providers.slack || showEmailForm
 
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>,
@@ -145,59 +150,60 @@ function LoginPage() {
   }
 
   return (
-    <main className="auth-page page-wrap px-4 py-8 sm:py-12">
-      <Panel className="auth-card rise-in mx-auto flex min-h-[35rem] w-full max-w-[35rem] flex-col p-8 sm:p-10">
-        <div className="mb-8 text-center">
-          <h1 className="display-title mb-0 text-5xl font-extrabold tracking-tight text-[var(--tms-text)]">{t('Login')}</h1>
-        </div>
+    <AuthShell
+      title={t('Sign in to TMS')}
+      subtitle={
+        providers.slack?.workspaceName
+          ? t('{name} workspace', { name: providers.slack.workspaceName })
+          : undefined
+      }
+    >
+      {slackErrorMessage ? (
+        <Alert variant="danger">{slackErrorMessage}</Alert>
+      ) : null}
 
-        {slackErrorMessage ? (
-          <Alert variant="danger" className="mb-5">
-            {slackErrorMessage}
-          </Alert>
-        ) : null}
+      {providers.slack ? (
+        <SlackSignInButton
+          callbackURL={redirectTo}
+          label={slackErrorMessage ? t('Try again with Slack') : undefined}
+        />
+      ) : null}
 
-        {providers.slack ? (
-          <SlackSignInButton
-            callbackURL={redirectTo}
-            workspaceName={providers.slack.workspaceName}
-            label={slackErrorMessage ? t('Try again with Slack') : undefined}
+      {isEmailFormVisible ? (
+        <form
+          className={cx(
+            'auth-min__form',
+            providers.slack && 'auth-min__form--divided',
+          )}
+          onSubmit={handleSubmit}
+        >
+          <label className="sr-only" htmlFor="login-email">
+            {t('Email')}
+          </label>
+          <Input
+            id="login-email"
+            name="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            type="email"
+            placeholder={t('Email')}
+            autoComplete="email"
+            autoFocus={Boolean(providers.slack)}
           />
-        ) : null}
 
-        <form className="grid flex-1 content-start gap-5" onSubmit={handleSubmit}>
-          <label className="grid gap-2 text-left">
-            <span className="text-lg font-medium text-[var(--tms-text-muted)]">{t('Email')}</span>
-            <Input
-              name="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              type="email"
-              size="lg"
-              className="auth-input rounded-2xl px-5 py-4 text-lg"
-              placeholder={t('you@example.com')}
-              autoComplete="email"
-            />
+          <label className="sr-only" htmlFor="login-password">
+            {t('Password')}
           </label>
+          <PasswordInput
+            id="login-password"
+            name="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder={t('Password')}
+            autoComplete="current-password"
+          />
 
-          <label className="grid gap-2 text-left">
-            <span className="text-lg font-medium text-[var(--tms-text-muted)]">{t('Password')}</span>
-            <PasswordInput
-              name="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              size="lg"
-              className="auth-input rounded-2xl px-5 py-4 text-lg"
-              placeholder={t('Enter your password')}
-              autoComplete="current-password"
-            />
-          </label>
-
-          {errorMessage ? (
-            <Alert variant="danger">
-              {errorMessage}
-            </Alert>
-          ) : null}
+          {errorMessage ? <Alert variant="danger">{errorMessage}</Alert> : null}
 
           {unverifiedEmail ? (
             <Alert variant="warning" className="grid gap-3 px-4 py-4">
@@ -210,7 +216,7 @@ function LoginPage() {
                 type="button"
                 onClick={handleResendVerification}
                 disabled={isResending}
-                className="w-fit rounded-xl px-4 py-2 font-semibold shadow-none"
+                className="w-fit"
               >
                 {isResending ? t('Sending...') : t('Send verification again')}
               </Button>
@@ -220,33 +226,34 @@ function LoginPage() {
             </Alert>
           ) : null}
 
-          <Button
+          <button
             type="submit"
             disabled={isSubmitting}
-            variant="primary"
-            size="lg"
-            className="mt-auto rounded-2xl px-5 py-4 text-lg font-bold shadow-[var(--tms-shadow-subtle)]"
+            className={cx(
+              'auth-min__button',
+              providers.slack
+                ? 'auth-min__button--secondary'
+                : 'auth-min__button--primary',
+            )}
           >
             {isSubmitting ? t('Logging in...') : t('Log in')}
-          </Button>
+          </button>
 
-          <p className="pt-2 text-center text-lg text-[var(--tms-text-muted)]">
-            <Link
-              to="/forgot-password"
-              className="font-semibold text-[var(--tms-primary)] no-underline"
-            >{t('Forgot password?')}</Link>
-          </p>
-
-          <p className="text-center text-lg text-[var(--tms-text-muted)]">{t('Don\'t have an account?')}{' '}
-            <Link
-              to="/register"
-              className="font-semibold text-[var(--tms-primary)] no-underline"
-            >{t('Create one now')}</Link>
-            .
-          </p>
+          <div className="auth-min__links">
+            <Link to="/forgot-password">{t('Forgot password')}</Link>
+            <Link to="/register">{t('Create account')}</Link>
+          </div>
         </form>
-      </Panel>
-    </main>
+      ) : (
+        <button
+          type="button"
+          className="auth-min__toggle"
+          onClick={() => setShowEmailForm(true)}
+        >
+          {t('Use email and password instead')}
+        </button>
+      )}
+    </AuthShell>
   )
 }
 
