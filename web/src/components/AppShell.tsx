@@ -30,6 +30,7 @@ import {
   PopoverMenuItem,
 } from './ui/PopoverMenu'
 import { useTheme } from './ThemeProvider'
+import LanguageSwitcher from './LanguageSwitcher'
 import { useRouterState } from '@tanstack/react-router'
 import { useT } from '../lib/i18n'
 
@@ -414,7 +415,12 @@ export default function AppShell({ user, children }: AppShellProps) {
   }, [])
 
   if (isAuthPath(pathname)) {
-    return <>{children}</>
+    return (
+      <>
+        <LanguageSwitcher className="app-language-switcher--floating" />
+        {children}
+      </>
+    )
   }
 
   const projectItems: NavItem[] = projectSlug
@@ -642,6 +648,7 @@ export default function AppShell({ user, children }: AppShellProps) {
 
           {user ? (
             <div className="app-shell__topbar-right app-shell__topbar-right--user">
+              <LanguageSwitcher />
               <Button
                 type="button"
                 size="sm"

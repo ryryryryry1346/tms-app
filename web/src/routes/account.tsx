@@ -28,7 +28,7 @@ import {
   type AccountProjectRole,
 } from '../features/account/server'
 import { getErrorMessage } from '../lib/errors'
-import { useT } from '../lib/i18n'
+import { pluralize, useLanguage, useT, type Language } from '../lib/i18n'
 
 export const Route = createFileRoute('/account')({
   loader: async () => getAccountOverview(),
@@ -71,8 +71,13 @@ function tileColor(seed: number): string {
   return TILE_COLORS[Math.abs(seed) % TILE_COLORS.length]
 }
 
-function pluralizeProjects(count: number): string {
-  return `${count} project${count === 1 ? '' : 's'}`
+function pluralizeProjects(count: number, language: Language): string {
+  return pluralize(
+    language,
+    count,
+    { one: 'project', other: 'projects' },
+    { one: 'проект', few: 'проекта', many: 'проектов' },
+  )
 }
 
 function passwordStrength(value: string): 0 | 1 | 2 | 3 {
@@ -118,6 +123,7 @@ function RolePill({ role }: { role: AccountRole }) {
 
 function AccountPage() {
   const t = useT()
+  const { language } = useLanguage()
 
   const overview = Route.useLoaderData()
   const router = useRouter()
@@ -142,12 +148,14 @@ function AccountPage() {
   const strength = passwordStrength(newPassword)
   const strengthLabel =
     newPassword.length === 0
-      ? 'At least 8 characters'
+      ? t('At least 8 characters')
       : strength === 1
-        ? `Too short — ${Math.max(8 - newPassword.length, 0)} more characters`
+        ? t('Too short — {count} more characters', {
+            count: Math.max(8 - newPassword.length, 0),
+          })
         : strength === 2
-          ? 'Fair'
-          : 'Strong'
+          ? t('Fair')
+          : t('Strong')
 
   const roleCounts: Record<AccountRole, number> = {
     owner: 0,
@@ -250,7 +258,7 @@ function AccountPage() {
       <div className="workspace-view__inner">
         <div className="workspace-view__stack">
           <ProjectPageHeader
-            projectName="Account"
+            projectName={t('Account')}
             eyebrow={null}
             description={t('Profile, password and your project access.')}
           />
@@ -342,7 +350,7 @@ function AccountPage() {
                       <span className="account-chip">
                         {overview.projects.length === 0
                           ? t('No projects')
-                          : pluralizeProjects(overview.projects.length)}
+                          : pluralizeProjects(overview.projects.length, language)}
                       </span>
                       {ROLE_ORDER.filter((role) => roleCounts[role] > 0).map(
                         (role) => {

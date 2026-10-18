@@ -42,7 +42,7 @@ import {
   updateRunName,
 } from '../features/runs/server'
 import { getErrorMessage } from '../lib/errors'
-import { useT } from '../lib/i18n'
+import { pluralize, useLanguage, useT } from '../lib/i18n'
 
 type RunStateLabel =
   | 'Passed'
@@ -184,6 +184,7 @@ function formatProgressLabel(progress: number, executed: number): string {
 
 function ProjectRunsPage() {
   const t = useT()
+  const { language } = useLanguage()
 
   const { project, dashboard, runs } = Route.useLoaderData()
   const router = useRouter()
@@ -422,15 +423,15 @@ function ProjectRunsPage() {
     }
 
     return [
-      { value: 'all', label: 'All releases' },
+      { value: 'all', label: t('All releases') },
       ...Array.from(names)
         .sort((a, b) => a.localeCompare(b))
         .map((name) => ({ value: name, label: name })),
       ...(hasNoRelease
-        ? [{ value: '__none__', label: 'No release' }]
+        ? [{ value: '__none__', label: t('No release') }]
         : []),
     ]
-  }, [runs])
+  }, [runs, t])
   const totalRunCases = useMemo(
     () => runs.reduce((total, run) => total + run.total, 0),
     [runs],
@@ -605,10 +606,16 @@ function ProjectRunsPage() {
     const isEditing = editingRunId === run.id
     const isPending = pendingRunId === run.id
     const { tone, Icon } = RUN_STATE_META[viewModel.stateLabel]
+    const casesLabel = pluralize(
+      language,
+      run.total,
+      { one: 'case', other: 'cases' },
+      { one: 'кейс', few: 'кейса', many: 'кейсов' },
+    )
     const metaLabel =
       viewModel.executed === 0
-        ? `${run.total} ${run.total === 1 ? 'case' : 'cases'} · not started`
-        : `${run.total} ${run.total === 1 ? 'case' : 'cases'} · ${viewModel.executed} executed`
+        ? `${casesLabel} · ${t('not started')}`
+        : `${casesLabel} · ${t('{count} executed', { count: viewModel.executed })}`
     const results: Array<{ key: string; value: number; label: string }> = [
       { key: 'passed', value: run.passed, label: t('Passed') },
       { key: 'failed', value: run.failed, label: t('Failed') },
@@ -903,7 +910,10 @@ function ProjectRunsPage() {
               <SelectMenu
                 value={sortMode}
                 onValueChange={(value) => setSortMode(value as RunSortMode)}
-                options={RUN_SORT_OPTIONS}
+                options={RUN_SORT_OPTIONS.map((option) => ({
+                  ...option,
+                  label: t(option.label),
+                }))}
                 className="runs-toolbar__select"
                 aria-label={t('Sort runs')}
               />

@@ -15,7 +15,7 @@ import {
 import { uploadTestMedia } from '../../features/media/server'
 import { sanitizeHtml } from '../../lib/sanitize-html'
 import { getErrorMessage } from '../../lib/errors'
-import { useT } from '../../lib/i18n'
+import { useLanguage, useT, type Language } from '../../lib/i18n'
 
 type CommentsSectionProps = {
   entityType: CommentEntityType
@@ -62,7 +62,7 @@ function avatarColor(key: string): string {
   return AVATAR_COLORS[hash % AVATAR_COLORS.length]
 }
 
-function formatCommentDate(value: string): string {
+function formatCommentDate(value: string, language: Language): string {
   const date = new Date(value)
 
   if (Number.isNaN(date.getTime())) {
@@ -71,7 +71,7 @@ function formatCommentDate(value: string): string {
 
   const sameYear = date.getFullYear() === new Date().getFullYear()
 
-  return date.toLocaleString('en-US', {
+  return date.toLocaleString(language === 'ru' ? 'ru-RU' : 'en-US', {
     month: 'short',
     day: 'numeric',
     ...(sameYear ? {} : { year: 'numeric' }),
@@ -182,6 +182,7 @@ function CommentEditor({
 
 export function CommentsSection({ entityType, entityId }: CommentsSectionProps) {
   const t = useT()
+  const { language } = useLanguage()
 
   const [items, setItems] = useState<CommentItem[]>([])
   const [canComment, setCanComment] = useState(false)
@@ -328,9 +329,9 @@ export function CommentsSection({ entityType, entityId }: CommentsSectionProps) 
         <div className="comment__main">
           <div className="comment__meta">
             <strong>{comment.authorName}</strong>
-            <span>{formatCommentDate(comment.createdAt)}</span>
+            <span>{formatCommentDate(comment.createdAt, language)}</span>
             {comment.updatedAt ? (
-              <span title={formatCommentDate(comment.updatedAt)}>{t('(edited)')}</span>
+              <span title={formatCommentDate(comment.updatedAt, language)}>{t('(edited)')}</span>
             ) : null}
           </div>
 

@@ -33,7 +33,13 @@ import {
 } from '../features/projects/server'
 import { getDashboardState } from '../features/tests/server'
 import { getErrorMessage } from '../lib/errors'
-import { useT, type TranslateFn } from '../lib/i18n'
+import {
+  pluralize,
+  useLanguage,
+  useT,
+  type Language,
+  type TranslateFn,
+} from '../lib/i18n'
 
 type ProjectRole = 'owner' | 'editor' | 'viewer'
 
@@ -105,8 +111,13 @@ function avatarColor(seed: string): string {
   return AVATAR_COLORS[hash % AVATAR_COLORS.length]
 }
 
-function pluralizeMembers(count: number): string {
-  return `${count} member${count === 1 ? '' : 's'}`
+function pluralizeMembers(count: number, language: Language): string {
+  return pluralize(
+    language,
+    count,
+    { one: 'member', other: 'members' },
+    { one: 'участник', few: 'участника', many: 'участников' },
+  )
 }
 
 function RolePill({
@@ -196,6 +207,7 @@ export const Route = createFileRoute('/project/$projectSlug/members')({
 
 function ProjectMembersPage() {
   const t = useT()
+  const { language } = useLanguage()
 
   const {
     project,
@@ -273,7 +285,7 @@ function ProjectMembersPage() {
       setIsInviteOpen(false)
     } catch (error) {
       setErrorMessage(
-        getErrorMessage(error, 'Could not add the member.'),
+        getErrorMessage(error, t('Could not add the member.')),
       )
     } finally {
       setIsAdding(false)
@@ -341,7 +353,7 @@ function ProjectMembersPage() {
             description={t('Who has access to the project and what they can do.')}
             actions={
               <>
-                <Badge variant="primary">{pluralizeMembers(members.length)}</Badge>
+                <Badge variant="primary">{pluralizeMembers(members.length, language)}</Badge>
                 {isOwner ? (
                   <Button
                     variant="primary"

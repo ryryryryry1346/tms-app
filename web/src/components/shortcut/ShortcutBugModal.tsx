@@ -71,7 +71,7 @@ export function ShortcutBugModal({
 
   async function handleCreate(): Promise<void> {
     if (!summary.trim()) {
-      setError('Title is required.')
+      setError(t('Title is required.'))
       return
     }
 
@@ -102,7 +102,7 @@ export function ShortcutBugModal({
       setResult({ url: created.url, name: created.name })
       window.open(created.url, '_blank', 'noopener,noreferrer')
     } catch (createError) {
-      setError(getErrorMessage(createError, 'Failed to create the Shortcut story.'))
+      setError(getErrorMessage(createError, t('Failed to create the Shortcut story.')))
     } finally {
       setIsCreating(false)
     }

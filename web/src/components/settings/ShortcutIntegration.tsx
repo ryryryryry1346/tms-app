@@ -186,7 +186,7 @@ function ShortcutSettingsModal({
       }
     } catch (error) {
       setOptions(null)
-      setOptionsError(getErrorMessage(error, 'Could not load data from Shortcut.'))
+      setOptionsError(getErrorMessage(error, t('Could not load data from Shortcut.')))
     } finally {
       setIsLoadingOptions(false)
     }
@@ -260,7 +260,7 @@ function ShortcutSettingsModal({
       await router.invalidate()
       onClose()
     } catch (error) {
-      setSaveError(getErrorMessage(error, 'Could not save Shortcut settings.'))
+      setSaveError(getErrorMessage(error, t('Could not save Shortcut settings.')))
     } finally {
       setIsSaving(false)
     }
@@ -275,7 +275,7 @@ function ShortcutSettingsModal({
     } catch (error) {
       setTestResult({
         ok: false,
-        message: getErrorMessage(error, 'Could not check the connection.'),
+        message: getErrorMessage(error, t('Could not check the connection.')),
       })
     } finally {
       setIsTesting(false)
@@ -291,7 +291,7 @@ function ShortcutSettingsModal({
       await router.invalidate()
       onClose()
     } catch (error) {
-      setSaveError(getErrorMessage(error, 'Could not disconnect Shortcut.'))
+      setSaveError(getErrorMessage(error, t('Could not disconnect Shortcut.')))
       setIsDisconnecting(false)
       setIsConfirmingDisconnect(false)
     }

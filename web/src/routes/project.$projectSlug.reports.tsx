@@ -258,7 +258,7 @@ function ProjectReportsPage() {
                   <div
                     key={w.weekStart}
                     className="flex flex-1 flex-col items-center justify-end gap-1"
-                    title={`${weekLabel(w.weekStart)} — total ${w.cumulative}${w.created ? `, +${w.created}` : ''}`}
+                    title={`${weekLabel(w.weekStart)} — ${t('total {count}', { count: w.cumulative })}${w.created ? `, +${w.created}` : ''}`}
                   >
                     <span className="text-[10px] font-semibold text-[var(--tms-primary)]">
                       {w.created ? `+${w.created}` : ''}

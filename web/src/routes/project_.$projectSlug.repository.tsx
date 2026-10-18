@@ -2958,7 +2958,7 @@ function ProjectRepositoryPage() {
       window.open(result.url, '_blank', 'noopener,noreferrer')
     } catch (error) {
       setShortcutStoryErrorMessage(
-        getErrorMessage(error, 'Failed to create Shortcut story.'),
+        getErrorMessage(error, t('Failed to create Shortcut story.')),
       )
     } finally {
       setIsCreatingShortcutStory(false)

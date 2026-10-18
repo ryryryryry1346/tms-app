@@ -3,7 +3,7 @@ import { RichTextEditor } from '../RichTextEditor'
 import { Button } from '../ui/Button'
 import { Textarea } from '../ui/Textarea'
 import type { CaseStep } from '../../lib/caseContent'
-import { useT } from '../../lib/i18n'
+import { pluralize, useLanguage, useT, type Language } from '../../lib/i18n'
 
 type StepsEditorProps = {
   /** When provided, a Preconditions editor is shown above the description. */
@@ -20,8 +20,13 @@ type StepsEditorProps = {
   hideDescription?: boolean
 }
 
-function pluralizeSteps(count: number): string {
-  return `${count} step${count === 1 ? '' : 's'}`
+function pluralizeSteps(count: number, language: Language): string {
+  return pluralize(
+    language,
+    count,
+    { one: 'step', other: 'steps' },
+    { one: 'шаг', few: 'шага', many: 'шагов' },
+  )
 }
 
 export function StepsEditor({
@@ -37,6 +42,7 @@ export function StepsEditor({
   hideDescription = false,
 }: StepsEditorProps) {
   const t = useT()
+  const { language } = useLanguage()
 
   function updateStep(
     index: number,
@@ -104,7 +110,7 @@ export function StepsEditor({
         <div className="case-steps__head">
           <span className="case-steps__title">{t('Steps')}</span>
           <span className="case-steps__count">
-            {steps.length === 0 ? t('none yet') : pluralizeSteps(steps.length)}
+            {steps.length === 0 ? t('none yet') : pluralizeSteps(steps.length, language)}
           </span>
           <Button
             type="button"
